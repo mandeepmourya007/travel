@@ -3,22 +3,21 @@ import cors from 'cors'
 import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
+import { corsOptions } from './config/cors'
 import { requestIdMiddleware } from './middleware/request-id.middleware'
+import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
+import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { logger } from './utils/logger'
+import { authRoutes } from './config/dependencies'
+import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
   const app = express()
 
   // ── Security ──────────────────────────────────────
   app.use(helmet())
-  app.use(
-    cors({
-      origin: process.env.CLIENT_URL || 'http://localhost:3000',
-      credentials: true,
-    }),
-  )
+  app.use(cors(corsOptions))
 
   // ── Parsing ───────────────────────────────────────
   app.use(express.json({ limit: '10mb' }))
@@ -31,31 +30,19 @@ export function createServer() {
   // ── Request ID (distributed tracing) ──────────────
   app.use(requestIdMiddleware)
 
+  // ── Rate Limiting (Redis-backed) ──────────────────
+  app.use(generalRateLimit)
+
   // ── Request Logging ───────────────────────────────
-  app.use((req, res, next) => {
-    const start = Date.now()
-    res.on('finish', () => {
-      const duration = Date.now() - start
-      logger.info(
-        {
-          requestId: req.headers['x-request-id'],
-          method: req.method,
-          path: req.path,
-          statusCode: res.statusCode,
-          duration: `${duration}ms`,
-        },
-        `${req.method} ${req.path} ${res.statusCode} ${duration}ms`,
-      )
-    })
-    next()
-  })
+  app.use(requestLoggerMiddleware)
 
   // ── Health Check (no auth) ────────────────────────
   app.use(healthRoutes)
 
   // ── API Routes ────────────────────────────────────
+  app.use('/api/v1/auth', authRateLimit, authRoutes)
+
   // TODO: Mount feature routes here as they are built
-  // app.use('/api/v1/auth', authRoutes)
   // app.use('/api/v1/trips', tripRoutes)
   // app.use('/api/v1/bookings', bookingRoutes)
   // app.use('/api/v1/trip-requests', tripRequestRoutes)
