@@ -15,20 +15,26 @@ export const prisma = basePrisma.$extends({
     $allModels: {
       async findMany({ model, args, query }) {
         if (SOFT_DELETE_MODELS.includes(model as (typeof SOFT_DELETE_MODELS)[number])) {
-          args.where = { ...args.where, isDeleted: false }
+          if (args.where?.isDeleted === undefined) {
+            args.where = { ...args.where, isDeleted: false }
+          }
         }
         return query(args)
       },
       async findFirst({ model, args, query }) {
         if (SOFT_DELETE_MODELS.includes(model as (typeof SOFT_DELETE_MODELS)[number])) {
-          args.where = { ...args.where, isDeleted: false }
+          if (args.where?.isDeleted === undefined) {
+            args.where = { ...args.where, isDeleted: false }
+          }
         }
         return query(args)
       },
       async findUnique({ model, args, query }) {
         if (SOFT_DELETE_MODELS.includes(model as (typeof SOFT_DELETE_MODELS)[number])) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          args.where = { ...args.where, isDeleted: false } as any
+          if ((args.where as any)?.isDeleted === undefined) {
+            args.where = { ...args.where, isDeleted: false } as any
+          }
         }
         return query(args)
       },
