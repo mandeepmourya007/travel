@@ -12,7 +12,9 @@ export const apiClient = axios.create({
 
 // ── Request Interceptor ──────────────────────────────
 apiClient.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+  // Read from Zustand-persisted auth store
+  const stored = typeof window !== 'undefined' ? localStorage.getItem('travel-auth') : null
+  const token = stored ? JSON.parse(stored)?.state?.accessToken : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -35,19 +37,25 @@ apiClient.interceptors.response.use(
           { withCredentials: true },
         )
         if (data.data?.accessToken) {
-          localStorage.setItem('accessToken', data.data.accessToken)
+          // Update Zustand-persisted store
+          const raw = localStorage.getItem('travel-auth')
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            parsed.state.accessToken = data.data.accessToken
+            localStorage.setItem('travel-auth', JSON.stringify(parsed))
+          }
           originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`
           return apiClient(originalRequest)
         }
       } catch {
-        localStorage.removeItem('accessToken')
+        localStorage.removeItem('travel-auth')
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
         }
       }
     }
 
-    // Transform error to standard shape
+    // Extract user-friendly message from API response
     const apiError: ApiError = error.response?.data || {
       success: false,
       error: {
@@ -56,6 +64,14 @@ apiClient.interceptors.response.use(
       },
     }
 
-    return Promise.reject(apiError)
+    const friendlyError = new Error(
+      apiError.error?.message || 'Something went wrong. Please try again.',
+    )
+    // Attach original details for components that need them
+    ;(friendlyError as any).code = apiError.error?.code
+    ;(friendlyError as any).status = error.response?.status
+    ;(friendlyError as any).details = apiError.error?.details
+
+    return Promise.reject(friendlyError)
   },
 )

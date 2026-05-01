@@ -25,6 +25,11 @@ export const destinationKeys = {
   list: () => [...destinationKeys.all, 'list'] as const,
 }
 
+export const reviewKeys = {
+  all: ['reviews'] as const,
+  forTrip: (tripId: string) => [...reviewKeys.all, 'trip', tripId] as const,
+}
+
 export const notificationKeys = {
   all: ['notifications'] as const,
   list: () => [...notificationKeys.all, 'list'] as const,
