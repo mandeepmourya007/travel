@@ -3,6 +3,17 @@ export interface Destination {
   name: string
   slug: string
   state: string
-  imageUrl?: string
-  tripCount?: number
+  photoUrl?: string
+  tripCount: number
+  isPopular: boolean
 }
+
+export interface CreateDestinationDto {
+  name: string
+  slug?: string
+  state: string
+  photoUrl?: string
+  isPopular?: boolean
+}
+
+export type UpdateDestinationDto = Partial<CreateDestinationDto>

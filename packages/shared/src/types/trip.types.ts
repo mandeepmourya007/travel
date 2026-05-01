@@ -66,6 +66,8 @@ export interface CreateTripDto {
   startDate: string
   endDate: string
   pricePerPerson: number
+  earlyBirdPrice?: number
+  earlyBirdDeadline?: string
   minGroupSize: number
   maxGroupSize: number
   cancellationPolicy: CancellationPolicy
@@ -76,3 +78,5 @@ export interface CreateTripDto {
   pickupLocation?: string
   pickupTime?: string
 }
+
+export type UpdateTripDto = Partial<CreateTripDto>
