@@ -221,6 +221,7 @@ model Trip {
   currentBookings    Int                @default(0)
   version            Int                @default(0)
   inclusions         Json
+  exclusions         Json               @default("[]")
   cancellationPolicy CancellationPolicy @default(FLEXIBLE)
   pickupLocation     String?
   pickupTime         String?
