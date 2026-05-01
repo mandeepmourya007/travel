@@ -8,9 +8,14 @@
     --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
   }
 
+  html {
+    overflow-y: auto;
+  }
+
   body {
     @apply bg-neutral-0 text-neutral-800 antialiased;
     font-family: var(--font-sans);
+    min-height: 100vh;
   }
 
   h1, h2, h3, h4 {
