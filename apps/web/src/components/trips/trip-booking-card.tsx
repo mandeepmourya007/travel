@@ -1,0 +1,116 @@
+'use client'
+
+import Link from 'next/link'
+import { Shield, Check, X as XIcon } from 'lucide-react'
+import { formatCurrency, getSeatsLeft } from '@/lib/format'
+import type { TripDetail } from '@shared/types/trip.types'
+
+interface TripBookingCardProps {
+  trip: TripDetail
+}
+
+export function TripBookingCard({ trip }: TripBookingCardProps) {
+  const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
+  const isFull = seatsLeft === 0
+
+  return (
+    <div className="card sticky top-24 p-6">
+      {/* Price */}
+      <div className="mb-4">
+        {trip.earlyBirdPrice ? (
+          <>
+            <span className="text-2xl font-bold text-accent-500">
+              {formatCurrency(trip.earlyBirdPrice)}
+            </span>
+            <span className="text-sm text-neutral-400 line-through ml-2">
+              {formatCurrency(trip.pricePerPerson)}
+            </span>
+          </>
+        ) : (
+          <span className="text-2xl font-bold text-accent-500">
+            {formatCurrency(trip.pricePerPerson)}
+          </span>
+        )}
+        <span className="text-neutral-500 text-sm ml-1">/person</span>
+      </div>
+
+      {/* Capacity bar */}
+      <div className="mb-4">
+        <div className="flex justify-between text-sm mb-1">
+          <span className="text-neutral-600">{trip.currentBookings} booked</span>
+          <span className="text-neutral-400">{trip.maxGroupSize} max</span>
+        </div>
+        <div className="h-2 rounded-full bg-neutral-100 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary-500 transition-all"
+            style={{
+              width: `${Math.min(100, (trip.currentBookings / trip.maxGroupSize) * 100)}%`,
+            }}
+          />
+        </div>
+        {!isFull && seatsLeft <= 5 && (
+          <p className="mt-1 text-xs text-accent-600 font-medium">
+            Only {seatsLeft} seats left!
+          </p>
+        )}
+      </div>
+
+      {/* Inclusions */}
+      {trip.inclusions && trip.inclusions.length > 0 && (
+        <div className="mb-4 border-t border-neutral-100 pt-4">
+          <h4 className="text-sm font-semibold text-neutral-700 mb-2">Inclusions</h4>
+          <ul className="space-y-1.5">
+            {trip.inclusions.slice(0, 5).map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-neutral-600">
+                <Check className="h-3.5 w-3.5 text-success-500 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Exclusions */}
+      {trip.exclusions && trip.exclusions.length > 0 && (
+        <div className="mb-4 border-t border-neutral-100 pt-4">
+          <h4 className="text-sm font-semibold text-neutral-700 mb-2">Exclusions</h4>
+          <ul className="space-y-1.5">
+            {trip.exclusions.slice(0, 3).map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-neutral-400">
+                <XIcon className="h-3.5 w-3.5 text-neutral-300 shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* CTA */}
+      {isFull ? (
+        <button disabled className="btn-disabled w-full text-center">
+          Fully Booked
+        </button>
+      ) : (
+        <Link
+          href={`/trips/${trip.slug}/book`}
+          className="btn-primary w-full text-center block"
+        >
+          {trip.bookingMode === 'INSTANT' ? 'Book Now' : 'Request to Book'}
+        </Link>
+      )}
+
+      {/* Escrow trust badge */}
+      <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
+        <Shield className="h-4 w-4 text-primary-500" />
+        Payment held in escrow until trip completion
+      </div>
+
+      {/* Cancellation */}
+      {trip.cancellationPolicy && (
+        <p className="mt-2 text-xs text-neutral-400">
+          Cancellation: {trip.cancellationPolicy.replace('_', ' ').toLowerCase()}
+        </p>
+      )}
+    </div>
+  )
+}
