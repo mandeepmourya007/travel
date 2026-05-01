@@ -43,9 +43,9 @@ export default function LoginPage() {
           <p className="mt-2 text-neutral-500">Welcome back! Sign in to your account.</p>
         </div>
 
-        <div className="rounded-xl bg-neutral-0 p-8 shadow-card">
+        <div className="rounded-xl bg-white p-8 shadow-card border border-neutral-100">
           {error && (
-            <div className="mb-4 rounded-lg bg-error-50 px-4 py-3 text-sm text-error-500">
+            <div className="mb-4 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-500">
               {error}
             </div>
           )}
@@ -61,7 +61,7 @@ export default function LoginPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="you@example.com"
               />
             </div>
@@ -76,7 +76,7 @@ export default function LoginPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="Enter your password"
               />
             </div>
@@ -84,7 +84,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-primary-500 px-6 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>

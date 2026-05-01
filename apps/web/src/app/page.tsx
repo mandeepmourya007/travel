@@ -3,19 +3,19 @@ import Link from 'next/link'
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-neutral-0">
+      <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <h1 className="font-display text-xl font-bold text-primary-600">TravelApp</h1>
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+              className="rounded-lg bg-transparent px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-100"
             >
               Sign in
             </Link>
             <Link
               href="/signup"
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+              className="rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
             >
               Get started
             </Link>
@@ -35,13 +35,13 @@ export default function HomePage() {
         <div className="mt-10 flex items-center justify-center gap-4">
           <Link
             href="/signup"
-            className="rounded-xl bg-primary-600 px-8 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-primary-700 hover:shadow-lg"
+            className="rounded-lg bg-primary-500 px-8 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg"
           >
             Start exploring
           </Link>
           <Link
             href="/login"
-            className="rounded-xl border border-neutral-200 bg-neutral-0 px-8 py-3 text-base font-semibold text-neutral-700 shadow-sm transition-all hover:bg-neutral-50"
+            className="rounded-lg border border-primary-200 bg-primary-50 px-8 py-3 text-base font-semibold text-primary-700 transition-all duration-200 hover:bg-primary-100"
           >
             Sign in
           </Link>
@@ -53,7 +53,7 @@ export default function HomePage() {
             { title: 'Escrow Payments', desc: 'Your money is safe. Released to organizer only after the trip.' },
             { title: 'Group Trips', desc: 'Trekking, beach getaways, road trips — all from Pune.' },
           ].map((feature) => (
-            <div key={feature.title} className="rounded-xl bg-neutral-0 p-6 shadow-card">
+            <div key={feature.title} className="rounded-xl bg-white border border-neutral-200 p-6 shadow-sm">
               <h3 className="font-display text-lg font-bold text-neutral-800">{feature.title}</h3>
               <p className="mt-2 text-sm text-neutral-500">{feature.desc}</p>
             </div>

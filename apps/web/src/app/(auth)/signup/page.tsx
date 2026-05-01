@@ -61,9 +61,9 @@ export default function SignupPage() {
           <p className="mt-2 text-neutral-500">Create your account to start exploring trips.</p>
         </div>
 
-        <div className="rounded-xl bg-neutral-0 p-8 shadow-card">
+        <div className="rounded-xl bg-white p-8 shadow-card border border-neutral-100">
           {error && (
-            <div className="mb-4 rounded-lg bg-error-50 px-4 py-3 text-sm text-error-500">
+            <div className="mb-4 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-500">
               {error}
             </div>
           )}
@@ -78,7 +78,7 @@ export default function SignupPage() {
                   onClick={() => setForm((f) => ({ ...f, role }))}
                   className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all ${
                     form.role === role
-                      ? 'bg-neutral-0 text-primary-600 shadow-sm'
+                      ? 'bg-white text-primary-600 shadow-sm'
                       : 'text-neutral-500 hover:text-neutral-700'
                   }`}
                 >
@@ -97,7 +97,7 @@ export default function SignupPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="John Doe"
               />
               {getFieldError('name') && (
@@ -115,7 +115,7 @@ export default function SignupPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="you@example.com"
               />
               {getFieldError('email') && (
@@ -132,7 +132,7 @@ export default function SignupPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="9876543210"
               />
               {getFieldError('phone') && (
@@ -150,7 +150,7 @@ export default function SignupPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
                 placeholder="Min 8 chars, 1 uppercase, 1 number"
               />
               {getFieldError('password') && (
@@ -161,7 +161,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
+              className="w-full rounded-lg bg-primary-500 px-6 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

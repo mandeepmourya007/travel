@@ -4,8 +4,9 @@
 
 @layer base {
   :root {
-    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    --color-primary: 15 186 181;       /* primary-500 in RGB */
+    --color-accent: 255 79 51;         /* accent-500 in RGB */
+    --color-highlight: 124 77 255;     /* highlight-500 in RGB */
   }
 
   html {
@@ -13,12 +14,66 @@
   }
 
   body {
-    @apply bg-neutral-0 text-neutral-800 antialiased;
-    font-family: var(--font-sans);
+    @apply bg-neutral-50 text-neutral-800 font-sans antialiased;
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4 {
-    font-family: var(--font-display);
+  h1, h2, h3 {
+    @apply font-display;
   }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 active:bg-primary-700
+           text-white font-semibold rounded-lg px-6 py-3
+           shadow-md hover:shadow-lg transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-primary-50 hover:bg-primary-100
+           text-primary-700 font-semibold rounded-lg px-6 py-3
+           border border-primary-200 transition-all duration-200;
+  }
+
+  .btn-accent {
+    @apply bg-accent-500 hover:bg-accent-600 active:bg-accent-700
+           text-white font-semibold rounded-lg px-6 py-3
+           shadow-md hover:shadow-lg transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-neutral-100
+           text-neutral-700 font-medium rounded-lg px-4 py-2
+           transition-all duration-200;
+  }
+
+  .btn-disabled {
+    @apply bg-neutral-200 text-neutral-400 cursor-not-allowed
+           rounded-lg px-6 py-3;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-card hover:shadow-card-hover
+           border border-neutral-100 overflow-hidden transition-all duration-200;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-neutral-200 bg-neutral-50
+           px-4 py-3 text-base text-neutral-800
+           placeholder:text-neutral-400
+           focus:border-primary-500 focus:ring-2 focus:ring-primary-100
+           focus:bg-white focus:outline-none transition-all;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5
+           text-xs font-medium;
+  }
+
+  .badge-primary { @apply bg-primary-50 text-primary-700; }
+  .badge-accent { @apply bg-accent-50 text-accent-700; }
+  .badge-success { @apply bg-success-50 text-success-500; }
+  .badge-warning { @apply bg-warning-50 text-warning-500; }
+  .badge-error { @apply bg-error-50 text-error-500; }
 }

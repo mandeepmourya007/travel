@@ -32,7 +32,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-neutral-0">
+      <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <h1 className="font-display text-xl font-bold text-primary-600">TravelApp</h1>
           <div className="flex items-center gap-4">
@@ -42,7 +42,7 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={handleLogout}
-              className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+              className="rounded-lg bg-transparent px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-100"
             >
               Logout
             </button>
@@ -64,14 +64,14 @@ export default function DashboardPage() {
             { label: 'Email', value: user.email },
             { label: 'Role', value: user.role },
           ].map((item) => (
-            <div key={item.label} className="rounded-xl bg-neutral-0 p-6 shadow-card">
+            <div key={item.label} className="rounded-xl bg-white border border-neutral-200 p-6 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{item.label}</p>
               <p className="mt-1 text-lg font-semibold text-neutral-800">{item.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-8 rounded-xl border border-dashed border-neutral-300 bg-neutral-0 p-8 text-center">
+        <div className="mt-8 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
           <p className="text-neutral-500">
             Auth is working end-to-end! Next up: Trip browsing, Booking flow, Organizer dashboard.
           </p>
