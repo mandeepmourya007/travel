@@ -11,6 +11,7 @@ export interface TripSummary {
   tripType: TripType
   bookingMode: BookingMode
   pricePerPerson: number
+  earlyBirdPrice?: number | null
   startDate: string
   endDate: string
   maxGroupSize: number
@@ -24,7 +25,15 @@ export interface TripSummary {
   photos: string[]
 }
 
-export interface TripDetail extends TripSummary {
+export interface TripDetailReview {
+  id: string
+  overallRating: number
+  comment?: string | null
+  createdAt: string
+  user: { id: string; name: string; avatarUrl?: string | null }
+}
+
+export interface TripDetail extends Omit<TripSummary, 'organizer'> {
   description: string
   minGroupSize: number
   cancellationPolicy: CancellationPolicy
@@ -34,6 +43,12 @@ export interface TripDetail extends TripSummary {
   pickupLocation?: string
   pickupTime?: string
   status: TripStatus
+  organizer: TripSummary['organizer'] & {
+    id: string
+    totalTrips?: number
+    memberSince?: string
+  }
+  reviews: TripDetailReview[]
 }
 
 export interface ItineraryDay {

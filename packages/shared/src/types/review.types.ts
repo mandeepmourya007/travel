@@ -2,8 +2,13 @@ export interface Review {
   id: string
   tripId: string
   userId: string
-  rating: number
-  comment: string
+  overallRating: number
+  organizationRating?: number
+  valueRating?: number
+  safetyRating?: number
+  accuracyRating?: number
+  comment?: string
+  photos: string[]
   createdAt: string
   user: {
     name: string
@@ -14,6 +19,11 @@ export interface Review {
 export interface CreateReviewDto {
   tripId: string
   bookingId: string
-  rating: number
-  comment: string
+  overallRating: number
+  organizationRating?: number
+  valueRating?: number
+  safetyRating?: number
+  accuracyRating?: number
+  comment?: string
+  photos?: string[]
 }
