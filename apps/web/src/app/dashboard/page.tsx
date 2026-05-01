@@ -7,7 +7,7 @@ import { apiClient } from '@/lib/api-client'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, clearAuth, isAuthenticated } = useAuthStore()
+  const { user, clearAuth, isAuthenticated, _hasHydrated } = useAuthStore()
 
   const handleLogout = useCallback(async () => {
     try {
@@ -21,12 +21,12 @@ export default function DashboardPage() {
   }, [clearAuth, router])
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
+    if (_hasHydrated && (!isAuthenticated || !user)) {
       router.push('/login')
     }
-  }, [isAuthenticated, user, router])
+  }, [_hasHydrated, isAuthenticated, user, router])
 
-  if (!isAuthenticated || !user) {
+  if (!_hasHydrated || !isAuthenticated || !user) {
     return null
   }
 

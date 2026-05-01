@@ -1,24 +1,43 @@
+'use client'
+
 import Link from 'next/link'
+import { useAuthStore } from '@/store/auth.store'
 
 export default function HomePage() {
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore()
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <header className="border-b border-neutral-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <h1 className="font-display text-xl font-bold text-primary-600">TravelApp</h1>
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-lg bg-transparent px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-100"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
-            >
-              Get started
-            </Link>
+            {_hasHydrated && isAuthenticated ? (
+              <>
+                <span className="text-sm text-neutral-500">Hi, {user?.name.split(' ')[0]}</span>
+                <Link
+                  href="/dashboard"
+                  className="rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
+                >
+                  Dashboard
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-lg bg-transparent px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-100"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-primary-600 hover:shadow-lg"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -33,18 +52,29 @@ export default function HomePage() {
           payments, real reviews, and hassle-free travel from Pune.
         </p>
         <div className="mt-10 flex items-center justify-center gap-4">
-          <Link
-            href="/signup"
-            className="rounded-lg bg-primary-500 px-8 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg"
-          >
-            Start exploring
-          </Link>
-          <Link
-            href="/login"
-            className="rounded-lg border border-primary-200 bg-primary-50 px-8 py-3 text-base font-semibold text-primary-700 transition-all duration-200 hover:bg-primary-100"
-          >
-            Sign in
-          </Link>
+          {_hasHydrated && isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="rounded-lg bg-primary-500 px-8 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/signup"
+                className="rounded-lg bg-primary-500 px-8 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg"
+              >
+                Start exploring
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-lg border border-primary-200 bg-primary-50 px-8 py-3 text-base font-semibold text-primary-700 transition-all duration-200 hover:bg-primary-100"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="mt-20 grid grid-cols-1 gap-6 sm:grid-cols-3">

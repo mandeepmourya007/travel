@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
@@ -9,6 +9,8 @@ import { apiClient } from '@/lib/api-client'
 export default function SignupPage() {
   const router = useRouter()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -19,6 +21,12 @@ export default function SignupPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ field: string; message: string }[]>([])
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
+      router.replace('/dashboard')
+    }
+  }, [hasHydrated, isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
