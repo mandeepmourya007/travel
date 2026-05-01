@@ -1,0 +1,1976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripCompare — Design System Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       DESIGN TOKENS (from tokens.json)
+       ============================================ */
+    :root {
+      /* Primary — Teal */
+      --primary-50: #E0FFFE;
+      --primary-100: #B3FFFC;
+      --primary-200: #80FFF9;
+      --primary-300: #4DD9D0;
+      --primary-400: #26C6C0;
+      --primary-500: #0FBAB5;
+      --primary-600: #0A9E99;
+      --primary-700: #077E7A;
+      --primary-800: #045E5B;
+      --primary-900: #023F3D;
+
+      /* Accent — Coral */
+      --accent-50: #FFF1ED;
+      --accent-100: #FFD9CF;
+      --accent-200: #FFB3A1;
+      --accent-300: #FF8C73;
+      --accent-400: #FF6B4D;
+      --accent-500: #FF4F33;
+      --accent-600: #E63E24;
+      --accent-700: #CC2E17;
+      --accent-800: #991F0E;
+      --accent-900: #661508;
+
+      /* Highlight — Purple */
+      --highlight-50: #F3EEFF;
+      --highlight-100: #E0D4FF;
+      --highlight-200: #C4ADFF;
+      --highlight-300: #A585FF;
+      --highlight-400: #8B63FF;
+      --highlight-500: #7C4DFF;
+      --highlight-600: #6A3DE6;
+      --highlight-700: #572ECC;
+      --highlight-800: #3D1F99;
+      --highlight-900: #291466;
+
+      /* Neutrals */
+      --neutral-0: #FFFFFF;
+      --neutral-50: #F8FAFB;
+      --neutral-100: #F1F4F6;
+      --neutral-200: #E2E7EB;
+      --neutral-300: #CBD2D9;
+      --neutral-400: #9AA5B1;
+      --neutral-500: #6B7785;
+      --neutral-600: #4E5A65;
+      --neutral-700: #374151;
+      --neutral-800: #1F2937;
+      --neutral-900: #111827;
+
+      /* Semantic */
+      --success-50: #ECFDF5;
+      --success-500: #10B981;
+      --warning-50: #FFFBEB;
+      --warning-500: #F59E0B;
+      --error-50: #FEF2F2;
+      --error-500: #EF4444;
+      --info-50: #EFF6FF;
+      --info-500: #3B82F6;
+
+      /* Gradients */
+      --gradient-primary: linear-gradient(135deg, #0FBAB5 0%, #7C4DFF 100%);
+      --gradient-warm: linear-gradient(135deg, #FF4F33 0%, #FF6B4D 100%);
+      --gradient-fun: linear-gradient(135deg, #7C4DFF 0%, #FF4F33 100%);
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+      --shadow-card: 0 2px 8px rgba(0,0,0,0.06), 0 0 1px rgba(0,0,0,0.08);
+      --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.10), 0 0 1px rgba(0,0,0,0.08);
+
+      /* Border Radius */
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      --radius-2xl: 20px;
+      --radius-full: 9999px;
+
+      /* Typography */
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* ============================================
+       BASE STYLES
+       ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--neutral-50);
+      color: var(--neutral-800);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--font-display);
+      color: var(--neutral-900);
+      line-height: 1.3;
+    }
+
+    /* ============================================
+       LAYOUT
+       ============================================ */
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .preview-header {
+      text-align: center;
+      padding: 48px 0;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-2xl);
+      margin-bottom: 48px;
+      color: white;
+    }
+
+    .preview-header h1 {
+      font-size: 36px;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .preview-header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .section {
+      margin-bottom: 56px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--neutral-900);
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: var(--neutral-500);
+      margin-bottom: 24px;
+    }
+
+    .component-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .component-group {
+      margin-bottom: 24px;
+    }
+
+    .component-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-400);
+      margin-bottom: 12px;
+    }
+
+    /* ============================================
+       COLOR SWATCHES
+       ============================================ */
+    .color-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .color-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .color-group-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--neutral-700);
+    }
+
+    .color-swatch {
+      width: 80px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: flex-end;
+      padding: 4px 6px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .color-swatch.light-text { color: white; }
+    .color-swatch.dark-text { color: var(--neutral-800); }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    /* Sizes */
+    .btn-sm { font-size: 14px; padding: 8px 16px; border-radius: var(--radius-md); }
+    .btn-md { font-size: 16px; padding: 12px 24px; border-radius: var(--radius-lg); }
+    .btn-lg { font-size: 18px; padding: 16px 32px; border-radius: var(--radius-xl); }
+
+    /* Variants */
+    .btn-primary {
+      background: var(--primary-500);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    .btn-primary:hover { background: var(--primary-600); box-shadow: var(--shadow-lg); }
+
+    .btn-secondary {
+      background: var(--primary-50);
+      color: var(--primary-700);
+      border: 1px solid var(--primary-200);
+    }
+    .btn-secondary:hover { background: var(--primary-100); }
+
+    .btn-accent {
+      background: var(--accent-500);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    .btn-accent:hover { background: var(--accent-600); box-shadow: var(--shadow-lg); }
+
+    .btn-highlight {
+      background: var(--highlight-500);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    .btn-highlight:hover { background: var(--highlight-600); box-shadow: var(--shadow-lg); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--neutral-700);
+    }
+    .btn-ghost:hover { background: var(--neutral-100); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary-600);
+      border: 2px solid var(--primary-500);
+    }
+    .btn-outline:hover { background: var(--primary-50); }
+
+    .btn-gradient {
+      background: var(--gradient-primary);
+      color: white;
+      box-shadow: var(--shadow-md);
+    }
+    .btn-gradient:hover { box-shadow: var(--shadow-lg); opacity: 0.95; }
+
+    .btn-danger {
+      background: var(--error-500);
+      color: white;
+    }
+    .btn-danger:hover { background: #DC2626; }
+
+    .btn-disabled {
+      background: var(--neutral-200);
+      color: var(--neutral-400);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: var(--radius-lg);
+      font-size: 18px;
+    }
+
+    /* ============================================
+       BADGES / TAGS
+       ============================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .badge-primary { background: var(--primary-50); color: var(--primary-700); }
+    .badge-accent { background: var(--accent-50); color: var(--accent-700); }
+    .badge-highlight { background: var(--highlight-50); color: var(--highlight-700); }
+    .badge-success { background: var(--success-50); color: var(--success-500); }
+    .badge-warning { background: var(--warning-50); color: var(--warning-500); }
+    .badge-error { background: var(--error-50); color: var(--error-500); }
+    .badge-info { background: var(--info-50); color: var(--info-500); }
+    .badge-neutral { background: var(--neutral-100); color: var(--neutral-600); }
+
+    .badge-solid-primary { background: var(--primary-500); color: white; }
+    .badge-solid-accent { background: var(--accent-500); color: white; }
+    .badge-solid-highlight { background: var(--highlight-500); color: white; }
+
+    /* ============================================
+       CARDS
+       ============================================ */
+    .card {
+      background: var(--neutral-0);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--neutral-100);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .card-body { padding: 20px; }
+
+    .trip-card {
+      width: 340px;
+      cursor: pointer;
+    }
+
+    .trip-card-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      background: linear-gradient(135deg, var(--primary-300), var(--highlight-300));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 48px;
+      position: relative;
+    }
+
+    .trip-card-image .price-tag {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: var(--accent-500);
+      color: white;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow-md);
+    }
+
+    .trip-card-image .featured-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--highlight-500);
+      color: white;
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .trip-card-body { padding: 16px; }
+
+    .trip-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--neutral-900);
+      margin-bottom: 4px;
+    }
+
+    .trip-card-org {
+      font-size: 13px;
+      color: var(--neutral-500);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .verified-icon {
+      color: var(--success-500);
+      font-size: 14px;
+    }
+
+    .trip-card-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--neutral-600);
+      margin-bottom: 12px;
+    }
+
+    .trip-card-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .trip-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-top: 1px solid var(--neutral-100);
+      background: var(--neutral-50);
+    }
+
+    .star-rating {
+      display: flex;
+      gap: 2px;
+      color: var(--warning-500);
+      font-size: 14px;
+    }
+
+    .seats-left {
+      font-size: 13px;
+      color: var(--warning-500);
+      font-weight: 600;
+    }
+
+    /* Selected card (comparison) */
+    .card-selected {
+      border: 2px solid var(--primary-500);
+      box-shadow: 0 0 0 3px var(--primary-100), var(--shadow-card-hover);
+    }
+
+    /* Stat card */
+    .stat-card {
+      padding: 24px;
+      min-width: 180px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: var(--font-display);
+      color: var(--neutral-900);
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--neutral-500);
+      margin-top: 4px;
+    }
+
+    .stat-card-primary .stat-value { color: var(--primary-600); }
+    .stat-card-accent .stat-value { color: var(--accent-500); }
+    .stat-card-highlight .stat-value { color: var(--highlight-500); }
+
+    /* ============================================
+       INPUTS
+       ============================================ */
+    .input-group { margin-bottom: 16px; }
+
+    .input-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      margin-bottom: 6px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-family: var(--font-sans);
+      color: var(--neutral-800);
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input::placeholder { color: var(--neutral-400); }
+    .input:focus {
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 3px var(--primary-100);
+      background: var(--neutral-0);
+    }
+
+    .input-error {
+      border-color: var(--error-500);
+    }
+    .input-error:focus {
+      box-shadow: 0 0 0 3px var(--error-50);
+    }
+
+    .input-help {
+      font-size: 13px;
+      color: var(--neutral-500);
+      margin-top: 4px;
+    }
+
+    .input-error-msg {
+      font-size: 13px;
+      color: var(--error-500);
+      margin-top: 4px;
+    }
+
+    .select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239AA5B1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 40px;
+    }
+
+    .textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--neutral-700);
+      cursor: pointer;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary-500);
+      cursor: pointer;
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex;
+      background: var(--neutral-0);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      border: 2px solid var(--neutral-100);
+    }
+
+    .search-bar:focus-within {
+      border-color: var(--primary-300);
+      box-shadow: 0 0 0 4px var(--primary-50), var(--shadow-lg);
+    }
+
+    .search-bar .input {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .search-bar .input:focus {
+      box-shadow: none;
+    }
+
+    .search-bar .btn {
+      border-radius: 0;
+      padding: 12px 28px;
+    }
+
+    .search-divider {
+      width: 1px;
+      background: var(--neutral-200);
+      margin: 8px 0;
+    }
+
+    /* ============================================
+       TABLE
+       ============================================ */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead {
+      background: var(--neutral-50);
+      border-bottom: 2px solid var(--neutral-200);
+    }
+
+    th {
+      text-align: left;
+      padding: 14px 16px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 14px 16px;
+      color: var(--neutral-700);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: var(--neutral-50); }
+
+    .table-action {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Comparison table */
+    .comparison-table th:first-child,
+    .comparison-table td:first-child {
+      background: var(--neutral-50);
+      font-weight: 600;
+      color: var(--neutral-600);
+      position: sticky;
+      left: 0;
+      min-width: 140px;
+    }
+
+    .comparison-table td { text-align: center; }
+    .comparison-table th { text-align: center; }
+    .comparison-table th:first-child { text-align: left; }
+    .comparison-table td:first-child { text-align: left; }
+
+    .best-value {
+      background: var(--success-50) !important;
+      font-weight: 700;
+      color: var(--success-500) !important;
+    }
+
+    /* ============================================
+       MODAL
+       ============================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--neutral-0);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      width: 90%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: var(--neutral-100);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--neutral-600);
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover { background: var(--neutral-200); }
+
+    .modal-body { padding: 24px; }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--neutral-100);
+      background: var(--neutral-50);
+      border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+    }
+
+    /* ============================================
+       ALERTS / TOASTS
+       ============================================ */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .alert-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .alert-title { font-weight: 600; margin-bottom: 2px; }
+
+    .alert-success { background: var(--success-50); color: var(--success-500); border: 1px solid #A7F3D0; }
+    .alert-warning { background: var(--warning-50); color: var(--warning-500); border: 1px solid #FDE68A; }
+    .alert-error { background: var(--error-50); color: var(--error-500); border: 1px solid #FECACA; }
+    .alert-info { background: var(--info-50); color: var(--info-500); border: 1px solid #BFDBFE; }
+
+    /* ============================================
+       AVATAR
+       ============================================ */
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-full);
+      background: var(--primary-100);
+      color: var(--primary-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .avatar-sm { width: 32px; height: 32px; font-size: 13px; }
+    .avatar-lg { width: 56px; height: 56px; font-size: 22px; }
+
+    /* ============================================
+       TABS
+       ============================================ */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--neutral-100);
+      padding: 4px;
+      border-radius: var(--radius-lg);
+      width: fit-content;
+    }
+
+    .tab {
+      padding: 8px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--neutral-500);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      transition: all 0.15s;
+    }
+
+    .tab:hover { color: var(--neutral-700); }
+
+    .tab-active {
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ============================================
+       TOOLTIP
+       ============================================ */
+    .tooltip-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--neutral-800);
+      color: white;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+    }
+
+    .tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--neutral-800);
+    }
+
+    .tooltip-wrapper:hover .tooltip { opacity: 1; }
+
+    /* ============================================
+       PROGRESS / LOADING
+       ============================================ */
+    .progress-bar {
+      height: 8px;
+      background: var(--neutral-200);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      background: var(--gradient-primary);
+      transition: width 0.5s ease;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-200) 50%, var(--neutral-100) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: var(--radius-md);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================
+       CHAT BUBBLE
+       ============================================ */
+    .chat-bubble {
+      max-width: 320px;
+      padding: 12px 16px;
+      border-radius: var(--radius-xl);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .chat-bubble-sent {
+      background: var(--primary-500);
+      color: white;
+      border-bottom-right-radius: var(--radius-sm);
+      margin-left: auto;
+    }
+
+    .chat-bubble-received {
+      background: var(--neutral-100);
+      color: var(--neutral-800);
+      border-bottom-left-radius: var(--radius-sm);
+    }
+
+    .chat-time {
+      font-size: 11px;
+      color: var(--neutral-400);
+      margin-top: 4px;
+    }
+
+    .chat-time-sent { text-align: right; color: rgba(255,255,255,0.7); }
+
+    /* ============================================
+       ESCROW STATUS
+       ============================================ */
+    .escrow-status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--success-50);
+      border: 1px solid #A7F3D0;
+      border-radius: var(--radius-lg);
+    }
+
+    .escrow-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--success-500);
+      color: white;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .escrow-info { flex: 1; }
+    .escrow-title { font-weight: 700; color: var(--success-500); font-size: 14px; }
+    .escrow-desc { font-size: 13px; color: var(--neutral-600); }
+
+    /* ============================================
+       UTILITY
+       ============================================ */
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .text-sm { font-size: 14px; }
+    .text-xs { font-size: 12px; }
+    .font-bold { font-weight: 700; }
+    .font-mono { font-family: var(--font-mono); }
+    .mt-2 { margin-top: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .w-full { width: 100%; }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+
+    /* Tablet (max 1024px) */
+    @media (max-width: 1024px) {
+      .preview-container { padding: 32px 20px; }
+      .preview-header { padding: 36px 24px; }
+      .preview-header h1 { font-size: 30px; }
+      .trip-card { width: 300px; }
+      .stat-card { min-width: 150px; }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Mobile (max 768px) */
+    @media (max-width: 768px) {
+      .preview-container { padding: 24px 16px; }
+      .preview-header { padding: 32px 16px; margin-bottom: 32px; border-radius: var(--radius-xl); }
+      .preview-header h1 { font-size: 24px; }
+      .preview-header p { font-size: 14px; }
+      .section { margin-bottom: 40px; }
+      .section-title { font-size: 20px; }
+
+      /* Buttons wrap */
+      .component-row { flex-wrap: wrap; gap: 10px; }
+
+      /* Color palette stacks */
+      .color-palette { gap: 16px; }
+      .color-swatch { width: 60px; height: 32px; font-size: 9px; }
+
+      /* Trip cards full width */
+      .trip-card { width: 100%; }
+
+      /* Stat cards grid */
+      .stat-cards-row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .stat-card { min-width: unset; padding: 16px; }
+      .stat-value { font-size: 24px; }
+
+      /* Search bar stacks */
+      .search-bar {
+        flex-direction: column;
+        border-radius: var(--radius-xl);
+      }
+      .search-divider { width: 100%; height: 1px; margin: 0; }
+      .search-bar .btn {
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+      }
+
+      /* Form grid single column */
+      .form-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .form-grid .form-span-2 {
+        grid-column: span 1 !important;
+      }
+
+      /* Tables scroll horizontally */
+      .table-container { max-width: 100% !important; }
+      table { font-size: 13px; }
+      th, td { padding: 10px 12px; }
+
+      /* Comparison table responsive */
+      .comparison-table { max-width: 100% !important; }
+      .comparison-table th:first-child,
+      .comparison-table td:first-child { min-width: 100px; font-size: 12px; }
+
+      /* Alerts full width */
+      .alerts-container { max-width: 100% !important; }
+
+      /* Escrow full width */
+      .escrow-container { max-width: 100% !important; }
+      .escrow-status { flex-direction: row; gap: 12px; padding: 14px; }
+
+      /* Chat full width */
+      .chat-container { max-width: 100% !important; }
+      .chat-bubble { max-width: 260px; font-size: 13px; }
+
+      /* Progress full width */
+      .progress-container { max-width: 100% !important; }
+
+      /* Tabs scroll */
+      .tabs { overflow-x: auto; width: 100%; }
+      .tab { white-space: nowrap; padding: 8px 14px; font-size: 13px; }
+
+      /* Modal full screen on mobile */
+      .modal {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        margin-top: auto;
+      }
+      .modal-overlay { align-items: flex-end; }
+      .modal-footer { border-radius: 0; }
+
+      /* Typography preview smaller */
+      .type-preview-5xl { font-size: 36px !important; }
+      .type-preview-4xl { font-size: 28px !important; }
+      .type-preview-3xl { font-size: 24px !important; }
+
+      /* Tooltips hide on mobile (touch) */
+      .tooltip { display: none; }
+
+      /* Buttons smaller padding */
+      .btn-lg { font-size: 16px; padding: 14px 24px; }
+    }
+
+    /* Small mobile (max 480px) */
+    @media (max-width: 480px) {
+      .preview-container { padding: 16px 12px; }
+      .preview-header h1 { font-size: 20px; }
+      .section-title { font-size: 18px; }
+
+      .btn-md { font-size: 14px; padding: 10px 18px; }
+      .btn-sm { font-size: 13px; padding: 6px 12px; }
+
+      .trip-card-image { height: 160px; }
+      .trip-card-title { font-size: 16px; }
+      .trip-card-meta { gap: 8px; font-size: 12px; }
+      .badge { font-size: 11px; padding: 2px 8px; }
+
+      .stat-cards-row {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stat-value { font-size: 20px; }
+      .stat-label { font-size: 12px; }
+
+      .color-group { gap: 2px; }
+      .color-swatch { width: 50px; height: 28px; font-size: 8px; }
+      .color-group-title { font-size: 12px; }
+
+      .alert { padding: 12px; font-size: 13px; }
+      .alert-icon { font-size: 16px; }
+
+      .chat-bubble { max-width: 220px; font-size: 13px; padding: 10px 12px; }
+
+      table { font-size: 12px; }
+      th, td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="preview-container">
+
+  <!-- HEADER -->
+  <div class="preview-header">
+    <h1>TripCompare Design System</h1>
+    <p>Component preview — Fun & Young theme</p>
+  </div>
+
+  <!-- ======================== COLORS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Colors</h2>
+    <p class="section-desc">Primary (Teal) + Accent (Coral) + Highlight (Purple) + Neutrals + Semantic</p>
+
+    <div class="color-palette">
+      <div class="color-group">
+        <div class="color-group-title">Primary</div>
+        <div class="color-swatch dark-text" style="background: var(--primary-50)">50</div>
+        <div class="color-swatch dark-text" style="background: var(--primary-200)">200</div>
+        <div class="color-swatch light-text" style="background: var(--primary-500)">500</div>
+        <div class="color-swatch light-text" style="background: var(--primary-700)">700</div>
+        <div class="color-swatch light-text" style="background: var(--primary-900)">900</div>
+      </div>
+      <div class="color-group">
+        <div class="color-group-title">Accent</div>
+        <div class="color-swatch dark-text" style="background: var(--accent-50)">50</div>
+        <div class="color-swatch dark-text" style="background: var(--accent-200)">200</div>
+        <div class="color-swatch light-text" style="background: var(--accent-500)">500</div>
+        <div class="color-swatch light-text" style="background: var(--accent-700)">700</div>
+        <div class="color-swatch light-text" style="background: var(--accent-900)">900</div>
+      </div>
+      <div class="color-group">
+        <div class="color-group-title">Highlight</div>
+        <div class="color-swatch dark-text" style="background: var(--highlight-50)">50</div>
+        <div class="color-swatch dark-text" style="background: var(--highlight-200)">200</div>
+        <div class="color-swatch light-text" style="background: var(--highlight-500)">500</div>
+        <div class="color-swatch light-text" style="background: var(--highlight-700)">700</div>
+        <div class="color-swatch light-text" style="background: var(--highlight-900)">900</div>
+      </div>
+      <div class="color-group">
+        <div class="color-group-title">Neutral</div>
+        <div class="color-swatch dark-text" style="background: var(--neutral-50)">50</div>
+        <div class="color-swatch dark-text" style="background: var(--neutral-200)">200</div>
+        <div class="color-swatch light-text" style="background: var(--neutral-500)">500</div>
+        <div class="color-swatch light-text" style="background: var(--neutral-700)">700</div>
+        <div class="color-swatch light-text" style="background: var(--neutral-900)">900</div>
+      </div>
+      <div class="color-group">
+        <div class="color-group-title">Semantic</div>
+        <div class="color-swatch light-text" style="background: var(--success-500)">Success</div>
+        <div class="color-swatch light-text" style="background: var(--warning-500)">Warning</div>
+        <div class="color-swatch light-text" style="background: var(--error-500)">Error</div>
+        <div class="color-swatch light-text" style="background: var(--info-500)">Info</div>
+      </div>
+      <div class="color-group">
+        <div class="color-group-title">Gradients</div>
+        <div class="color-swatch light-text" style="background: var(--gradient-primary); width: 120px;">Primary</div>
+        <div class="color-swatch light-text" style="background: var(--gradient-warm); width: 120px;">Warm</div>
+        <div class="color-swatch light-text" style="background: var(--gradient-fun); width: 120px;">Fun</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TYPOGRAPHY ======================== -->
+  <div class="section">
+    <h2 class="section-title">Typography</h2>
+    <p class="section-desc">Plus Jakarta Sans for display, Inter for body, JetBrains Mono for code</p>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <div class="type-preview-5xl" style="font-family: var(--font-display); font-size: 48px; font-weight: 800; color: var(--neutral-900);">Display 5xl — 48px</div>
+      <div class="type-preview-4xl" style="font-family: var(--font-display); font-size: 36px; font-weight: 700; color: var(--neutral-900);">Display 4xl — 36px</div>
+      <div class="type-preview-3xl" style="font-family: var(--font-display); font-size: 30px; font-weight: 700; color: var(--neutral-900);">Display 3xl — 30px</div>
+      <div style="font-family: var(--font-display); font-size: 24px; font-weight: 700; color: var(--neutral-800);">Heading 2xl — 24px</div>
+      <div style="font-size: 20px; font-weight: 600; color: var(--neutral-800);">Heading xl — 20px</div>
+      <div style="font-size: 18px; color: var(--neutral-700);">Body Large — 18px</div>
+      <div style="font-size: 16px; color: var(--neutral-600);">Body Base — 16px (default)</div>
+      <div style="font-size: 14px; color: var(--neutral-500);">Caption Small — 14px</div>
+      <div style="font-size: 12px; color: var(--neutral-400);">Micro XS — 12px</div>
+      <div style="font-family: var(--font-mono); font-size: 14px; color: var(--neutral-600);">Mono — #TRP-2025-0847 — ₹4,500</div>
+    </div>
+  </div>
+
+  <!-- ======================== BUTTONS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Buttons</h2>
+    <p class="section-desc">All button variants, sizes, and states</p>
+
+    <div class="component-group">
+      <div class="component-label">Variants</div>
+      <div class="component-row">
+        <button class="btn btn-md btn-primary">Book Now</button>
+        <button class="btn btn-md btn-secondary">Compare</button>
+        <button class="btn btn-md btn-accent">₹4,500</button>
+        <button class="btn btn-md btn-highlight">Featured</button>
+        <button class="btn btn-md btn-outline">View Details</button>
+        <button class="btn btn-md btn-ghost">Cancel</button>
+        <button class="btn btn-md btn-gradient">Explore Trips</button>
+        <button class="btn btn-md btn-danger">Delete</button>
+        <button class="btn btn-md btn-disabled" disabled>Sold Out</button>
+      </div>
+    </div>
+
+    <div class="component-group">
+      <div class="component-label">Sizes</div>
+      <div class="component-row" style="align-items: center;">
+        <button class="btn btn-sm btn-primary">Small</button>
+        <button class="btn btn-md btn-primary">Medium</button>
+        <button class="btn btn-lg btn-primary">Large</button>
+        <button class="btn btn-md btn-icon btn-secondary">+</button>
+        <button class="btn btn-md btn-icon btn-ghost">✕</button>
+      </div>
+    </div>
+
+    <div class="component-group">
+      <div class="component-label">With Icons</div>
+      <div class="component-row">
+        <button class="btn btn-md btn-primary">🔍 Search Trips</button>
+        <button class="btn btn-md btn-accent">💬 Chat with Organizer</button>
+        <button class="btn btn-md btn-secondary">🔄 Compare (3)</button>
+        <button class="btn btn-sm btn-ghost">← Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== BADGES ======================== -->
+  <div class="section">
+    <h2 class="section-title">Badges & Tags</h2>
+    <p class="section-desc">Trip types, statuses, and labels</p>
+
+    <div class="component-group">
+      <div class="component-label">Soft (Light Background)</div>
+      <div class="component-row">
+        <span class="badge badge-primary">🏖 Beach</span>
+        <span class="badge badge-primary">⛰ Trekking</span>
+        <span class="badge badge-primary">🚗 Road Trip</span>
+        <span class="badge badge-highlight">⭐ Featured</span>
+        <span class="badge badge-accent">🔥 Trending</span>
+        <span class="badge badge-success">✅ Verified</span>
+        <span class="badge badge-warning">⚡ 3 seats left</span>
+        <span class="badge badge-error">✕ Cancelled</span>
+        <span class="badge badge-info">ℹ New</span>
+        <span class="badge badge-neutral">3D/2N</span>
+      </div>
+    </div>
+
+    <div class="component-group">
+      <div class="component-label">Solid</div>
+      <div class="component-row">
+        <span class="badge badge-solid-primary">AC Bus</span>
+        <span class="badge badge-solid-accent">₹4,500</span>
+        <span class="badge badge-solid-highlight">Premium</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TRIP CARDS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Trip Cards</h2>
+    <p class="section-desc">Primary content card used across listings</p>
+
+    <div class="component-row">
+      <!-- Card 1 -->
+      <div class="card trip-card">
+        <div class="trip-card-image">
+          🏖
+          <span class="featured-tag">Featured</span>
+          <span class="price-tag">₹4,500</span>
+        </div>
+        <div class="trip-card-body">
+          <div class="trip-card-title">Goa Beach Getaway</div>
+          <div class="trip-card-org">by TripVibes <span class="verified-icon">✅</span></div>
+          <div class="trip-card-meta">
+            <span>📅 Dec 6-8</span>
+            <span>⏱ 3D/2N</span>
+            <span>👥 20 ppl</span>
+          </div>
+          <div class="trip-card-tags">
+            <span class="badge badge-primary">🏖 Beach</span>
+            <span class="badge badge-neutral">🚌 AC Bus</span>
+            <span class="badge badge-neutral">🍽 All Meals</span>
+          </div>
+        </div>
+        <div class="trip-card-footer">
+          <div class="star-rating">★★★★★ <span class="text-xs" style="color:var(--neutral-500); margin-left:4px;">4.7 (38)</span></div>
+          <span class="seats-left">8 seats left</span>
+        </div>
+      </div>
+
+      <!-- Card 2 (selected) -->
+      <div class="card trip-card card-selected">
+        <div class="trip-card-image" style="background: linear-gradient(135deg, var(--accent-300), var(--highlight-400));">
+          ⛰
+          <span class="price-tag">₹5,200</span>
+        </div>
+        <div class="trip-card-body">
+          <div class="trip-card-title">Manali Adventure Trek</div>
+          <div class="trip-card-org">by PuneTrails <span class="verified-icon">✅</span></div>
+          <div class="trip-card-meta">
+            <span>📅 Dec 12-15</span>
+            <span>⏱ 4D/3N</span>
+            <span>👥 15 ppl</span>
+          </div>
+          <div class="trip-card-tags">
+            <span class="badge badge-primary">⛰ Trekking</span>
+            <span class="badge badge-neutral">🏨 Hotel</span>
+            <span class="badge badge-warning">⚡ 3 left</span>
+          </div>
+        </div>
+        <div class="trip-card-footer">
+          <div class="star-rating">★★★★☆ <span class="text-xs" style="color:var(--neutral-500); margin-left:4px;">4.3 (12)</span></div>
+          <span class="badge badge-solid-primary" style="font-size:11px;">✓ Selected</span>
+        </div>
+      </div>
+
+      <!-- Card 3 (Sold Out) -->
+      <div class="card trip-card" style="opacity: 0.65;">
+        <div class="trip-card-image" style="background: linear-gradient(135deg, var(--neutral-300), var(--neutral-400));">
+          🏔
+          <span class="price-tag" style="background: var(--neutral-500);">₹3,800</span>
+        </div>
+        <div class="trip-card-body">
+          <div class="trip-card-title">Coorg Coffee Trail</div>
+          <div class="trip-card-org">by GoWander</div>
+          <div class="trip-card-meta">
+            <span>📅 Dec 8-10</span>
+            <span>⏱ 3D/2N</span>
+          </div>
+          <div class="trip-card-tags">
+            <span class="badge badge-error">Sold Out</span>
+          </div>
+        </div>
+        <div class="trip-card-footer">
+          <div class="star-rating">★★★★★ <span class="text-xs" style="color:var(--neutral-500); margin-left:4px;">4.9 (52)</span></div>
+          <button class="btn btn-sm btn-disabled" disabled>Full</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== STAT CARDS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Stat Cards (Dashboard)</h2>
+    <p class="section-desc">Organizer/Admin dashboard overview</p>
+
+    <div class="component-row stat-cards-row">
+      <div class="card stat-card stat-card-primary">
+        <div class="stat-value">5</div>
+        <div class="stat-label">Active Trips</div>
+      </div>
+      <div class="card stat-card stat-card-accent">
+        <div class="stat-value">32</div>
+        <div class="stat-label">Bookings This Month</div>
+      </div>
+      <div class="card stat-card stat-card-highlight">
+        <div class="stat-value font-mono">₹1.2L</div>
+        <div class="stat-label">Revenue This Month</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-value">4.7 ★</div>
+        <div class="stat-label">Average Rating</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== SEARCH BAR ======================== -->
+  <div class="section">
+    <h2 class="section-title">Search Bar</h2>
+    <p class="section-desc">Hero search component</p>
+
+    <div class="search-bar" style="max-width: 700px; width: 100%;">
+      <input class="input" type="text" placeholder="🔍 Where do you want to go?">
+      <div class="search-divider"></div>
+      <input class="input" type="text" placeholder="📅 When?">
+      <button class="btn btn-gradient" style="border-radius: 0 var(--radius-xl) var(--radius-xl) 0; white-space: nowrap;">Search Trips</button>
+    </div>
+  </div>
+
+  <!-- ======================== INPUTS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Form Inputs</h2>
+    <p class="section-desc">Text, select, textarea, checkbox</p>
+
+    <div class="form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 700px; width: 100%;">
+      <div class="input-group">
+        <label class="input-label">Trip Title</label>
+        <input class="input" type="text" placeholder="e.g. Goa Beach Getaway">
+      </div>
+      <div class="input-group">
+        <label class="input-label">Destination</label>
+        <select class="input select">
+          <option>Select destination</option>
+          <option>Goa</option>
+          <option>Manali</option>
+          <option>Lonavala</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Price per person (₹)</label>
+        <input class="input" type="number" placeholder="4500" value="4500">
+        <span class="input-help">Minimum ₹100</span>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Email (error state)</label>
+        <input class="input input-error" type="email" value="invalid-email">
+        <span class="input-error-msg">Please enter a valid email</span>
+      </div>
+      <div class="input-group form-span-2" style="grid-column: span 2;">
+        <label class="input-label">Description</label>
+        <textarea class="input textarea" placeholder="Describe your trip..."></textarea>
+      </div>
+      <div class="input-group">
+        <label class="checkbox-group">
+          <input type="checkbox" checked> Trip protection (₹149)
+        </label>
+      </div>
+      <div class="input-group">
+        <label class="checkbox-group">
+          <input type="checkbox"> I agree to terms & conditions
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TABLE ======================== -->
+  <div class="section">
+    <h2 class="section-title">Tables</h2>
+    <p class="section-desc">Bookings list and trip comparison</p>
+
+    <div class="component-group">
+      <div class="component-label">Bookings Table</div>
+      <div class="table-container" style="max-width: 900px; width: 100%;">
+        <table>
+          <thead>
+            <tr>
+              <th>Booking ID</th>
+              <th>Trip</th>
+              <th>Traveler</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-mono" style="font-size: 13px;">#TRP-2025-0847</td>
+              <td><strong>Goa Beach Getaway</strong></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="avatar avatar-sm">P</div>
+                  Priya S.
+                </div>
+              </td>
+              <td class="font-bold" style="color: var(--accent-500);">₹4,649</td>
+              <td><span class="badge badge-success">✅ Confirmed</span></td>
+              <td class="table-action">
+                <button class="btn btn-sm btn-ghost">View</button>
+                <button class="btn btn-sm btn-ghost" style="color: var(--error-500);">Cancel</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono" style="font-size: 13px;">#TRP-2025-0846</td>
+              <td><strong>Manali Adventure</strong></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="avatar avatar-sm" style="background: var(--accent-100); color: var(--accent-700);">R</div>
+                  Rahul M.
+                </div>
+              </td>
+              <td class="font-bold" style="color: var(--accent-500);">₹5,349</td>
+              <td><span class="badge badge-warning">⏳ Pending</span></td>
+              <td class="table-action">
+                <button class="btn btn-sm btn-ghost">View</button>
+                <button class="btn btn-sm btn-primary">Confirm</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="font-mono" style="font-size: 13px;">#TRP-2025-0840</td>
+              <td><strong>Coorg Coffee Trail</strong></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="avatar avatar-sm" style="background: var(--highlight-100); color: var(--highlight-700);">S</div>
+                  Sneha K.
+                </div>
+              </td>
+              <td class="font-bold" style="color: var(--neutral-400); text-decoration: line-through;">₹3,949</td>
+              <td><span class="badge badge-error">✕ Cancelled</span></td>
+              <td class="table-action">
+                <button class="btn btn-sm btn-ghost">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Trip Comparison Table</div>
+      <div class="table-container comparison-table" style="max-width: 700px; width: 100%;">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Goa Beach</th>
+              <th>Manali Trek</th>
+              <th>Coorg Trail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Organizer</td>
+              <td>TripVibes ✅</td>
+              <td>PuneTrails ✅</td>
+              <td>GoWander</td>
+            </tr>
+            <tr>
+              <td>Price</td>
+              <td>₹4,500</td>
+              <td>₹5,200</td>
+              <td class="best-value">₹3,800 ★</td>
+            </tr>
+            <tr>
+              <td>Rating</td>
+              <td>⭐ 4.7</td>
+              <td>⭐ 4.3</td>
+              <td class="best-value">⭐ 4.9 ★</td>
+            </tr>
+            <tr>
+              <td>Duration</td>
+              <td>3D/2N</td>
+              <td>4D/3N</td>
+              <td>3D/2N</td>
+            </tr>
+            <tr>
+              <td>Transport</td>
+              <td class="best-value">AC Bus ★</td>
+              <td>Non-AC</td>
+              <td class="best-value">AC Bus ★</td>
+            </tr>
+            <tr>
+              <td>Meals</td>
+              <td class="best-value">All ★</td>
+              <td>Breakfast</td>
+              <td class="best-value">All ★</td>
+            </tr>
+            <tr>
+              <td>Cancellation</td>
+              <td>Free 48h</td>
+              <td>No refund</td>
+              <td class="best-value">Free 72h ★</td>
+            </tr>
+            <tr>
+              <td>Seats Left</td>
+              <td>8</td>
+              <td style="color: var(--warning-500); font-weight: 700;">3</td>
+              <td>5</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td><button class="btn btn-sm btn-primary">Book</button></td>
+              <td><button class="btn btn-sm btn-primary">Book</button></td>
+              <td><button class="btn btn-sm btn-primary">Book</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== ALERTS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Alerts & Notifications</h2>
+    <p class="section-desc">Feedback and status messages</p>
+
+    <div class="flex flex-col gap-3 alerts-container" style="max-width: 600px; width: 100%;">
+      <div class="alert alert-success">
+        <span class="alert-icon">✅</span>
+        <div>
+          <div class="alert-title">Booking Confirmed!</div>
+          Your trip to Goa (Dec 6-8) is confirmed. Payment held securely in escrow.
+        </div>
+      </div>
+      <div class="alert alert-warning">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <div class="alert-title">Only 3 seats left</div>
+          This trip is filling fast. Book now to secure your spot.
+        </div>
+      </div>
+      <div class="alert alert-error">
+        <span class="alert-icon">❌</span>
+        <div>
+          <div class="alert-title">Payment Failed</div>
+          Your payment could not be processed. Please try again.
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <div>
+          <div class="alert-title">Organizer Verification Pending</div>
+          Your documents are under review. This usually takes 24-48 hours.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== ESCROW STATUS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Escrow Payment Status</h2>
+    <p class="section-desc">Trust signal shown on booking page</p>
+
+    <div class="escrow-container" style="max-width: 500px; width: 100%;">
+      <div class="escrow-status">
+        <div class="escrow-icon">🔒</div>
+        <div class="escrow-info">
+          <div class="escrow-title">Payment Secured in Escrow</div>
+          <div class="escrow-desc">₹4,649 is held safely. Released to organizer only after your trip is completed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== CHAT BUBBLES ======================== -->
+  <div class="section">
+    <h2 class="section-title">Chat Bubbles</h2>
+    <p class="section-desc">In-app messaging between traveler and organizer</p>
+
+    <div class="card chat-container" style="max-width: 420px; width: 100%; padding: 20px;">
+      <div class="flex flex-col gap-3">
+        <div>
+          <div class="chat-bubble chat-bubble-received">Hi! Thanks for booking the Goa trip. Pickup is at Shivajinagar bus stop at 6 AM. 🚌</div>
+          <div class="chat-time">10:30 AM</div>
+        </div>
+        <div>
+          <div class="chat-bubble chat-bubble-sent">Got it! Can I bring a friend? Is there 1 more seat?</div>
+          <div class="chat-time chat-time-sent" style="color: var(--neutral-400);">10:45 AM</div>
+        </div>
+        <div>
+          <div class="chat-bubble chat-bubble-received">Yes! Ask them to book through the platform so they're covered by escrow protection. 😊</div>
+          <div class="chat-time">10:50 AM</div>
+        </div>
+        <div class="alert alert-warning" style="padding: 10px 14px; font-size: 12px;">
+          <span>⚠️</span>
+          <span>Sharing phone numbers or payment details is not allowed on this platform.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TABS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Tabs</h2>
+    <p class="section-desc">Navigation tabs for dashboard sections</p>
+
+    <div class="component-row">
+      <div class="tabs">
+        <button class="tab tab-active">Upcoming</button>
+        <button class="tab">Past Trips</button>
+        <button class="tab">Messages</button>
+      </div>
+    </div>
+
+    <div class="component-row" style="margin-top: 16px;">
+      <div class="tabs">
+        <button class="tab tab-active">All</button>
+        <button class="tab">Beach</button>
+        <button class="tab">Trekking</button>
+        <button class="tab">Weekend</button>
+        <button class="tab">Adventure</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== AVATARS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Avatars</h2>
+    <p class="section-desc">User profile avatars with initials</p>
+
+    <div class="component-row" style="align-items: center;">
+      <div class="avatar avatar-sm">P</div>
+      <div class="avatar">P</div>
+      <div class="avatar avatar-lg">P</div>
+      <div class="avatar" style="background: var(--accent-100); color: var(--accent-700);">R</div>
+      <div class="avatar" style="background: var(--highlight-100); color: var(--highlight-700);">S</div>
+      <div class="avatar" style="background: var(--success-50); color: var(--success-500);">A</div>
+    </div>
+  </div>
+
+  <!-- ======================== PROGRESS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Progress & Loading</h2>
+    <p class="section-desc">Seat fill progress and loading skeletons</p>
+
+    <div class="progress-container" style="max-width: 400px; width: 100%;">
+      <div class="component-group">
+        <div class="component-label">Seats Filled (12/20)</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 60%;"></div>
+        </div>
+      </div>
+
+      <div class="component-group">
+        <div class="component-label">Almost Full (18/20)</div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 90%; background: var(--gradient-warm);"></div>
+        </div>
+      </div>
+
+      <div class="component-group" style="margin-top: 24px;">
+        <div class="component-label">Loading Skeletons</div>
+        <div class="flex flex-col gap-3">
+          <div class="skeleton" style="width: 200px; height: 20px;"></div>
+          <div class="skeleton" style="width: 300px; height: 16px;"></div>
+          <div class="skeleton" style="width: 150px; height: 16px;"></div>
+          <div class="skeleton" style="width: 100%; height: 200px; border-radius: var(--radius-xl);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== DATA STATES ======================== -->
+  <div class="section">
+    <h2 class="section-title">Data States (Loading / Empty / Error)</h2>
+    <p class="section-desc">Every data-driven component must handle these three states consistently</p>
+
+    <div class="component-group">
+      <div class="component-label">Loading — Spinner (Full Page)</div>
+      <div class="card" style="padding: 48px; text-align: center;">
+        <div style="display: inline-block; width: 40px; height: 40px; border: 4px solid var(--primary-100); border-top-color: var(--primary-500); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+        <div style="margin-top: 12px; color: var(--neutral-500); font-size: 14px;">Loading trips...</div>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Loading — Skeleton Card</div>
+      <div class="card" style="width: 320px; overflow: hidden;">
+        <div class="skeleton" style="width: 100%; height: 180px; border-radius: 0;"></div>
+        <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div class="skeleton" style="width: 75%; height: 16px;"></div>
+          <div class="skeleton" style="width: 50%; height: 14px;"></div>
+          <div style="display: flex; gap: 8px; margin-top: 4px;">
+            <div class="skeleton" style="width: 60px; height: 24px; border-radius: 9999px;"></div>
+            <div class="skeleton" style="width: 80px; height: 24px; border-radius: 9999px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+            <div class="skeleton" style="width: 80px; height: 20px;"></div>
+            <div class="skeleton" style="width: 100px; height: 36px; border-radius: var(--radius-lg);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Loading — Button with Spinner</div>
+      <div class="component-row">
+        <button class="btn btn-md btn-primary" disabled style="opacity: 0.7; cursor: not-allowed; display: inline-flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+          Booking...
+        </button>
+        <button class="btn btn-md btn-secondary" disabled style="opacity: 0.7; cursor: not-allowed; display: inline-flex; align-items: center; gap: 8px;">
+          <span style="display: inline-block; width: 16px; height: 16px; border: 2px solid var(--primary-200); border-top-color: var(--primary-600); border-radius: 50%; animation: spin 0.8s linear infinite;"></span>
+          Loading...
+        </button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Empty State — No Search Results</div>
+      <div class="card" style="padding: 48px; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🔍</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--neutral-900); margin-bottom: 4px;">No trips found</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 20px;">We couldn't find any trips matching your search. Try adjusting your filters.</div>
+        <button class="btn btn-sm btn-secondary">Clear Filters</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Empty State — No Bookings</div>
+      <div class="card" style="padding: 48px; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🏝️</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--neutral-900); margin-bottom: 4px;">No bookings yet</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 20px;">Time to explore! Find your perfect group trip.</div>
+        <button class="btn btn-md btn-gradient">Browse Trips</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Empty State — No Trips (Organizer)</div>
+      <div class="card" style="padding: 48px; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📋</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--neutral-900); margin-bottom: 4px;">You haven't created any trips yet</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 20px;">Start by creating your first trip listing.</div>
+        <button class="btn btn-md btn-primary">+ Create Your First Trip</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Error State — API Failure (Inline)</div>
+      <div style="padding: 32px; border-radius: var(--radius-xl); background: var(--error-50); border: 1px solid #FECACA; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 40px; margin-bottom: 8px;">😕</div>
+        <div style="font-size: 16px; font-weight: 600; color: var(--neutral-800); margin-bottom: 4px;">Failed to load trips</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 16px;">This is probably temporary. Please try again.</div>
+        <button class="btn btn-sm" style="background: transparent; color: var(--primary-600); font-weight: 600; border: 1px solid var(--primary-200);">Try Again</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Error State — Network Offline</div>
+      <div style="padding: 32px; border-radius: var(--radius-xl); background: var(--warning-50); border: 1px solid #FDE68A; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 40px; margin-bottom: 8px;">📡</div>
+        <div style="font-size: 16px; font-weight: 600; color: var(--neutral-800); margin-bottom: 4px;">You're offline</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 16px;">Check your internet connection and try again.</div>
+        <button class="btn btn-sm" style="background: transparent; color: var(--warning-500); font-weight: 600; border: 1px solid var(--warning-500);">Retry</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Error State — Page Not Found</div>
+      <div class="card" style="padding: 48px; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🗺️</div>
+        <div style="font-family: var(--font-display); font-size: 64px; font-weight: 800; color: var(--neutral-200); line-height: 1;">404</div>
+        <div style="font-size: 18px; font-weight: 700; color: var(--neutral-900); margin-top: 8px; margin-bottom: 4px;">Page not found</div>
+        <div style="font-size: 14px; color: var(--neutral-500); margin-bottom: 20px;">The page you're looking for doesn't exist or has been moved.</div>
+        <button class="btn btn-md btn-primary">Go Home</button>
+      </div>
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">Error State — Component Crash (Error Boundary)</div>
+      <div style="padding: 24px; border-radius: var(--radius-xl); background: var(--error-50); border: 1px solid #FECACA; text-align: center; max-width: 500px; width: 100%;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--error-500);">Something went wrong loading this section.</div>
+        <button class="btn btn-sm" style="margin-top: 10px; background: transparent; color: var(--primary-600); font-weight: 600; padding: 4px 12px;">Try again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TOOLTIPS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Tooltips</h2>
+    <p class="section-desc">Hover for context</p>
+
+    <div class="component-row" style="gap: 40px; padding-top: 40px;">
+      <div class="tooltip-wrapper">
+        <span class="badge badge-success">✅ Verified</span>
+        <div class="tooltip">Identity verified via Aadhaar</div>
+      </div>
+      <div class="tooltip-wrapper">
+        <span class="badge badge-info">🔒 Escrow</span>
+        <div class="tooltip">Money held safely until trip completes</div>
+      </div>
+      <div class="tooltip-wrapper">
+        <span class="badge badge-warning">⚡ 3 seats left</span>
+        <div class="tooltip">Hurry! This trip is almost full</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== MODAL ======================== -->
+  <div class="section">
+    <h2 class="section-title">Modal</h2>
+    <p class="section-desc">Confirmation dialogs and forms</p>
+
+    <button class="btn btn-md btn-primary" onclick="document.getElementById('modal-1').classList.add('active')">Open Booking Modal</button>
+    <button class="btn btn-md btn-danger" onclick="document.getElementById('modal-2').classList.add('active')" style="margin-left: 12px;">Open Cancel Modal</button>
+  </div>
+
+</div>
+
+<!-- MODAL 1: Booking Confirmation -->
+<div class="modal-overlay" id="modal-1" onclick="if(event.target===this) this.classList.remove('active')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Confirm Booking</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-1').classList.remove('active')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="flex gap-4 items-center mb-4">
+        <div style="width:60px; height:60px; border-radius: var(--radius-lg); background: var(--gradient-primary); display:flex; align-items:center; justify-content:center; color:white; font-size:28px;">🏖</div>
+        <div>
+          <div style="font-weight: 700; font-size: 18px; color: var(--neutral-900);">Goa Beach Getaway</div>
+          <div style="font-size: 14px; color: var(--neutral-500);">Dec 6-8, 2025 • 3D/2N</div>
+        </div>
+      </div>
+
+      <div style="background: var(--neutral-50); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px;">
+        <div class="flex justify-between mb-4">
+          <span style="color: var(--neutral-600);">Trip cost (1 person)</span>
+          <span style="font-weight: 600;">₹4,500</span>
+        </div>
+        <div class="flex justify-between mb-4">
+          <span style="color: var(--neutral-600);">Trip protection</span>
+          <span style="font-weight: 600;">₹149</span>
+        </div>
+        <div style="border-top: 2px solid var(--neutral-200); padding-top: 12px;" class="flex justify-between">
+          <span style="font-weight: 700; font-size: 16px;">Total</span>
+          <span style="font-weight: 800; font-size: 18px; color: var(--accent-500);">₹4,649</span>
+        </div>
+      </div>
+
+      <div class="escrow-status" style="padding: 12px 16px;">
+        <div class="escrow-icon" style="width: 36px; height: 36px; font-size: 18px;">🔒</div>
+        <div class="escrow-info">
+          <div class="escrow-title" style="font-size: 13px;">Escrow Protected</div>
+          <div class="escrow-desc" style="font-size: 12px;">Money released only after trip completion</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-md btn-ghost" onclick="document.getElementById('modal-1').classList.remove('active')">Cancel</button>
+      <button class="btn btn-md btn-gradient">Pay ₹4,649</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: Cancel Confirmation -->
+<div class="modal-overlay" id="modal-2" onclick="if(event.target===this) this.classList.remove('active')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" style="color: var(--error-500);">Cancel Booking?</h3>
+      <button class="modal-close" onclick="document.getElementById('modal-2').classList.remove('active')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="color: var(--neutral-600); margin-bottom: 16px;">Are you sure you want to cancel your booking for <strong>Goa Beach Getaway</strong>?</p>
+      <div class="alert alert-warning" style="margin-bottom: 0;">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <div class="alert-title">Cancellation Policy: Flexible</div>
+          Full refund since trip is more than 48 hours away. ₹4,649 will be refunded within 5-7 business days.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-md btn-ghost" onclick="document.getElementById('modal-2').classList.remove('active')">Keep Booking</button>
+      <button class="btn btn-md btn-danger">Yes, Cancel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

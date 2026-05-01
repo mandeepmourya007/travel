@@ -1,0 +1,501 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────
+
+enum UserRole {
+  TRAVELER
+  ORGANIZER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TripStatus {
+  DRAFT
+  ACTIVE
+  FULL
+  COMPLETED
+  CANCELLED
+}
+
+enum TripType {
+  ADVENTURE
+  WEEKEND
+  TREKKING
+  BEACH
+  CULTURAL
+  ROAD_TRIP
+}
+
+enum CancellationPolicy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REFUNDED
+  EXPIRED
+}
+
+enum PaymentType {
+  PAYMENT
+  REFUND
+  ESCROW_RELEASE
+}
+
+enum PaymentStatus {
+  INITIATED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  REFUND_PROCESSED
+  TRIP_REMINDER
+  REVIEW_REQUEST
+  CHAT_MESSAGE
+  ORGANIZER_APPROVED
+  ORGANIZER_REJECTED
+  TRIP_REQUEST_RECEIVED
+  TRIP_REQUEST_APPROVED
+  TRIP_REQUEST_REJECTED
+  SYSTEM_ALERT
+}
+
+enum VerificationCodeType {
+  EMAIL_VERIFY
+  PHONE_OTP
+  PASSWORD_RESET
+}
+
+enum BookingMode {
+  INSTANT
+  REQUEST_BASED
+}
+
+enum TripRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+// ─── Models (15 MVP Tables) ──────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  phone           String?   @unique
+  passwordHash    String?
+  googleId        String?   @unique
+  role            UserRole  @default(TRAVELER)
+  avatarUrl       String?
+  aadhaarVerified Boolean   @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organizerProfile  OrganizerProfile?
+  bookings          Booking[]
+  reviews           Review[]
+  sentMessages      Message[]          @relation("sender")
+  conversations     Conversation[]     @relation("traveler")
+  refreshTokens     RefreshToken[]
+  verificationCodes VerificationCode[]
+  notifications     Notification[]
+  cancelledBookings Booking[]          @relation("canceller")
+  tripRequests      TripRequest[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isDeleted])
+}
+
+model OrganizerProfile {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id])
+  businessName        String
+  description         String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  documents           Json?
+  rating              Float              @default(0)
+  totalReviews        Int                @default(0)
+  totalTripsCompleted Int                @default(0)
+  bankAccountLinked   Boolean            @default(false)
+  commissionRate      Float              @default(10.0)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  trips         Trip[]
+  conversations Conversation[] @relation("organizer")
+
+  @@index([verificationStatus])
+  @@index([isDeleted])
+}
+
+model Destination {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  state     String
+  photoUrl  String?
+  tripCount Int     @default(0)
+  isPopular Boolean @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  trips Trip[]
+
+  @@index([isPopular, tripCount])
+  @@index([isDeleted])
+}
+
+model Trip {
+  id                 String             @id @default(cuid())
+  organizerId        String
+  organizer          OrganizerProfile   @relation(fields: [organizerId], references: [id])
+  destinationId      String
+  destination        Destination        @relation(fields: [destinationId], references: [id])
+  title              String
+  slug               String             @unique
+  tripType           TripType
+  description        String
+  itinerary          Json
+  startDate          DateTime
+  endDate            DateTime
+  bookingDeadline    DateTime?
+  pricePerPerson     Int
+  earlyBirdPrice     Int?
+  earlyBirdDeadline  DateTime?
+  minGroupSize       Int
+  maxGroupSize       Int
+  currentBookings    Int                @default(0)
+  version            Int                @default(0)
+  inclusions         Json
+  cancellationPolicy CancellationPolicy @default(FLEXIBLE)
+  pickupLocation     String?
+  pickupTime         String?
+  photos             String[]
+  status             TripStatus         @default(DRAFT)
+  bookingMode        BookingMode        @default(INSTANT)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookings      Booking[]
+  reviews       Review[]
+  conversations Conversation[]
+  tripRequests  TripRequest[]
+
+  @@index([destinationId, startDate, status])
+  @@index([slug])
+  @@index([organizerId, status])
+  @@index([status, startDate])
+  @@index([isDeleted, status])
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  bookingRef     String        @unique
+  tripId         String
+  trip           Trip          @relation(fields: [tripId], references: [id])
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  numTravelers   Int           @default(1)
+  totalAmount    Int
+  tripProtection Boolean       @default(false)
+  bookingStatus  BookingStatus @default(PENDING_PAYMENT)
+  expiresAt      DateTime?
+
+  cancellationReason String?
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledBy        User?     @relation("canceller", fields: [cancelledById], references: [id])
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  travelerDetails     TravelerDetail[]
+  paymentTransactions PaymentTransaction[]
+  review              Review?
+  tripRequest         TripRequest?
+
+  @@index([tripId, bookingStatus])
+  @@index([userId, bookingStatus])
+  @@index([bookingRef])
+  @@index([bookingStatus, expiresAt])
+  @@index([isDeleted])
+}
+
+model TravelerDetail {
+  id        String  @id @default(cuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  name      String
+  phone     String?
+  age       Int?
+  gender    Gender?
+  isPrimary Boolean @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([bookingId])
+  @@index([isDeleted])
+}
+
+model PaymentTransaction {
+  id                  String        @id @default(cuid())
+  bookingId           String
+  booking             Booking       @relation(fields: [bookingId], references: [id])
+  type                PaymentType
+  amount              Int
+  currency            String        @default("INR")
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
+  razorpayRefundId    String?
+  razorpayTransferId  String?
+  status              PaymentStatus @default(INITIATED)
+  failureReason       String?
+  metadata            Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+}
+
+model Review {
+  id                 String  @id @default(cuid())
+  tripId             String
+  trip               Trip    @relation(fields: [tripId], references: [id])
+  bookingId          String  @unique
+  booking            Booking @relation(fields: [bookingId], references: [id])
+  userId             String
+  user               User    @relation(fields: [userId], references: [id])
+  overallRating      Int
+  organizationRating Int?
+  valueRating        Int?
+  safetyRating       Int?
+  accuracyRating     Int?
+  comment            String?
+  photos             String[]
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([isDeleted])
+}
+
+model Conversation {
+  id                 String           @id @default(cuid())
+  tripId             String
+  trip               Trip             @relation(fields: [tripId], references: [id])
+  travelerId         String
+  traveler           User             @relation("traveler", fields: [travelerId], references: [id])
+  organizerProfileId String
+  organizerProfile   OrganizerProfile @relation("organizer", fields: [organizerProfileId], references: [id])
+  lastMessageAt      DateTime?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  messages Message[]
+
+  @@unique([tripId, travelerId])
+  @@index([travelerId])
+  @@index([organizerProfileId])
+  @@index([isDeleted])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation("sender", fields: [senderId], references: [id])
+  content        String
+  isFlagged      Boolean      @default(false)
+  readAt         DateTime?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, readAt])
+  @@index([isDeleted])
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  tokenHash  String    @unique
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+}
+
+model VerificationCode {
+  id         String               @id @default(cuid())
+  userId     String?
+  user       User?                @relation(fields: [userId], references: [id])
+  type       VerificationCodeType
+  identifier String
+  codeHash   String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  attempts   Int                  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier, type])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
+  channel       NotificationChannel
+  type          NotificationType
+  title         String
+  body          String
+  data          Json?
+  sentAt        DateTime?
+  readAt        DateTime?
+  failureReason String?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId, readAt])
+  @@index([channel, sentAt])
+  @@index([isDeleted])
+}
+
+model WebhookEvent {
+  id          String    @id @default(cuid())
+  eventId     String    @unique
+  event       String
+  payload     Json
+  status      String    @default("COMPLETED")
+  processedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([status])
+}
+
+model TripRequest {
+  id                String            @id @default(cuid())
+  tripId            String
+  trip              Trip              @relation(fields: [tripId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  numTravelers      Int               @default(1)
+  message           String?
+  status            TripRequestStatus @default(PENDING)
+  respondedAt       DateTime?
+  responseNote      String?
+  approvalExpiresAt DateTime?
+  bookingId         String?           @unique
+  booking           Booking?          @relation(fields: [bookingId], references: [id])
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([tripId, userId])
+  @@index([tripId, status])
+  @@index([userId, status])
+  @@index([status, approvalExpiresAt])
+  @@index([isDeleted])
+}
