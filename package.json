@@ -12,7 +12,11 @@
     "type-check": "turbo type-check",
     "test": "turbo test",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "docker:up": "./scripts/docker-up.sh",
+    "docker:down": "./scripts/docker-down.sh",
+    "docker:logs": "docker compose logs -f",
+    "docker:clean": "docker compose down -v --remove-orphans"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
