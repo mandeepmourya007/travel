@@ -1,76 +1,78 @@
 'use client'
 
-import { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Map, Users, IndianRupee, Clock, Plus } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
-import { apiClient } from '@/lib/api-client'
-import { APP_NAME } from '@/lib/constants'
-import { AuthGuard } from '@/components/shared/auth-guard'
+import { useOrganizerStats } from '@/hooks/use-organizer-stats'
+import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
+import { ErrorState } from '@/components/shared/data-states'
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const { user, clearAuth } = useAuthStore()
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await apiClient.post('/auth/logout')
-    } catch {
-      // ignore — still clear local state
-    }
-    clearAuth()
-    router.push('/')
-  }, [clearAuth, router])
+  const user = useAuthStore((s) => s.user)
+  const { data: stats, isLoading, error, refetch } = useOrganizerStats()
 
   return (
-    <AuthGuard>
-      {/* AuthGuard guarantees user is authenticated; use ! for TS narrowing */}
-      <div className="min-h-screen bg-neutral-50">
-        <header className="border-b border-neutral-200 bg-white">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-            <h1 className="font-display text-xl font-bold text-primary-600">{APP_NAME}</h1>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-neutral-800">{user!.name}</p>
-                <p className="text-xs text-neutral-400">{user!.role}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="btn-ghost text-sm"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-5xl px-6 py-12">
-          <h2 className="font-display text-2xl font-bold text-neutral-800">
-            Welcome back, {user!.name.split(' ')[0]}!
+    <div className="animate-page-enter">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-display text-2xl font-bold text-neutral-900">
+            Welcome back, {user?.name.split(' ')[0]}!
           </h2>
-          <p className="mt-2 text-neutral-500">
-            You&apos;re logged in as <span className="font-medium text-primary-600">{user!.role}</span>.
+          <p className="mt-1 text-sm text-neutral-500">
+            Here&apos;s what&apos;s happening with your trips.
           </p>
-
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
-            {[
-              { label: 'User ID', value: user!.id.slice(0, 12) + '...' },
-              { label: 'Email', value: user!.email },
-              { label: 'Role', value: user!.role },
-            ].map((item) => (
-              <div key={item.label} className="rounded-xl bg-white border border-neutral-200 p-6 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{item.label}</p>
-                <p className="mt-1 text-lg font-semibold text-neutral-800">{item.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 rounded-xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-            <p className="text-neutral-500">
-              Auth is working end-to-end! Next up: Trip browsing, Booking flow, Organizer dashboard.
-            </p>
-          </div>
-        </main>
+        </div>
+        <Link href="/dashboard/trips/create" className="btn-primary flex items-center gap-2 text-sm">
+          <Plus className="h-4 w-4" />
+          Create Trip
+        </Link>
       </div>
-    </AuthGuard>
+
+      {/* Stat Cards */}
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+        ) : error ? (
+          <div className="col-span-full">
+            <ErrorState onRetry={() => refetch()} />
+          </div>
+        ) : stats ? (
+          <>
+            <StatCard label="Active Trips" value={stats.activeTrips} icon={<Map className="h-6 w-6" />} />
+            <StatCard label="Total Bookings" value={stats.totalBookings} icon={<Users className="h-6 w-6" />} />
+            <StatCard label="Revenue" value={`₹${stats.revenue.toLocaleString('en-IN')}`} icon={<IndianRupee className="h-6 w-6" />} />
+            <StatCard label="Pending Requests" value={stats.pendingRequests} icon={<Clock className="h-6 w-6" />} />
+          </>
+        ) : (
+          <div className="col-span-full card-static p-8 text-center">
+            <p className="text-neutral-500">No stats available yet. Create your first trip to get started!</p>
+          </div>
+        )}
+      </div>
+
+      {/* Quick actions */}
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Link
+          href="/dashboard/trips"
+          className="card-static flex items-center gap-4 p-6 transition-shadow hover:shadow-card-hover"
+        >
+          <Map className="h-8 w-8 text-primary-500" />
+          <div>
+            <p className="font-semibold text-neutral-800">Manage Trips</p>
+            <p className="text-sm text-neutral-500">View, edit, and publish your trips</p>
+          </div>
+        </Link>
+        <Link
+          href="/dashboard/trips/create"
+          className="card-static flex items-center gap-4 p-6 transition-shadow hover:shadow-card-hover"
+        >
+          <Plus className="h-8 w-8 text-primary-500" />
+          <div>
+            <p className="font-semibold text-neutral-800">Create New Trip</p>
+            <p className="text-sm text-neutral-500">Add a new group trip listing</p>
+          </div>
+        </Link>
+      </div>
+    </div>
   )
 }

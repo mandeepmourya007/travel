@@ -38,8 +38,8 @@ export function makeTripDetail(overrides: Partial<TripDetail> = {}): TripDetail 
     inclusions: ['Transport', 'Meals', 'Accommodation'],
     exclusions: ['Personal expenses'],
     itinerary: [
-      { day: 1, title: 'Day 1', description: 'Arrival', activities: ['Check-in', 'Welcome dinner'] },
-      { day: 2, title: 'Day 2', description: 'Explore', activities: ['Beach visit', 'Water sports'] },
+      { day: 1, title: 'Day 1', description: 'Arrival', activities: [{ title: 'Check-in', time: '2:00 PM' }, { title: 'Welcome dinner', time: '7:00 PM' }] },
+      { day: 2, title: 'Day 2', description: 'Explore', activities: [{ title: 'Beach visit', time: '9:00 AM' }, { title: 'Water sports', time: '2:00 PM' }] },
     ],
     status: 'ACTIVE',
     organizer: {

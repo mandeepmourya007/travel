@@ -34,10 +34,13 @@ export function TripItinerary({ itinerary }: TripItineraryProps) {
               )}
               {day.activities && day.activities.length > 0 && (
                 <ul className="mt-2 space-y-1">
-                  {day.activities.map((item, i) => (
+                  {day.activities.map((activity, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-neutral-600">
                       <MapPin className="h-3.5 w-3.5 mt-0.5 text-primary-400 shrink-0" />
-                      {item}
+                      <span>
+                        {activity.time && <span className="font-medium text-neutral-700">{activity.time} — </span>}
+                        {activity.title}
+                      </span>
                     </li>
                   ))}
                 </ul>
