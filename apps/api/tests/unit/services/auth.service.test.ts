@@ -34,8 +34,17 @@ const mockLogger = {
   debug: vi.fn(),
 } as unknown as import('pino').Logger
 
+function createMockOrganizerProfileRepo() {
+  return {
+    findById: vi.fn(),
+    findByUserId: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    incrementTripCount: vi.fn(),
+  }
+}
+
 const JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters'
-const JWT_REFRESH_SECRET = 'test-refresh-secret-that-is-at-least-32-chars'
 
 const testUser = {
   id: 'user-123',
@@ -55,16 +64,18 @@ describe('AuthService', () => {
   let service: AuthService
   let userRepo: ReturnType<typeof createMockUserRepo>
   let refreshTokenRepo: ReturnType<typeof createMockRefreshTokenRepo>
+  let organizerProfileRepo: ReturnType<typeof createMockOrganizerProfileRepo>
 
   beforeEach(() => {
     vi.clearAllMocks()
     userRepo = createMockUserRepo()
     refreshTokenRepo = createMockRefreshTokenRepo()
+    organizerProfileRepo = createMockOrganizerProfileRepo()
     service = new AuthService(
       userRepo as any,
       refreshTokenRepo as any,
+      organizerProfileRepo as any,
       JWT_SECRET,
-      JWT_REFRESH_SECRET,
       mockLogger,
     )
   })

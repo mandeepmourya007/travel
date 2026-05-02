@@ -17,6 +17,8 @@ const mockTripRepo = {
   update: vi.fn(),
   softDelete: vi.fn(),
   withTransaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
+  calculateOrganizerRevenue: vi.fn(),
+  countPendingRequests: vi.fn(),
 }
 
 const mockDestinationRepo = {
@@ -27,6 +29,11 @@ const mockDestinationRepo = {
 
 const mockOrganizerProfileRepo = {
   findByUserId: vi.fn(),
+}
+
+const mockEditHistoryRepo = {
+  create: vi.fn(),
+  findByTripId: vi.fn(),
 }
 
 let service: TripService
@@ -79,6 +86,7 @@ beforeEach(() => {
     mockTripRepo as any,
     mockDestinationRepo as any,
     mockOrganizerProfileRepo as any,
+    mockEditHistoryRepo as any,
     logger as any,
   )
 })
@@ -261,6 +269,200 @@ describe('TripService', () => {
       await expect(service.publishTrip('user-1', 'trip-1')).rejects.toThrow(
         'Only DRAFT trips',
       )
+    })
+  })
+
+  describe('getOrganizerStats', () => {
+    it('should return stats with revenue from CAPTURED payments minus refunds', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([
+        { ...mockTrip, status: 'ACTIVE', currentBookings: 5 },
+        { ...mockTrip, id: 'trip-2', status: 'COMPLETED', currentBookings: 3 },
+      ])
+      // Revenue: ₹50,000 captured payments - ₹5,000 refunds = ₹45,000
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(45000)
+      mockTripRepo.countPendingRequests.mockResolvedValue(2)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.activeTrips).toBe(1)
+      expect(result.totalBookings).toBe(8)
+      expect(result.revenue).toBe(45000)
+      expect(result.pendingRequests).toBe(2)
+      expect(mockTripRepo.calculateOrganizerRevenue).toHaveBeenCalledWith('org-1')
+      expect(mockTripRepo.countPendingRequests).toHaveBeenCalledWith('org-1')
+    })
+
+    it('should return zero revenue when organizer has no payments', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([])
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(0)
+      mockTripRepo.countPendingRequests.mockResolvedValue(0)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.activeTrips).toBe(0)
+      expect(result.totalBookings).toBe(0)
+      expect(result.revenue).toBe(0)
+      expect(result.pendingRequests).toBe(0)
+    })
+
+    it('should return negative revenue when refunds exceed payments', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([
+        { ...mockTrip, status: 'ACTIVE', currentBookings: 1 },
+      ])
+      // Edge case: more refunds than payments (e.g. price adjustment + refund)
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(-2000)
+      mockTripRepo.countPendingRequests.mockResolvedValue(0)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.revenue).toBe(-2000)
+    })
+
+    it('should throw ForbiddenError if organizer profile not found', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(service.getOrganizerStats('user-99')).rejects.toThrow(
+        'Organizer profile not found',
+      )
+    })
+  })
+
+  describe('toggleBookings', () => {
+    it('should toggle acceptingBookings from true to false on ACTIVE trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({
+        ...mockTrip,
+        status: 'ACTIVE',
+        acceptingBookings: true,
+      })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({
+        ...mockTrip,
+        status: 'ACTIVE',
+        acceptingBookings: false,
+      })
+
+      const result = await service.toggleBookings('user-1', 'trip-1')
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        acceptingBookings: false,
+      })
+      expect(result.acceptingBookings).toBe(false)
+    })
+
+    it('should toggle acceptingBookings from false to true on ACTIVE trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({
+        ...mockTrip,
+        status: 'ACTIVE',
+        acceptingBookings: false,
+      })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({
+        ...mockTrip,
+        status: 'ACTIVE',
+        acceptingBookings: true,
+      })
+
+      const result = await service.toggleBookings('user-1', 'trip-1')
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        acceptingBookings: true,
+      })
+      expect(result.acceptingBookings).toBe(true)
+    })
+
+    it('should throw NotFoundError for non-existent trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(service.toggleBookings('user-1', 'trip-999')).rejects.toThrow(
+        'Trip not found',
+      )
+    })
+
+    it('should throw ForbiddenError when toggling another organizer\'s trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
+        ...mockOrganizer,
+        id: 'org-other',
+      })
+
+      await expect(service.toggleBookings('user-2', 'trip-1')).rejects.toThrow(
+        'only manage your own',
+      )
+    })
+
+    it('should throw ValidationError for non-ACTIVE trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'DRAFT' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.toggleBookings('user-1', 'trip-1')).rejects.toThrow(
+        'Only ACTIVE trips',
+      )
+    })
+
+    it('should throw ValidationError for COMPLETED trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'COMPLETED' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.toggleBookings('user-1', 'trip-1')).rejects.toThrow(
+        'Only ACTIVE trips',
+      )
+    })
+  })
+
+  describe('getTripEditHistory', () => {
+    it('should return paginated edit history for own trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(mockTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockEditHistoryRepo.findByTripId.mockResolvedValue({
+        data: [
+          {
+            id: 'hist-1',
+            editedBy: { id: 'user-1', name: 'Test User' },
+            changedFields: ['title', 'pricePerPerson'],
+            editNote: null,
+            createdAt: new Date('2025-06-01'),
+          },
+        ],
+        total: 1,
+      })
+
+      const result = await service.getTripEditHistory('user-1', 'trip-1', 1, 20)
+
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].changedFields).toEqual(['title', 'pricePerPerson'])
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+      })
+      expect(mockEditHistoryRepo.findByTripId).toHaveBeenCalledWith('trip-1', {
+        offset: 0,
+        limit: 20,
+      })
+    })
+
+    it('should throw NotFoundError for non-existent trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(
+        service.getTripEditHistory('user-1', 'trip-999'),
+      ).rejects.toThrow('Trip not found')
+    })
+
+    it('should throw ForbiddenError when viewing another organizer\'s history', async () => {
+      mockTripRepo.findById.mockResolvedValue(mockTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
+        ...mockOrganizer,
+        id: 'org-other',
+      })
+
+      await expect(
+        service.getTripEditHistory('user-2', 'trip-1'),
+      ).rejects.toThrow('only view history of your own')
     })
   })
 
