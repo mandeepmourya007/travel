@@ -55,3 +55,15 @@ export const createReviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   comment: z.string().min(10, 'Review must be at least 10 characters').max(1000),
 })
+
+// ─── Traveler "My Bookings" Filters & Actions ───────
+
+export const myBookingFiltersSchema = z.object({
+  tab: z.enum(['all', 'upcoming', 'completed', 'cancelled']).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+})
+
+export const cancelBookingSchema = z.object({
+  reason: z.string().min(5, 'Reason must be at least 5 characters').max(500).trim(),
+})

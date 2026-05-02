@@ -79,3 +79,62 @@ export interface TripBookingSummary {
   revenue: number
   pendingRequestsCount: number
 }
+
+// ─── Traveler "My Bookings" View ────────────────────
+
+/** Tab filter values for the My Bookings page */
+export type MyBookingTab = 'all' | 'upcoming' | 'completed' | 'cancelled'
+
+/** Traveler's booking list item — shown on the "My Bookings" page */
+export interface MyBookingListItem {
+  id: string
+  bookingRef: string
+  bookingStatus: string
+  numTravelers: number
+  totalAmount: number
+  tripProtection: boolean
+  createdAt: string
+  cancelledAt: string | null
+  trip: {
+    id: string
+    title: string
+    slug: string
+    startDate: string
+    endDate: string
+    photos: string[]
+    tripType: string
+    cancellationPolicy: string
+    destination: { id: string; name: string; slug: string }
+    organizer: { id: string; businessName: string; rating: number; verified: boolean }
+  }
+  hasReview: boolean
+}
+
+/** Query params for GET /bookings/my */
+export interface MyBookingFilters {
+  tab?: MyBookingTab
+  page?: number
+  limit?: number
+}
+
+/** Tab count summary returned by GET /bookings/my/summary */
+export interface MyBookingSummary {
+  all: number
+  upcoming: number
+  completed: number
+  cancelled: number
+}
+
+/** Request body for POST /bookings/:id/cancel */
+export interface CancelBookingDto {
+  reason: string
+}
+
+/** Response from POST /bookings/:id/cancel */
+export interface CancelBookingResult {
+  bookingId: string
+  bookingStatus: 'CANCELLED'
+  refundAmount: number
+  refundPercent: number
+  cancellationPolicy: string
+}
