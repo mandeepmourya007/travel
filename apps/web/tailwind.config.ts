@@ -49,6 +49,10 @@ const config: Config = {
           from: { opacity: '0' },
           to: { opacity: '1' },
         },
+        'page-enter': {
+          from: { opacity: '0', transform: 'translateY(12px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
@@ -57,6 +61,7 @@ const config: Config = {
         pop: 'pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
         'slide-up': 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fade-in 0.2s ease-out',
+        'page-enter': 'page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
       },
     },
   },
