@@ -1060,6 +1060,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 TODO
 1. Login.signup page OTP verification for number and gmail
-- future please update login/signup flow with login with OTP
-2. 
+  - future please update login/signup flow with login with OTP
+2. travel is redirect to dashboard please fix it
+3. dont allow Orgainze to go to trips list page only dashboard
+4. compare ui is viislbe in all pages please show in trips list page only not in dashboard or in my-bookings page 
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
