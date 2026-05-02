@@ -15,16 +15,18 @@ export const prisma = basePrisma.$extends({
     $allModels: {
       async findMany({ model, args, query }) {
         if (SOFT_DELETE_MODELS.includes(model as (typeof SOFT_DELETE_MODELS)[number])) {
-          if (args.where?.isDeleted === undefined) {
-            args.where = { ...args.where, isDeleted: false }
+          const where = args.where as Record<string, unknown> | undefined
+          if (where?.isDeleted === undefined) {
+            args.where = { ...where, isDeleted: false }
           }
         }
         return query(args)
       },
       async findFirst({ model, args, query }) {
         if (SOFT_DELETE_MODELS.includes(model as (typeof SOFT_DELETE_MODELS)[number])) {
-          if (args.where?.isDeleted === undefined) {
-            args.where = { ...args.where, isDeleted: false }
+          const where = args.where as Record<string, unknown> | undefined
+          if (where?.isDeleted === undefined) {
+            args.where = { ...where, isDeleted: false }
           }
         }
         return query(args)
@@ -63,6 +65,7 @@ export const prisma = basePrisma.$extends({
 })
 
 export type ExtendedPrismaClient = typeof prisma
+export type TransactionClient = Parameters<Parameters<ExtendedPrismaClient['$transaction']>[0]>[0]
 
 // Singleton for Next.js hot-reload (prevents connection leaks in dev)
 const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrismaClient }

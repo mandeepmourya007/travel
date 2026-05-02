@@ -19,7 +19,7 @@ import { createDestinationRoutes } from '../routes/destination.routes'
 import { createTripRoutes } from '../routes/trip.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
-const { JWT_SECRET, JWT_REFRESH_SECRET } = env
+const { JWT_SECRET } = env
 
 // ── Repositories ─────────────────────────────────────
 const userRepo = new UserRepository(prisma)
@@ -33,7 +33,6 @@ export const authService = new AuthService(
   userRepo,
   refreshTokenRepo,
   JWT_SECRET,
-  JWT_REFRESH_SECRET,
   logger,
 )
 

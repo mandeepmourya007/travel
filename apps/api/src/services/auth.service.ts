@@ -13,7 +13,6 @@ export class AuthService {
     private userRepo: UserRepository,
     private refreshTokenRepo: RefreshTokenRepository,
     private jwtSecret: string,
-    private jwtRefreshSecret: string,
     private logger: Logger,
   ) {}
 

@@ -1,4 +1,5 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 
 const TRIP_INCLUDE_SUMMARY = {
@@ -33,9 +34,9 @@ const TRIP_INCLUDE_DETAIL = {
 } as const
 
 export class TripRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: ExtendedPrismaClient) {}
 
-  async withTransaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  async withTransaction<T>(fn: (tx: TransactionClient) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(fn)
   }
 

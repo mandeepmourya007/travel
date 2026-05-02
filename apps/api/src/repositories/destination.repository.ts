@@ -1,7 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class DestinationRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: ExtendedPrismaClient) {}
 
   async findAll(includeInactive = false) {
     return this.prisma.destination.findMany({

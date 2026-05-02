@@ -1,7 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
+import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class OrganizerProfileRepository {
-  constructor(private prisma: PrismaClient) {}
+  constructor(private prisma: ExtendedPrismaClient) {}
 
   async findById(id: string) {
     return this.prisma.organizerProfile.findFirst({

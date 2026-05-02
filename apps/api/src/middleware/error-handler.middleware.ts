@@ -4,19 +4,19 @@ import { logger } from '../utils/logger'
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError && err.isOperational) {
-    logger.warn('Operational error', {
+    logger.warn({
       code: err.code,
       message: err.message,
       path: req.path,
       method: req.method,
-    })
+    }, 'Operational error')
   } else {
-    logger.error('Unexpected error', {
+    logger.error({
       message: err.message,
       stack: err.stack,
       path: req.path,
       method: req.method,
-    })
+    }, 'Unexpected error')
   }
 
   if (err instanceof AppError) {
@@ -25,7 +25,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       error: {
         code: err.code,
         message: err.message,
-        ...(err instanceof ValidationError && err.details && { details: err.details }),
+        ...(err instanceof ValidationError && err.details ? { details: err.details } : {}),
       },
     })
   }

@@ -1,4 +1,5 @@
 import { Logger } from 'pino'
+import { Prisma } from '@prisma/client'
 import type { CreateTripDto, UpdateTripDto, TripFilters } from '@shared/types/trip.types'
 import { TripRepository } from '../repositories/trip.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
@@ -90,7 +91,7 @@ export class TripService {
       cancellationPolicy: input.cancellationPolicy,
       inclusions: input.inclusions,
       exclusions: input.exclusions,
-      itinerary: input.itinerary,
+      itinerary: input.itinerary as unknown as Prisma.InputJsonValue,
       photos: input.photos,
       pickupLocation: input.pickupLocation,
       pickupTime: input.pickupTime,

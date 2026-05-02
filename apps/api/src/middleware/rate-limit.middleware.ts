@@ -24,7 +24,7 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
       res.setHeader('X-RateLimit-Reset', reset)
 
       if (!success) {
-        logger.warn('Rate limit exceeded', { ip: identifier, prefix })
+        logger.warn({ ip: identifier, prefix }, 'Rate limit exceeded')
         return res.status(429).json({
           success: false,
           error: {
@@ -36,7 +36,7 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
 
       next()
     } catch (err) {
-      logger.error('Rate limiter error — allowing request', { error: (err as Error).message })
+      logger.error({ error: (err as Error).message }, 'Rate limiter error — allowing request')
       next()
     }
   }
