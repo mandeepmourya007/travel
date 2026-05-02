@@ -3,15 +3,22 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Search, Menu, X, User } from 'lucide-react'
+import { Search, Menu, X, User, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
+import { apiClient } from '@/lib/api-client'
 import { APP_NAME } from '@/lib/constants'
 
 export function Header() {
   const router = useRouter()
-  const { isAuthenticated, user, _hasHydrated } = useAuthStore()
+  const { isAuthenticated, user, clearAuth, _hasHydrated } = useAuthStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  async function handleLogout() {
+    try { await apiClient.post('/auth/logout') } catch { /* best-effort */ }
+    clearAuth()
+    router.push('/login')
+  }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -56,14 +63,29 @@ export function Header() {
           </Link>
           {_hasHydrated && isAuthenticated ? (
             <>
-              <span className="text-sm text-neutral-500">Hi, {user?.name.split(' ')[0]}</span>
               <Link
-                href="/dashboard"
-                className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600"
+                href="/my-bookings"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
               >
-                <User className="h-4 w-4" />
-                Dashboard
+                My Bookings
               </Link>
+              <span className="text-sm text-neutral-500">Hi, {user?.name.split(' ')[0]}</span>
+              {user?.role === 'ORGANIZER' && (
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600"
+                >
+                  <User className="h-4 w-4" />
+                  Dashboard
+                </Link>
+              )}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                aria-label="Log out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
             </>
           ) : (
             <>
@@ -116,13 +138,31 @@ export function Header() {
             Explore Trips
           </Link>
           {_hasHydrated && isAuthenticated ? (
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block rounded-lg px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
-            >
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/my-bookings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                My Bookings
+              </Link>
+              {user?.role === 'ORGANIZER' && (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
+                >
+                  Dashboard
+                </Link>
+              )}
+              <button
+                onClick={() => { setMobileMenuOpen(false); handleLogout() }}
+                className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-error-600 hover:bg-error-50"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </>
           ) : (
             <div className="flex gap-2 pt-2">
               <Link href="/login" className="btn-secondary flex-1 text-center text-sm">
