@@ -19,6 +19,19 @@ const BOOKING_INCLUDE_LIST = {
   },
 } as const
 
+const MY_BOOKING_INCLUDE = {
+  trip: {
+    select: {
+      id: true, title: true, slug: true,
+      startDate: true, endDate: true, photos: true,
+      tripType: true, cancellationPolicy: true,
+      destination: { select: { id: true, name: true, slug: true } },
+      organizer: { select: { id: true, businessName: true, rating: true, verificationStatus: true } },
+    },
+  },
+  review: { select: { id: true } },
+} as const
+
 export class BookingRepository {
   constructor(private prisma: ExtendedPrismaClient) {}
 
@@ -112,6 +125,85 @@ export class BookingRepository {
     }
   }
 
+  /**
+   * Finds paginated bookings for a specific traveler with tab-based filtering.
+   *
+   * WHERE: userId (REQUIRED — IDOR prevention AR-2), isDeleted=false
+   * Tab mapping:
+   *   - 'upcoming' → CONFIRMED/PENDING_PAYMENT + future trip startDate
+   *   - 'completed' → COMPLETED
+   *   - 'cancelled' → CANCELLED + EXPIRED (AR-1)
+   *   - 'all' → no status filter
+   *
+   * Note (AR-3): upcoming tab joins on trip.startDate — acceptable at MVP scale.
+   * Used by: BookingService.getMyBookings()
+   */
+  async findByUserId(
+    userId: string,
+    tab: string | undefined,
+    pagination: { offset: number; limit: number },
+  ) {
+    const where = this.buildUserWhere(userId, tab)
+    const orderBy = tab === 'upcoming'
+      ? { trip: { startDate: 'asc' as const } }
+      : { createdAt: 'desc' as const }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.booking.findMany({
+        where, skip: pagination.offset, take: pagination.limit,
+        orderBy, include: MY_BOOKING_INCLUDE,
+      }),
+      this.prisma.booking.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
+   * Returns booking count grouped by status for tab badges.
+   * Used by: BookingService.getMyBookingSummary()
+   */
+  async getMyBookingSummary(userId: string) {
+    return this.prisma.booking.groupBy({
+      by: ['bookingStatus'],
+      _count: { id: true },
+      where: { userId, isDeleted: false },
+    })
+  }
+
+  /**
+   * Finds a single booking by ID with trip cancellation details.
+   * Used by: BookingService.cancelBooking()
+   */
+  async findById(id: string) {
+    return this.prisma.booking.findFirst({
+      where: { id, isDeleted: false },
+      include: {
+        trip: {
+          select: {
+            id: true, title: true, startDate: true,
+            cancellationPolicy: true, currentBookings: true, version: true,
+          },
+        },
+      },
+    })
+  }
+
+  /**
+   * Cancels a booking — sets status to CANCELLED, stores reason and timestamp.
+   * Used by: BookingService.cancelBooking()
+   */
+  async cancel(id: string, userId: string, reason: string) {
+    return this.prisma.booking.update({
+      where: { id },
+      data: {
+        bookingStatus: 'CANCELLED',
+        cancellationReason: reason,
+        cancelledAt: new Date(),
+        cancelledById: userId,
+      },
+    })
+  }
+
   // Builds dynamic WHERE clause for bookingStatus + user name search
   private buildWhere(
     tripId: string,
@@ -128,6 +220,26 @@ export class BookingRepository {
           name: { contains: filters.search, mode: 'insensitive' as const },
         },
       }),
+    }
+  }
+
+  // Builds WHERE clause for traveler's booking list — userId always required (IDOR)
+  private buildUserWhere(userId: string, tab?: string): Prisma.BookingWhereInput {
+    const base: Prisma.BookingWhereInput = { userId, isDeleted: false }
+    switch (tab) {
+      case 'upcoming':
+        return {
+          ...base,
+          bookingStatus: { in: ['CONFIRMED', 'PENDING_PAYMENT'] },
+          trip: { startDate: { gt: new Date() } },
+        }
+      case 'completed':
+        return { ...base, bookingStatus: 'COMPLETED' }
+      case 'cancelled':
+        return { ...base, bookingStatus: { in: ['CANCELLED', 'EXPIRED'] } }
+      case 'all':
+      default:
+        return base
     }
   }
 

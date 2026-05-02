@@ -9,7 +9,7 @@ import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, destinationRoutes, tripRoutes, uploadRoutes } from './config/dependencies'
+import { authRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -45,9 +45,9 @@ export function createServer() {
   app.use('/api/v1/trips', tripRoutes)
 
   app.use('/api/v1/uploads', uploadRoutes)
+  app.use('/api/v1/bookings', bookingRoutes)
 
   // TODO: Mount feature routes here as they are built
-  // app.use('/api/v1/bookings', bookingRoutes)
   // app.use('/api/v1/trip-requests', tripRequestRoutes)
   // app.use('/api/v1/notifications', notificationRoutes)
   // app.use('/api/v1/reviews', reviewRoutes)

@@ -23,6 +23,9 @@ import { createAuthRoutes } from '../routes/auth.routes'
 import { createDestinationRoutes } from '../routes/destination.routes'
 import { createTripRoutes } from '../routes/trip.routes'
 import { createUploadRoutes } from '../routes/upload.routes'
+import { BookingService } from '../services/booking.service'
+import { BookingController } from '../controllers/booking.controller'
+import { createBookingRoutes } from '../routes/booking.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -49,6 +52,7 @@ export const authService = new AuthService(
 const destinationService = new DestinationService(destinationRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, logger)
 const uploadService = new UploadService()
+const bookingService = new BookingService(bookingRepo, logger)
 
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
@@ -58,9 +62,11 @@ const authController = new AuthController(authService)
 const destinationController = new DestinationController(destinationService)
 const tripController = new TripController(tripService)
 const uploadController = new UploadController(uploadService)
+const bookingController = new BookingController(bookingService)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, authMiddleware)
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
+export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware)
