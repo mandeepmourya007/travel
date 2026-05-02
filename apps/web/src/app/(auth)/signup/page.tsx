@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, isAppApiError } from '@/lib/api-client'
+import { APP_NAME } from '@/lib/constants'
+import { signupSchema } from '@shared/validators/auth.schema'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -19,7 +21,7 @@ export default function SignupPage() {
     role: 'TRAVELER' as 'TRAVELER' | 'ORGANIZER',
   })
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<{ field: string; message: string }[]>([])
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -31,40 +33,51 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setFieldErrors([])
+    setFieldErrors({})
+
+    const payload = { ...form } as Record<string, unknown>
+    if (!form.phone) delete payload.phone
+
+    const result = signupSchema.safeParse(payload)
+    if (!result.success) {
+      const errs: Record<string, string> = {}
+      result.error.issues.forEach((issue) => {
+        const field = issue.path[0] as string
+        if (!errs[field]) errs[field] = issue.message
+      })
+      setFieldErrors(errs)
+      return
+    }
+
     setLoading(true)
 
     try {
-      const payload = { ...form }
-      if (!payload.phone) delete (payload as Record<string, unknown>).phone
-
-      const { data: res } = await apiClient.post('/auth/signup', payload)
+      const { data: res } = await apiClient.post('/auth/signup', result.data)
       if (res.success) {
-        localStorage.setItem('accessToken', res.data.tokens.accessToken)
         setAuth(res.data.user, res.data.tokens.accessToken)
         router.push('/dashboard')
       }
     } catch (err: unknown) {
-      const apiErr = err as { error?: { message?: string; details?: { field: string; message: string }[] } }
-      if (apiErr?.error?.details) {
-        setFieldErrors(apiErr.error.details)
+      if (isAppApiError(err) && err.details) {
+        const errs: Record<string, string> = {}
+        err.details.forEach((d) => { if (!errs[d.field]) errs[d.field] = d.message })
+        setFieldErrors(errs)
       } else {
-        setError(apiErr?.error?.message || 'Signup failed. Please try again.')
+        setError(err instanceof Error ? err.message : 'Signup failed. Please try again.')
       }
     } finally {
       setLoading(false)
     }
   }
 
-  const getFieldError = (field: string) =>
-    fieldErrors.find((e) => e.field === field)?.message
+  const getFieldError = (field: string) => fieldErrors[field]
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="font-display text-3xl font-extrabold text-primary-600">
-            TravelApp
+            {APP_NAME}
           </Link>
           <p className="mt-2 text-neutral-500">Create your account to start exploring trips.</p>
         </div>
@@ -105,7 +118,7 @@ export default function SignupPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="John Doe"
               />
               {getFieldError('name') && (
@@ -123,7 +136,7 @@ export default function SignupPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="you@example.com"
               />
               {getFieldError('email') && (
@@ -140,7 +153,7 @@ export default function SignupPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="9876543210"
               />
               {getFieldError('phone') && (
@@ -158,7 +171,7 @@ export default function SignupPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="Min 8 chars, 1 uppercase, 1 number"
               />
               {getFieldError('password') && (
@@ -169,7 +182,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary-500 px-6 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg disabled:opacity-50"
+              className="btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Create account'}
             </button>

@@ -1,6 +1,16 @@
 import axios from 'axios'
 import type { ApiError } from '@shared/types/api-response.types'
 
+export interface AppApiError extends Error {
+  code?: string
+  status?: number
+  details?: { field: string; message: string }[]
+}
+
+export function isAppApiError(err: unknown): err is AppApiError {
+  return err instanceof Error && ('code' in err || 'status' in err)
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
 
 export const apiClient = axios.create({
@@ -68,10 +78,10 @@ apiClient.interceptors.response.use(
       apiError.error?.message || 'Something went wrong. Please try again.',
     )
     // Attach original details for components that need them
-    const extended = friendlyError as Error & { code?: string; status?: number; details?: unknown }
+    const extended = friendlyError as AppApiError
     extended.code = apiError.error?.code
     extended.status = error.response?.status
-    extended.details = apiError.error?.details
+    extended.details = apiError.error?.details as AppApiError['details']
 
     return Promise.reject(friendlyError)
   },

@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { apiClient } from '@/lib/api-client'
+import { APP_NAME } from '@/lib/constants'
+import { loginSchema } from '@shared/validators/auth.schema'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -13,6 +15,7 @@ export default function LoginPage() {
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -24,18 +27,29 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
+    
+    const result = loginSchema.safeParse(form)
+    if (!result.success) {
+      const errs: Record<string, string> = {}
+      result.error.issues.forEach((issue) => {
+        const field = issue.path[0] as string
+        if (!errs[field]) errs[field] = issue.message
+      })
+      setFieldErrors(errs)
+      return
+    }
+
     setLoading(true)
 
     try {
-      const { data: res } = await apiClient.post('/auth/login', form)
+      const { data: res } = await apiClient.post('/auth/login', result.data)
       if (res.success) {
-        localStorage.setItem('accessToken', res.data.tokens.accessToken)
         setAuth(res.data.user, res.data.tokens.accessToken)
         router.push('/dashboard')
       }
     } catch (err: unknown) {
-      const apiErr = err as { error?: { message?: string } }
-      setError(apiErr?.error?.message || 'Login failed. Please try again.')
+      setError((err as Error).message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -46,7 +60,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="font-display text-3xl font-extrabold text-primary-600">
-            TravelApp
+            {APP_NAME}
           </Link>
           <p className="mt-2 text-neutral-500">Welcome back! Sign in to your account.</p>
         </div>
@@ -69,9 +83,12 @@ export default function LoginPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="you@example.com"
               />
+              {fieldErrors.email && (
+                <p className="mt-1 text-xs text-error-500">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -84,15 +101,18 @@ export default function LoginPage() {
                 required
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-base text-neutral-800 placeholder:text-neutral-400 outline-none transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:bg-white"
+                className="input"
                 placeholder="Enter your password"
               />
+              {fieldErrors.password && (
+                <p className="mt-1 text-xs text-error-500">{fieldErrors.password}</p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-primary-500 px-6 py-3 text-base font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary-600 hover:shadow-lg disabled:opacity-50"
+              className="btn-primary w-full disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
