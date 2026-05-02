@@ -68,9 +68,10 @@ apiClient.interceptors.response.use(
       apiError.error?.message || 'Something went wrong. Please try again.',
     )
     // Attach original details for components that need them
-    ;(friendlyError as any).code = apiError.error?.code
-    ;(friendlyError as any).status = error.response?.status
-    ;(friendlyError as any).details = apiError.error?.details
+    const extended = friendlyError as Error & { code?: string; status?: number; details?: unknown }
+    extended.code = apiError.error?.code
+    extended.status = error.response?.status
+    extended.details = apiError.error?.details
 
     return Promise.reject(friendlyError)
   },
