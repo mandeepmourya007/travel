@@ -135,10 +135,20 @@ refactor(api): extract buildWhereClause to private method
 
 ## Step 5: Execute Commits
 
-For each group identified in Step 3, run:
+Chain **all** commit groups into a **single command** using `&&` so every commit runs in one shot:
 
 ```bash
-git add <file1> <file2> ... && git commit -m "<type>(<scope>): <message>"
+git add <group1-files> && git commit -m "<type>(<scope>): <msg1>" && \
+git add <group2-files> && git commit -m "<type>(<scope>): <msg2>" && \
+git add <group3-files> && git commit -m "<type>(<scope>): <msg3>"
+```
+
+**Example** (3 groups):
+
+```bash
+git add packages/shared/src/types/trip.types.ts packages/shared/src/validators/trip.schema.ts && git commit -m "feat(shared): add trip types and validators" && \
+git add apps/api/src/repositories/trip.repository.ts apps/api/src/services/trip.service.ts apps/api/src/controllers/trip.controller.ts apps/api/src/routes/trip.routes.ts && git commit -m "feat(api): add trip CRUD with search and filters" && \
+git add apps/web/src/hooks/use-trips.ts apps/web/src/components/trips/trip-card.tsx && git commit -m "feat(web): add trip hooks and card component"
 ```
 
 ### Important
@@ -146,6 +156,8 @@ git add <file1> <file2> ... && git commit -m "<type>(<scope>): <message>"
 - **Stage files explicitly** — never use `git add .` (may include unintended files)
 - **Escape special characters** in file paths — e.g., `\[slug\]` for Next.js dynamic routes
 - **Commit in dependency order** — shared types first, then BE, then FE, then tests, then docs, then config
+- **One `run_command` call** — combine all `git add && git commit` pairs with `&&` into a single command string
+- **If any group fails, the chain stops** — this is intentional; fix the issue and re-run the remaining groups
 - **Verify after all commits**:
 
 ```bash
