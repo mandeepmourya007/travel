@@ -59,6 +59,12 @@
            transition-colors hover:bg-primary-50;
   }
 
+  .btn-danger {
+    @apply bg-error-500 hover:bg-error-600 active:bg-error-700
+           text-white font-semibold rounded-lg px-6 py-3
+           transition-all duration-200;
+  }
+
   .card {
     @apply bg-white rounded-xl shadow-card hover:shadow-card-hover
            border border-neutral-100 overflow-hidden transition-all duration-200;
@@ -87,6 +93,8 @@
   .badge-success { @apply bg-success-50 text-success-500; }
   .badge-warning { @apply bg-warning-50 text-warning-500; }
   .badge-error { @apply bg-error-50 text-error-500; }
+  .badge-info { @apply bg-info-50 text-info-500; }
+  .badge-neutral { @apply bg-neutral-100 text-neutral-600; }
 
   /* Skeleton shimmer — matches design system preview.html */
   .skeleton {
