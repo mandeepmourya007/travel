@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const createBookingSchema = z.object({
   tripId: z.string().cuid(),
-  numberOfTravelers: z.number().int().min(1).max(10),
+  numTravelers: z.number().int().min(1).max(10),
   travelers: z
     .array(
       z.object({
@@ -10,6 +10,7 @@ export const createBookingSchema = z.object({
         phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
         age: z.number().int().min(1).max(120),
         gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
+        isPrimary: z.boolean().default(false),
         emergencyContactName: z.string().optional(),
         emergencyContactPhone: z.string().optional(),
       }),
@@ -66,4 +67,12 @@ export const myBookingFiltersSchema = z.object({
 
 export const cancelBookingSchema = z.object({
   reason: z.string().min(5, 'Reason must be at least 5 characters').max(500).trim(),
+})
+
+// ─── Payment Verification ──────────────────────────
+
+export const verifyPaymentSchema = z.object({
+  razorpayOrderId: z.string().min(1, 'Order ID is required'),
+  razorpayPaymentId: z.string().min(1, 'Payment ID is required'),
+  razorpaySignature: z.string().min(1, 'Signature is required'),
 })

@@ -43,6 +43,9 @@ export interface TripDetail extends Omit<TripSummary, 'organizer'> {
   pickupLocation?: string
   pickupTime?: string
   status: TripStatus
+  acceptingBookings: boolean
+  bookingDeadline?: string | null
+  earlyBirdDeadline?: string | null
   organizer: TripSummary['organizer'] & {
     id: string
     totalTrips?: number
