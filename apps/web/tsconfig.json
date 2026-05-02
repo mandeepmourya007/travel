@@ -22,7 +22,8 @@
         "../../packages/shared/src/*"
       ]
     },
-    "types": ["vitest/globals"],
+    "typeRoots": ["../../node_modules/@types", "./node_modules/@types"],
+    "types": ["react", "react-dom", "vitest/globals"],
     "noEmit": true,
     "allowJs": true
   },
