@@ -1058,4 +1058,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ---
 
+TODO
+1. Login.signup page OTP verification for number and gmail
+- future please update login/signup flow with login with OTP
+2. 
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
