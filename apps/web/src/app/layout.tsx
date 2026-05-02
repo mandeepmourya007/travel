@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { APP_NAME } from '@/lib/constants'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'TravelApp — Group Travel Aggregator',
-    template: '%s | TravelApp',
+    default: `${APP_NAME} — Group Travel Aggregator`,
+    template: `%s | ${APP_NAME}`,
   },
   description:
     'Discover and book curated group trips. Escrow-protected payments, verified organizers, and hassle-free group travel from Pune.',

@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState } from 'react'
 import { CompareQueueProvider } from '@/hooks/use-compare-queue'
 import { GlobalCompareBar } from '@/components/trips/global-compare-bar'
+import { ToastProvider } from '@/components/shared/toast'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -28,8 +29,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <CompareQueueProvider>
-        {children}
-        <GlobalCompareBar />
+        <ToastProvider>
+          {children}
+          <GlobalCompareBar />
+        </ToastProvider>
       </CompareQueueProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Search, Menu, X, User } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
+import { APP_NAME } from '@/lib/constants'
 
 export function Header() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold text-primary-600">TripCompare</span>
+          <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
         </Link>
 
         {/* Search bar — desktop */}

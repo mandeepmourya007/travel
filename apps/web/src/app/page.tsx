@@ -5,13 +5,14 @@ import { PopularDestinations } from '@/components/home/popular-destinations'
 import { TrendingTrips } from '@/components/home/trending-trips'
 import { WhyBookSection } from '@/components/home/why-book-section'
 import type { Metadata } from 'next'
+import { APP_NAME } from '@/lib/constants'
 
 export const metadata: Metadata = {
-  title: 'TripCompare — Compare Group Trips. Book Safely.',
+  title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
   description:
     'Discover and compare curated group trips from verified organizers in Pune. Escrow-protected payments, real reviews, and hassle-free travel.',
   openGraph: {
-    title: 'TripCompare — Compare Group Trips. Book Safely.',
+    title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
     description:
       'Discover and compare curated group trips from verified organizers in Pune.',
     type: 'website',

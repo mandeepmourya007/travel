@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { APP_NAME } from '@/lib/constants'
 
 export function Footer() {
   return (
@@ -7,7 +8,7 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
-            <span className="font-display text-lg font-bold text-primary-600">TripCompare</span>
+            <span className="font-display text-lg font-bold text-primary-600">{APP_NAME}</span>
             <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
               Compare group trips, book safely with escrow, and travel with confidence from Pune.
             </p>
@@ -87,7 +88,7 @@ export function Footer() {
 
         <div className="mt-10 border-t border-neutral-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-neutral-400">
-            &copy; {new Date().getFullYear()} TripCompare. All rights reserved.
+            &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
           </p>
           <p className="text-xs text-neutral-400">
             Made with care in Pune
