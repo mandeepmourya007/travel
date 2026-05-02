@@ -1,12 +1,15 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useQueryClient } from '@tanstack/react-query'
 import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
 import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
+import { tripKeys } from '@/lib/query-keys'
+import { fetchTripDetail } from '@/hooks/use-trip-detail'
 import type { TripSummary } from '@shared/types/trip.types'
 
 interface TripCardProps {
@@ -26,9 +29,18 @@ interface TripCardProps {
  *       so the compare queue can store a lightweight snapshot without re-fetching.
  */
 export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
+  const queryClient = useQueryClient()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
   const hasInteracted = useRef(false)
+
+  const prefetchTripDetail = useCallback(() => {
+    queryClient.prefetchQuery({
+      queryKey: tripKeys.detail(trip.slug),
+      queryFn: () => fetchTripDetail(trip.slug),
+      staleTime: 60 * 1000,
+    })
+  }, [queryClient, trip.slug])
   return (
     <div className={cn('card group relative', isSelected && 'ring-2 ring-primary-500 border-primary-200')}>
       {/* Compare button */}
@@ -149,6 +161,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
           <Link
             href={`/trips/${trip.slug}`}
             className="rounded-lg bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition-all hover:bg-primary-100"
+            onMouseEnter={prefetchTripDetail}
           >
             View Details
           </Link>

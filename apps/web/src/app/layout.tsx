@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
+import { PageTransition } from '@/components/shared/page-transition'
 import { APP_NAME } from '@/lib/constants'
 
 const inter = Inter({
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <PageTransition>{children}</PageTransition>
+        </Providers>
       </body>
     </html>
   )
