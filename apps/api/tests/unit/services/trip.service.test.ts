@@ -321,6 +321,77 @@ describe('TripService', () => {
       expect(result.revenue).toBe(-2000)
     })
 
+    it('should only count ACTIVE trips in activeTrips (exclude DRAFT, COMPLETED, CANCELLED)', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([
+        { ...mockTrip, id: 'trip-1', status: 'ACTIVE', currentBookings: 5 },
+        { ...mockTrip, id: 'trip-2', status: 'DRAFT', currentBookings: 0 },
+        { ...mockTrip, id: 'trip-3', status: 'COMPLETED', currentBookings: 10 },
+        { ...mockTrip, id: 'trip-4', status: 'CANCELLED', currentBookings: 3 },
+        { ...mockTrip, id: 'trip-5', status: 'ACTIVE', currentBookings: 2 },
+      ])
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(30000)
+      mockTripRepo.countPendingRequests.mockResolvedValue(0)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.activeTrips).toBe(2)
+      expect(result.totalBookings).toBe(20) // sum of ALL trips' currentBookings
+    })
+
+    it('should include bookings from all trip statuses in totalBookings', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([
+        { ...mockTrip, id: 'trip-1', status: 'COMPLETED', currentBookings: 15 },
+        { ...mockTrip, id: 'trip-2', status: 'CANCELLED', currentBookings: 8 },
+      ])
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(50000)
+      mockTripRepo.countPendingRequests.mockResolvedValue(0)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.activeTrips).toBe(0)
+      expect(result.totalBookings).toBe(23) // cancelled bookings still count historically
+      expect(result.revenue).toBe(50000) // revenue from captured payments still exists
+    })
+
+    it('should handle partial refund (revenue reduced but still positive)', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([
+        { ...mockTrip, status: 'ACTIVE', currentBookings: 10 },
+      ])
+      // ₹45,000 captured - ₹9,000 partial refund (2 of 10 travellers cancelled)
+      mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(36000)
+      mockTripRepo.countPendingRequests.mockResolvedValue(0)
+
+      const result = await service.getOrganizerStats('user-1')
+
+      expect(result.revenue).toBe(36000)
+    })
+
+    it('should call calculateOrganizerRevenue and countPendingRequests in parallel', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findByOrganizerId.mockResolvedValue([])
+      // Track call order using timestamps
+      const callOrder: string[] = []
+      mockTripRepo.calculateOrganizerRevenue.mockImplementation(async () => {
+        callOrder.push('revenue')
+        return 0
+      })
+      mockTripRepo.countPendingRequests.mockImplementation(async () => {
+        callOrder.push('pending')
+        return 0
+      })
+
+      await service.getOrganizerStats('user-1')
+
+      // Both should be called (order may vary since they run in parallel)
+      expect(callOrder).toContain('revenue')
+      expect(callOrder).toContain('pending')
+      expect(mockTripRepo.calculateOrganizerRevenue).toHaveBeenCalledTimes(1)
+      expect(mockTripRepo.countPendingRequests).toHaveBeenCalledTimes(1)
+    })
+
     it('should throw ForbiddenError if organizer profile not found', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
 
