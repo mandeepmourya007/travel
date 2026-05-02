@@ -972,14 +972,73 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] useCompareTrips hook tests (4 tests)
 - **Total: 64 tests passing**
 
-#### ⬜ Not Started
-- [ ] **Booking flow** — Razorpay integration, booking form, payment, confirmation page
+#### 🟡 In Progress — Organizer Dashboard
+- [x] `BookingRepository` — findByTripId (paginated, filtered), getTripBookingSummary
+- [x] `TripRequestRepository` — findByTripId (paginated, filtered), updateStatus
+- [x] `TripService` — getTripBookings, getTripRequests, getTripBookingSummary, respondToTripRequest
+- [x] `TripController` — 4 new endpoints for trip participants dashboard
+- [x] Trip participants routes (`GET /trips/:id/bookings`, `requests`, `summary`, `PATCH /trips/:id/requests/:requestId`)
+- [x] DI wiring for BookingRepository + TripRequestRepository
+- [x] Trip participants dashboard page (`/dashboard/trips/[id]/users`)
+- [x] `TripStatsBar` component (paid & booked, revenue, pending requests, seats left)
+- [x] `BookingCard` + `RequestCard` components (participant cards with status badges)
+- [x] `ParticipantDrawer` (slide-out detail view with traveler details)
+- [x] `RequestActionModal` (approve/reject with optional note)
+- [x] `ParticipantFilters` (search + status filter)
+- [x] `useTripBookings`, `useTripRequests`, `useTripSummary`, `useRespondToRequest` hooks
+- [x] "Participants" button on trip list cards
+- [x] Trip name + ID shown on participants page header
+- [x] Preview page (`/preview/trip-users`) with mock data for auth-free UI review
+- [ ] **Organizer dashboard home** — overview stats, recent bookings, recent reviews
+- [ ] **Organizer trip list** — edit, publish, delete, stop/resume bookings (partially wired)
+
+#### 🟡 In Progress — Backend Tests
+- [x] Trip service unit tests (existing trip methods)
+- [x] Trip participants service tests (`trip-users.service.test.ts` — 24 test cases)
+- [ ] Route integration tests
+- [ ] Repository unit tests
+
+#### ⬜ Not Started — Booking Lifecycle (Critical Missing Pieces)
+- [ ] **Booking creation on payment** — When approved request's user pays:
+  - Create `Booking` with `CONFIRMED` status
+  - Link booking to `TripRequest` via `bookingId`
+  - Update `TripRequest.status` → `CONVERTED`
+  - Atomically increment `Trip.currentBookings`
+  - Create `PaymentTransaction` record
+- [ ] **Instant booking flow** — For `INSTANT` mode trips:
+  - Create `Booking` with `PENDING_PAYMENT` status + 30min expiry
+  - On payment webhook → `CONFIRMED` + increment `currentBookings`
+  - On expiry → `EXPIRED` + release held seat
+- [ ] **Seat reservation on approval** — When request is approved, temporarily hold seats:
+  - Prevent double-approval beyond capacity
+  - Release held seats if 48h payment window expires
+- [ ] **Approval expiry cron** — Scheduled job to:
+  - Find APPROVED requests where `approvalExpiresAt < now`
+  - Set status → `EXPIRED`
+  - Release any held seats
+  - Notify traveler of expiry
+- [ ] **Booking cancellation** — Cancel flow with refund per cancellation policy:
+  - Decrement `Trip.currentBookings` atomically
+  - Create REFUND `PaymentTransaction`
+  - Razorpay refund API call
+- [ ] **Trip status auto-transitions** —
+  - `ACTIVE` → `FULL` when `currentBookings >= maxGroupSize`
+  - `ACTIVE/FULL` → `COMPLETED` after `endDate` passes
+  - Escrow release trigger on completion
+
+#### ⬜ Not Started — Razorpay Integration
+- [ ] **Razorpay checkout** — Create Razorpay order, render checkout, handle success/failure
+- [ ] **Payment webhooks** — `payment.captured`, `payment.failed`, `refund.processed`
+- [ ] **Escrow hold/release** — Route/Transfer API for escrow management
+- [ ] **Webhook idempotency** — Deduplicate via `WebhookEvent.eventId`
+
+#### ⬜ Not Started — Other Features
+- [ ] **Booking form UI** — Traveler details form, price breakdown, Razorpay checkout
+- [ ] **Booking confirmation page** — Success screen with next steps
 - [ ] **Review system** — post-trip review form, review listing
 - [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
-- [ ] **Organizer dashboard** — trip management, request handling, bookings view
 - [ ] **User dashboard** — my trips, my bookings, messages
 - [ ] **Admin panel** — organizer approvals, dispute handling, platform stats
-- [ ] **Backend tests** — service unit tests, route integration tests
 - [ ] **Google OAuth** — social login
 - [ ] **Email notifications** — booking confirmation, trip updates
 - [ ] **SEO** — Schema.org markup, sitemap generation
