@@ -61,6 +61,7 @@ enum PaymentType {
 
 enum PaymentStatus {
   INITIATED
+  AUTHORIZED
   CAPTURED
   FAILED
   REFUNDED
@@ -165,6 +166,7 @@ model OrganizerProfile {
   totalTripsCompleted Int                @default(0)
   bankAccountLinked   Boolean            @default(false)
   commissionRate      Float              @default(10.0)
+  razorpayAccountId   String?
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -296,6 +298,8 @@ model TravelerDetail {
   age       Int?
   gender    Gender?
   isPrimary Boolean @default(false)
+  emergencyContactName  String?
+  emergencyContactPhone String?
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -463,18 +467,44 @@ model Notification {
 }
 
 model WebhookEvent {
-  id          String    @id @default(cuid())
-  eventId     String    @unique
-  event       String
-  payload     Json
-  status      String    @default("COMPLETED")
-  processedAt DateTime?
+  id                String    @id @default(cuid())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // ── Source Identification ──────────────────────────
+  source            String
+  externalEventId   String
+  eventType         String
 
-  @@index([eventId])
+  // ── Internal Reference (Polymorphic) ───────────────
+  referenceModel    String?
+  referenceId       String?
+
+  // ── External Reference ─────────────────────────────
+  externalId        String?
+
+  // ── Payload Storage ────────────────────────────────
+  headers           Json?
+  payload           Json
+  response          Json?
+
+  // ── Processing Status ──────────────────────────────
+  status            String    @default("RECEIVED")
+  mode              String    @default("live")
+  failureReason     String?
+  attempts          Int       @default(1)
+  processedAt       DateTime?
+
+  // ── Timestamps (NO soft-delete — immutable audit trail) ──
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // ── Indexes ────────────────────────────────────────
+  @@unique([source, externalEventId])
+  @@index([source, eventType])
+  @@index([referenceModel, referenceId])
+  @@index([externalId])
   @@index([status])
+  @@index([createdAt])
+  @@index([mode])
 }
 
 model TripEditHistory {
