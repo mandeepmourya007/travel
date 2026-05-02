@@ -920,6 +920,28 @@ INTEGRATION:
   [ ] Manual smoke test: FE → BE → DB round trip works
   [ ] Error scenarios tested: 400, 404, 500 responses
   [ ] Soft delete works: deleted records don't appear
+
+DOCUMENTATION (mandatory):
+  [ ] Feature doc created in docs/engineering/fe/<feature>.md
+  [ ] Doc has all 7 sections (Overview, Data Flow, API, Business Rules, Edge Cases, Errors, Tests)
+  [ ] Every business rule in service layer is documented
+  [ ] Every tested edge case is listed in the Edge Cases table
+
+CODE COMMENTS (mandatory):
+  [ ] Every public service method has JSDoc (description + @throws)
+  [ ] Every public repository method has JSDoc (query purpose + filters + edge cases)
+  [ ] Every custom hook has JSDoc (query key + invalidation targets + error handling)
+  [ ] Controller methods have single-line JSDoc (HTTP method + path)
+  [ ] No stale comments — all comments match current code
+
+TESTS (mandatory):
+  [ ] One describe block per public service method
+  [ ] Happy path is FIRST test in each describe
+  [ ] Test names follow "should <outcome> when <condition>"
+  [ ] Minimum coverage: happy path + not-found + auth + validation + edge cases
+  [ ] Aggregation methods test zero and negative values
+  [ ] FE components test all 4 states (loading/error/empty/data)
+  [ ] Arrange-Act-Assert pattern used consistently
 ```
 
 ---
@@ -945,6 +967,302 @@ Build features in this order. Each builds on the previous:
 | 13 | **Chat** | Socket.IO, anti-leakage filter | ChatWindow, MessageBubble, useChat | Auth |
 | 14 | **Organizer Dashboard** | Stats API, payment history, pending requests queue | StatsCards, TripTable, RequestQueue, useOrganizerStats | Trips, Bookings, Requests |
 | 15 | **Admin Panel** | Approval queue, dispute mgmt, destination CRUD | AdminDashboard, ApprovalQueue, useAdmin | All above |
+
+---
+
+## MANDATORY: Feature Documentation
+
+Every feature MUST have a documentation file in `docs/engineering/fe/` that describes its flow, edge cases, and test coverage. This is **not optional** — treat it as a deliverable alongside code.
+
+### Documentation File Location
+
+```
+docs/engineering/fe/<feature-name>.md
+```
+
+Examples:
+- `docs/engineering/fe/revenue-and-bookings.md`
+- `docs/engineering/fe/trip-requests.md`
+- `docs/engineering/fe/auth-flow.md`
+
+### Required Sections in Every Feature Doc
+
+```markdown
+# <Feature Name> — Feature Documentation
+
+## Overview
+One paragraph: what the feature does, who uses it, why it exists.
+
+## 1. Data Flow
+Describe the end-to-end flow with a diagram or step list:
+  URL/Action → FE Hook → API Endpoint → Service → Repository → DB
+
+## 2. API Endpoints
+Table of all endpoints this feature uses:
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+
+## 3. Business Rules
+- Bullet list of every business rule enforced in the service layer.
+- Include formulas (e.g., revenue = CAPTURED payments − refunds).
+- Include enum states and transitions (e.g., PENDING → CONFIRMED → COMPLETED).
+
+## 4. Edge Cases
+Table format:
+| Scenario | Expected Behavior |
+|----------|-------------------|
+
+## 5. Error Handling
+| Error | HTTP Status | When |
+|-------|-------------|------|
+
+## 6. Test Coverage
+Reference test file paths and list what each `describe` block covers:
+- ✅ Happy path
+- ✅ Edge case X
+- ✅ Error case Y
+
+## 7. Seed Data (if applicable)
+Table of relevant seed scenarios and credentials.
+```
+
+### Documentation Rules
+
+```
+Rules:
+- Create the doc AFTER tests pass, not before (doc reflects reality, not wishes)
+- Every business rule in the service layer MUST appear in the doc
+- Every edge case tested MUST be listed in the Edge Cases table
+- Include test credentials if the feature has seed data
+- Keep the doc under 200 lines — concise, not verbose
+- Update the doc when the feature changes (doc rot = tech debt)
+- Link related docs if the feature depends on another (e.g., "See auth-flow.md")
+```
+
+### Documentation File Map
+
+| Feature | Doc Location |
+|---------|-------------|
+| Revenue, Bookings, Refunds | `docs/engineering/fe/revenue-and-bookings.md` |
+| Trip Requests (Accept/Reject) | `docs/engineering/fe/trip-requests.md` |
+| Auth (Login/Signup/Refresh) | `docs/engineering/fe/auth-flow.md` |
+| Trip CRUD + Upload | `docs/engineering/fe/trip-management.md` |
+| Notifications | `docs/engineering/fe/notifications.md` |
+| Chat | `docs/engineering/fe/chat.md` |
+| Reviews | `docs/engineering/fe/reviews.md` |
+| Organizer Dashboard | `docs/engineering/fe/organizer-dashboard.md` |
+
+---
+
+## MANDATORY: Code Comments Standards
+
+Every method in services, repositories, and hooks MUST have a JSDoc comment. This is a **hard rule** — no exceptions.
+
+### Service Layer Comments (`apps/api/src/services/`)
+
+```typescript
+/**
+ * Short description of what the method does.
+ *
+ * Business rules:
+ * - Rule 1 (e.g., "Only ACTIVE trips can toggle bookings")
+ * - Rule 2 (e.g., "Revenue = CAPTURED payments − CAPTURED refunds")
+ *
+ * Edge cases:
+ * - Edge case 1 (e.g., "Returns 0 if no payments exist")
+ * - Edge case 2 (e.g., "Deleted trips excluded from calculation")
+ *
+ * @throws NotFoundError — when <entity> not found
+ * @throws ForbiddenError — when user doesn't own the resource
+ * @throws ValidationError — when business rule violated
+ */
+async methodName(param: Type): Promise<ReturnType> {
+```
+
+### Repository Layer Comments (`apps/api/src/repositories/`)
+
+```typescript
+/**
+ * Short description of the query and its purpose.
+ *
+ * Filters: list key WHERE conditions (e.g., isDeleted: false, status: CAPTURED)
+ * Used by: which service method calls this
+ *
+ * Edge cases:
+ * - What happens with null/empty results
+ * - Any aggregation nuances (e.g., _sum returns null if no rows)
+ */
+async methodName(param: Type): Promise<ReturnType> {
+```
+
+### Hook Comments (`apps/web/src/hooks/`)
+
+```typescript
+/**
+ * Short description — what data it fetches or what action it performs.
+ *
+ * Query key: tripKeys.list(filters) — for cache identification
+ * Invalidates: list which caches are invalidated on success (for mutations)
+ * Error handling: describe onError behavior (toast, redirect, etc.)
+ */
+export function useHookName() {
+```
+
+### Controller Comments (`apps/api/src/controllers/`)
+
+Controllers are thin — a single-line JSDoc is sufficient:
+
+```typescript
+/** POST /trips — Create a new trip (organizer only) */
+createTrip = asyncHandler(async (req, res) => {
+```
+
+### Comment Rules
+
+```
+Rules:
+- EVERY public method in service, repository, and hook files MUST have a JSDoc comment
+- Private/helper methods: single-line comment above is sufficient
+- Do NOT comment obvious code (e.g., `// return the result` above `return result`)
+- DO comment business logic, formulas, and non-obvious decisions
+- Include @throws tags for service methods that throw typed errors
+- Include "Edge cases:" section for methods with tricky behavior
+- Keep comments up-to-date — stale comments are worse than no comments
+- Use "Why" comments for non-obvious decisions, not "What" comments for obvious code
+```
+
+---
+
+## MANDATORY: Test Case Standards
+
+Every feature MUST have comprehensive unit tests following these rules. Tests are a **first-class deliverable**, not an afterthought.
+
+### Test File Structure
+
+```typescript
+// tests/unit/services/<domain>.service.test.ts
+
+describe('<ServiceName>', () => {
+
+  // ─── Test data & mocks (top of file) ────────────────
+  // Define mock repos, mock data, and service instance
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Re-instantiate service with fresh mocks
+  })
+
+  // ─── One describe per public method ─────────────────
+
+  describe('methodName', () => {
+
+    // 1. Happy path FIRST — always the first test
+    it('should <expected behavior> when <valid input>', async () => {
+      // Arrange → Act → Assert
+    })
+
+    // 2. Edge cases — boundary conditions, zero/null/empty
+    it('should <edge behavior> when <edge condition>', async () => {
+    })
+
+    // 3. Error cases — one test per error type
+    it('should throw <ErrorType> when <condition>', async () => {
+      await expect(service.method(badInput)).rejects.toThrow('<error message>')
+    })
+
+    // 4. Authorization — wrong owner, wrong role
+    it('should throw ForbiddenError when <unauthorized condition>', async () => {
+    })
+  })
+})
+```
+
+### Test Naming Convention
+
+```
+Pattern: "should <expected outcome> when <condition>"
+
+✅ Good:
+  "should return stats with revenue from CAPTURED payments minus refunds"
+  "should throw ForbiddenError when toggling another organizer's trip"
+  "should return zero revenue when organizer has no payments"
+  "should throw ValidationError for COMPLETED trip"
+
+❌ Bad:
+  "test getOrganizerStats"
+  "works correctly"
+  "error case"
+  "should work"
+```
+
+### Minimum Test Coverage Per Method
+
+```
+Every public service method MUST have at minimum:
+
+1. ✅ Happy path test (valid input → expected output)
+2. ✅ Not-found test (entity doesn't exist → NotFoundError)
+3. ✅ Authorization test (wrong owner → ForbiddenError)
+4. ✅ Validation test (invalid state → ValidationError)
+5. ✅ Edge case tests (zero values, empty arrays, boundary conditions)
+
+For mutations (create/update/delete), also test:
+6. ✅ Side effects verified (logger called, cache invalidated, related records updated)
+7. ✅ Idempotency where applicable
+
+For aggregation methods (stats, revenue), also test:
+8. ✅ Zero/empty result
+9. ✅ Negative values (e.g., refunds exceed payments)
+10. ✅ Large dataset behavior
+```
+
+### Test Data Rules
+
+```
+Rules:
+- Use factory functions for test data (tests/helpers/factories.ts)
+- Override only the fields relevant to the test — use spread: { ...mockTrip, status: 'COMPLETED' }
+- Use descriptive variable names: mockActiveTrip, mockCompletedTrip, not trip1, trip2
+- Mock return values should match real Prisma shapes
+- Never use real API keys, passwords, or PII in test data
+- Use deterministic dates (new Date('2025-06-01')), not Date.now()
+```
+
+### Arrange-Act-Assert Pattern
+
+```typescript
+it('should return stats with revenue from CAPTURED payments minus refunds', async () => {
+  // Arrange — set up mocks and input
+  mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+  mockTripRepo.findByOrganizerId.mockResolvedValue([
+    { ...mockTrip, status: 'ACTIVE', currentBookings: 5 },
+  ])
+  mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(45000)
+  mockTripRepo.countPendingRequests.mockResolvedValue(2)
+
+  // Act — call the method under test
+  const result = await service.getOrganizerStats('user-1')
+
+  // Assert — verify outcomes
+  expect(result.activeTrips).toBe(1)
+  expect(result.revenue).toBe(45000)
+  expect(result.pendingRequests).toBe(2)
+  expect(mockTripRepo.calculateOrganizerRevenue).toHaveBeenCalledWith('org-1')
+})
+```
+
+### Test Verification Checklist (run after writing tests)
+
+```
+[ ] Every public method has a describe block
+[ ] Happy path is the FIRST test in each describe
+[ ] Error cases test the exact error message (not just error type)
+[ ] Mock assertions verify the method was called with correct args
+[ ] No tests depend on execution order (each test is independent)
+[ ] Tests run in < 5 seconds total (no real DB, no real HTTP)
+[ ] No console.log in tests — use expect() assertions
+[ ] Test file follows naming convention: <service>.service.test.ts
+```
 
 ---
 

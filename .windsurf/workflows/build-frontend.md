@@ -1063,6 +1063,142 @@ Build frontend modules in this order — each builds on the previous:
 
 ---
 
+## MANDATORY: Code Comments for Hooks & Components
+
+### Hook Comments — Every hook MUST have JSDoc
+
+```typescript
+/**
+ * Fetches paginated organizer stats (activeTrips, totalBookings, revenue, pendingRequests).
+ *
+ * Query key: organizerKeys.stats() — staleTime 30s to avoid excessive refetches
+ * Error handling: caller should render ErrorState on error
+ */
+export function useOrganizerStats() {
+```
+
+```typescript
+/**
+ * Creates a new trip and invalidates related caches on success.
+ *
+ * Invalidates: organizerKeys.myTrips(), organizerKeys.stats()
+ * Error handling: shows error toast via onError callback
+ * Success: shows success toast via onSuccess callback
+ */
+export function useCreateTrip() {
+```
+
+### Component Comments — Props interface + purpose
+
+```typescript
+/**
+ * Renders a single trip card in the organizer's trip list.
+ * Shows status badge, booking count, price, and action menu (publish/delete/toggle).
+ * Uses design system badge-* classes for status colors.
+ */
+interface TripListCardProps {
+  trip: OrganizerTripListItem
+  onPublish?: (id: string) => void
+  onDelete?: (id: string) => void
+  onToggleBookings?: (id: string) => void
+}
+
+export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: TripListCardProps) {
+```
+
+### Comment Rules for Frontend
+
+```
+Rules:
+- EVERY custom hook: JSDoc with query key, invalidation targets, and error handling
+- EVERY component with props: JSDoc above the Props interface describing the component's purpose
+- Presentational components (no props / no hooks): single-line comment is sufficient
+- Utility functions in lib/: JSDoc with @param and @returns
+- DO NOT comment JSX structure (e.g., "// render the header" above <header>)
+- DO comment non-obvious UI decisions (e.g., "// placeholderData keeps previous results during filter change")
+- DO comment accessibility choices (e.g., "// aria-live for screen reader announcements")
+```
+
+---
+
+## MANDATORY: Frontend Test Standards
+
+### Component Test Structure (React Testing Library + MSW)
+
+```typescript
+// components/<feature>/__tests__/<component>.test.tsx
+
+describe('<ComponentName>', () => {
+  // 1. Happy path — renders data correctly
+  it('should render trip cards when data loads', async () => {
+    renderWithProviders(<TripGrid filters={{}} />)
+    await waitFor(() => expect(screen.getByText('Goa Beach Trip')).toBeInTheDocument())
+  })
+
+  // 2. Loading state — shows skeleton
+  it('should show skeletons while loading', () => {
+    renderWithProviders(<TripGrid filters={{}} />)
+    expect(document.querySelectorAll('[class*="animate-pulse"]').length).toBeGreaterThan(0)
+  })
+
+  // 3. Error state — shows error message + retry
+  it('should show error state with retry button on API failure', async () => {
+    server.use(http.get('*/api/v1/trips', () => HttpResponse.json(errorResponse, { status: 500 })))
+    renderWithProviders(<TripGrid filters={{}} />)
+    await waitFor(() => expect(screen.getByText(/failed/i)).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+
+  // 4. Empty state — shows empty message
+  it('should show empty state when no results', async () => {
+    server.use(http.get('*/api/v1/trips', () => HttpResponse.json(emptyResponse)))
+    renderWithProviders(<TripGrid filters={{}} />)
+    await waitFor(() => expect(screen.getByText(/no trips/i)).toBeInTheDocument())
+  })
+})
+```
+
+### Minimum FE Test Coverage Per Component
+
+```
+Every data-driven component MUST test all 4 states:
+1. ✅ Loading state (skeleton visible)
+2. ✅ Error state (error message + retry button visible)
+3. ✅ Empty state (empty message visible)
+4. ✅ Data state (actual content renders)
+
+For mutation components (forms), also test:
+5. ✅ Submit success (toast shown, redirect, cache invalidated)
+6. ✅ Submit error (error message displayed)
+7. ✅ Validation error (form-level errors shown before submit)
+8. ✅ Button disabled during isPending
+```
+
+### Test Naming Convention
+
+```
+✅ "should render trip cards when data loads"
+✅ "should show error toast when booking fails"
+✅ "should disable submit button while mutation is pending"
+✅ "should show skeletons while loading"
+
+❌ "renders correctly"
+❌ "works"
+❌ "test form"
+```
+
+### Frontend Test Data Rules
+
+```
+- Use MSW (Mock Service Worker) for API mocking — never mock apiClient directly
+- Define mock responses as constants at the top of the test file
+- Use renderWithProviders helper that wraps QueryClientProvider
+- Set retry: false in test QueryClient to avoid flaky tests
+- Clean up: server.resetHandlers() in afterEach, server.close() in afterAll
+```
+
+---
+
 ## Common Mistakes to AVOID
 
 | Mistake | Correct Approach |

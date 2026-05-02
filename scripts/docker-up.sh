@@ -4,6 +4,26 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# ── Colima socket (macOS-only) ────────────────────────
+# When using Colima instead of Docker Desktop on macOS, the Docker socket
+# lives in ~/.colima/ instead of /var/run/docker.sock. This auto-detects it.
+if [[ -z "${DOCKER_HOST:-}" ]] && [[ -S "$HOME/.colima/default/docker.sock" ]]; then
+  export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
+fi
+
+# ── Ensure Docker daemon is reachable ─────────────────
+if ! docker info >/dev/null 2>&1; then
+  if command -v colima >/dev/null 2>&1; then
+    echo "⏳ Docker daemon not responding — restarting Colima..."
+    colima stop 2>/dev/null || true
+    colima start
+    export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
+  else
+    echo "❌ Docker daemon is not running. Start it with: sudo systemctl start docker"
+    exit 1
+  fi
+fi
+
 echo "🚀 Starting TravelApp (Docker)..."
 echo ""
 

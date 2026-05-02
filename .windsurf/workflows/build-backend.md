@@ -653,6 +653,113 @@ export const chatController = new ChatController(chatService)
 
 ---
 
+## MANDATORY: Code Comments for Every Method
+
+Every public method in services and repositories MUST have a JSDoc comment. This is enforced during code review.
+
+### Service Methods — Full JSDoc
+
+```typescript
+/**
+ * Toggles the `acceptingBookings` flag on an ACTIVE trip.
+ * Only the trip owner can toggle. Non-ACTIVE trips throw ValidationError.
+ * When bookings are closed, travelers cannot create new bookings or requests.
+ *
+ * @throws NotFoundError — trip doesn't exist
+ * @throws ForbiddenError — user doesn't own the trip
+ * @throws ValidationError — trip is not ACTIVE
+ */
+async toggleBookings(userId: string, tripId: string) {
+```
+
+### Repository Methods — Query-focused JSDoc
+
+```typescript
+/**
+ * Calculates net revenue for an organizer across all their trips.
+ *
+ * Revenue = SUM(CAPTURED PAYMENT transactions) - SUM(CAPTURED REFUND transactions)
+ *
+ * Filters: status=CAPTURED, booking.trip.organizerId, isDeleted=false
+ * Used by: TripService.getOrganizerStats()
+ *
+ * Edge cases:
+ * - Returns 0 if no payments exist (_sum.amount is null → defaults to 0)
+ * - INITIATED/FAILED payments are excluded
+ * - ESCROW_RELEASE is excluded (platform payout)
+ */
+async calculateOrganizerRevenue(organizerId: string): Promise<number> {
+```
+
+### Comment Rules
+
+```
+- EVERY public method: full JSDoc with description + @throws
+- Private methods: single-line comment explaining "why"
+- Business formulas: always document the formula in the JSDoc
+- Edge cases: list them explicitly in the comment
+- DO NOT comment obvious code (e.g., "// get the trip" above findById)
+- DO comment non-obvious decisions (e.g., "// Use brightness filter because error-600 token doesn't exist")
+- Stale comments are worse than no comments — update when code changes
+```
+
+---
+
+## MANDATORY: Test Case Standards
+
+### Test Structure Rules
+
+```
+- One describe block per public service method
+- Happy path ALWAYS first test in each describe
+- Test names follow: "should <expected outcome> when <condition>"
+- Use Arrange → Act → Assert pattern in every test
+- Each test is independent — no shared mutable state between tests
+- Use vi.clearAllMocks() in beforeEach
+```
+
+### Minimum Coverage Per Method
+
+```
+Every public service method MUST have:
+1. ✅ Happy path (valid input → correct output + side effects)
+2. ✅ Not-found case (entity missing → NotFoundError)
+3. ✅ Authorization case (wrong owner/role → ForbiddenError)
+4. ✅ Validation case (invalid state → ValidationError)
+5. ✅ Edge cases (zero, empty, null, boundary values)
+
+For aggregation methods (stats, revenue), also:
+6. ✅ Zero/empty result
+7. ✅ Negative values (refunds > payments)
+
+For mutations (create/update/delete), also:
+8. ✅ Side effects verified (logger.info called, related records updated)
+```
+
+### Test Naming — Good vs Bad
+
+```
+✅ "should return stats with revenue from CAPTURED payments minus refunds"
+✅ "should throw ForbiddenError when toggling another organizer's trip"
+✅ "should return zero revenue when organizer has no payments"
+
+❌ "test revenue"
+❌ "works correctly"
+❌ "error case"
+```
+
+### Test Data Rules
+
+```
+- Use factory functions (tests/helpers/factories.ts) or inline mockData objects
+- Override only fields relevant to the test: { ...mockTrip, status: 'COMPLETED' }
+- Use deterministic dates: new Date('2025-06-01'), not Date.now()
+- Never hardcode real credentials or PII
+- Mock return values must match real Prisma shapes
+```
+
+---
+
 ## Common Mistakes to AVOID
 
 | Mistake | Correct Approach |
