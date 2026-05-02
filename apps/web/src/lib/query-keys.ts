@@ -6,6 +6,18 @@ export const tripKeys = {
   list: (filters: TripFilters) => [...tripKeys.lists(), filters] as const,
   details: () => [...tripKeys.all, 'detail'] as const,
   detail: (slug: string) => [...tripKeys.details(), slug] as const,
+  myTrips: (status?: string) => [...tripKeys.all, 'my', status] as const,
+  editHistory: (id: string) => [...tripKeys.all, 'history', id] as const,
+}
+
+export const uploadKeys = {
+  all: ['uploads'] as const,
+  signature: () => [...uploadKeys.all, 'signature'] as const,
+}
+
+export const organizerKeys = {
+  all: ['organizer'] as const,
+  stats: () => [...organizerKeys.all, 'stats'] as const,
 }
 
 export const bookingKeys = {
