@@ -87,6 +87,8 @@ beforeEach(() => {
     mockDestinationRepo as any,
     mockOrganizerProfileRepo as any,
     mockEditHistoryRepo as any,
+    {} as any,
+    {} as any,
     logger as any,
   )
 })
@@ -230,7 +232,7 @@ describe('TripService', () => {
 
       await expect(
         service.updateTrip('user-2', 'trip-1', { title: 'X' }),
-      ).rejects.toThrow('only edit your own')
+      ).rejects.toThrow('only manage your own')
     })
 
     it('should throw ValidationError for completed trips', async () => {
@@ -533,7 +535,7 @@ describe('TripService', () => {
 
       await expect(
         service.getTripEditHistory('user-2', 'trip-1'),
-      ).rejects.toThrow('only view history of your own')
+      ).rejects.toThrow('only manage your own')
     })
   })
 
