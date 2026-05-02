@@ -839,7 +839,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 1-2** | Project setup, auth, DB schema, basic UI shell | ✅ Done |
 | **Week 3-4** | Trip CRUD (organizer), trip listing/search (traveler) | ✅ Done |
 | **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
-| **Week 7-8** | Razorpay integration, booking flow, escrow | ⬜ Not started |
+| **Week 7-8** | Razorpay integration, booking flow, escrow | ✅ Done |
 | **Week 9-10** | Chat system, review system, organizer dashboard | ⬜ Not started |
 | **Week 11-12** | Admin panel, testing, bug fixes, deploy | ⬜ Not started |
 
@@ -962,7 +962,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 #### ✅ Frontend — Tests
 - [x] Vitest + React Testing Library + MSW setup
-- [x] Test factories (`tests/helpers/factories.ts`)
+- [x] Test factories (`tests/helpers/factories.ts`, `booking.factory.ts`, `trip.factory.ts`)
 - [x] AuthGuard tests (4 tests)
 - [x] Toast tests (7 tests)
 - [x] Design system component tests (23 tests)
@@ -970,7 +970,9 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] TripComparisonTable tests (11 tests)
 - [x] Compare page tests (7 tests)
 - [x] useCompareTrips hook tests (4 tests)
-- **Total: 64 tests passing**
+- [x] BookingPage tests (13 tests — loading, error, fully booked, deadline passed, form validation, submit, payment, dismiss)
+- [x] MyBookingsList tests (15 tests — loading, error, empty, data, cancel, pagination, status badges)
+- **Total: 92 tests passing**
 
 #### 🟡 In Progress — Organizer Dashboard
 - [x] `BookingRepository` — findByTripId (paginated, filtered), getTripBookingSummary
@@ -995,53 +997,82 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 #### 🟡 In Progress — Backend Tests
 - [x] Trip service unit tests (existing trip methods)
 - [x] Trip participants service tests (`trip-users.service.test.ts` — 24 test cases)
+- [x] Booking service unit tests (`booking.service.test.ts` — 42 test cases: createBooking, cancelBooking, getMyBookings, getMyBookingSummary, confirmBooking, verifyAndConfirmPayment)
 - [ ] Route integration tests
 - [ ] Repository unit tests
 
-#### ⬜ Not Started — Booking Lifecycle (Critical Missing Pieces)
-- [ ] **Booking creation on payment** — When approved request's user pays:
-  - Create `Booking` with `CONFIRMED` status
-  - Link booking to `TripRequest` via `bookingId`
-  - Update `TripRequest.status` → `CONVERTED`
-  - Atomically increment `Trip.currentBookings`
-  - Create `PaymentTransaction` record
-- [ ] **Instant booking flow** — For `INSTANT` mode trips:
-  - Create `Booking` with `PENDING_PAYMENT` status + 30min expiry
-  - On payment webhook → `CONFIRMED` + increment `currentBookings`
-  - On expiry → `EXPIRED` + release held seat
-- [ ] **Seat reservation on approval** — When request is approved, temporarily hold seats:
-  - Prevent double-approval beyond capacity
-  - Release held seats if 48h payment window expires
-- [ ] **Approval expiry cron** — Scheduled job to:
-  - Find APPROVED requests where `approvalExpiresAt < now`
-  - Set status → `EXPIRED`
-  - Release any held seats
-  - Notify traveler of expiry
-- [ ] **Booking cancellation** — Cancel flow with refund per cancellation policy:
-  - Decrement `Trip.currentBookings` atomically
-  - Create REFUND `PaymentTransaction`
-  - Razorpay refund API call
-- [ ] **Trip status auto-transitions** —
-  - `ACTIVE` → `FULL` when `currentBookings >= maxGroupSize`
-  - `ACTIVE/FULL` → `COMPLETED` after `endDate` passes
-  - Escrow release trigger on completion
+#### ✅ Backend — Booking & Payment Module
+- [x] `BookingRepository` — create, findActiveByUserAndTrip, findWithPaymentDetails, updateStatus, generateBookingRef (retry + collision check)
+- [x] `PaymentTransactionRepository` — create, updatePaymentId
+- [x] `TripRepository.findByIdForBooking` — includes organizer payment fields (razorpayAccountId, commissionRate)
+- [x] `TripRepository.atomicIncrementBookings` — raw SQL with optimistic locking (version column)
+- [x] `TripRepository.atomicDecrementBookings` — rollback on capture failure
+- [x] `TripRequestRepository.findApprovedForUser` — REQUEST_BASED mode check
+- [x] `BookingService.createBooking` — idempotent, validates trip/seats/deadline/acceptingBookings, REQUEST_BASED approval check, Razorpay order creation, 30min expiry
+- [x] `BookingService.confirmBooking` — atomic seat reservation, payment capture, rollback on failure
+- [x] `BookingService.verifyAndConfirmPayment` — HMAC-SHA256 signature verification, authorization check
+- [x] `BookingService.cancelBooking` — refund % per cancellation policy (FLEXIBLE/MODERATE/STRICT), atomic seat release
+- [x] `BookingService.getMyBookings` — paginated with tab filters (all/upcoming/completed/cancelled)
+- [x] `BookingService.getMyBookingSummary` — tab count badges
+- [x] `PaymentService` — createOrder, capturePayment, verifySignature, initiateRefund (Razorpay SDK)
+- [x] `MockPaymentService` — dev-only mock for local testing without Razorpay credentials
+- [x] `BookingController` — createBooking, verifyPayment, cancelBooking, getMyBookings, getMyBookingSummary
+- [x] `WebhookController` — Razorpay webhook handler (raw body, before JSON parser)
+- [x] Booking routes (`POST /bookings`, `POST /bookings/:id/verify-payment`, `POST /bookings/:id/cancel`, `GET /bookings/my`, `GET /bookings/my/summary`)
+- [x] Webhook routes (`POST /webhooks/razorpay`) — placed before JSON parser in server.ts
+- [x] Razorpay config (`config/razorpay.ts`) — SDK initialization
+- [x] Cron jobs (`utils/cron-jobs.ts`) — booking expiry, approval expiry
+- [x] DI wiring for all new repos, services, controllers
+- [x] Razorpay Route/Transfer conditional logic — skips transfers for mock accounts in dev, auto-enables for real linked accounts in production
+- [x] Shared types: `CreateBookingDto`, `CreateBookingResponse`, `VerifyPaymentDto`, `VerifyPaymentResponse`, `MyBookingFilters`
+- [x] Shared validators: `createBookingSchema` (numTravelers, isPrimary, emergencyContact), `verifyPaymentSchema`
+- [x] Prisma schema: `TravelerDetail.emergencyContactName/Phone`, `PaymentTransaction`, `WebhookEvent`, `Trip.version`
+- [x] Docker Compose: Razorpay env vars (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`)
 
-#### ⬜ Not Started — Razorpay Integration
-- [ ] **Razorpay checkout** — Create Razorpay order, render checkout, handle success/failure
-- [ ] **Payment webhooks** — `payment.captured`, `payment.failed`, `refund.processed`
-- [ ] **Escrow hold/release** — Route/Transfer API for escrow management
-- [ ] **Webhook idempotency** — Deduplicate via `WebhookEvent.eventId`
+#### ✅ Frontend — Booking Flow (Pages 5 & 6)
+- [x] Booking page (`/trips/[slug]/book`) with 5 render states (loading, error, fullyBooked, deadlinePassed, notAccepting, success, form)
+- [x] `TravelerForm` — React Hook Form + Zod, field array, numTravelers selector, early bird price, sessionStorage persistence on refresh
+- [x] `PriceSummary` — sidebar card with price breakdown, early bird indicator, trust badges, cancellation policy
+- [x] `BookingSuccess` — confirmation screen with booking ref, escrow badge, next steps
+- [x] `BookingPageSkeleton` — shimmer loading state
+- [x] `useCreateBooking` hook — POST /bookings mutation with error toast
+- [x] `useVerifyPayment` hook — POST /bookings/:id/verify-payment, invalidates bookingKeys + tripKeys
+- [x] `loadRazorpayScript` — dynamic script loading, singleton promise pattern
+- [x] `getEffectivePrice` — shared utility for early bird price logic (`lib/trip-utils.ts`)
+- [x] `AuthGuard` wrapping booking page
+- [x] Razorpay checkout modal integration (real test keys: `rzp_test_*`)
 
-#### ⬜ Not Started — Other Features
-- [ ] **Booking form UI** — Traveler details form, price breakdown, Razorpay checkout
-- [ ] **Booking confirmation page** — Success screen with next steps
+#### ✅ Frontend — My Bookings (Page 7)
+- [x] My bookings page (`/my-bookings`) with loading, error, empty states
+- [x] `MyBookingsList` — tab filters, booking cards with status badges, pagination
+- [x] Cancel booking modal with reason input
+- [x] `useMyBookings`, `useCancelBooking` hooks
+- [x] Feature documentation (`docs/engineering/fe/booking-page.md`)
+
+#### ✅ Booking Lifecycle (Critical Pieces — Completed)
+- [x] **Instant booking flow** — PENDING_PAYMENT → Razorpay checkout → verify signature → capture payment → CONFIRMED
+- [x] **Request-based booking** — Checks for approved, non-expired TripRequest before allowing payment
+- [x] **Seat reservation** — Atomic increment with optimistic locking (version column), rollback on capture failure
+- [x] **Booking cancellation** — Refund per policy (Flexible: full 48h before / Moderate: 50% / Strict: none), atomic seat release
+- [x] **Booking expiry** — 30min payment window, cron job for cleanup
+- [x] **Approval expiry** — 48h payment window for approved requests, cron job for cleanup
+- [x] **Idempotency** — Returns existing PENDING_PAYMENT order on duplicate request, returns success for already CONFIRMED
+
+#### ✅ Razorpay Integration
+- [x] **Razorpay checkout** — Create order, render checkout modal, handle success/failure/dismiss
+- [x] **Payment verification** — HMAC-SHA256 signature verification (FE callback + webhook backup)
+- [x] **Escrow/Route** — Transfer array built for real linked accounts, skipped for dev mock accounts
+- [x] **Webhook handler** — Raw body parsing, placed before JSON parser, idempotent via WebhookEvent
+- [x] **Test keys** — Working with `rzp_test_*` keys, Card + Netbanking verified
+
+#### ⬜ Not Started — Remaining Features
 - [ ] **Review system** — post-trip review form, review listing
 - [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
-- [ ] **User dashboard** — my trips, my bookings, messages
 - [ ] **Admin panel** — organizer approvals, dispute handling, platform stats
 - [ ] **Google OAuth** — social login
 - [ ] **Email notifications** — booking confirmation, trip updates
 - [ ] **SEO** — Schema.org markup, sitemap generation
+- [ ] **Trip status auto-transitions** — ACTIVE → FULL when seats filled, ACTIVE/FULL → COMPLETED after endDate, escrow release on completion
 
 ---
 
@@ -1061,7 +1092,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 TODO
 1. Login.signup page OTP verification for number and gmail
   - future please update login/signup flow with login with OTP
-2. travel is redirect to dashboard please fix it
-3. dont allow Orgainze to go to trips list page only dashboard
-4. compare ui is viislbe in all pages please show in trips list page only not in dashboard or in my-bookings page 
+1. travel is redirect to dashboard please fix it
+2. dont allow Orgainze to go to trips list page only dashboard
+3. compare ui is viislbe in all pages please show in trips list page only not in dashboard or in my-bookings page 
+4. when i click on signin button no loader in button shown 
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
