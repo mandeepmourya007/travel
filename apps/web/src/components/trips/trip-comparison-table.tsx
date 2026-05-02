@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { CheckCircle, X } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
 import {
@@ -61,11 +62,13 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
               </button>
             )}
             {/* Image */}
-            <div className="w-full aspect-square max-w-36 sm:max-w-44 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
-              <img
+            <div className="relative w-full aspect-square max-w-36 sm:max-w-44 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
+              <Image
                 src={trip.photos[0] || '/placeholder-trip.jpg'}
                 alt={trip.title}
-                className="h-full w-full object-cover"
+                fill
+                sizes="176px"
+                className="object-cover"
               />
             </div>
             {/* Name + Price */}

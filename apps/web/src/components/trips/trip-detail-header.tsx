@@ -1,4 +1,8 @@
+'use client'
+
+import Image from 'next/image'
 import { MapPin, Calendar, Users, CheckCircle, Share2 } from 'lucide-react'
+import { useToast } from '@/components/shared/toast'
 import { StarRating } from '@/components/shared/star-rating'
 import { formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
 import type { TripDetail } from '@shared/types/trip.types'
@@ -8,28 +12,34 @@ interface TripDetailHeaderProps {
 }
 
 export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
+  const { toast } = useToast()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
 
   return (
     <div>
       {/* Photo gallery */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl overflow-hidden">
-        <div className="md:col-span-2 h-72 md:h-96 bg-neutral-200">
+        <div className="relative md:col-span-2 h-72 md:h-96 bg-neutral-200">
           {trip.photos[0] && (
-            <img
+            <Image
               src={trip.photos[0]}
               alt={trip.title}
-              className="h-full w-full object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw, 66vw"
+              className="object-cover"
+              priority
             />
           )}
         </div>
         <div className="hidden md:grid grid-rows-2 gap-2">
           {trip.photos.slice(1, 3).map((photo, i) => (
-            <div key={i} className="bg-neutral-200">
-              <img
+            <div key={i} className="relative bg-neutral-200">
+              <Image
                 src={photo}
                 alt={`${trip.title} ${i + 2}`}
-                className="h-full w-full object-cover"
+                fill
+                sizes="33vw"
+                className="object-cover"
               />
             </div>
           ))}
@@ -104,7 +114,10 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
             </div>
           </div>
           <button
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href)
+              toast({ variant: 'success', title: 'Link copied to clipboard' })
+            }}
             className="btn-ghost flex items-center gap-2 text-sm"
             aria-label="Share trip"
           >

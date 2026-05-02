@@ -1,9 +1,10 @@
 'use client'
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { useDestinations } from '@/hooks/use-destinations'
+import { useDebounce } from '@/hooks/use-debounce'
 import { tripTypeLabel } from '@/lib/format'
 import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
 
@@ -26,6 +27,11 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   const searchParams = useSearchParams()
   const { data: destinations } = useDestinations()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [localMinPrice, setLocalMinPrice] = useState(currentFilters.minPrice?.toString() || '')
+  const [localMaxPrice, setLocalMaxPrice] = useState(currentFilters.maxPrice?.toString() || '')
+  const debouncedMin = useDebounce(localMinPrice, 500)
+  const debouncedMax = useDebounce(localMaxPrice, 500)
+  const isInitialMount = useRef(true)
 
   const updateFilters = useCallback(
     (key: string, value: string | undefined) => {
@@ -40,6 +46,27 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
     },
     [router, pathname, searchParams],
   )
+
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [mobileOpen])
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    const params = new URLSearchParams(searchParams.toString())
+    debouncedMin ? params.set('minPrice', debouncedMin) : params.delete('minPrice')
+    debouncedMax ? params.set('maxPrice', debouncedMax) : params.delete('maxPrice')
+    params.delete('page')
+    router.push(`${pathname}?${params.toString()}`)
+  }, [debouncedMin, debouncedMax, router, pathname, searchParams])
 
   const clearFilters = useCallback(() => {
     router.push(pathname)
@@ -105,8 +132,8 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
           <input
             type="number"
             placeholder="Min"
-            value={currentFilters.minPrice || ''}
-            onChange={(e) => updateFilters('minPrice', e.target.value || undefined)}
+            value={localMinPrice}
+            onChange={(e) => setLocalMinPrice(e.target.value)}
             className="input text-sm w-24"
             min={0}
           />
@@ -114,8 +141,8 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
           <input
             type="number"
             placeholder="Max"
-            value={currentFilters.maxPrice || ''}
-            onChange={(e) => updateFilters('maxPrice', e.target.value || undefined)}
+            value={localMaxPrice}
+            onChange={(e) => setLocalMaxPrice(e.target.value)}
             className="input text-sm w-24"
             min={0}
           />
@@ -155,6 +182,7 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
         className="lg:hidden flex items-center gap-2 btn-secondary text-sm mb-4"
+        aria-label="Open filters"
       >
         <SlidersHorizontal className="h-4 w-4" />
         Filters

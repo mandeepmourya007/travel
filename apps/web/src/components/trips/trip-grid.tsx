@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useTrips } from '@/hooks/use-trips'
 import { TripCard } from './trip-card'
 import { TripCardSkeleton } from './trip-card-skeleton'
@@ -61,12 +62,20 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridP
 }
 
 function Pagination({ current, total }: { current: number; total: number }) {
+  const searchParams = useSearchParams()
+
+  function buildPageHref(page: number) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', String(page))
+    return `?${params.toString()}`
+  }
+
   return (
     <div className="flex items-center justify-center gap-2 mt-8">
       {Array.from({ length: total }, (_, i) => i + 1).map((page) => (
         <a
           key={page}
-          href={`?page=${page}`}
+          href={buildPageHref(page)}
           className={
             page === current
               ? 'h-9 w-9 rounded-lg bg-primary-500 text-white flex items-center justify-center text-sm font-semibold'

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { X, Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/format'
 import type { CompareItem } from '@/hooks/use-compare-queue'
@@ -61,9 +62,9 @@ export function CompareBar({ items, onRemove, onClose, isOpen, maxItems = 3 }: C
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-              <div className="w-full aspect-square max-w-20 sm:max-w-24 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
+              <div className="relative w-full aspect-square max-w-20 sm:max-w-24 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
                 {item.photo ? (
-                  <img src={item.photo} alt={item.title} className="h-full w-full object-cover" />
+                  <Image src={item.photo} alt={item.title} fill sizes="96px" className="object-cover" />
                 ) : (
                   <div className="h-full w-full bg-neutral-200" />
                 )}
