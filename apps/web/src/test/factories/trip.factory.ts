@@ -5,7 +5,7 @@ let counter = 0
 export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSummary {
   counter++
   return {
-    id: `trip-${counter}`,
+    id: `clrk${String(counter).padStart(21, '0')}trip`,
     title: `Test Trip ${counter}`,
     slug: `test-trip-${counter}`,
     destination: { id: `dest-${counter}`, name: 'Goa', slug: 'goa' },
@@ -42,6 +42,9 @@ export function makeTripDetail(overrides: Partial<TripDetail> = {}): TripDetail 
       { day: 2, title: 'Day 2', description: 'Explore', activities: [{ title: 'Beach visit', time: '9:00 AM' }, { title: 'Water sports', time: '2:00 PM' }] },
     ],
     status: 'ACTIVE',
+    acceptingBookings: true,
+    bookingDeadline: null,
+    earlyBirdDeadline: null,
     organizer: {
       ...summary.organizer,
       id: `org-${counter}`,

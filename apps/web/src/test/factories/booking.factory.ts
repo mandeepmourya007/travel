@@ -1,4 +1,5 @@
 import type { MyBookingListItem, MyBookingSummary } from '@shared/types/booking.types'
+import type { CreateBookingResponse, VerifyPaymentResponse } from '@shared/types/payment.types'
 
 let counter = 0
 
@@ -36,6 +37,33 @@ export function makeMyBookingSummary(overrides: Partial<MyBookingSummary> = {}):
     upcoming: 4,
     completed: 5,
     cancelled: 1,
+    ...overrides,
+  }
+}
+
+export function makeCreateBookingResponse(
+  overrides: Partial<CreateBookingResponse> = {},
+): CreateBookingResponse {
+  counter++
+  return {
+    bookingId: `booking-${counter}`,
+    bookingRef: `TRP-2025-${String(counter).padStart(4, '0')}`,
+    razorpayOrderId: `order_test_${counter}`,
+    razorpayKeyId: 'rzp_test_key123',
+    amountInRupees: 5000,
+    currency: 'INR',
+    expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+    ...overrides,
+  }
+}
+
+export function makeVerifyPaymentResponse(
+  overrides: Partial<VerifyPaymentResponse> = {},
+): VerifyPaymentResponse {
+  return {
+    bookingId: `booking-${counter || 1}`,
+    bookingStatus: 'CONFIRMED',
+    paymentStatus: 'CAPTURED',
     ...overrides,
   }
 }
