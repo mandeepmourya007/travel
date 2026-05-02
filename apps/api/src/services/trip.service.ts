@@ -4,6 +4,7 @@ import type { CreateTripDto, UpdateTripDto, TripFilters } from '@shared/types/tr
 import { TripRepository } from '../repositories/trip.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
+import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
 import { NotFoundError, ValidationError, ForbiddenError } from '../errors/app-error'
 import { generateTripSlug } from '../utils/slug'
 import { PAGINATION_DEFAULTS } from '../utils/constants'
@@ -13,6 +14,7 @@ export class TripService {
     private tripRepo: TripRepository,
     private destinationRepo: DestinationRepository,
     private organizerProfileRepo: OrganizerProfileRepository,
+    private editHistoryRepo: TripEditHistoryRepository,
     private logger: Logger,
   ) {}
 
@@ -95,6 +97,8 @@ export class TripService {
       photos: input.photos,
       pickupLocation: input.pickupLocation,
       pickupTime: input.pickupTime,
+      itineraryDocUrl: input.itineraryDocUrl,
+      bookingDeadline: input.bookingDeadline ? new Date(input.bookingDeadline) : undefined,
       organizer: { connect: { id: profile.id } },
       destination: { connect: { id: input.destinationId } },
     })
@@ -122,24 +126,126 @@ export class TripService {
     }
 
     const updateData: Record<string, unknown> = {}
-    const allowedFields = [
+    const changedFields: string[] = []
+    const scalarFields: (keyof UpdateTripDto)[] = [
       'title', 'description', 'tripType', 'bookingMode', 'pricePerPerson',
       'earlyBirdPrice', 'minGroupSize', 'maxGroupSize', 'cancellationPolicy',
       'inclusions', 'exclusions', 'itinerary', 'photos', 'pickupLocation', 'pickupTime',
-    ] as const
-    for (const key of allowedFields) {
-      if (input[key] !== undefined) updateData[key] = input[key]
+      'itineraryDocUrl', 'acceptingBookings',
+    ]
+    for (const key of scalarFields) {
+      if (input[key] !== undefined) {
+        updateData[key] = input[key]
+        changedFields.push(key)
+      }
     }
-    if (input.startDate) updateData.startDate = new Date(input.startDate)
-    if (input.endDate) updateData.endDate = new Date(input.endDate)
-    if (input.earlyBirdDeadline) updateData.earlyBirdDeadline = new Date(input.earlyBirdDeadline)
+    if (input.startDate) { updateData.startDate = new Date(input.startDate); changedFields.push('startDate') }
+    if (input.endDate) { updateData.endDate = new Date(input.endDate); changedFields.push('endDate') }
+    if (input.earlyBirdDeadline) { updateData.earlyBirdDeadline = new Date(input.earlyBirdDeadline); changedFields.push('earlyBirdDeadline') }
+    if (input.bookingDeadline) { updateData.bookingDeadline = new Date(input.bookingDeadline); changedFields.push('bookingDeadline') }
     if (input.destinationId) {
       updateData.destination = { connect: { id: input.destinationId } }
+      changedFields.push('destinationId')
     }
 
     const updated = await this.tripRepo.update(tripId, updateData)
-    this.logger.info({ tripId }, 'Trip updated')
+
+    // Record edit history (skip for drafts to avoid noise)
+    if (trip.status !== 'DRAFT' && changedFields.length > 0) {
+      await this.editHistoryRepo.create({
+        tripId,
+        editedById: userId,
+        snapshot: JSON.parse(JSON.stringify(trip)),
+        changedFields,
+      })
+    }
+
+    this.logger.info({ tripId, changedFields }, 'Trip updated')
     return this.toSummary(updated)
+  }
+
+  /**
+   * Toggles the `acceptingBookings` flag on an ACTIVE trip.
+   * Only the trip owner can toggle. Non-ACTIVE trips throw ValidationError.
+   * When bookings are closed, travelers cannot create new bookings or requests.
+   */
+  async toggleBookings(userId: string, tripId: string) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile || trip.organizerId !== profile.id) {
+      throw new ForbiddenError('You can only manage your own trips')
+    }
+
+    if (trip.status !== 'ACTIVE') {
+      throw new ValidationError('Only ACTIVE trips can toggle bookings')
+    }
+
+    const updated = await this.tripRepo.update(tripId, {
+      acceptingBookings: !trip.acceptingBookings,
+    })
+
+    this.logger.info({ tripId, acceptingBookings: !trip.acceptingBookings }, 'Bookings toggled')
+    return this.toSummary(updated)
+  }
+
+  /**
+   * Returns paginated edit history for a trip (audit trail).
+   * Only the trip owner can view history. Each entry records
+   * which fields changed and who made the edit.
+   */
+  async getTripEditHistory(userId: string, tripId: string, page = 1, limit = 20) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile || trip.organizerId !== profile.id) {
+      throw new ForbiddenError('You can only view history of your own trips')
+    }
+
+    const offset = (page - 1) * limit
+    const { data, total } = await this.editHistoryRepo.findByTripId(tripId, { offset, limit })
+
+    return {
+      data: data.map((entry: { id: string; editedBy: { id: string; name: string }; changedFields: string[]; editNote: string | null; createdAt: Date }) => ({
+        id: entry.id,
+        editedBy: entry.editedBy,
+        changedFields: entry.changedFields,
+        editNote: entry.editNote,
+        createdAt: entry.createdAt,
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    }
+  }
+
+  /**
+   * Aggregates dashboard statistics for an organizer:
+   * - activeTrips: count of trips with status=ACTIVE
+   * - totalBookings: sum of currentBookings across all trips
+   * - revenue: net revenue = CAPTURED payments − CAPTURED refunds (from PaymentTransaction)
+   * - pendingRequests: count of PENDING trip requests awaiting organizer decision
+   *
+   * Revenue edge cases:
+   * - Only CAPTURED status payments count (+ve), CAPTURED refunds subtract (−ve)
+   * - INITIATED/FAILED/ESCROW_RELEASE transactions are excluded
+   * - A fully refunded booking contributes ₹0 to revenue
+   * - Deleted trips are excluded from revenue calculation
+   */
+  async getOrganizerStats(userId: string) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new ForbiddenError('Organizer profile not found')
+
+    const trips = await this.tripRepo.findByOrganizerId(profile.id)
+
+    const activeTrips = trips.filter((t) => t.status === 'ACTIVE').length
+    const totalBookings = trips.reduce((sum, t) => sum + t.currentBookings, 0)
+    const [revenue, pendingRequests] = await Promise.all([
+      this.tripRepo.calculateOrganizerRevenue(profile.id),
+      this.tripRepo.countPendingRequests(profile.id),
+    ])
+
+    return { activeTrips, totalBookings, revenue, pendingRequests }
   }
 
   async publishTrip(userId: string, tripId: string) {
@@ -222,6 +328,7 @@ export class TripService {
       maxGroupSize: trip.maxGroupSize,
       currentBookings: trip.currentBookings,
       status: trip.status,
+      acceptingBookings: trip.acceptingBookings,
       photos: trip.photos,
       organizer: trip.organizer
         ? {

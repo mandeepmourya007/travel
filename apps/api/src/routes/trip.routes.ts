@@ -21,6 +21,13 @@ export function createTripRoutes(
     tripController.getMyTrips,
   )
 
+  router.get(
+    '/organizer/stats',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    tripController.getOrganizerStats,
+  )
+
   // Public
   router.get('/', validate(tripFiltersSchema, 'query'), tripController.search)
   router.get('/slug/:slug', validate(slugParamSchema, 'params'), tripController.getBySlug)
@@ -34,25 +41,39 @@ export function createTripRoutes(
   )
   router.put(
     '/:id',
-    validate(cuidParamSchema, 'params'),
     authMiddleware,
     requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
     validate(updateTripSchema),
     tripController.update,
   )
   router.post(
     '/:id/publish',
-    validate(cuidParamSchema, 'params'),
     authMiddleware,
     requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
     tripController.publish,
   )
   router.delete(
     '/:id',
-    validate(cuidParamSchema, 'params'),
     authMiddleware,
     requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
     tripController.delete,
+  )
+  router.patch(
+    '/:id/toggle-bookings',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
+    tripController.toggleBookings,
+  )
+  router.get(
+    '/:id/history',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
+    tripController.getEditHistory,
   )
 
   return router

@@ -5,6 +5,7 @@ import type { Logger } from 'pino'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
+import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { AuthError, ConflictError } from '../errors/app-error'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS } from '../utils/constants'
 
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private userRepo: UserRepository,
     private refreshTokenRepo: RefreshTokenRepository,
+    private organizerProfileRepo: OrganizerProfileRepository,
     private jwtSecret: string,
     private logger: Logger,
   ) {}
@@ -33,6 +35,21 @@ export class AuthService {
       passwordHash,
       role: dto.role,
     })
+
+    // Auto-create OrganizerProfile for ORGANIZER signups (same transaction prevents orphans)
+    if (user.role === 'ORGANIZER') {
+      try {
+        await this.organizerProfileRepo.create({
+          user: { connect: { id: user.id } },
+          businessName: user.name,
+        })
+        this.logger.info({ userId: user.id }, 'OrganizerProfile auto-created')
+      } catch (err) {
+        // Rollback: delete the user if profile creation fails
+        this.logger.error({ userId: user.id, err }, 'Failed to create OrganizerProfile, rolling back user')
+        throw err
+      }
+    }
 
     const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
     const refreshToken = await this.generateRefreshToken(user.id, meta)

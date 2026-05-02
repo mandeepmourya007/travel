@@ -130,6 +130,63 @@ export class TripRepository {
     }
   }
 
+  /**
+   * Calculates net revenue for an organizer across all their trips.
+   *
+   * Revenue = SUM(CAPTURED PAYMENT transactions) - SUM(CAPTURED REFUND transactions)
+   *
+   * Only considers:
+   * - PaymentTransaction with status=CAPTURED (successful payments)
+   * - type=PAYMENT adds to revenue, type=REFUND subtracts
+   * - Linked to bookings on non-deleted trips owned by this organizer
+   *
+   * Edge cases:
+   * - Returns 0 if no payments exist
+   * - INITIATED/FAILED payments are excluded (not yet captured)
+   * - ESCROW_RELEASE is excluded (platform payout, not revenue)
+   * - Cancelled bookings with refunds correctly reduce revenue
+   */
+  async calculateOrganizerRevenue(organizerId: string): Promise<number> {
+    const result = await this.prisma.paymentTransaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'CAPTURED',
+        type: 'PAYMENT',
+        booking: {
+          trip: { organizerId, isDeleted: false },
+        },
+      },
+    })
+    const refunds = await this.prisma.paymentTransaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        status: 'CAPTURED',
+        type: 'REFUND',
+        booking: {
+          trip: { organizerId, isDeleted: false },
+        },
+      },
+    })
+    const payments = result._sum.amount ?? 0
+    const refunded = refunds._sum.amount ?? 0
+    return payments - refunded
+  }
+
+  /**
+   * Counts PENDING trip requests across all of an organizer's active trips.
+   * Used for the dashboard "Pending Requests" stat card.
+   * Only counts requests on non-deleted trips with status=PENDING.
+   */
+  async countPendingRequests(organizerId: string): Promise<number> {
+    return this.prisma.tripRequest.count({
+      where: {
+        status: 'PENDING',
+        isDeleted: false,
+        trip: { organizerId, isDeleted: false },
+      },
+    })
+  }
+
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {
     switch (sort) {
       case 'price_asc':
