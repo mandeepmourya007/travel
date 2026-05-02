@@ -1,5 +1,22 @@
 import { z } from 'zod'
 
+const itineraryActivitySchema = z.object({
+  time: z.string().optional(),
+  title: z.string().min(1),
+  description: z.string().optional(),
+})
+
+const itineraryDaySchema = z.object({
+  day: z.number().int().positive(),
+  date: z.string().optional(),
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  description: z.string(),
+  activities: z.array(itineraryActivitySchema).default([]),
+  includes: z.array(z.string()).optional(),
+  excludes: z.array(z.string()).optional(),
+})
+
 export const createTripSchema = z
   .object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(100).trim(),
@@ -15,21 +32,14 @@ export const createTripSchema = z
     cancellationPolicy: z.enum(['FLEXIBLE', 'MODERATE', 'STRICT']).default('FLEXIBLE'),
     inclusions: z.array(z.string()).default([]),
     exclusions: z.array(z.string()).default([]),
-    itinerary: z
-      .array(
-        z.object({
-          day: z.number().int().positive(),
-          title: z.string().min(1),
-          description: z.string(),
-          activities: z.array(z.string()).default([]),
-        }),
-      )
-      .default([]),
+    itinerary: z.array(itineraryDaySchema).default([]),
     photos: z.array(z.string().url()).max(8).default([]),
     pickupLocation: z.string().optional(),
     pickupTime: z.string().optional(),
     earlyBirdPrice: z.number().int().positive().optional(),
     earlyBirdDeadline: z.string().datetime().optional(),
+    itineraryDocUrl: z.string().url().optional(),
+    bookingDeadline: z.string().datetime().optional(),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'End date must be after start date',
@@ -77,19 +87,13 @@ export const updateTripSchema = z
     cancellationPolicy: z.enum(['FLEXIBLE', 'MODERATE', 'STRICT']).optional(),
     inclusions: z.array(z.string()).optional(),
     exclusions: z.array(z.string()).optional(),
-    itinerary: z
-      .array(
-        z.object({
-          day: z.number().int().positive(),
-          title: z.string().min(1),
-          description: z.string(),
-          activities: z.array(z.string()).default([]),
-        }),
-      )
-      .optional(),
+    itinerary: z.array(itineraryDaySchema).optional(),
     photos: z.array(z.string().url()).max(8).optional(),
     pickupLocation: z.string().optional(),
     pickupTime: z.string().optional(),
+    itineraryDocUrl: z.string().url().optional(),
+    bookingDeadline: z.string().datetime().optional(),
+    acceptingBookings: z.boolean().optional(),
   })
   .refine(
     (data) => {

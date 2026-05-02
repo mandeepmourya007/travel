@@ -1,5 +1,5 @@
 export type TripType = 'ADVENTURE' | 'WEEKEND' | 'TREKKING' | 'BEACH' | 'CULTURAL' | 'ROAD_TRIP'
-export type TripStatus = 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED'
+export type TripStatus = 'DRAFT' | 'ACTIVE' | 'FULL' | 'COMPLETED' | 'CANCELLED'
 export type BookingMode = 'INSTANT' | 'REQUEST_BASED'
 export type CancellationPolicy = 'FLEXIBLE' | 'MODERATE' | 'STRICT'
 
@@ -51,11 +51,21 @@ export interface TripDetail extends Omit<TripSummary, 'organizer'> {
   reviews: TripDetailReview[]
 }
 
+export interface ItineraryActivity {
+  time?: string
+  title: string
+  description?: string
+}
+
 export interface ItineraryDay {
   day: number
+  date?: string
   title: string
+  subtitle?: string
   description: string
-  activities: string[]
+  activities: ItineraryActivity[]
+  includes?: string[]
+  excludes?: string[]
 }
 
 export interface TripFilters {
@@ -92,6 +102,43 @@ export interface CreateTripDto {
   photos: string[]
   pickupLocation?: string
   pickupTime?: string
+  itineraryDocUrl?: string
+  bookingDeadline?: string
 }
 
-export type UpdateTripDto = Partial<CreateTripDto>
+export type UpdateTripDto = Partial<CreateTripDto> & {
+  acceptingBookings?: boolean
+}
+
+export interface OrganizerTripListItem {
+  id: string
+  title: string
+  slug: string
+  status: TripStatus
+  acceptingBookings: boolean
+  startDate: string
+  endDate: string
+  pricePerPerson: number
+  currentBookings: number
+  maxGroupSize: number
+  bookingMode: BookingMode
+  destination: { name: string }
+  photos: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TripEditHistoryItem {
+  id: string
+  editedBy: { id: string; name: string }
+  changedFields: string[]
+  editNote?: string | null
+  createdAt: string
+}
+
+export interface OrganizerStats {
+  activeTrips: number
+  totalBookings: number
+  revenue: number
+  pendingRequests: number
+}
