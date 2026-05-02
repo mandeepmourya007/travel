@@ -80,6 +80,26 @@ export class TripRequestRepository {
     })
   }
 
+  /**
+   * Finds an approved, non-expired trip request for a user on a specific trip.
+   *
+   * Used by: BookingService.createBooking() — REQUEST_BASED booking mode check
+   * WHERE: tripId, userId, status=APPROVED, approvalExpiresAt > now
+   *
+   * @returns The approved request or null
+   */
+  async findApprovedForUser(tripId: string, userId: string) {
+    return this.prisma.tripRequest.findFirst({
+      where: {
+        tripId,
+        userId,
+        status: 'APPROVED',
+        isDeleted: false,
+        approvalExpiresAt: { gt: new Date() },
+      },
+    })
+  }
+
   // Builds dynamic WHERE clause for status + user name search
   private buildWhere(
     tripId: string,

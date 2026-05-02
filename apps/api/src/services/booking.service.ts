@@ -1,14 +1,32 @@
 import { Logger } from 'pino'
 import type { MyBookingFilters, MyBookingSummary, CancelBookingResult } from '@shared/types/booking.types'
+import type { CreateBookingResponse, VerifyPaymentDto, VerifyPaymentResponse } from '@shared/types/payment.types'
 import { BookingRepository } from '../repositories/booking.repository'
-import { NotFoundError, ForbiddenError, ValidationError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS } from '../utils/constants'
+import { TripRepository } from '../repositories/trip.repository'
+import { TripRequestRepository } from '../repositories/trip-request.repository'
+import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
+import { PaymentService } from './payment.service'
+import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
+import { env } from '../config/env'
 
 export class BookingService {
   constructor(
     private bookingRepo: BookingRepository,
+    private tripRepo: TripRepository,
+    private tripRequestRepo: TripRequestRepository,
+    private paymentTxRepo: PaymentTransactionRepository,
+    private paymentService: PaymentService,
     private logger: Logger,
   ) {}
+
+  /** Guards against calling payment methods when Razorpay is not configured */
+  private requirePaymentService(): PaymentService {
+    if (!this.paymentService) {
+      throw new ValidationError('Payment features are not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET')
+    }
+    return this.paymentService
+  }
 
   /**
    * Returns a paginated list of the traveler's bookings.
@@ -125,6 +143,271 @@ export class BookingService {
       refundPercent,
       cancellationPolicy: booking.trip.cancellationPolicy,
     }
+  }
+
+  // ─── Payment Flow Methods ─────────────────────────────
+
+  /**
+   * Creates a booking with Razorpay order (Facade pattern).
+   *
+   * Flow:
+   * 1. Idempotency check — return existing PENDING_PAYMENT order
+   * 2. 9 validations (trip status, seats, deadline, booking mode, etc.)
+   * 3. Calculate price (early bird check)
+   * 4. Create Razorpay order WITH order-level transfers (H4 fix)
+   * 5. Create Booking(PENDING_PAYMENT) + PaymentTransaction(INITIATED)
+   *
+   * @throws ConflictError — user already has CONFIRMED booking
+   * @throws NotFoundError — trip doesn't exist
+   * @throws ValidationError — trip not active, full, past deadline, etc.
+   */
+  async createBooking(
+    userId: string,
+    input: {
+      tripId: string
+      numTravelers: number
+      travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
+    },
+  ): Promise<CreateBookingResponse> {
+    const paymentSvc = this.requirePaymentService()
+
+    // 1. Idempotency check
+    const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
+    if (existing) {
+      if (existing.bookingStatus === 'CONFIRMED') {
+        throw new ConflictError('You already have a confirmed booking for this trip')
+      }
+      // PENDING_PAYMENT — return same order
+      const paymentTx = existing.paymentTransactions[0]
+      return {
+        bookingId: existing.id,
+        bookingRef: existing.bookingRef,
+        razorpayOrderId: paymentTx?.razorpayOrderId || '',
+        razorpayKeyId: env.RAZORPAY_KEY_ID || 'rzp_mock_dev_key',
+        amountInRupees: existing.totalAmount,
+        currency: 'INR',
+        expiresAt: existing.expiresAt!.toISOString(),
+      }
+    }
+
+    // 2. Validations
+    if (!env.RAZORPAY_KEY_ID && env.NODE_ENV === 'production') {
+      throw new ValidationError('Payment configuration is missing — contact support')
+    }
+
+    const trip = await this.tripRepo.findByIdForBooking(input.tripId)
+    if (!trip) throw new NotFoundError('Trip')
+    if (trip.status !== 'ACTIVE' || !trip.acceptingBookings) {
+      throw new ValidationError('This trip is not accepting bookings')
+    }
+    if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
+      throw new ValidationError('Booking deadline has passed')
+    }
+    if (trip.currentBookings + input.numTravelers > trip.maxGroupSize) {
+      throw new ValidationError('Not enough seats available')
+    }
+    if (!trip.organizer?.razorpayAccountId) {
+      throw new ValidationError('Organizer has not set up payment — booking unavailable')
+    }
+    if (input.numTravelers !== input.travelers.length) {
+      throw new ValidationError('Number of traveler details must match numTravelers')
+    }
+
+    // REQUEST_BASED mode check
+    if (trip.bookingMode === 'REQUEST_BASED') {
+      const approvedRequest = await this.tripRequestRepo.findApprovedForUser(input.tripId, userId)
+      if (!approvedRequest) {
+        throw new ValidationError('You need an approved request to book this trip')
+      }
+    }
+
+    // 3. Calculate price
+    const isEarlyBird = trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date()
+    const pricePerPerson = isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
+    const totalAmount = pricePerPerson * input.numTravelers
+    const amountInPaise = totalAmount * 100
+
+    // 4. Build order-level transfers (H4 fix)
+    // Skip transfers in non-production when organizer has seeded/mock linked account
+    const isRealAccount =
+      env.NODE_ENV === 'production' ||
+      (trip.organizer.razorpayAccountId?.startsWith('acc_') &&
+       trip.organizer.razorpayAccountId.length >= 18)
+
+    const transfers: Record<string, unknown>[] = isRealAccount
+      ? [{
+          account: trip.organizer.razorpayAccountId,
+          amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
+          currency: 'INR',
+          on_hold: 1,
+          on_hold_until: Math.floor(new Date(trip.startDate).getTime() / 1000),
+          notes: { tripId: input.tripId },
+        }]
+      : []
+
+    // 5. Create Razorpay order
+    const order = await paymentSvc.createOrder(
+      amountInPaise,
+      `booking-${Date.now()}`,
+      transfers,
+      { tripId: input.tripId, userId },
+    )
+
+    // 6. Create Booking + PaymentTransaction
+    const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
+    const booking = await this.bookingRepo.create({
+      tripId: input.tripId,
+      userId,
+      numTravelers: input.numTravelers,
+      totalAmount,
+      expiresAt,
+      travelers: input.travelers,
+    })
+
+    // H2 fix: Persist PaymentTransaction so confirmBooking can find it
+    await this.paymentTxRepo.create({
+      bookingId: booking.id,
+      type: 'PAYMENT',
+      amount: totalAmount,
+      razorpayOrderId: order.id,
+      status: 'INITIATED',
+    })
+
+    this.logger.info(
+      { bookingId: booking.id, orderId: order.id, amount: totalAmount },
+      'Booking created with Razorpay order',
+    )
+
+    return {
+      bookingId: booking.id,
+      bookingRef: booking.bookingRef,
+      razorpayOrderId: order.id,
+      razorpayKeyId: env.RAZORPAY_KEY_ID || 'rzp_mock_dev_key',
+      amountInRupees: totalAmount,
+      currency: 'INR',
+      expiresAt: expiresAt.toISOString(),
+    }
+  }
+
+  /**
+   * Confirms a booking after payment — captures payment + reserves seats.
+   *
+   * Flow:
+   * 1. Find booking with payment details
+   * 2. Idempotent — if already CONFIRMED, return success
+   * 3. Atomically increment seats (optimistic locking)
+   * 4. Capture payment with exact authorized amount (H1 fix)
+   * 5. If capture fails → rollback seats
+   * 6. Update booking → CONFIRMED
+   *
+   * @throws NotFoundError — booking doesn't exist
+   * @throws ConflictError — seats full
+   * @throws PaymentError — capture fails (seats auto-rollback)
+   */
+  async confirmBooking(bookingId: string): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+    this.requirePaymentService()
+
+    const booking = await this.bookingRepo.findWithPaymentDetails(bookingId)
+    if (!booking) throw new NotFoundError('Booking')
+
+    // Idempotent
+    if (booking.bookingStatus === 'CONFIRMED') {
+      return {
+        bookingId: booking.id,
+        bookingStatus: 'CONFIRMED',
+        paymentStatus: booking.paymentTransactions[0]?.status || 'CAPTURED',
+      }
+    }
+
+    const paymentTx = booking.paymentTransactions[0]
+    if (!paymentTx) {
+      throw new ValidationError('No payment transaction found for this booking')
+    }
+
+    // Reserve seats first (optimistic locking)
+    const rowsUpdated = await this.tripRepo.atomicIncrementBookings(
+      booking.trip.id,
+      booking.numTravelers,
+      booking.trip.version,
+    )
+    if (rowsUpdated === 0) {
+      throw new ConflictError('Not enough seats available — trip may be full')
+    }
+
+    // Capture payment (H1 fix: exact amount from DB)
+    try {
+      const amountInPaise = paymentTx.amount * 100
+      await this.paymentService.capturePayment(
+        paymentTx.razorpayPaymentId!,
+        amountInPaise,
+        'INR',
+      )
+    } catch (error) {
+      // Rollback seats on capture failure
+      this.logger.error({ bookingId, error }, 'Payment capture failed, rolling back seats')
+      await this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers)
+      throw error
+    }
+
+    // Update booking to CONFIRMED
+    await this.bookingRepo.updateStatus(bookingId, 'CONFIRMED')
+
+    this.logger.info({ bookingId }, 'Booking confirmed')
+
+    return {
+      bookingId: booking.id,
+      bookingStatus: 'CONFIRMED',
+      paymentStatus: 'CAPTURED',
+    }
+  }
+
+  /**
+   * Frontend callback — verifies Razorpay signature then confirms booking.
+   * Dual verification: FE verifies immediately, webhook as backup.
+   *
+   * @throws NotFoundError — booking doesn't exist
+   * @throws AuthError — invalid payment signature
+   */
+  async verifyAndConfirmPayment(
+    bookingId: string,
+    userId: string,
+    dto: VerifyPaymentDto,
+  ): Promise<VerifyPaymentResponse> {
+    const booking = await this.bookingRepo.findWithPaymentDetails(bookingId)
+    if (!booking) throw new NotFoundError('Booking')
+
+    // Authorization — only booking owner can verify payment
+    if (booking.userId !== userId) {
+      throw new ForbiddenError('You can only verify your own bookings')
+    }
+
+    // Already confirmed — idempotent return
+    if (booking.bookingStatus === 'CONFIRMED') {
+      return {
+        bookingId: booking.id,
+        bookingStatus: 'CONFIRMED',
+        paymentStatus: booking.paymentTransactions[0]?.status || 'CAPTURED',
+      }
+    }
+
+    // Verify HMAC-SHA256 signature
+    const isValid = this.paymentService.verifySignature(
+      dto.razorpayOrderId,
+      dto.razorpayPaymentId,
+      dto.razorpaySignature,
+    )
+    if (!isValid) {
+      throw new AuthError('Invalid payment signature — possible tampering')
+    }
+
+    // Persist razorpayPaymentId so confirmBooking() can capture it
+    const paymentTx = booking.paymentTransactions[0]
+    if (paymentTx) {
+      await this.paymentTxRepo.updatePaymentId(paymentTx.id, dto.razorpayPaymentId)
+    }
+
+    // Confirm booking (capture + seats)
+    return this.confirmBooking(bookingId)
   }
 
   /** Refund % based on cancellation policy and hours until trip */

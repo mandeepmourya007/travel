@@ -187,6 +187,68 @@ export class TripRepository {
     })
   }
 
+  /**
+   * Fetches trip with organizer payment fields (razorpayAccountId, commissionRate).
+   * Only used by BookingService — these fields are NOT exposed in public trip queries.
+   */
+  async findByIdForBooking(id: string) {
+    return this.prisma.trip.findFirst({
+      where: { id, isDeleted: false },
+      include: {
+        ...TRIP_INCLUDE_SUMMARY,
+        organizer: {
+          select: {
+            id: true,
+            businessName: true,
+            rating: true,
+            totalReviews: true,
+            verificationStatus: true,
+            razorpayAccountId: true,
+            commissionRate: true,
+          },
+        },
+      },
+    })
+  }
+
+  // ─── Atomic Seat Operations (Optimistic Locking) ──────────
+
+  /**
+   * Atomically increments currentBookings using optimistic locking (version column).
+   * Returns the number of rows updated: 0 = seats full or version mismatch, 1 = success.
+   *
+   * Raw SQL because Prisma doesn't support `WHERE currentBookings + N <= maxGroupSize`.
+   * Used by: BookingService.confirmBooking()
+   */
+  async atomicIncrementBookings(tripId: string, count: number, expectedVersion: number): Promise<number> {
+    return this.prisma.$executeRaw`
+      UPDATE "Trip"
+      SET "currentBookings" = "currentBookings" + ${count},
+          "version" = "version" + 1,
+          "updatedAt" = NOW()
+      WHERE id = ${tripId}
+        AND "currentBookings" + ${count} <= "maxGroupSize"
+        AND "version" = ${expectedVersion}
+        AND "isDeleted" = false
+    `
+  }
+
+  /**
+   * Rollback seat increment if capture fails after seat reservation.
+   * No version check — always decrements (recovery operation).
+   * Used by: BookingService.confirmBooking() error path
+   */
+  async atomicDecrementBookings(tripId: string, count: number): Promise<number> {
+    return this.prisma.$executeRaw`
+      UPDATE "Trip"
+      SET "currentBookings" = GREATEST("currentBookings" - ${count}, 0),
+          "version" = "version" + 1,
+          "updatedAt" = NOW()
+      WHERE id = ${tripId}
+        AND "isDeleted" = false
+    `
+  }
+
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {
     switch (sort) {
       case 'price_asc':

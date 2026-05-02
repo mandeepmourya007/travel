@@ -24,8 +24,15 @@ import { createDestinationRoutes } from '../routes/destination.routes'
 import { createTripRoutes } from '../routes/trip.routes'
 import { createUploadRoutes } from '../routes/upload.routes'
 import { BookingService } from '../services/booking.service'
+import { PaymentService } from '../services/payment.service'
+import { MockPaymentService } from '../services/mock-payment.service'
+import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
+import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { BookingController } from '../controllers/booking.controller'
+import { WebhookController } from '../controllers/webhook.controller'
 import { createBookingRoutes } from '../routes/booking.routes'
+import { createWebhookRoutes } from '../routes/webhook.routes'
+import { razorpayClient } from './razorpay'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -39,6 +46,8 @@ const organizerProfileRepo = new OrganizerProfileRepository(prisma)
 const tripEditHistoryRepo = new TripEditHistoryRepository(prisma)
 const bookingRepo = new BookingRepository(prisma)
 const tripRequestRepo = new TripRequestRepository(prisma)
+const paymentTxRepo = new PaymentTransactionRepository(prisma)
+const webhookEventRepo = new WebhookEventRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -52,7 +61,23 @@ export const authService = new AuthService(
 const destinationService = new DestinationService(destinationRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, logger)
 const uploadService = new UploadService()
-const bookingService = new BookingService(bookingRepo, logger)
+const paymentService = razorpayClient
+  ? new PaymentService(
+      razorpayClient,
+      paymentTxRepo,
+      webhookEventRepo,
+      env.RAZORPAY_KEY_SECRET || '',
+      env.RAZORPAY_WEBHOOK_SECRET || '',
+      logger,
+    )
+  : env.NODE_ENV !== 'production'
+    ? (() => {
+        logger.warn('Using MockPaymentService — Razorpay not configured. Payments will be simulated.')
+        return new MockPaymentService(paymentTxRepo, webhookEventRepo, logger)
+      })()
+    : (null as unknown as PaymentService)
+
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger)
 
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
@@ -63,6 +88,9 @@ const destinationController = new DestinationController(destinationService)
 const tripController = new TripController(tripService)
 const uploadController = new UploadController(uploadService)
 const bookingController = new BookingController(bookingService)
+const webhookController = paymentService
+  ? new WebhookController(paymentService, bookingService)
+  : (null as unknown as WebhookController)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, authMiddleware)
@@ -70,3 +98,6 @@ export const destinationRoutes = createDestinationRoutes(destinationController, 
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
 export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware)
+export const webhookRoutes = webhookController
+  ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
+  : null

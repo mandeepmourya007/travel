@@ -9,7 +9,7 @@ import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes } from './config/dependencies'
+import { authRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, webhookRoutes } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -18,6 +18,11 @@ export function createServer() {
   // ── Security ──────────────────────────────────────
   app.use(helmet())
   app.use(cors(corsOptions))
+
+  // ── Webhook Routes (raw body — MUST be before JSON parser) ──
+  if (webhookRoutes) {
+    app.use('/api/v1/webhooks', webhookRoutes)
+  }
 
   // ── Parsing ───────────────────────────────────────
   app.use(express.json({ limit: '10mb' }))

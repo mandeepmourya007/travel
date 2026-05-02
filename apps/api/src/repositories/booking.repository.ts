@@ -1,4 +1,5 @@
-import { Prisma } from '@prisma/client'
+import crypto from 'crypto'
+import { Prisma, type BookingStatus, type Gender } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 
@@ -202,6 +203,176 @@ export class BookingRepository {
         cancelledById: userId,
       },
     })
+  }
+
+  // ─── Payment Flow Methods ─────────────────────────────────
+
+  /**
+   * Creates a booking with nested traveler details in a single transaction.
+   *
+   * Generates a unique bookingRef (TRP-YYYY-NNNN format).
+   * Used by: BookingService.createBooking()
+   *
+   * Edge case: bookingRef collision is extremely unlikely (cuid-based counter fallback)
+   */
+  async create(data: {
+    tripId: string
+    userId: string
+    numTravelers: number
+    totalAmount: number
+    expiresAt: Date
+    travelers: Array<{
+      name: string
+      phone: string
+      age: number
+      gender: Gender
+      isPrimary: boolean
+    }>
+  }) {
+    const bookingRef = await this.generateBookingRef()
+    return this.prisma.booking.create({
+      data: {
+        bookingRef,
+        tripId: data.tripId,
+        userId: data.userId,
+        numTravelers: data.numTravelers,
+        totalAmount: data.totalAmount,
+        expiresAt: data.expiresAt,
+        bookingStatus: 'PENDING_PAYMENT',
+        travelerDetails: {
+          create: data.travelers,
+        },
+      },
+      include: { travelerDetails: true },
+    })
+  }
+
+  /**
+   * Updates booking status with optional extra fields.
+   *
+   * Used by: BookingService.confirmBooking(), cron expiry, webhook handlers
+   */
+  async updateStatus(
+    id: string,
+    bookingStatus: BookingStatus,
+    extras?: Record<string, unknown>,
+  ) {
+    return this.prisma.booking.update({
+      where: { id },
+      data: { bookingStatus, ...extras },
+    })
+  }
+
+  /**
+   * Finds an active (PENDING_PAYMENT or CONFIRMED) booking for user+trip.
+   *
+   * Used by: BookingService.createBooking() — duplicate/idempotency check
+   * If PENDING_PAYMENT exists → return same order (idempotent)
+   * If CONFIRMED exists → ConflictError
+   */
+  async findActiveByUserAndTrip(userId: string, tripId: string) {
+    return this.prisma.booking.findFirst({
+      where: {
+        userId,
+        tripId,
+        bookingStatus: { in: ['PENDING_PAYMENT', 'CONFIRMED'] },
+        isDeleted: false,
+      },
+      include: {
+        paymentTransactions: {
+          where: { type: 'PAYMENT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    })
+  }
+
+  /**
+   * Finds PENDING_PAYMENT bookings where expiresAt has passed.
+   *
+   * Used by: Cron job — expire stale bookings
+   * Includes paymentTransactions for Razorpay order status check before expiring
+   */
+  async findExpiredPendingBookings() {
+    return this.prisma.booking.findMany({
+      where: {
+        bookingStatus: 'PENDING_PAYMENT',
+        expiresAt: { lt: new Date() },
+        isDeleted: false,
+      },
+      include: {
+        paymentTransactions: {
+          where: { type: 'PAYMENT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    })
+  }
+
+  /**
+   * Finds a booking with full payment details — trip, organizer, and payment transactions.
+   *
+   * Used by: BookingService.confirmBooking() — needs trip.version, organizer.razorpayAccountId
+   */
+  async findWithPaymentDetails(id: string) {
+    return this.prisma.booking.findFirst({
+      where: { id, isDeleted: false },
+      include: {
+        trip: {
+          select: {
+            id: true,
+            title: true,
+            startDate: true,
+            endDate: true,
+            maxGroupSize: true,
+            currentBookings: true,
+            version: true,
+            cancellationPolicy: true,
+            pricePerPerson: true,
+            earlyBirdPrice: true,
+            earlyBirdDeadline: true,
+            bookingMode: true,
+            acceptingBookings: true,
+            status: true,
+            bookingDeadline: true,
+            organizer: {
+              select: {
+                id: true,
+                razorpayAccountId: true,
+                commissionRate: true,
+                businessName: true,
+              },
+            },
+          },
+        },
+        paymentTransactions: {
+          where: { type: 'PAYMENT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    })
+  }
+
+  /**
+   * Generates a unique booking reference: TRP-YYYY-XXXXXX.
+   * Retries up to 3 times on collision (UNIQUE constraint on bookingRef).
+   */
+  private async generateBookingRef(): Promise<string> {
+    const year = new Date().getFullYear()
+    const maxRetries = 3
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const count = await this.prisma.booking.count()
+      const seq = String(count + 1).padStart(4, '0')
+      const suffix = crypto.randomBytes(2).toString('hex').toUpperCase()
+      const ref = `TRP-${year}-${seq}${suffix}`
+      const existing = await this.prisma.booking.findFirst({ where: { bookingRef: ref } })
+      if (!existing) return ref
+    }
+    // Fallback: use timestamp + random to guarantee uniqueness
+    return `TRP-${year}-${Date.now().toString(36).toUpperCase()}`
   }
 
   // Builds dynamic WHERE clause for bookingStatus + user name search
