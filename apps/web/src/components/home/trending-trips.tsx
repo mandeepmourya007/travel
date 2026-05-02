@@ -5,9 +5,11 @@ import { ArrowRight } from 'lucide-react'
 import { useTrendingTrips } from '@/hooks/use-trips'
 import { TripCard } from '@/components/trips/trip-card'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
+import { useCompareQueue } from '@/hooks/use-compare-queue'
 
 export function TrendingTrips() {
   const { data, isLoading } = useTrendingTrips()
+  const { selectedIds, toggle } = useCompareQueue()
 
   return (
     <section className="bg-white py-16">
@@ -34,7 +36,7 @@ export function TrendingTrips() {
         ) : data?.trips.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.trips.slice(0, 6).map((trip) => (
-              <TripCard key={trip.id} trip={trip} />
+              <TripCard key={trip.id} trip={trip} onCompare={toggle} isSelected={selectedIds.includes(trip.id)} />
             ))}
           </div>
         ) : (

@@ -1,7 +1,8 @@
 'use client'
 
+import { useRef } from 'react'
 import Link from 'next/link'
-import { MapPin, Calendar, Users, CheckCircle } from 'lucide-react'
+import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
 import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -9,34 +10,46 @@ import type { TripSummary } from '@shared/types/trip.types'
 
 interface TripCardProps {
   trip: TripSummary
-  onCompare?: (tripId: string) => void
+  onCompare: (trip: TripSummary) => void
   isSelected?: boolean
 }
 
+/**
+ * Trip listing card with compare toggle, image, metadata, and price CTA.
+ *
+ * The compare button shows a pulse-zoom animation on initial mount to
+ * draw attention, then switches to a pop animation when selected.
+ * Animation only plays on first render — not when toggling back from selected.
+ *
+ * @note `onCompare` is required and receives the full `TripSummary` (not just id)
+ *       so the compare queue can store a lightweight snapshot without re-fetching.
+ */
 export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
-
+  const hasInteracted = useRef(false)
   return (
-    <div className={cn('card group relative', isSelected && 'ring-2 ring-primary-500')}>
-      {/* Compare checkbox */}
-      {onCompare && (
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            onCompare(trip.id)
-          }}
-          className={cn(
-            'absolute top-3 left-3 z-10 h-6 w-6 rounded border-2 flex items-center justify-center transition-all',
-            isSelected
-              ? 'border-primary-500 bg-primary-500 text-white'
-              : 'border-white/80 bg-white/70 backdrop-blur-sm text-transparent hover:border-primary-300',
-          )}
-          aria-label={isSelected ? 'Remove from comparison' : 'Add to comparison'}
-        >
-          {isSelected && <CheckCircle className="h-4 w-4" />}
-        </button>
-      )}
+    <div className={cn('card group relative', isSelected && 'ring-2 ring-primary-500 border-primary-200')}>
+      {/* Compare button */}
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          hasInteracted.current = true
+          onCompare(trip)
+        }}
+        className={cn(
+          'absolute top-3 left-3 z-10 flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold shadow-sm',
+          'transition-all duration-200 active:scale-90 will-change-transform',
+          isSelected
+            ? 'bg-primary-500 text-white hover:bg-primary-600 animate-pop'
+            : 'bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-white',
+          !isSelected && !hasInteracted.current && 'animate-pulse-zoom',
+        )}
+        aria-label={isSelected ? 'Remove from comparison' : 'Add to comparison'}
+      >
+        <GitCompareArrows className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+        {isSelected ? 'Added' : 'Compare'}
+      </button>
 
       {/* Image */}
       <Link href={`/trips/${trip.slug}`} className="block">

@@ -1,15 +1,16 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState, Suspense } from 'react'
+import { Suspense } from 'react'
 import { TripFilters } from '@/components/trips/trip-filters'
 import { TripGrid } from '@/components/trips/trip-grid'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
+import { useCompareQueue } from '@/hooks/use-compare-queue'
 import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
 
 function SearchContent() {
   const searchParams = useSearchParams()
-  const [compareIds, setCompareIds] = useState<string[]>([])
+  const { selectedIds, toggle } = useCompareQueue()
 
   const filters: TripFiltersType = {
     destinationId: searchParams.get('destinationId') || undefined,
@@ -22,12 +23,6 @@ function SearchContent() {
     limit: 12,
   }
 
-  function handleCompare(tripId: string) {
-    setCompareIds((prev) =>
-      prev.includes(tripId) ? prev.filter((id) => id !== tripId) : [...prev, tripId].slice(0, 3),
-    )
-  }
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-2xl font-bold text-neutral-800 mb-6">
@@ -35,22 +30,6 @@ function SearchContent() {
           ? `Trips to "${filters.destination}"`
           : 'Explore All Trips'}
       </h1>
-
-      {compareIds.length > 0 && (
-        <div className="mb-4 rounded-lg bg-primary-50 px-4 py-3 flex items-center justify-between">
-          <span className="text-sm text-primary-700 font-medium">
-            {compareIds.length} trip{compareIds.length > 1 ? 's' : ''} selected for comparison
-          </span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setCompareIds([])}
-              className="text-sm text-primary-600 hover:underline"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="lg:flex lg:gap-8">
         {/* Filters — mobile: toggle + drawer, desktop: sidebar */}
@@ -62,8 +41,8 @@ function SearchContent() {
         <div className="flex-1 min-w-0">
           <TripGrid
             filters={filters}
-            onCompare={handleCompare}
-            selectedTripIds={compareIds}
+            onCompare={toggle}
+            selectedTripIds={selectedIds}
           />
         </div>
       </div>

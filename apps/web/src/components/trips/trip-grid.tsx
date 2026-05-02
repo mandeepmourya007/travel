@@ -4,11 +4,11 @@ import { useTrips } from '@/hooks/use-trips'
 import { TripCard } from './trip-card'
 import { TripCardSkeleton } from './trip-card-skeleton'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import type { TripFilters } from '@shared/types/trip.types'
+import type { TripFilters, TripSummary } from '@shared/types/trip.types'
 
 interface TripGridProps {
   filters: TripFilters
-  onCompare?: (tripId: string) => void
+  onCompare: (trip: TripSummary) => void
   selectedTripIds?: string[]
 }
 
