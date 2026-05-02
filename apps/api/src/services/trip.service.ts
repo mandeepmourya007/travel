@@ -1,13 +1,17 @@
 import { Logger } from 'pino'
 import { Prisma } from '@prisma/client'
 import type { CreateTripDto, UpdateTripDto, TripFilters } from '@shared/types/trip.types'
+import type { TripBookingFilters } from '@shared/types/booking.types'
+import type { TripRequestFilters } from '@shared/types/trip-request.types'
 import { TripRepository } from '../repositories/trip.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
+import { BookingRepository } from '../repositories/booking.repository'
+import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { NotFoundError, ValidationError, ForbiddenError } from '../errors/app-error'
 import { generateTripSlug } from '../utils/slug'
-import { PAGINATION_DEFAULTS } from '../utils/constants'
+import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
 
 export class TripService {
   constructor(
@@ -15,6 +19,8 @@ export class TripService {
     private destinationRepo: DestinationRepository,
     private organizerProfileRepo: OrganizerProfileRepository,
     private editHistoryRepo: TripEditHistoryRepository,
+    private bookingRepo: BookingRepository,
+    private tripRequestRepo: TripRequestRepository,
     private logger: Logger,
   ) {}
 
@@ -108,13 +114,7 @@ export class TripService {
   }
 
   async updateTrip(userId: string, tripId: string, input: UpdateTripDto) {
-    const trip = await this.tripRepo.findById(tripId)
-    if (!trip) throw new NotFoundError('Trip')
-
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
-    if (!profile || trip.organizerId !== profile.id) {
-      throw new ForbiddenError('You can only edit your own trips')
-    }
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.status !== 'DRAFT' && trip.status !== 'ACTIVE') {
       throw new ValidationError('Only DRAFT or ACTIVE trips can be edited')
@@ -170,13 +170,7 @@ export class TripService {
    * When bookings are closed, travelers cannot create new bookings or requests.
    */
   async toggleBookings(userId: string, tripId: string) {
-    const trip = await this.tripRepo.findById(tripId)
-    if (!trip) throw new NotFoundError('Trip')
-
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
-    if (!profile || trip.organizerId !== profile.id) {
-      throw new ForbiddenError('You can only manage your own trips')
-    }
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.status !== 'ACTIVE') {
       throw new ValidationError('Only ACTIVE trips can toggle bookings')
@@ -196,13 +190,7 @@ export class TripService {
    * which fields changed and who made the edit.
    */
   async getTripEditHistory(userId: string, tripId: string, page = 1, limit = 20) {
-    const trip = await this.tripRepo.findById(tripId)
-    if (!trip) throw new NotFoundError('Trip')
-
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
-    if (!profile || trip.organizerId !== profile.id) {
-      throw new ForbiddenError('You can only view history of your own trips')
-    }
+    await this.verifyTripOwnership(userId, tripId)
 
     const offset = (page - 1) * limit
     const { data, total } = await this.editHistoryRepo.findByTripId(tripId, { offset, limit })
@@ -249,13 +237,7 @@ export class TripService {
   }
 
   async publishTrip(userId: string, tripId: string) {
-    const trip = await this.tripRepo.findById(tripId)
-    if (!trip) throw new NotFoundError('Trip')
-
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
-    if (!profile || trip.organizerId !== profile.id) {
-      throw new ForbiddenError('You can only publish your own trips')
-    }
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.status !== 'DRAFT') {
       throw new ValidationError('Only DRAFT trips can be published')
@@ -283,13 +265,7 @@ export class TripService {
   }
 
   async deleteTrip(userId: string, tripId: string) {
-    const trip = await this.tripRepo.findById(tripId)
-    if (!trip) throw new NotFoundError('Trip')
-
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
-    if (!profile || trip.organizerId !== profile.id) {
-      throw new ForbiddenError('You can only delete your own trips')
-    }
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.currentBookings > 0) {
       throw new ValidationError('Cannot delete a trip with existing bookings')
@@ -308,6 +284,176 @@ export class TripService {
       }
     })
     this.logger.info({ tripId }, 'Trip soft-deleted')
+  }
+
+  // ─── Trip Participants Dashboard Methods ──────────────
+
+  /**
+   * Returns paginated bookings for a trip (organizer's participants view).
+   * Only the trip owner can view. Supports status filter + user name search.
+   *
+   * @throws NotFoundError — trip doesn't exist
+   * @throws ForbiddenError — user doesn't own the trip
+   */
+  async getTripBookings(userId: string, tripId: string, filters: TripBookingFilters) {
+    await this.verifyTripOwnership(userId, tripId)
+
+    const page = filters.page ?? PAGINATION_DEFAULTS.page
+    const limit = Math.min(filters.limit ?? PAGINATION_DEFAULTS.limit, PAGINATION_DEFAULTS.maxLimit)
+    const offset = (page - 1) * limit
+
+    const { data, total } = await this.bookingRepo.findByTripId(tripId, filters, { offset, limit })
+
+    return {
+      data: data.map((b) => ({
+        id: b.id,
+        bookingRef: b.bookingRef,
+        bookingStatus: b.bookingStatus,
+        numTravelers: b.numTravelers,
+        totalAmount: b.totalAmount,
+        createdAt: b.createdAt,
+        user: b.user,
+        travelerDetails: b.travelerDetails,
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    }
+  }
+
+  /**
+   * Returns paginated trip requests for a trip (organizer's participants view).
+   * Only the trip owner can view. Supports status filter + user name search.
+   *
+   * @throws NotFoundError — trip doesn't exist
+   * @throws ForbiddenError — user doesn't own the trip
+   */
+  async getTripRequests(userId: string, tripId: string, filters: TripRequestFilters) {
+    await this.verifyTripOwnership(userId, tripId)
+
+    const page = filters.page ?? PAGINATION_DEFAULTS.page
+    const limit = Math.min(filters.limit ?? PAGINATION_DEFAULTS.limit, PAGINATION_DEFAULTS.maxLimit)
+    const offset = (page - 1) * limit
+
+    const { data, total } = await this.tripRequestRepo.findByTripId(tripId, filters, { offset, limit })
+
+    return {
+      data: data.map((r) => ({
+        id: r.id,
+        numTravelers: r.numTravelers,
+        message: r.message,
+        status: r.status,
+        createdAt: r.createdAt,
+        respondedAt: r.respondedAt,
+        responseNote: r.responseNote,
+        approvalExpiresAt: r.approvalExpiresAt,
+        user: r.user,
+      })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    }
+  }
+
+  /**
+   * Returns aggregated booking summary stats for a trip's stats bar.
+   * Includes confirmed count, total travelers, seats left, revenue, pending requests.
+   *
+   * @throws NotFoundError — trip doesn't exist
+   * @throws ForbiddenError — user doesn't own the trip
+   */
+  async getTripBookingSummary(userId: string, tripId: string) {
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
+
+    const summary = await this.bookingRepo.getTripBookingSummary(tripId)
+
+    return {
+      ...summary,
+      maxGroupSize: trip.maxGroupSize,
+      seatsLeft: Math.max(0, trip.maxGroupSize - trip.currentBookings),
+    }
+  }
+
+  /**
+   * Approves or rejects a pending trip request.
+   *
+   * Business rules:
+   * - Only the trip owner can respond
+   * - Only PENDING requests can be responded to
+   * - On APPROVE: sets approvalExpiresAt to now + 48h, traveler must pay within window
+   * - On REJECT: sets responseNote (reason), no further action needed
+   * - Capacity check on approve: trip must have enough seats for numTravelers
+   *
+   * @throws NotFoundError — trip or request doesn't exist
+   * @throws ForbiddenError — user doesn't own the trip
+   * @throws ValidationError — request is not PENDING, or not enough seats
+   */
+  async respondToTripRequest(
+    userId: string,
+    tripId: string,
+    requestId: string,
+    action: 'APPROVED' | 'REJECTED',
+    responseNote?: string,
+  ) {
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
+
+    const request = await this.tripRequestRepo.findById(requestId)
+    if (!request) throw new NotFoundError('Trip request')
+    if (request.tripId !== tripId) throw new NotFoundError('Trip request')
+
+    if (request.status !== 'PENDING') {
+      throw new ValidationError('Only PENDING requests can be responded to')
+    }
+
+    // Capacity check uses already-fetched trip data to avoid extra DB call
+    if (action === 'APPROVED') {
+      const seatsLeft = trip.maxGroupSize - trip.currentBookings
+      if (request.numTravelers > seatsLeft) {
+        throw new ValidationError(
+          `Not enough seats. Requested: ${request.numTravelers}, available: ${seatsLeft}`,
+        )
+      }
+    }
+
+    const approvalExpiresAt =
+      action === 'APPROVED'
+        ? new Date(Date.now() + APPROVAL_EXPIRY_HOURS * 60 * 60 * 1000)
+        : undefined
+
+    const updated = await this.tripRequestRepo.updateStatus(requestId, {
+      status: action,
+      responseNote,
+      approvalExpiresAt,
+    })
+
+    this.logger.info(
+      { tripId, requestId, action, responseNote },
+      'Trip request responded',
+    )
+
+    return {
+      id: updated.id,
+      numTravelers: updated.numTravelers,
+      message: updated.message,
+      status: updated.status,
+      createdAt: updated.createdAt,
+      respondedAt: updated.respondedAt,
+      responseNote: updated.responseNote,
+      approvalExpiresAt: updated.approvalExpiresAt,
+      user: updated.user,
+    }
+  }
+
+  /**
+   * Verifies that a trip exists and the user is its owner.
+   * Returns the trip and organizer profile for further use.
+   */
+  private async verifyTripOwnership(userId: string, tripId: string) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile || trip.organizerId !== profile.id) {
+      throw new ForbiddenError('You can only manage your own trips')
+    }
+
+    return { trip, profile }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

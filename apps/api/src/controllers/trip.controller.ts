@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import type { TripFilters } from '@shared/types/trip.types'
+import { tripBookingFiltersSchema, tripRequestFiltersSchema } from '@shared/validators/booking.schema'
 import { asyncHandler } from '../utils/async-handler'
 import { TripService } from '../services/trip.service'
 
@@ -73,5 +74,48 @@ export class TripController {
   getOrganizerStats = asyncHandler(async (req: Request, res: Response) => {
     const stats = await this.tripService.getOrganizerStats(req.user!.userId)
     res.json({ success: true, data: stats })
+  })
+
+  // ─── Trip Participants Dashboard ──────────────────────
+
+  /** GET /trips/:tripId/bookings — List bookings for a trip (organizer only) */
+  getTripBookings = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.tripService.getTripBookings(
+      req.user!.userId,
+      req.params.tripId,
+      tripBookingFiltersSchema.parse(req.query),
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /trips/:tripId/requests — List trip requests for a trip (organizer only) */
+  getTripRequests = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.tripService.getTripRequests(
+      req.user!.userId,
+      req.params.tripId,
+      tripRequestFiltersSchema.parse(req.query),
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /trips/:tripId/summary — Get booking summary stats (organizer only) */
+  getTripBookingSummary = asyncHandler(async (req: Request, res: Response) => {
+    const summary = await this.tripService.getTripBookingSummary(
+      req.user!.userId,
+      req.params.tripId,
+    )
+    res.json({ success: true, data: summary })
+  })
+
+  /** PATCH /trips/:tripId/requests/:requestId — Approve/reject a trip request (organizer only) */
+  respondToRequest = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.tripService.respondToTripRequest(
+      req.user!.userId,
+      req.params.tripId,
+      req.params.requestId,
+      req.body.status,
+      req.body.responseNote,
+    )
+    res.json({ success: true, data: result })
   })
 }

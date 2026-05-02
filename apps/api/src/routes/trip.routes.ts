@@ -2,7 +2,8 @@ import { Router } from 'express'
 import { TripController } from '../controllers/trip.controller'
 import { validate } from '../middleware/validate.middleware'
 import { createTripSchema, updateTripSchema, tripFiltersSchema } from '@shared/validators/trip.schema'
-import { cuidParamSchema, slugParamSchema } from '@shared/validators/common.schema'
+import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema } from '@shared/validators/common.schema'
+import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema } from '@shared/validators/booking.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
 
@@ -74,6 +75,39 @@ export function createTripRoutes(
     requireRole('ORGANIZER'),
     validate(cuidParamSchema, 'params'),
     tripController.getEditHistory,
+  )
+
+  // ─── Trip Participants Dashboard (organizer only) ────
+  router.get(
+    '/:tripId/bookings',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(tripIdParamSchema, 'params'),
+    validate(tripBookingFiltersSchema, 'query'),
+    tripController.getTripBookings,
+  )
+  router.get(
+    '/:tripId/requests',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(tripIdParamSchema, 'params'),
+    validate(tripRequestFiltersSchema, 'query'),
+    tripController.getTripRequests,
+  )
+  router.get(
+    '/:tripId/summary',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(tripIdParamSchema, 'params'),
+    tripController.getTripBookingSummary,
+  )
+  router.patch(
+    '/:tripId/requests/:requestId',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(tripRequestParamSchema, 'params'),
+    validate(respondTripRequestSchema),
+    tripController.respondToRequest,
   )
 
   return router

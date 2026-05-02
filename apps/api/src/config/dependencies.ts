@@ -7,6 +7,8 @@ import { DestinationRepository } from '../repositories/destination.repository'
 import { TripRepository } from '../repositories/trip.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
+import { BookingRepository } from '../repositories/booking.repository'
+import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { AuthService } from '../services/auth.service'
 import { DestinationService } from '../services/destination.service'
 import { TripService } from '../services/trip.service'
@@ -32,6 +34,8 @@ const destinationRepo = new DestinationRepository(prisma)
 const tripRepo = new TripRepository(prisma)
 const organizerProfileRepo = new OrganizerProfileRepository(prisma)
 const tripEditHistoryRepo = new TripEditHistoryRepository(prisma)
+const bookingRepo = new BookingRepository(prisma)
+const tripRequestRepo = new TripRequestRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -43,7 +47,7 @@ export const authService = new AuthService(
 )
 
 const destinationService = new DestinationService(destinationRepo, logger)
-const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, logger)
+const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, logger)
 const uploadService = new UploadService()
 
 // ── Middleware ────────────────────────────────────────
