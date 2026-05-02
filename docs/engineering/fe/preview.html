@@ -909,6 +909,150 @@
       to { transform: rotate(360deg); }
     }
 
+    /* ============================================
+       ROUTE PROGRESS BAR
+       ============================================ */
+    .route-progress-track {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 9999;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .route-progress-track.active {
+      opacity: 1;
+    }
+
+    .route-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--gradient-primary);
+      border-radius: 0 var(--radius-full) var(--radius-full) 0;
+      box-shadow: 0 0 8px rgba(15, 186, 181, 0.4);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Relative version for the demo container */
+    .route-progress-demo {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .route-progress-demo.active {
+      opacity: 1;
+    }
+
+    .route-progress-demo .route-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--gradient-primary);
+      border-radius: 0 var(--radius-full) var(--radius-full) 0;
+      box-shadow: 0 0 8px rgba(15, 186, 181, 0.4);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ============================================
+       PAGE ENTER ANIMATION
+       ============================================ */
+    @keyframes page-enter {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-page-enter {
+      animation: page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .delay-1 { animation-delay: 0ms; }
+    .delay-2 { animation-delay: 80ms; }
+    .delay-3 { animation-delay: 160ms; }
+    .delay-4 { animation-delay: 240ms; }
+
+    @keyframes page-exit {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+    }
+
+    .animate-page-exit {
+      animation: page-exit 0.2s ease-in both;
+    }
+
+    /* Demo browser frame */
+    .demo-browser {
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      background: var(--neutral-50);
+      position: relative;
+    }
+
+    .demo-browser-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--neutral-0);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .demo-browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .demo-browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+    }
+
+    .demo-browser-url {
+      flex: 1;
+      padding: 5px 12px;
+      background: var(--neutral-100);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--neutral-500);
+      border: none;
+      outline: none;
+    }
+
+    .demo-browser-viewport {
+      min-height: 320px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Page enter hidden state (before animation triggers) */
+    .page-enter-hidden {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
     /* Compare button animations */
     @keyframes pulse-zoom {
       0%, 100% { transform: scale(1); }
@@ -1994,6 +2138,186 @@
     </div>
   </div>
 
+  <!-- ======================== PAGE TRANSITIONS ======================== -->
+  <div class="section">
+    <h2 class="section-title">Page Transitions</h2>
+    <p class="section-desc">Route progress bar + page enter animation + full navigation simulation. These apply to every page transition in the app.</p>
+
+    <!-- Demo 1: Route Progress Bar -->
+    <div class="component-group">
+      <div class="component-label">Route Progress Bar — Top of Viewport</div>
+      <p style="font-size:13px;color:var(--neutral-500);margin-bottom:12px;">Thin animated bar at the top of the page. Starts on link click, fills to 80%, then jumps to 100% and fades when the new page loads.</p>
+      <div class="component-row" style="gap:12px; align-items:center;">
+        <button class="btn btn-sm btn-primary" id="demo-progress-btn">Simulate Navigation</button>
+        <button class="btn btn-sm btn-ghost" id="demo-progress-reset">Reset</button>
+        <span id="demo-progress-status" style="font-size:12px;color:var(--neutral-400);">Click to start</span>
+      </div>
+    </div>
+
+    <!-- Demo 2: Page Enter Animation -->
+    <div class="component-group" style="margin-top:32px;">
+      <div class="component-label">Page Enter Animation — Fade + Slide Up</div>
+      <p style="font-size:13px;color:var(--neutral-500);margin-bottom:12px;">Every page's content fades in with a subtle upward slide (12px, 350ms). Staggered delays create a cascade effect.</p>
+      <button class="btn btn-sm btn-primary" id="demo-page-enter-btn" style="margin-bottom:16px;">Play Animation</button>
+
+      <div style="display:flex;gap:16px;flex-wrap:wrap;" id="demo-page-enter-cards">
+        <!-- Card 1 -->
+        <div class="card page-enter-hidden" data-stagger="1" style="width:200px;padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🏖</div>
+          <div style="font-weight:700;font-size:14px;color:var(--neutral-800);">Hero Section</div>
+          <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">delay: 0ms</div>
+        </div>
+        <!-- Card 2 -->
+        <div class="card page-enter-hidden" data-stagger="2" style="width:200px;padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">📋</div>
+          <div style="font-weight:700;font-size:14px;color:var(--neutral-800);">Trip Details</div>
+          <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">delay: 80ms</div>
+        </div>
+        <!-- Card 3 -->
+        <div class="card page-enter-hidden" data-stagger="3" style="width:200px;padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">💳</div>
+          <div style="font-weight:700;font-size:14px;color:var(--neutral-800);">Booking Card</div>
+          <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">delay: 160ms</div>
+        </div>
+        <!-- Card 4 -->
+        <div class="card page-enter-hidden" data-stagger="4" style="width:200px;padding:20px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">⭐</div>
+          <div style="font-weight:700;font-size:14px;color:var(--neutral-800);">Reviews</div>
+          <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">delay: 240ms</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 3: Full Page Transition Simulation -->
+    <div class="component-group" style="margin-top:32px;">
+      <div class="component-label">Full Navigation Simulation — Trip Listing → Detail</div>
+      <p style="font-size:13px;color:var(--neutral-500);margin-bottom:12px;">Simulates what users see: click "View Details" → progress bar animates → old page fades out → skeleton loads → content fades in.</p>
+
+      <div class="demo-browser" style="max-width:700px;">
+        <!-- Toolbar -->
+        <div class="demo-browser-toolbar">
+          <div class="demo-browser-dots">
+            <div class="demo-browser-dot" style="background:#FF5F57;"></div>
+            <div class="demo-browser-dot" style="background:#FEBC2E;"></div>
+            <div class="demo-browser-dot" style="background:#28C840;"></div>
+          </div>
+          <div class="demo-browser-url" id="demo-url">tripcompare.in/trips</div>
+        </div>
+
+        <!-- Progress bar inside browser -->
+        <div class="route-progress-demo" id="demo-browser-progress">
+          <div class="route-progress-bar" id="demo-browser-progress-bar"></div>
+        </div>
+
+        <!-- Viewport -->
+        <div class="demo-browser-viewport" id="demo-viewport">
+
+          <!-- Page 1: Trip Listing -->
+          <div id="demo-page-listing" style="padding:20px;">
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--neutral-800);margin-bottom:16px;">Explore All Trips</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <!-- Mini trip card -->
+              <div class="card" style="cursor:pointer;" onclick="startFullDemo()">
+                <div style="height:80px;background:linear-gradient(135deg,var(--primary-300),var(--highlight-300));display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;">
+                  🏖
+                  <span style="position:absolute;bottom:6px;right:8px;background:var(--accent-500);color:white;padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:700;">₹4,500</span>
+                </div>
+                <div style="padding:10px;">
+                  <div style="font-weight:700;font-size:13px;color:var(--neutral-800);">Goa Beach Getaway</div>
+                  <div style="font-size:11px;color:var(--neutral-500);margin-top:2px;">by TripVibes ✅</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                    <span style="font-size:11px;color:var(--neutral-400);">Dec 6-8 · 3D/2N</span>
+                    <span style="background:var(--primary-50);color:var(--primary-700);padding:3px 10px;border-radius:var(--radius-lg);font-size:11px;font-weight:600;cursor:pointer;">View Details</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Second mini card -->
+              <div class="card" style="cursor:default;">
+                <div style="height:80px;background:linear-gradient(135deg,var(--accent-300),var(--highlight-400));display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;">
+                  ⛰
+                  <span style="position:absolute;bottom:6px;right:8px;background:var(--accent-500);color:white;padding:2px 8px;border-radius:var(--radius-full);font-size:11px;font-weight:700;">₹5,200</span>
+                </div>
+                <div style="padding:10px;">
+                  <div style="font-weight:700;font-size:13px;color:var(--neutral-800);">Manali Trek</div>
+                  <div style="font-size:11px;color:var(--neutral-500);margin-top:2px;">by PuneTrails ✅</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+                    <span style="font-size:11px;color:var(--neutral-400);">Dec 12-15 · 4D/3N</span>
+                    <span style="background:var(--primary-50);color:var(--primary-700);padding:3px 10px;border-radius:var(--radius-lg);font-size:11px;font-weight:600;">View Details</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Page 2: Skeleton Loading (hidden initially) -->
+          <div id="demo-page-skeleton" style="padding:20px;display:none;">
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div class="skeleton" style="height:140px;border-radius:var(--radius-lg);"></div>
+                <div class="skeleton" style="height:16px;width:75%;"></div>
+                <div class="skeleton" style="height:14px;width:50%;"></div>
+                <div class="skeleton" style="height:14px;width:90%;"></div>
+                <div style="margin-top:8px;">
+                  <div class="skeleton" style="height:14px;width:30%;margin-bottom:6px;"></div>
+                  <div class="skeleton" style="height:50px;border-radius:var(--radius-lg);"></div>
+                </div>
+              </div>
+              <div>
+                <div class="skeleton" style="height:24px;width:60%;margin-bottom:8px;"></div>
+                <div class="skeleton" style="height:6px;border-radius:var(--radius-full);margin-bottom:12px;"></div>
+                <div class="skeleton" style="height:14px;margin-bottom:6px;"></div>
+                <div class="skeleton" style="height:14px;margin-bottom:6px;"></div>
+                <div class="skeleton" style="height:14px;width:80%;margin-bottom:12px;"></div>
+                <div class="skeleton" style="height:40px;border-radius:var(--radius-lg);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Page 3: Trip Detail Content (hidden initially) -->
+          <div id="demo-page-detail" style="padding:20px;display:none;">
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+              <div>
+                <div style="height:140px;background:linear-gradient(135deg,var(--primary-300),var(--highlight-300));border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:48px;margin-bottom:12px;">🏖</div>
+                <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--neutral-800);">Goa Beach Getaway</div>
+                <div style="font-size:12px;color:var(--neutral-500);margin-top:4px;">by TripVibes ✅ · ⭐ 4.7 (38 reviews)</div>
+                <div style="font-size:13px;color:var(--neutral-600);margin-top:8px;line-height:1.6;">3 days of sun, sand, and good vibes. Explore Calangute, Baga, and Anjuna beaches with your group.</div>
+                <div style="margin-top:12px;">
+                  <div style="font-weight:600;font-size:13px;color:var(--neutral-700);margin-bottom:6px;">Itinerary</div>
+                  <div style="background:var(--neutral-0);border:1px solid var(--neutral-100);border-radius:var(--radius-lg);padding:10px;">
+                    <div style="font-size:12px;color:var(--neutral-600);">Day 1: Pune → Goa (Overnight) · Day 2: Beach hopping · Day 3: Return</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="background:var(--neutral-0);border:1px solid var(--neutral-100);border-radius:var(--radius-xl);padding:16px;box-shadow:var(--shadow-card);">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--accent-500);">₹4,500<span style="font-size:12px;font-weight:400;color:var(--neutral-400);"> /person</span></div>
+                  <div class="progress-bar" style="margin:10px 0;">
+                    <div class="progress-fill" style="width:60%;"></div>
+                  </div>
+                  <div style="font-size:12px;color:var(--neutral-500);margin-bottom:12px;">12/20 seats booked · 8 seats left</div>
+                  <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--neutral-600);margin-bottom:14px;">
+                    <div>📅 Dec 6-8, 2025</div>
+                    <div>⏱ 3 Days / 2 Nights</div>
+                    <div>🚌 AC Bus included</div>
+                    <div>🍽 All meals</div>
+                  </div>
+                  <button class="btn btn-sm btn-accent" style="width:100%;justify-content:center;">Book Now</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:12px;align-items:center;">
+        <button class="btn btn-sm btn-ghost" id="demo-full-reset" style="border:1px solid var(--neutral-200);">Reset Demo</button>
+        <span style="font-size:12px;color:var(--neutral-400);" id="demo-full-status">Click the Goa trip card or "View Details" to start</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== TOOLTIPS ======================== -->
   <div class="section">
     <h2 class="section-title">Tooltips</h2>
@@ -2095,6 +2419,218 @@
     </div>
   </div>
 </div>
+
+<!-- Global Route Progress Bar (for Demo 1) -->
+<div class="route-progress-track" id="global-progress-track">
+  <div class="route-progress-bar" id="global-progress-bar"></div>
+</div>
+
+<script>
+// ============================================
+// Demo 1: Route Progress Bar
+// ============================================
+;(function () {
+  const btn = document.getElementById('demo-progress-btn')
+  const resetBtn = document.getElementById('demo-progress-reset')
+  const status = document.getElementById('demo-progress-status')
+  const track = document.getElementById('global-progress-track')
+  const bar = document.getElementById('global-progress-bar')
+  let running = false
+
+  function resetProgress() {
+    running = false
+    track.classList.remove('active')
+    bar.style.width = '0%'
+    bar.style.transition = 'none'
+    status.textContent = 'Click to start'
+    // Force reflow so transition:none takes effect
+    void bar.offsetWidth
+    bar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+  }
+
+  btn.addEventListener('click', function () {
+    if (running) return
+    running = true
+
+    // Phase 1: Show bar + grow to ~30%
+    track.classList.add('active')
+    bar.style.width = '30%'
+    status.textContent = 'Loading...'
+
+    // Phase 2: Grow to 60%
+    setTimeout(function () { bar.style.width = '60%' }, 400)
+
+    // Phase 3: Grow to 80% (stall)
+    setTimeout(function () {
+      bar.style.width = '80%'
+      status.textContent = 'Almost there...'
+    }, 800)
+
+    // Phase 4: Jump to 100% (page loaded)
+    setTimeout(function () {
+      bar.style.width = '100%'
+      status.textContent = 'Page loaded!'
+    }, 1500)
+
+    // Phase 5: Fade out
+    setTimeout(function () {
+      track.classList.remove('active')
+    }, 1800)
+
+    // Phase 6: Reset for re-use
+    setTimeout(function () {
+      bar.style.transition = 'none'
+      bar.style.width = '0%'
+      void bar.offsetWidth
+      bar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+      running = false
+      status.textContent = 'Done! Click again to replay'
+    }, 2200)
+  })
+
+  resetBtn.addEventListener('click', resetProgress)
+})()
+
+// ============================================
+// Demo 2: Page Enter Animation
+// ============================================
+;(function () {
+  const btn = document.getElementById('demo-page-enter-btn')
+  const container = document.getElementById('demo-page-enter-cards')
+
+  btn.addEventListener('click', function () {
+    const cards = container.querySelectorAll('[data-stagger]')
+
+    // Reset: hide all cards first
+    cards.forEach(function (card) {
+      card.classList.remove('animate-page-enter', 'delay-1', 'delay-2', 'delay-3', 'delay-4')
+      card.classList.add('page-enter-hidden')
+    })
+
+    // Force reflow
+    void container.offsetWidth
+
+    // Trigger: add animation classes with stagger
+    requestAnimationFrame(function () {
+      cards.forEach(function (card) {
+        var stagger = card.getAttribute('data-stagger')
+        card.classList.remove('page-enter-hidden')
+        card.classList.add('animate-page-enter', 'delay-' + stagger)
+      })
+    })
+  })
+})()
+
+// ============================================
+// Demo 3: Full Page Transition Simulation
+// ============================================
+var fullDemoRunning = false
+
+function startFullDemo() {
+  if (fullDemoRunning) return
+  fullDemoRunning = true
+
+  var listing = document.getElementById('demo-page-listing')
+  var skeleton = document.getElementById('demo-page-skeleton')
+  var detail = document.getElementById('demo-page-detail')
+  var progressTrack = document.getElementById('demo-browser-progress')
+  var progressBar = document.getElementById('demo-browser-progress-bar')
+  var urlBar = document.getElementById('demo-url')
+  var statusText = document.getElementById('demo-full-status')
+
+  // Step 1: Start progress bar
+  progressTrack.classList.add('active')
+  progressBar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+  progressBar.style.width = '30%'
+  statusText.textContent = 'Navigating...'
+
+  // Step 2: Fade out listing page (200ms)
+  setTimeout(function () {
+    listing.classList.add('animate-page-exit')
+    progressBar.style.width = '60%'
+    urlBar.textContent = 'tripcompare.in/trips/goa-beach-getaway'
+  }, 200)
+
+  // Step 3: Hide listing, show skeleton
+  setTimeout(function () {
+    listing.style.display = 'none'
+    listing.classList.remove('animate-page-exit')
+    skeleton.style.display = 'block'
+    skeleton.classList.add('animate-page-enter')
+    progressBar.style.width = '80%'
+    statusText.textContent = 'Loading trip details...'
+  }, 450)
+
+  // Step 4: Progress to 100%
+  setTimeout(function () {
+    progressBar.style.width = '100%'
+  }, 1200)
+
+  // Step 5: Hide progress bar
+  setTimeout(function () {
+    progressTrack.classList.remove('active')
+  }, 1500)
+
+  // Step 6: Swap skeleton → real content
+  setTimeout(function () {
+    skeleton.classList.remove('animate-page-enter')
+    skeleton.classList.add('animate-page-exit')
+  }, 1800)
+
+  setTimeout(function () {
+    skeleton.style.display = 'none'
+    skeleton.classList.remove('animate-page-exit')
+    detail.style.display = 'block'
+    detail.classList.add('animate-page-enter')
+    statusText.textContent = 'Trip detail loaded! Click "Reset Demo" to replay.'
+
+    // Reset progress bar position
+    progressBar.style.transition = 'none'
+    progressBar.style.width = '0%'
+    void progressBar.offsetWidth
+    progressBar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+
+    fullDemoRunning = false
+  }, 2050)
+}
+
+;(function () {
+  var resetBtn = document.getElementById('demo-full-reset')
+
+  resetBtn.addEventListener('click', function () {
+    fullDemoRunning = false
+
+    var listing = document.getElementById('demo-page-listing')
+    var skeleton = document.getElementById('demo-page-skeleton')
+    var detail = document.getElementById('demo-page-detail')
+    var progressTrack = document.getElementById('demo-browser-progress')
+    var progressBar = document.getElementById('demo-browser-progress-bar')
+    var urlBar = document.getElementById('demo-url')
+    var statusText = document.getElementById('demo-full-status')
+
+    // Reset all animations
+    listing.classList.remove('animate-page-exit', 'animate-page-enter')
+    skeleton.classList.remove('animate-page-exit', 'animate-page-enter')
+    detail.classList.remove('animate-page-exit', 'animate-page-enter')
+
+    // Reset visibility
+    listing.style.display = 'block'
+    skeleton.style.display = 'none'
+    detail.style.display = 'none'
+
+    // Reset progress bar
+    progressTrack.classList.remove('active')
+    progressBar.style.transition = 'none'
+    progressBar.style.width = '0%'
+    void progressBar.offsetWidth
+    progressBar.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+
+    // Reset URL + status
+    urlBar.textContent = 'tripcompare.in/trips'
+    statusText.textContent = 'Click the Goa trip card or "View Details" to start'
+  })
+})()
+</script>
 
 </body>
 </html>
