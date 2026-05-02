@@ -832,18 +832,157 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ---
 
-## 10. Timeline Estimate
+## 10. Timeline & Progress
 
-| Week | Milestone |
-|------|-----------|
-| **Week 1-2** | Project setup, auth, DB schema, basic UI shell |
-| **Week 3-4** | Trip CRUD (organizer), trip listing/search (traveler) |
-| **Week 5-6** | Trip detail page, comparison feature, SEO setup |
-| **Week 7-8** | Razorpay integration, booking flow, escrow |
-| **Week 9-10** | Chat system, review system, organizer dashboard |
-| **Week 11-12** | Admin panel, testing, bug fixes, deploy |
+| Week | Milestone | Status |
+|------|-----------|--------|
+| **Week 1-2** | Project setup, auth, DB schema, basic UI shell | ✅ Done |
+| **Week 3-4** | Trip CRUD (organizer), trip listing/search (traveler) | ✅ Done |
+| **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
+| **Week 7-8** | Razorpay integration, booking flow, escrow | ⬜ Not started |
+| **Week 9-10** | Chat system, review system, organizer dashboard | ⬜ Not started |
+| **Week 11-12** | Admin panel, testing, bug fixes, deploy | ⬜ Not started |
 
 **Total: ~12 weeks for a solo developer / 6-8 weeks with 2 developers**
+
+### Detailed Progress Tracker
+
+#### ✅ Infrastructure & Setup
+- [x] Monorepo structure (Turborepo) with `apps/api`, `apps/web`, `packages/shared`
+- [x] Docker Compose (PostgreSQL, Redis, API, Web, Migrate)
+- [x] TypeScript configs (base + per-app) with path aliases
+- [x] ESLint, Prettier, EditorConfig
+- [x] Prisma schema (14 MVP tables, 20+ indexes, soft-delete mixin)
+- [x] Seed data (`prisma/seed.ts`)
+- [x] Environment config + validation
+- [x] Pino structured logging (singleton)
+- [x] CORS whitelist config
+- [x] Redis client (Upstash, graceful null)
+
+#### ✅ Shared Package (`packages/shared`)
+- [x] Auth types (`SignupDto`, `LoginDto`, `AuthTokens`, `AuthResponse`, `JwtPayload`)
+- [x] Trip types (`TripSummary`, `TripDetail`, `TripFilters`, `CreateTripDto`, `UpdateTripDto`)
+- [x] Destination types
+- [x] API response types (`ApiResponse<T>`, `ApiError`, `PaginationMeta`)
+- [x] Auth validators (Zod: `signupSchema`, `loginSchema`)
+- [x] Trip validators (Zod: `createTripSchema`, `tripFiltersSchema`)
+- [x] Design tokens (`tokens.json` — colors, typography, spacing)
+
+#### ✅ Backend — Auth Module
+- [x] `UserRepository` — findById, findByEmail, create, emailExists, updatePassword
+- [x] `RefreshTokenRepository` — create, findByHash, revokeByHash, revokeAllForUser, deleteExpired
+- [x] `AuthService` — signup, login, refresh, logout, logoutAll, getMe, verifyAccessToken
+- [x] `AuthController` — all endpoints with httpOnly cookie for refresh
+- [x] Auth routes (`POST /auth/signup`, `login`, `refresh`, `logout`, `logoutAll`, `GET /me`)
+- [x] Auth middleware (Bearer token verification)
+- [x] Role middleware (`requireRole(...roles)` RBAC)
+- [x] Validation middleware (Zod)
+- [x] Rate limiting middleware (Upstash Redis — general, auth, webhook tiers)
+- [x] Request logger middleware (Pino structured logging)
+- [x] Error handler middleware (typed errors, Pino logging)
+- [x] Typed errors (`AppError`, `NotFoundError`, `ValidationError`, `AuthError`, `ConflictError`, `ForbiddenError`)
+- [x] `asyncHandler` decorator
+
+#### ✅ Backend — Trip Module
+- [x] `TripRepository` — search (filters + pagination), findBySlug, findById, create, update
+- [x] `DestinationRepository` — findAll, findById, findBySlug, findPopular
+- [x] `OrganizerProfileRepository` — findById, findByUserId
+- [x] `TripService` — search, getBySlug, create, update (with slug generation)
+- [x] `DestinationService` — getAll, getById, getPopular
+- [x] `TripController` — search, getBySlug, create, update
+- [x] `DestinationController` — getAll, getPopular
+- [x] Trip routes (`GET /trips`, `GET /trips/:slug`, `POST /trips`, `PUT /trips/:id`)
+- [x] Destination routes (`GET /destinations`, `GET /destinations/popular`)
+- [x] Health route (`GET /health`)
+- [x] DI wiring in `config/dependencies.ts`
+- [x] Prisma client extensions (soft-delete via `$extends`)
+
+#### ✅ Frontend — Design System & Shared Components
+- [x] Tailwind config with design tokens (colors, typography, spacing)
+- [x] `globals.css` — component classes (`.btn-*`, `.card`, `.input`, `.badge-*`, `.skeleton`)
+- [x] Animations (shimmer, fadeIn, slideUp, slideDown, `prefers-reduced-motion`)
+- [x] `Alert` component (success/warning/error/info variants)
+- [x] `Avatar` component (initials + size)
+- [x] `AuthGuard` component (route protection)
+- [x] `Modal` component (accessible dialog)
+- [x] `ProgressBar` component
+- [x] `Spinner` component (with `role="status"` a11y)
+- [x] `StarRating` component
+- [x] `Tabs` component
+- [x] `Toast` provider + `useToast` hook
+- [x] `Tooltip` component
+- [x] `DataStates` (ErrorState/EmptyState patterns)
+- [x] `APP_NAME` constant from env
+
+#### ✅ Frontend — Auth Pages
+- [x] Login page (Zod client-side validation, field errors, redirect if authed)
+- [x] Signup page (Zod validation, role selection, `isAppApiError` guard)
+- [x] Dashboard page (user info, logout, `AuthGuard` protected)
+- [x] Zustand auth store (persist + hydrate)
+- [x] Axios api-client (interceptors, token refresh, `AppApiError` type guard)
+
+#### ✅ Frontend — Home Page
+- [x] Hero section with search bar
+- [x] Popular destinations (grid, `next/image`, destination links)
+- [x] Trending trips (card grid)
+- [x] Why Book section (trust badges)
+- [x] Header (navigation, auth state)
+- [x] Footer (links, branding)
+- [x] `APP_NAME` used in metadata + layout
+
+#### ✅ Frontend — Trip Listing & Search (Page 2)
+- [x] Trips list page (`/trips`) with search + filters
+- [x] `TripCard` component (image, price, rating, seats, booking mode)
+- [x] `TripCardSkeleton` (shimmer loading)
+- [x] `TripGrid` (data grid + pagination)
+- [x] `TripFilters` (destination, trip type, price range with debounce, sort, mobile drawer)
+- [x] `useTrips` hook (TanStack Query)
+- [x] `useDestinations` / `usePopularDestinations` hooks
+- [x] `useDebounce` hook
+- [x] Route-level `loading.tsx` and `error.tsx`
+
+#### ✅ Frontend — Trip Comparison (Page 3)
+- [x] Compare page (`/trips/compare`) — side-by-side table
+- [x] `TripComparisonTable` (price, dates, group size, inclusions, ratings)
+- [x] `CompareBar` (floating bar with selected trips)
+- [x] `GlobalCompareBar` (app-wide compare queue)
+- [x] `CompareQueueProvider` + `useCompareQueue` context
+- [x] `useCompareTrips` hook
+- [x] Route-level `loading.tsx` and `error.tsx`
+
+#### ✅ Frontend — Trip Detail Page (Page 4)
+- [x] Trip detail page (`/trips/[slug]`)
+- [x] `TripDetailHeader` (photo gallery with `next/image`, share with toast)
+- [x] `TripBookingCard` (price, seats, booking CTA, trust badges)
+- [x] `TripItinerary` (day-wise itinerary)
+- [x] `TripOrganizerCard` (organizer profile, rating)
+- [x] `TripReviews` (review list with ratings)
+- [x] `useTripDetail` hook
+- [x] Route-level `loading.tsx`
+
+#### ✅ Frontend — Tests
+- [x] Vitest + React Testing Library + MSW setup
+- [x] Test factories (`tests/helpers/factories.ts`)
+- [x] AuthGuard tests (4 tests)
+- [x] Toast tests (7 tests)
+- [x] Design system component tests (23 tests)
+- [x] CompareBar tests (8 tests)
+- [x] TripComparisonTable tests (11 tests)
+- [x] Compare page tests (7 tests)
+- [x] useCompareTrips hook tests (4 tests)
+- **Total: 64 tests passing**
+
+#### ⬜ Not Started
+- [ ] **Booking flow** — Razorpay integration, booking form, payment, confirmation page
+- [ ] **Review system** — post-trip review form, review listing
+- [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
+- [ ] **Organizer dashboard** — trip management, request handling, bookings view
+- [ ] **User dashboard** — my trips, my bookings, messages
+- [ ] **Admin panel** — organizer approvals, dispute handling, platform stats
+- [ ] **Backend tests** — service unit tests, route integration tests
+- [ ] **Google OAuth** — social login
+- [ ] **Email notifications** — booking confirmation, trip updates
+- [ ] **SEO** — Schema.org markup, sitemap generation
 
 ---
 
