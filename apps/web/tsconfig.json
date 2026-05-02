@@ -22,6 +22,7 @@
         "../../packages/shared/src/*"
       ]
     },
+    "types": ["vitest/globals"],
     "noEmit": true,
     "allowJs": true
   },
