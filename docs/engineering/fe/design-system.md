@@ -523,6 +523,119 @@ Disabled:
 <Star className="h-4 w-4 fill-neutral-200 text-neutral-200" />
 ```
 
+### Compare Button (Trip Card Overlay)
+
+The compare button sits on the trip card image, top-left. Two states:
+
+```
+Default (unselected):
+  bg-white/90 backdrop-blur-sm text-neutral-600 rounded-md
+  px-2 py-1 text-xs font-semibold shadow-sm
+  hover:bg-white active:scale-90
+  animation: animate-pulse-zoom (first render only)
+
+Selected:
+  bg-primary-500 text-white rounded-md
+  px-2 py-1 text-xs font-semibold shadow-sm
+  hover:bg-primary-600 active:scale-90
+  animation: animate-pop (on select)
+```
+
+### Floating Compare Bar
+
+Fixed bottom bar (z-40) shown when ≥1 trip is selected for comparison.
+
+```
+Container:
+  fixed bottom-0 inset-x-0 z-40
+  bg-white border-t border-neutral-200 shadow-xl
+  animate-slide-up will-change-transform
+
+Header row:
+  bg-neutral-50 border-b border-neutral-100
+  px-4 sm:px-6 py-2
+
+Thumbnail grid:
+  grid gap-2 sm:gap-4 (columns = maxItems + 1)
+  Image: aspect-square max-w-20 sm:max-w-24 rounded-lg
+  Title: text-xs font-medium text-neutral-700 line-clamp-2
+  Price: text-xs sm:text-sm font-bold text-accent-500
+
+Empty slot:
+  aspect-square max-w-20 sm:max-w-24
+  border-2 border-dashed border-neutral-200 rounded-lg
+
+CTA:
+  ≥2 trips  → .btn-accent text-sm uppercase tracking-wide
+  <2 trips  → .btn-disabled text-sm
+```
+
+### Insight Badges (Compare Page)
+
+```
+Success variant:
+  bg-success-50 border border-neutral-200 rounded-lg px-3 py-1.5
+  Label: text-xs font-semibold text-success-500
+  Value: text-xs font-medium text-neutral-700
+
+Primary variant:
+  bg-primary-50 border border-primary-200 rounded-lg px-3 py-1.5
+  Label: text-xs font-semibold text-primary-600
+  Value: text-xs font-medium text-neutral-700
+```
+
+### Winner Highlight (Comparison Table)
+
+```
+Winner cell: bg-success-50/60
+Best Value / Best Rated label: text-xs text-success-500 font-medium
+```
+
+---
+
+## 6b. Animation & Motion
+
+### Registered Animations
+
+All animations are registered in `tailwind.config.ts` under `theme.extend.keyframes` and `theme.extend.animation`. CSS fallbacks exist in `globals.css`.
+
+| Utility Class | Keyframes | Duration | Easing | Use Case |
+|---------------|-----------|----------|--------|----------|
+| `animate-shimmer` | `shimmer` | 1.5s infinite | ease-in-out | Skeleton loading placeholders |
+| `animate-spin` | `spin` | 0.8s infinite | linear | Spinner loaders |
+| `animate-pulse-zoom` | `pulse-zoom` | 0.6s × 3 | ease-in-out (0.2s delay) | Compare button attention on first render |
+| `animate-pop` | `pop` | 0.25s | cubic-bezier(0.34, 1.56, 0.64, 1) | Compare button selection bounce |
+| `animate-slide-up` | `slide-up` | 0.3s | cubic-bezier(0.16, 1, 0.3, 1) | Floating bar entrance from bottom |
+| `animate-fade-in` | `fade-in` | 0.2s | ease-out | Generic fade-in for overlays |
+
+### GPU Acceleration
+
+Add `will-change-transform` to any element with transform-based animations:
+
+```
+.compare-button → will-change-transform
+.compare-bar    → will-change-transform
+.skeleton       → will-change: background-position (in CSS)
+.spinner        → will-change: transform (in CSS)
+```
+
+### Accessibility — prefers-reduced-motion
+
+`globals.css` includes a global `@media (prefers-reduced-motion: reduce)` that sets:
+- `animation-duration: 0.01ms`
+- `transition-duration: 0.01ms`
+- `scroll-behavior: auto`
+
+**Never bypass this with inline styles.** All animations must go through CSS classes.
+
+### Rules
+
+1. **No arbitrary animation values** — register in `tailwind.config.ts`, fallback in `globals.css`.
+2. **Keep animations ≤ 0.6s** — longer feels sluggish on mobile.
+3. **Use spring/deceleration curves** — `cubic-bezier(0.34, 1.56, 0.64, 1)` for bounce, `cubic-bezier(0.16, 1, 0.3, 1)` for slide.
+4. **Infinite animations only for loading indicators** — never for UI chrome.
+5. **GPU-promote animated elements** — `will-change-transform` on transform animations.
+
 ---
 
 ## 7. Spacing Rules
@@ -591,8 +704,8 @@ Every data-driven component must handle three states consistently across the app
 | Component | Pattern | Classes |
 |-----------|---------|---------|
 | **Full page** | Centered spinner | `flex items-center justify-center min-h-[50vh]` + animated spinner |
-| **Card skeleton** | Pulsing placeholder | `animate-pulse bg-neutral-200 rounded-lg` |
-| **Table skeleton** | Row placeholders | `animate-pulse` on `<tr>` with `bg-neutral-100` cells |
+| **Card skeleton** | Shimmer placeholder | `.skeleton` class (shimmer gradient) |
+| **Table skeleton** | Row placeholders | `.skeleton` class on cells |
 | **Button loading** | Spinner inside button | Disable button + show spinner left of text |
 | **Inline** | Small spinner | `h-4 w-4 border-2 border-primary-200 border-t-primary-500 rounded-full animate-spin` |
 
@@ -600,12 +713,12 @@ Every data-driven component must handle three states consistently across the app
 Skeleton Card:
   rounded-xl overflow-hidden
   ┌──────────────────────────┐
-  │ ████████████████████████ │  ← bg-neutral-200 h-48 animate-pulse
+  │ ████████████████████████ │  ← .skeleton h-48 (shimmer gradient)
   │                          │
-  │ ████████████             │  ← bg-neutral-200 h-4 w-3/4 rounded
-  │ ████████                 │  ← bg-neutral-200 h-4 w-1/2 rounded
+  │ ████████████             │  ← .skeleton h-4 w-3/4
+  │ ████████                 │  ← .skeleton h-4 w-1/2
   │                          │
-  │ ██████  ████████████████ │  ← bg-neutral-200 h-8 w-24 rounded-lg
+  │ ██████  ████████████████ │  ← .skeleton h-8 w-24
   └──────────────────────────┘
 ```
 
@@ -805,6 +918,48 @@ apps/
   .badge-success { @apply bg-success-50 text-success-500; }
   .badge-warning { @apply bg-warning-50 text-warning-500; }
   .badge-error { @apply bg-error-50 text-error-500; }
+
+  .skeleton {
+    @apply rounded-lg;
+    background: linear-gradient(90deg, theme('colors.neutral.100') 25%, theme('colors.neutral.200') 50%, theme('colors.neutral.100') 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    will-change: background-position;
+  }
+
+  .spinner {
+    @apply inline-block rounded-full;
+    border: 4px solid theme('colors.primary.100');
+    border-top-color: theme('colors.primary.500');
+    animation: spin 0.8s linear infinite;
+    will-change: transform;
+  }
+}
+
+/* Keyframes (CSS fallback — also in tailwind.config.ts) */
+@keyframes shimmer   { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+@keyframes spin      { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+@keyframes pulse-zoom { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
+@keyframes pop       { 0% { transform: scale(1) } 50% { transform: scale(1.15) } 100% { transform: scale(1) } }
+@keyframes slide-up  { from { transform: translateY(100%) } to { transform: translateY(0) } }
+@keyframes fade-in   { from { opacity: 0 } to { opacity: 1 } }
+
+.animate-pulse-zoom { animation: pulse-zoom 0.6s ease-in-out 0.2s 3; }
+.animate-pop        { animation: pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.animate-slide-up   { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-fade-in    { animation: fade-in 0.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer utilities {
+  .will-change-transform { will-change: transform; }
 }
 ```
 
@@ -832,8 +987,19 @@ The target audience is Gen-Z — **mobile-first design is critical**.
 | `xl` | 1280px | Desktop |
 | `2xl` | 1536px | Large desktop |
 
+### Mobile-First UI Rule (MANDATORY)
+
+Every component and page **MUST** be designed mobile-first:
+1. Write mobile styles as the **default** (no breakpoint prefix).
+2. Use `sm:`, `md:`, `lg:` prefixes to **enhance** for larger screens.
+3. Never build desktop-first and then "fix" mobile — always start with the smallest screen.
+4. Tables on mobile → convert to **stacked cards** (one card per item, label–value rows inside).
+5. Side-by-side layouts on mobile → stack vertically with `flex-col` → `md:flex-row`.
+6. Test every page at 375px width before considering it done.
+
 **Mobile-specific behaviors:**
 - Trip listing: Vertical single-column cards (not grid)
+- Trip comparison: Stacked trip cards on mobile, side-by-side table on `md+`
 - Trip detail: Booking sidebar becomes bottom sheet (sticky CTA at bottom)
 - Chat: Full-screen overlay on mobile
 - Filters: Slide-up drawer instead of inline sidebar
