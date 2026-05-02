@@ -25,7 +25,7 @@ Complete database schema with 3NF normalization, ACID transactions, FK constrain
 
 ## 2. Soft-Delete Mixin
 
-Applied to every table **except** audit tables (`PaymentTransaction`, `WebhookEvent`, `RefreshToken`, `VerificationCode`).
+Applied to every table **except** audit tables (`PaymentTransaction`, `WebhookEvent`, `RefreshToken`, `VerificationCode`, `TripEditHistory`).
 
 ```prisma
 // Every model includes these 5 fields:
