@@ -25,7 +25,28 @@ export const createTripRequestSchema = z.object({
 
 export const respondTripRequestSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED']),
-  rejectionReason: z.string().max(500).optional(),
+  responseNote: z.string().max(500).optional(),
+})
+
+// ─── Organizer Trip Participants Filters ──────────────
+
+export const tripBookingFiltersSchema = z.object({
+  bookingStatus: z
+    .enum(['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'REFUNDED', 'EXPIRED'])
+    .optional(),
+  search: z.string().max(100).optional(),
+  sort: z.enum(['newest', 'oldest', 'amount_desc', 'amount_asc']).default('newest'),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+})
+
+export const tripRequestFiltersSchema = z.object({
+  status: z
+    .enum(['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED', 'CONVERTED'])
+    .optional(),
+  search: z.string().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
 })
 
 export const createReviewSchema = z.object({

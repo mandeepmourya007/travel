@@ -1,4 +1,4 @@
-export type TripRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CANCELLED'
+export type TripRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
 
 export interface TripRequest {
   id: string
@@ -26,4 +26,32 @@ export interface CreateTripRequestDto {
 export interface RespondTripRequestDto {
   status: 'APPROVED' | 'REJECTED'
   rejectionReason?: string
+}
+
+// ─── Organizer Trip Participants View ─────────────────
+
+/** Trip request list item shown on the organizer's trip participants dashboard */
+export interface TripRequestListItem {
+  id: string
+  numTravelers: number
+  message: string | null
+  status: TripRequestStatus
+  createdAt: string
+  respondedAt: string | null
+  responseNote: string | null
+  approvalExpiresAt: string | null
+  user: {
+    id: string
+    name: string
+    email: string
+    avatarUrl: string | null
+  }
+}
+
+/** Filters for GET /trips/:tripId/requests */
+export interface TripRequestFilters {
+  status?: TripRequestStatus
+  search?: string
+  page?: number
+  limit?: number
 }
