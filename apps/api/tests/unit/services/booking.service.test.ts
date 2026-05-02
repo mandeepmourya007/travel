@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
 import { logger } from '../../../src/utils/logger'
 
-// ── Mock Repository ──────────────────────────────────
+// ── Mock Repositories ─────────────────────────────────
 const mockBookingRepo = {
   findByUserId: vi.fn(),
   getMyBookingSummary: vi.fn(),
@@ -10,6 +10,40 @@ const mockBookingRepo = {
   cancel: vi.fn(),
   findByTripId: vi.fn(),
   getTripBookingSummary: vi.fn(),
+  create: vi.fn(),
+  updateStatus: vi.fn(),
+  findActiveByUserAndTrip: vi.fn(),
+  findExpiredPendingBookings: vi.fn(),
+  findWithPaymentDetails: vi.fn(),
+}
+
+const mockTripRepo = {
+  findById: vi.fn(),
+  findByIdForBooking: vi.fn(),
+  atomicIncrementBookings: vi.fn(),
+  atomicDecrementBookings: vi.fn(),
+}
+
+const mockTripRequestRepo = {
+  findApprovedForUser: vi.fn(),
+}
+
+const mockPaymentTxRepo = {
+  create: vi.fn(),
+  findByBookingId: vi.fn(),
+  findByRazorpayOrderId: vi.fn(),
+  findByRazorpayPaymentId: vi.fn(),
+  updateStatus: vi.fn(),
+  updatePaymentId: vi.fn(),
+}
+
+const mockPaymentService = {
+  createOrder: vi.fn(),
+  verifySignature: vi.fn(),
+  capturePayment: vi.fn(),
+  checkOrderStatus: vi.fn(),
+  initiateRefund: vi.fn(),
+  resolveBookingIdFromOrder: vi.fn(),
 }
 
 // ── Test Data Factory ────────────────────────────────
@@ -52,7 +86,14 @@ let service: BookingService
 
 beforeEach(() => {
   vi.clearAllMocks()
-  service = new BookingService(mockBookingRepo as any, logger as any)
+  service = new BookingService(
+    mockBookingRepo as any,
+    mockTripRepo as any,
+    mockTripRequestRepo as any,
+    mockPaymentTxRepo as any,
+    mockPaymentService as any,
+    logger as any,
+  )
 })
 
 describe('BookingService', () => {
@@ -306,6 +347,376 @@ describe('BookingService', () => {
       await expect(
         service.cancelBooking('user-1', 'booking-1', 'reason'),
       ).rejects.toThrow()
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // createBooking
+  // ═══════════════════════════════════════════════════
+  describe('createBooking', () => {
+    const validInput = {
+      tripId: 'trip-1',
+      numTravelers: 2,
+      travelers: [
+        { name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'Bob', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    }
+
+    const mockTrip = {
+      id: 'trip-1',
+      title: 'Goa Beach',
+      status: 'ACTIVE',
+      bookingMode: 'INSTANT',
+      acceptingBookings: true,
+      pricePerPerson: 5000,
+      earlyBirdPrice: 4000,
+      earlyBirdDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      bookingDeadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+      maxGroupSize: 20,
+      currentBookings: 5,
+      version: 0,
+      isDeleted: false,
+      organizer: {
+        id: 'org-1',
+        razorpayAccountId: 'acc_org123',
+        commissionRate: 10,
+        businessName: 'TripVibes',
+      },
+    }
+
+    it('should create booking and Razorpay order for INSTANT trip', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_abc', amount: 800000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-new',
+        bookingRef: 'TRP-2025-0001',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-new' })
+
+      const result = await service.createBooking('user-1', validInput)
+
+      expect(result.bookingId).toBe('booking-new')
+      expect(result.razorpayOrderId).toBe('order_abc')
+      expect(mockBookingRepo.create).toHaveBeenCalled()
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith({
+        bookingId: 'booking-new',
+        type: 'PAYMENT',
+        amount: 8000,
+        razorpayOrderId: 'order_abc',
+        status: 'INITIATED',
+      })
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        expect.any(Number),
+        expect.any(String),
+        expect.any(Array),
+        expect.any(Object),
+      )
+    })
+
+    it('should return existing order for idempotent re-request (PENDING_PAYMENT)', async () => {
+      const existingBooking = {
+        id: 'booking-existing',
+        bookingRef: 'TRP-2025-0001',
+        bookingStatus: 'PENDING_PAYMENT',
+        totalAmount: 8000,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        paymentTransactions: [{ razorpayOrderId: 'order_existing' }],
+      }
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(existingBooking)
+
+      const result = await service.createBooking('user-1', validInput)
+
+      expect(result.bookingId).toBe('booking-existing')
+      expect(result.razorpayOrderId).toBe('order_existing')
+      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should throw ConflictError when user already has CONFIRMED booking', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({
+        bookingStatus: 'CONFIRMED',
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('already have a confirmed booking')
+    })
+
+    it('should throw NotFoundError when trip does not exist', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(null)
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('Trip')
+    })
+
+    it('should throw ValidationError when trip is not ACTIVE', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({ ...mockTrip, status: 'CANCELLED' })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('not accepting bookings')
+    })
+
+    it('should throw ValidationError when booking deadline has passed', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        bookingDeadline: new Date(Date.now() - 1000),
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('deadline')
+    })
+
+    it('should throw ValidationError when trip is full', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        currentBookings: 20,
+        maxGroupSize: 20,
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('seats')
+    })
+
+    it('should throw ValidationError when organizer has no razorpayAccountId', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        organizer: { ...mockTrip.organizer, razorpayAccountId: null },
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('payment')
+    })
+
+    it('should use early bird price when deadline has not passed', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_eb', amount: 800000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-eb',
+        bookingRef: 'TRP-2025-0002',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-eb' })
+
+      await service.createBooking('user-1', validInput)
+
+      // Early bird: 4000 * 2 = 8000 rupees = 800000 paise
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        800000, expect.any(String), expect.any(Array), expect.any(Object),
+      )
+    })
+
+    it('should require approved trip request for REQUEST_BASED mode', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({ ...mockTrip, bookingMode: 'REQUEST_BASED' })
+      mockTripRequestRepo.findApprovedForUser.mockResolvedValue(null)
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('approved request')
+    })
+
+    it('should throw ValidationError when traveler count mismatch', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+
+      await expect(
+        service.createBooking('user-1', { ...validInput, numTravelers: 3 }),
+      ).rejects.toThrow('traveler')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // confirmBooking
+  // ═══════════════════════════════════════════════════
+  describe('confirmBooking', () => {
+    const mockBookingWithPayment = {
+      id: 'booking-1',
+      bookingStatus: 'PENDING_PAYMENT',
+      numTravelers: 2,
+      totalAmount: 8000,
+      trip: {
+        id: 'trip-1',
+        version: 0,
+        maxGroupSize: 20,
+        currentBookings: 5,
+      },
+      paymentTransactions: [{
+        id: 'ptx-1',
+        razorpayOrderId: 'order_abc',
+        razorpayPaymentId: 'pay_abc',
+        amount: 8000,
+        status: 'AUTHORIZED',
+      }],
+    }
+
+    it('should capture payment, increment seats, and confirm booking', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+
+      const result = await service.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 800000, 'INR')
+      expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2, 0)
+      expect(mockBookingRepo.updateStatus).toHaveBeenCalledWith('booking-1', 'CONFIRMED')
+    })
+
+    it('should throw NotFoundError when booking not found', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(null)
+
+      await expect(
+        service.confirmBooking('nonexistent'),
+      ).rejects.toThrow('Booking')
+    })
+
+    it('should skip and return success if already CONFIRMED (idempotent)', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        ...mockBookingWithPayment,
+        bookingStatus: 'CONFIRMED',
+      })
+
+      const result = await service.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+
+    it('should throw ConflictError when seats are full (increment returns 0)', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(0)
+
+      await expect(
+        service.confirmBooking('booking-1'),
+      ).rejects.toThrow('seats')
+    })
+
+    it('should rollback seats when capture fails after seat increment', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockPaymentService.capturePayment.mockRejectedValue(new Error('Capture failed'))
+      mockTripRepo.atomicDecrementBookings.mockResolvedValue(1)
+
+      await expect(
+        service.confirmBooking('booking-1'),
+      ).rejects.toThrow('Capture failed')
+
+      expect(mockTripRepo.atomicDecrementBookings).toHaveBeenCalledWith('trip-1', 2)
+    })
+
+    it('should throw ValidationError when no payment transaction exists', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        ...mockBookingWithPayment,
+        paymentTransactions: [],
+      })
+
+      await expect(
+        service.confirmBooking('booking-1'),
+      ).rejects.toThrow('payment')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // verifyAndConfirmPayment
+  // ═══════════════════════════════════════════════════
+  describe('verifyAndConfirmPayment', () => {
+    it('should verify signature and confirm booking', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-1',
+        userId: 'user-1',
+        bookingStatus: 'PENDING_PAYMENT',
+        numTravelers: 2,
+        totalAmount: 8000,
+        trip: { id: 'trip-1', version: 0 },
+        paymentTransactions: [{
+          id: 'ptx-1',
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: 'pay_abc',
+          amount: 8000,
+          status: 'AUTHORIZED',
+        }],
+      })
+      mockPaymentService.verifySignature.mockReturnValue(true)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+
+      const result = await service.verifyAndConfirmPayment('booking-1', 'user-1', {
+        razorpayOrderId: 'order_abc',
+        razorpayPaymentId: 'pay_abc',
+        razorpaySignature: 'valid-sig',
+      })
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockPaymentService.verifySignature).toHaveBeenCalledWith(
+        'order_abc', 'pay_abc', 'valid-sig',
+      )
+    })
+
+    it('should throw AuthError when signature is invalid', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-1',
+        userId: 'user-1',
+        bookingStatus: 'PENDING_PAYMENT',
+        paymentTransactions: [{ razorpayOrderId: 'order_abc' }],
+      })
+      mockPaymentService.verifySignature.mockReturnValue(false)
+
+      await expect(
+        service.verifyAndConfirmPayment('booking-1', 'user-1', {
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: 'pay_abc',
+          razorpaySignature: 'invalid-sig',
+        }),
+      ).rejects.toThrow('signature')
+    })
+
+    it('should throw NotFoundError when booking not found', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(null)
+
+      await expect(
+        service.verifyAndConfirmPayment('nonexistent', 'user-1', {
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: 'pay_abc',
+          razorpaySignature: 'sig',
+        }),
+      ).rejects.toThrow('Booking')
+    })
+
+    it('should return success if booking already CONFIRMED', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-1',
+        userId: 'user-1',
+        bookingStatus: 'CONFIRMED',
+        paymentTransactions: [{ razorpayOrderId: 'order_abc', status: 'CAPTURED' }],
+      })
+
+      const result = await service.verifyAndConfirmPayment('booking-1', 'user-1', {
+        razorpayOrderId: 'order_abc',
+        razorpayPaymentId: 'pay_abc',
+        razorpaySignature: 'sig',
+      })
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(result.paymentStatus).toBe('CAPTURED')
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
     })
   })
 })
