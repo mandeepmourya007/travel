@@ -1,4 +1,6 @@
 import type { TripFilters } from '@shared/types/trip.types'
+import type { TripBookingFilters } from '@shared/types/booking.types'
+import type { TripRequestFilters } from '@shared/types/trip-request.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -24,11 +26,13 @@ export const bookingKeys = {
   all: ['bookings'] as const,
   myBookings: () => [...bookingKeys.all, 'my'] as const,
   detail: (id: string) => [...bookingKeys.all, 'detail', id] as const,
+  forTrip: (tripId: string, filters?: TripBookingFilters) => [...bookingKeys.all, 'trip', tripId, filters] as const,
+  tripSummary: (tripId: string) => [...bookingKeys.all, 'summary', tripId] as const,
 }
 
 export const tripRequestKeys = {
   all: ['tripRequests'] as const,
-  forTrip: (tripId: string) => [...tripRequestKeys.all, 'trip', tripId] as const,
+  forTrip: (tripId: string, filters?: TripRequestFilters) => [...tripRequestKeys.all, 'trip', tripId, filters] as const,
   myRequests: () => [...tripRequestKeys.all, 'my'] as const,
 }
 
