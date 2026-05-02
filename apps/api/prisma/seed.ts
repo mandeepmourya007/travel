@@ -164,10 +164,10 @@ async function main() {
       bookingMode: 'INSTANT',
       description: 'Ultimate Goa experience! North Goa beaches, water sports, nightlife, and delicious seafood. Perfect for friend groups looking for a fun-filled weekend escape from Pune.',
       itinerary: [
-        { day: 1, title: 'Arrival & North Goa', description: 'Arrive at Pune pickup, drive to Goa. Evening at Baga beach.', activities: ['Beach walk', 'Sunset at Baga', 'Club night'] },
-        { day: 2, title: 'Water Sports & Exploration', description: 'Full day of water sports at Calangute.', activities: ['Parasailing', 'Jet ski', 'Banana ride', 'Fort Aguada visit'] },
-        { day: 3, title: 'South Goa & Chill', description: 'Visit Palolem beach and Old Goa churches.', activities: ['Palolem beach', 'Old Goa sightseeing', 'Spice plantation'] },
-        { day: 4, title: 'Departure', description: 'Morning breakfast and departure to Pune.', activities: ['Breakfast', 'Shopping at Panjim', 'Drive back'] },
+        { day: 1, title: 'Arrival & North Goa', description: 'Arrive at Pune pickup, drive to Goa. Evening at Baga beach.', activities: [{ title: 'Beach walk', time: '4:00 PM' }, { title: 'Sunset at Baga', time: '6:30 PM' }, { title: 'Club night', time: '10:00 PM' }] },
+        { day: 2, title: 'Water Sports & Exploration', description: 'Full day of water sports at Calangute.', activities: [{ title: 'Parasailing', time: '9:00 AM' }, { title: 'Jet ski', time: '11:00 AM' }, { title: 'Banana ride', time: '2:00 PM' }, { title: 'Fort Aguada visit', time: '4:00 PM' }] },
+        { day: 3, title: 'South Goa & Chill', description: 'Visit Palolem beach and Old Goa churches.', activities: [{ title: 'Palolem beach', time: '9:00 AM' }, { title: 'Old Goa sightseeing', time: '2:00 PM' }, { title: 'Spice plantation', time: '4:30 PM' }] },
+        { day: 4, title: 'Departure', description: 'Morning breakfast and departure to Pune.', activities: [{ title: 'Breakfast', time: '8:00 AM' }, { title: 'Shopping at Panjim', time: '10:00 AM' }, { title: 'Drive back', time: '1:00 PM' }] },
       ],
       startDate: inDays(14),
       endDate: inDays(18),
@@ -197,7 +197,7 @@ async function main() {
       bookingMode: 'INSTANT',
       description: 'Experience the magic of Lonavala in monsoon! Trek through lush green hills, visit waterfalls, and enjoy misty mountain views. A perfect one-day escape from Pune city.',
       itinerary: [
-        { day: 1, title: 'Trek Day', description: 'Early morning drive from Pune, trek to Rajmachi Fort, waterfall visit, and return.', activities: ['Rajmachi Fort trek', 'Waterfall rappelling', 'Maggi point', 'Drive back'] },
+        { day: 1, title: 'Trek Day', description: 'Early morning drive from Pune, trek to Rajmachi Fort, waterfall visit, and return.', activities: [{ title: 'Rajmachi Fort trek', time: '7:00 AM' }, { title: 'Waterfall rappelling', time: '11:00 AM' }, { title: 'Maggi point', time: '1:00 PM' }, { title: 'Drive back', time: '4:00 PM' }] },
       ],
       startDate: inDays(7),
       endDate: inDays(8),
@@ -225,14 +225,14 @@ async function main() {
       bookingMode: 'REQUEST_BASED',
       description: 'The ultimate Ladakh adventure! Ride through Manali–Leh highway, visit Pangong Lake, Nubra Valley, and Khardung La. Small group, big memories.',
       itinerary: [
-        { day: 1, title: 'Manali to Jispa', description: 'Start the journey from Manali.', activities: ['Drive to Jispa', 'Atal Tunnel', 'Night stay at Jispa'] },
-        { day: 2, title: 'Jispa to Leh', description: 'Cross high passes.', activities: ['Baralacha La', 'Lachalung La', 'More Plains', 'Arrive Leh'] },
-        { day: 3, title: 'Leh Acclimatization', description: 'Rest day in Leh.', activities: ['Leh Palace', 'Shanti Stupa', 'Local market'] },
-        { day: 4, title: 'Pangong Lake', description: 'Drive to Pangong via Chang La.', activities: ['Chang La pass', 'Pangong Lake camping', 'Stargazing'] },
-        { day: 5, title: 'Nubra Valley', description: 'Drive to Nubra via Khardung La.', activities: ['Khardung La', 'Diskit Monastery', 'Sand dunes camel ride'] },
-        { day: 6, title: 'Nubra to Leh', description: 'Return to Leh.', activities: ['Drive back', 'Magnetic Hill', 'Sangam point'] },
-        { day: 7, title: 'Leh Explore', description: 'Explore Leh surroundings.', activities: ['Hemis Monastery', 'Thiksey Monastery', 'Farewell dinner'] },
-        { day: 8, title: 'Departure', description: 'Fly out from Leh.', activities: ['Airport drop'] },
+        { day: 1, title: 'Manali to Jispa', description: 'Start the journey from Manali.', activities: [{ title: 'Drive to Jispa', time: '6:00 AM' }, { title: 'Atal Tunnel', time: '10:00 AM' }, { title: 'Night stay at Jispa', time: '5:00 PM' }] },
+        { day: 2, title: 'Jispa to Leh', description: 'Cross high passes.', activities: [{ title: 'Baralacha La', time: '7:00 AM' }, { title: 'Lachalung La', time: '11:00 AM' }, { title: 'More Plains', time: '2:00 PM' }, { title: 'Arrive Leh', time: '6:00 PM' }] },
+        { day: 3, title: 'Leh Acclimatization', description: 'Rest day in Leh.', activities: [{ title: 'Leh Palace', time: '10:00 AM' }, { title: 'Shanti Stupa', time: '3:00 PM' }, { title: 'Local market', time: '5:00 PM' }] },
+        { day: 4, title: 'Pangong Lake', description: 'Drive to Pangong via Chang La.', activities: [{ title: 'Chang La pass', time: '8:00 AM' }, { title: 'Pangong Lake camping', time: '2:00 PM' }, { title: 'Stargazing', time: '9:00 PM' }] },
+        { day: 5, title: 'Nubra Valley', description: 'Drive to Nubra via Khardung La.', activities: [{ title: 'Khardung La', time: '7:00 AM' }, { title: 'Diskit Monastery', time: '1:00 PM' }, { title: 'Sand dunes camel ride', time: '4:00 PM' }] },
+        { day: 6, title: 'Nubra to Leh', description: 'Return to Leh.', activities: [{ title: 'Drive back', time: '8:00 AM' }, { title: 'Magnetic Hill', time: '2:00 PM' }, { title: 'Sangam point', time: '4:00 PM' }] },
+        { day: 7, title: 'Leh Explore', description: 'Explore Leh surroundings.', activities: [{ title: 'Hemis Monastery', time: '9:00 AM' }, { title: 'Thiksey Monastery', time: '12:00 PM' }, { title: 'Farewell dinner', time: '7:00 PM' }] },
+        { day: 8, title: 'Departure', description: 'Fly out from Leh.', activities: [{ title: 'Airport drop', time: '6:00 AM' }] },
       ],
       startDate: inDays(30),
       endDate: inDays(38),
@@ -260,9 +260,9 @@ async function main() {
       bookingMode: 'INSTANT',
       description: 'Ring in the New Year on the beaches of Goa! Party, fireworks, beach camping, and an unforgettable countdown experience.',
       itinerary: [
-        { day: 1, title: 'Arrival', description: 'Arrive and check in.', activities: ['Check-in', 'Beach walk'] },
-        { day: 2, title: 'NYE Party', description: 'New Year Eve celebration.', activities: ['Beach party', 'DJ night', 'Fireworks', 'Countdown'] },
-        { day: 3, title: 'Departure', description: 'Brunch and departure.', activities: ['Brunch', 'Departure'] },
+        { day: 1, title: 'Arrival', description: 'Arrive and check in.', activities: [{ title: 'Check-in', time: '2:00 PM' }, { title: 'Beach walk', time: '5:00 PM' }] },
+        { day: 2, title: 'NYE Party', description: 'New Year Eve celebration.', activities: [{ title: 'Beach party', time: '6:00 PM' }, { title: 'DJ night', time: '9:00 PM' }, { title: 'Fireworks', time: '11:55 PM' }, { title: 'Countdown', time: '12:00 AM' }] },
+        { day: 3, title: 'Departure', description: 'Brunch and departure.', activities: [{ title: 'Brunch', time: '10:00 AM' }, { title: 'Departure', time: '1:00 PM' }] },
       ],
       startDate: inDays(60),
       endDate: inDays(63),
@@ -290,12 +290,12 @@ async function main() {
       bookingMode: 'INSTANT',
       description: 'Snow-capped mountains, Solang Valley adventures, Old Manali vibes, and Rohtang Pass excursion. Perfect winter getaway!',
       itinerary: [
-        { day: 1, title: 'Arrival', description: 'Arrive in Manali.', activities: ['Check-in', 'Mall Road walk'] },
-        { day: 2, title: 'Solang Valley', description: 'Snow activities.', activities: ['Skiing', 'Snow tubing', 'Paragliding'] },
-        { day: 3, title: 'Rohtang Pass', description: 'Day trip to Rohtang.', activities: ['Rohtang excursion', 'Snow play'] },
-        { day: 4, title: 'Old Manali', description: 'Explore Old Manali.', activities: ['Cafes', 'Hadimba Temple', 'Vashisht hot springs'] },
-        { day: 5, title: 'Kullu & Rafting', description: 'Rafting in Beas river.', activities: ['River rafting', 'Kullu shawl shopping'] },
-        { day: 6, title: 'Departure', description: 'Departure.', activities: ['Breakfast', 'Departure'] },
+        { day: 1, title: 'Arrival', description: 'Arrive in Manali.', activities: [{ title: 'Check-in', time: '12:00 PM' }, { title: 'Mall Road walk', time: '4:00 PM' }] },
+        { day: 2, title: 'Solang Valley', description: 'Snow activities.', activities: [{ title: 'Skiing', time: '9:00 AM' }, { title: 'Snow tubing', time: '12:00 PM' }, { title: 'Paragliding', time: '3:00 PM' }] },
+        { day: 3, title: 'Rohtang Pass', description: 'Day trip to Rohtang.', activities: [{ title: 'Rohtang excursion', time: '7:00 AM' }, { title: 'Snow play', time: '11:00 AM' }] },
+        { day: 4, title: 'Old Manali', description: 'Explore Old Manali.', activities: [{ title: 'Cafes', time: '10:00 AM' }, { title: 'Hadimba Temple', time: '2:00 PM' }, { title: 'Vashisht hot springs', time: '4:00 PM' }] },
+        { day: 5, title: 'Kullu & Rafting', description: 'Rafting in Beas river.', activities: [{ title: 'River rafting', time: '9:00 AM' }, { title: 'Kullu shawl shopping', time: '2:00 PM' }] },
+        { day: 6, title: 'Departure', description: 'Departure.', activities: [{ title: 'Breakfast', time: '8:00 AM' }, { title: 'Departure', time: '10:00 AM' }] },
       ],
       startDate: inDays(45),
       endDate: inDays(51),
@@ -323,8 +323,8 @@ async function main() {
       bookingMode: 'INSTANT',
       description: 'White water rafting on the Ganges, riverside camping under the stars, cliff jumping, and bonfire nights. Adrenaline guaranteed!',
       itinerary: [
-        { day: 1, title: 'Arrival & Rafting', description: 'Arrive and go rafting.', activities: ['16km rafting', 'Cliff jumping', 'Riverside camping'] },
-        { day: 2, title: 'Explore & Depart', description: 'Morning yoga and departure.', activities: ['Yoga session', 'Laxman Jhula', 'Departure'] },
+        { day: 1, title: 'Arrival & Rafting', description: 'Arrive and go rafting.', activities: [{ title: '16km rafting', time: '10:00 AM' }, { title: 'Cliff jumping', time: '2:00 PM' }, { title: 'Riverside camping', time: '5:00 PM' }] },
+        { day: 2, title: 'Explore & Depart', description: 'Morning yoga and departure.', activities: [{ title: 'Yoga session', time: '6:00 AM' }, { title: 'Laxman Jhula', time: '9:00 AM' }, { title: 'Departure', time: '12:00 PM' }] },
       ],
       startDate: inDays(10),
       endDate: inDays(12),
@@ -352,9 +352,9 @@ async function main() {
       bookingMode: 'REQUEST_BASED',
       description: 'Romantic getaway to South Goa. Luxury stay, couples spa, candlelight dinner on the beach, and private boat cruise.',
       itinerary: [
-        { day: 1, title: 'Arrival & Spa', description: 'Check-in and couples spa.', activities: ['Luxury check-in', 'Couples spa', 'Candlelight dinner'] },
-        { day: 2, title: 'Beach & Cruise', description: 'Beach day and sunset cruise.', activities: ['Private beach', 'Sunset boat cruise', 'Stargazing'] },
-        { day: 3, title: 'Departure', description: 'Brunch and departure.', activities: ['Poolside brunch', 'Departure'] },
+        { day: 1, title: 'Arrival & Spa', description: 'Check-in and couples spa.', activities: [{ title: 'Luxury check-in', time: '1:00 PM' }, { title: 'Couples spa', time: '3:00 PM' }, { title: 'Candlelight dinner', time: '8:00 PM' }] },
+        { day: 2, title: 'Beach & Cruise', description: 'Beach day and sunset cruise.', activities: [{ title: 'Private beach', time: '10:00 AM' }, { title: 'Sunset boat cruise', time: '5:00 PM' }, { title: 'Stargazing', time: '9:00 PM' }] },
+        { day: 3, title: 'Departure', description: 'Brunch and departure.', activities: [{ title: 'Poolside brunch', time: '10:00 AM' }, { title: 'Departure', time: '1:00 PM' }] },
       ],
       startDate: inDays(21),
       endDate: inDays(24),
@@ -380,8 +380,8 @@ async function main() {
       bookingMode: 'REQUEST_BASED',
       description: 'Team building activities, villa stay, BBQ night, and adventure activities at Lonavala. Perfect for corporate groups.',
       itinerary: [
-        { day: 1, title: 'Arrive & Team Building', description: 'Check-in and activities.', activities: ['Villa check-in', 'Team building games', 'BBQ dinner'] },
-        { day: 2, title: 'Adventure & Depart', description: 'Morning activities and departure.', activities: ['Zip lining', 'Pool party', 'Lunch', 'Departure'] },
+        { day: 1, title: 'Arrive & Team Building', description: 'Check-in and activities.', activities: [{ title: 'Villa check-in', time: '10:00 AM' }, { title: 'Team building games', time: '2:00 PM' }, { title: 'BBQ dinner', time: '7:00 PM' }] },
+        { day: 2, title: 'Adventure & Depart', description: 'Morning activities and departure.', activities: [{ title: 'Zip lining', time: '9:00 AM' }, { title: 'Pool party', time: '11:00 AM' }, { title: 'Lunch', time: '1:00 PM' }, { title: 'Departure', time: '3:00 PM' }] },
       ],
       startDate: inDays(21),
       endDate: inDays(23),
@@ -591,20 +591,401 @@ async function main() {
 
   console.log('  ✓ Created 5 notifications')
 
+  // ══════════════════════════════════════════════════════
+  // ── Demo Organizer: full dashboard data ────────────────
+  // ══════════════════════════════════════════════════════
+
+  const demoOrgUser = await prisma.user.create({
+    data: {
+      name: 'Demo Organizer',
+      email: 'demo.organizer@test.com',
+      passwordHash,
+      role: 'ORGANIZER',
+      phone: '+919999000001',
+      avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DO',
+    },
+  })
+
+  const demoOrg = await prisma.organizerProfile.create({
+    data: {
+      userId: demoOrgUser.id,
+      businessName: 'Demo Travel Co',
+      description: 'Premium travel experiences curated from Pune.',
+      verificationStatus: 'APPROVED',
+      rating: 4.5,
+      totalReviews: 12,
+      totalTripsCompleted: 4,
+      bankAccountLinked: true,
+      commissionRate: 10.0,
+    },
+  })
+
+  // Additional travelers
+  const trav4 = await prisma.user.create({
+    data: { name: 'Rohan Mehta', email: 'rohan@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500001', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RM' },
+  })
+  const trav5 = await prisma.user.create({
+    data: { name: 'Ananya Iyer', email: 'ananya@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500002', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AI' },
+  })
+  const trav6 = await prisma.user.create({
+    data: { name: 'Karan Singh', email: 'karan@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500003', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KS' },
+  })
+  const trav7 = await prisma.user.create({
+    data: { name: 'Meera Jain', email: 'meera@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500004', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MJ' },
+  })
+  const trav8 = await prisma.user.create({
+    data: { name: 'Arjun Nair', email: 'arjun@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500005', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AN' },
+  })
+  const trav9 = await prisma.user.create({
+    data: { name: 'Pooja Sharma', email: 'pooja@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876500006', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PS' },
+  })
+
+  console.log('  ✓ Created demo organizer + 6 additional travelers')
+
+  // ── Trip A: ACTIVE, REQUEST_BASED, accepted + pending requests ──
+  const demoTripA = await prisma.trip.create({
+    data: {
+      organizerId: demoOrg.id,
+      destinationId: ladakh.id,
+      title: 'Ladakh Explorer — 6N/7D',
+      slug: 'demo-ladakh-explorer-6n7d',
+      tripType: 'ADVENTURE',
+      bookingMode: 'REQUEST_BASED',
+      description: 'Curated Ladakh adventure with hand-picked campsites. Pangong, Nubra, and Khardung La. Limited spots — request-only.',
+      itinerary: [
+        { day: 1, title: 'Delhi to Leh', description: 'Morning flight and rest.', activities: [{ title: 'Flight to Leh', time: '6:00 AM' }, { title: 'Acclimatization walk', time: '3:00 PM' }] },
+        { day: 2, title: 'Leh Sightseeing', description: 'Explore Leh town.', activities: [{ title: 'Leh Palace', time: '9:00 AM' }, { title: 'Shanti Stupa', time: '2:00 PM' }, { title: 'Market walk', time: '5:00 PM' }] },
+        { day: 3, title: 'Pangong Lake', description: 'Drive to Pangong.', activities: [{ title: 'Chang La pass', time: '8:00 AM' }, { title: 'Pangong camping', time: '2:00 PM' }] },
+        { day: 4, title: 'Nubra Valley', description: 'Via Khardung La.', activities: [{ title: 'Khardung La', time: '7:00 AM' }, { title: 'Diskit Monastery', time: '1:00 PM' }, { title: 'Camel ride', time: '4:00 PM' }] },
+        { day: 5, title: 'Turtuk Village', description: 'India\'s last village.', activities: [{ title: 'Drive to Turtuk', time: '8:00 AM' }, { title: 'Village exploration', time: '12:00 PM' }] },
+        { day: 6, title: 'Return to Leh', description: 'Drive back.', activities: [{ title: 'Scenic drive', time: '9:00 AM' }, { title: 'Farewell dinner', time: '7:00 PM' }] },
+        { day: 7, title: 'Departure', description: 'Fly out.', activities: [{ title: 'Airport drop', time: '5:00 AM' }] },
+      ],
+      startDate: inDays(20),
+      endDate: inDays(27),
+      pricePerPerson: 22000,
+      earlyBirdPrice: 19500,
+      earlyBirdDeadline: inDays(10),
+      minGroupSize: 6,
+      maxGroupSize: 12,
+      currentBookings: 4,
+      inclusions: ['Flights assistance', 'Hotel + camping (6N)', 'All meals', 'Permits', 'Bike rental', 'Guide'],
+      exclusions: ['Flights', 'Travel insurance', 'Personal expenses'],
+      cancellationPolicy: 'STRICT',
+      pickupLocation: 'Leh Airport',
+      pickupTime: '10:00 AM',
+      photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
+      status: 'ACTIVE',
+      acceptingBookings: true,
+    },
+  })
+
+  // Accepted bookings for Trip A
+  const dBookingA1 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D001', tripId: demoTripA.id, userId: trav4.id, numTravelers: 2, totalAmount: 44000, bookingStatus: 'CONFIRMED' },
+  })
+  const dBookingA2 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D002', tripId: demoTripA.id, userId: trav5.id, numTravelers: 1, totalAmount: 19500, bookingStatus: 'CONFIRMED' },
+  })
+  const dBookingA3 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D003', tripId: demoTripA.id, userId: trav6.id, numTravelers: 1, totalAmount: 22000, bookingStatus: 'CONFIRMED' },
+  })
+
+  // Accepted trip requests for Trip A
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripA.id, userId: trav4.id, numTravelers: 2, message: 'We are a couple from Mumbai. Love trekking!', status: 'APPROVED', respondedAt: new Date(), responseNote: 'Welcome! Payment link sent.', bookingId: dBookingA1.id },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripA.id, userId: trav5.id, numTravelers: 1, message: 'Solo traveler, huge Ladakh fan!', status: 'APPROVED', respondedAt: new Date(), responseNote: 'Approved. See you there!', bookingId: dBookingA2.id },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripA.id, userId: trav6.id, numTravelers: 1, message: 'Photographer looking for landscapes.', status: 'APPROVED', respondedAt: new Date(), responseNote: 'Perfect fit — welcome aboard.', bookingId: dBookingA3.id },
+  })
+
+  // Pending requests for Trip A
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripA.id, userId: trav7.id, numTravelers: 2, message: 'My friend and I are interested. Any spots left?', status: 'PENDING', approvalExpiresAt: inDays(5) },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripA.id, userId: trav8.id, numTravelers: 1, message: 'First-time Ladakh trip. Please approve!', status: 'PENDING', approvalExpiresAt: inDays(5) },
+  })
+
+  // Payments for Trip A
+  await prisma.paymentTransaction.createMany({
+    data: [
+      { bookingId: dBookingA1.id, type: 'PAYMENT', amount: 44000, status: 'CAPTURED', razorpayOrderId: 'order_demo_a01', razorpayPaymentId: 'pay_demo_a01' },
+      { bookingId: dBookingA2.id, type: 'PAYMENT', amount: 19500, status: 'CAPTURED', razorpayOrderId: 'order_demo_a02', razorpayPaymentId: 'pay_demo_a02' },
+      { bookingId: dBookingA3.id, type: 'PAYMENT', amount: 22000, status: 'CAPTURED', razorpayOrderId: 'order_demo_a03', razorpayPaymentId: 'pay_demo_a03' },
+    ],
+  })
+
+  // Traveler details for Trip A
+  await prisma.travelerDetail.createMany({
+    data: [
+      { bookingId: dBookingA1.id, name: 'Rohan Mehta', phone: '+919876500001', age: 29, gender: 'MALE', isPrimary: true },
+      { bookingId: dBookingA1.id, name: 'Sonal Mehta', age: 27, gender: 'FEMALE' },
+      { bookingId: dBookingA2.id, name: 'Ananya Iyer', phone: '+919876500002', age: 26, gender: 'FEMALE', isPrimary: true },
+      { bookingId: dBookingA3.id, name: 'Karan Singh', phone: '+919876500003', age: 31, gender: 'MALE', isPrimary: true },
+    ],
+  })
+
+  console.log('  ✓ Demo Trip A: ACTIVE (REQUEST_BASED) — 3 approved, 2 pending requests')
+
+  // ── Trip B: ACTIVE, INSTANT booking mode ──────────────
+  const demoTripB = await prisma.trip.create({
+    data: {
+      organizerId: demoOrg.id,
+      destinationId: goa.id,
+      title: 'Goa Party Weekend — 2N/3D',
+      slug: 'demo-goa-party-weekend',
+      tripType: 'BEACH',
+      bookingMode: 'INSTANT',
+      description: 'Instant-book Goa weekend! North Goa parties, beach vibes, water sports. No approval needed.',
+      itinerary: [
+        { day: 1, title: 'Arrival & Beach', description: 'Drive from Pune.', activities: [{ title: 'Pickup from Pune', time: '6:00 AM' }, { title: 'Baga beach', time: '2:00 PM' }, { title: 'Tito\'s night', time: '10:00 PM' }] },
+        { day: 2, title: 'Water Sports', description: 'Full adventure day.', activities: [{ title: 'Parasailing', time: '9:00 AM' }, { title: 'Scuba diving', time: '11:00 AM' }, { title: 'Anjuna flea market', time: '4:00 PM' }] },
+        { day: 3, title: 'Departure', description: 'Relax and head back.', activities: [{ title: 'Pool & brunch', time: '9:00 AM' }, { title: 'Drive back to Pune', time: '1:00 PM' }] },
+      ],
+      startDate: inDays(10),
+      endDate: inDays(13),
+      pricePerPerson: 5500,
+      earlyBirdPrice: 4800,
+      earlyBirdDeadline: inDays(5),
+      minGroupSize: 8,
+      maxGroupSize: 24,
+      currentBookings: 5,
+      inclusions: ['AC bus from Pune', 'Hotel (2N)', 'Breakfast & dinner', 'Water sports (2)'],
+      exclusions: ['Lunch', 'Drinks', 'Personal expenses'],
+      cancellationPolicy: 'FLEXIBLE',
+      pickupLocation: 'Pune — Shivaji Nagar',
+      pickupTime: '6:00 AM',
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      status: 'ACTIVE',
+      acceptingBookings: true,
+    },
+  })
+
+  const dBookingB1 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D004', tripId: demoTripB.id, userId: trav7.id, numTravelers: 2, totalAmount: 11000, bookingStatus: 'CONFIRMED' },
+  })
+  const dBookingB2 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D005', tripId: demoTripB.id, userId: trav8.id, numTravelers: 1, totalAmount: 4800, bookingStatus: 'CONFIRMED' },
+  })
+  const dBookingB3 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D006', tripId: demoTripB.id, userId: trav9.id, numTravelers: 2, totalAmount: 11000, bookingStatus: 'CONFIRMED' },
+  })
+
+  await prisma.paymentTransaction.createMany({
+    data: [
+      { bookingId: dBookingB1.id, type: 'PAYMENT', amount: 11000, status: 'CAPTURED', razorpayOrderId: 'order_demo_b01', razorpayPaymentId: 'pay_demo_b01' },
+      { bookingId: dBookingB2.id, type: 'PAYMENT', amount: 4800, status: 'CAPTURED', razorpayOrderId: 'order_demo_b02', razorpayPaymentId: 'pay_demo_b02' },
+      { bookingId: dBookingB3.id, type: 'PAYMENT', amount: 11000, status: 'CAPTURED', razorpayOrderId: 'order_demo_b03', razorpayPaymentId: 'pay_demo_b03' },
+    ],
+  })
+
+  await prisma.travelerDetail.createMany({
+    data: [
+      { bookingId: dBookingB1.id, name: 'Meera Jain', phone: '+919876500004', age: 24, gender: 'FEMALE', isPrimary: true },
+      { bookingId: dBookingB1.id, name: 'Simran Jain', age: 23, gender: 'FEMALE' },
+      { bookingId: dBookingB2.id, name: 'Arjun Nair', phone: '+919876500005', age: 28, gender: 'MALE', isPrimary: true },
+      { bookingId: dBookingB3.id, name: 'Pooja Sharma', phone: '+919876500006', age: 27, gender: 'FEMALE', isPrimary: true },
+      { bookingId: dBookingB3.id, name: 'Neeta Sharma', age: 25, gender: 'FEMALE' },
+    ],
+  })
+
+  console.log('  ✓ Demo Trip B: ACTIVE (INSTANT) — 3 confirmed bookings, 5 travelers')
+
+  // ── Trip C: COMPLETED — some joined, some cancelled ───
+  const demoTripC = await prisma.trip.create({
+    data: {
+      organizerId: demoOrg.id,
+      destinationId: lonavala.id,
+      title: 'Lonavala Monsoon Hike (Completed)',
+      slug: 'demo-lonavala-monsoon-hike',
+      tripType: 'TREKKING',
+      bookingMode: 'INSTANT',
+      description: 'Monsoon trek through Lonavala — waterfalls, misty valleys, and chai breaks. This trip has been completed.',
+      itinerary: [
+        { day: 1, title: 'Trek & Return', description: 'Full day hike.', activities: [{ title: 'Pickup', time: '5:00 AM' }, { title: 'Trek start', time: '7:30 AM' }, { title: 'Waterfall', time: '11:00 AM' }, { title: 'Return', time: '5:00 PM' }] },
+      ],
+      startDate: new Date(now.getTime() - 30 * 86400000),
+      endDate: new Date(now.getTime() - 29 * 86400000),
+      pricePerPerson: 1500,
+      minGroupSize: 10,
+      maxGroupSize: 25,
+      currentBookings: 8,
+      inclusions: ['Transport', 'Breakfast & lunch', 'Guide', 'First aid'],
+      exclusions: ['Dinner', 'Rain gear'],
+      cancellationPolicy: 'FLEXIBLE',
+      pickupLocation: 'Pune — Wakad Bridge',
+      pickupTime: '5:00 AM',
+      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
+      status: 'COMPLETED',
+      acceptingBookings: false,
+    },
+  })
+
+  // 6 confirmed + 2 cancelled for Trip C
+  const dBookingC1 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D007', tripId: demoTripC.id, userId: trav4.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC2 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D008', tripId: demoTripC.id, userId: trav5.id, numTravelers: 2, totalAmount: 3000, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC3 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D009', tripId: demoTripC.id, userId: trav6.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC4 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D010', tripId: demoTripC.id, userId: traveler1.id, numTravelers: 2, totalAmount: 3000, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC5 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D011', tripId: demoTripC.id, userId: traveler2.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC6 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D012', tripId: demoTripC.id, userId: trav9.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  // Cancelled bookings
+  await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D013', tripId: demoTripC.id, userId: trav7.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'CANCELLED', cancellationReason: 'Schedule conflict', cancelledAt: new Date(now.getTime() - 35 * 86400000), cancelledById: trav7.id },
+  })
+  await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D014', tripId: demoTripC.id, userId: trav8.id, numTravelers: 2, totalAmount: 3000, bookingStatus: 'CANCELLED', cancellationReason: 'Weather concerns', cancelledAt: new Date(now.getTime() - 33 * 86400000), cancelledById: trav8.id },
+  })
+
+  await prisma.paymentTransaction.createMany({
+    data: [
+      { bookingId: dBookingC1.id, type: 'PAYMENT', amount: 1500, status: 'CAPTURED', razorpayOrderId: 'order_demo_c01', razorpayPaymentId: 'pay_demo_c01' },
+      { bookingId: dBookingC2.id, type: 'PAYMENT', amount: 3000, status: 'CAPTURED', razorpayOrderId: 'order_demo_c02', razorpayPaymentId: 'pay_demo_c02' },
+      { bookingId: dBookingC3.id, type: 'PAYMENT', amount: 1500, status: 'CAPTURED', razorpayOrderId: 'order_demo_c03', razorpayPaymentId: 'pay_demo_c03' },
+      { bookingId: dBookingC4.id, type: 'PAYMENT', amount: 3000, status: 'CAPTURED', razorpayOrderId: 'order_demo_c04', razorpayPaymentId: 'pay_demo_c04' },
+      { bookingId: dBookingC5.id, type: 'PAYMENT', amount: 1500, status: 'CAPTURED', razorpayOrderId: 'order_demo_c05', razorpayPaymentId: 'pay_demo_c05' },
+      { bookingId: dBookingC6.id, type: 'PAYMENT', amount: 1500, status: 'CAPTURED', razorpayOrderId: 'order_demo_c06', razorpayPaymentId: 'pay_demo_c06' },
+    ],
+  })
+
+  // Reviews for completed Trip C
+  await prisma.review.createMany({
+    data: [
+      { tripId: demoTripC.id, bookingId: dBookingC1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, comment: 'Excellent trek! Great guide and perfect monsoon vibes.' },
+      { tripId: demoTripC.id, bookingId: dBookingC2.id, userId: trav5.id, overallRating: 4, organizationRating: 4, valueRating: 5, safetyRating: 4, comment: 'Lovely experience. Waterfalls were stunning.' },
+      { tripId: demoTripC.id, bookingId: dBookingC3.id, userId: trav6.id, overallRating: 5, organizationRating: 5, valueRating: 4, safetyRating: 5, comment: 'Would go again. Top-notch safety measures.' },
+      { tripId: demoTripC.id, bookingId: dBookingC4.id, userId: traveler1.id, overallRating: 4, organizationRating: 4, valueRating: 4, safetyRating: 4, comment: 'Good value for money. Trek was a bit strenuous though.' },
+    ],
+  })
+
+  console.log('  ✓ Demo Trip C: COMPLETED — 6 completed, 2 cancelled, 4 reviews')
+
+  // ── Trip D: COMPLETED — request-based, some rejected ──
+  const demoTripD = await prisma.trip.create({
+    data: {
+      organizerId: demoOrg.id,
+      destinationId: manali.id,
+      title: 'Manali Winter Retreat (Completed)',
+      slug: 'demo-manali-winter-retreat',
+      tripType: 'ADVENTURE',
+      bookingMode: 'REQUEST_BASED',
+      description: 'Exclusive winter retreat in Manali — snow treks, bonfires, and cozy stays. Completed last month.',
+      itinerary: [
+        { day: 1, title: 'Arrival', description: 'Reach Manali.', activities: [{ title: 'Volvo arrival', time: '8:00 AM' }, { title: 'Check-in', time: '10:00 AM' }, { title: 'Bonfire', time: '7:00 PM' }] },
+        { day: 2, title: 'Snow Day', description: 'Solang Valley.', activities: [{ title: 'Skiing', time: '9:00 AM' }, { title: 'Snowboarding', time: '1:00 PM' }] },
+        { day: 3, title: 'Explore', description: 'Old Manali.', activities: [{ title: 'Hadimba Temple', time: '10:00 AM' }, { title: 'Cafe hopping', time: '2:00 PM' }] },
+        { day: 4, title: 'Departure', description: 'Head back.', activities: [{ title: 'Breakfast', time: '8:00 AM' }, { title: 'Volvo departure', time: '10:00 AM' }] },
+      ],
+      startDate: new Date(now.getTime() - 45 * 86400000),
+      endDate: new Date(now.getTime() - 41 * 86400000),
+      pricePerPerson: 8500,
+      minGroupSize: 6,
+      maxGroupSize: 14,
+      currentBookings: 5,
+      inclusions: ['Volvo bus', 'Hotel (3N)', 'All meals', 'Snow activities', 'Bonfire'],
+      exclusions: ['Shopping', 'Paragliding', 'Insurance'],
+      cancellationPolicy: 'MODERATE',
+      pickupLocation: 'Pune — Swargate',
+      pickupTime: '6:00 PM',
+      photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
+      status: 'COMPLETED',
+      acceptingBookings: false,
+    },
+  })
+
+  // Approved & completed bookings
+  const dBookingD1 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D015', tripId: demoTripD.id, userId: trav4.id, numTravelers: 2, totalAmount: 17000, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD2 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D016', tripId: demoTripD.id, userId: trav5.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD3 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D017', tripId: demoTripD.id, userId: traveler3.id, numTravelers: 2, totalAmount: 17000, bookingStatus: 'COMPLETED' },
+  })
+
+  // Approved requests → bookings
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripD.id, userId: trav4.id, numTravelers: 2, message: 'Couple looking for winter escape.', status: 'CONVERTED', respondedAt: new Date(now.getTime() - 50 * 86400000), responseNote: 'Approved!', bookingId: dBookingD1.id },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripD.id, userId: trav5.id, numTravelers: 1, message: 'Solo traveler here.', status: 'CONVERTED', respondedAt: new Date(now.getTime() - 50 * 86400000), responseNote: 'Welcome.', bookingId: dBookingD2.id },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripD.id, userId: traveler3.id, numTravelers: 2, message: 'Me and my buddy want to join.', status: 'CONVERTED', respondedAt: new Date(now.getTime() - 49 * 86400000), responseNote: 'Confirmed.', bookingId: dBookingD3.id },
+  })
+
+  // Rejected requests
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripD.id, userId: trav8.id, numTravelers: 3, message: 'Group of 3 friends, can we join?', status: 'REJECTED', respondedAt: new Date(now.getTime() - 48 * 86400000), responseNote: 'Sorry, not enough spots for 3.' },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripD.id, userId: trav9.id, numTravelers: 1, message: 'Any last-minute spots?', status: 'REJECTED', respondedAt: new Date(now.getTime() - 46 * 86400000), responseNote: 'Trip is full. Check our next batch!' },
+  })
+
+  await prisma.paymentTransaction.createMany({
+    data: [
+      { bookingId: dBookingD1.id, type: 'PAYMENT', amount: 17000, status: 'CAPTURED', razorpayOrderId: 'order_demo_d01', razorpayPaymentId: 'pay_demo_d01' },
+      { bookingId: dBookingD2.id, type: 'PAYMENT', amount: 8500, status: 'CAPTURED', razorpayOrderId: 'order_demo_d02', razorpayPaymentId: 'pay_demo_d02' },
+      { bookingId: dBookingD3.id, type: 'PAYMENT', amount: 17000, status: 'CAPTURED', razorpayOrderId: 'order_demo_d03', razorpayPaymentId: 'pay_demo_d03' },
+    ],
+  })
+
+  // Reviews for Trip D
+  await prisma.review.createMany({
+    data: [
+      { tripId: demoTripD.id, bookingId: dBookingD1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, comment: 'Best winter trip ever! Manali was magical.' },
+      { tripId: demoTripD.id, bookingId: dBookingD2.id, userId: trav5.id, overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, comment: 'Amazing arrangements. Solang was a blast!' },
+      { tripId: demoTripD.id, bookingId: dBookingD3.id, userId: traveler3.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 4, comment: 'Well organized, great bonfire nights.' },
+    ],
+  })
+
+  console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 3 joined, 2 rejected, 3 reviews')
+
+  // Revenue summary:
+  // Trip A: ₹85,500 (44000 + 19500 + 22000)
+  // Trip B: ₹26,800 (11000 + 4800 + 11000)
+  // Trip C: ₹12,000 (1500*8 confirmed)
+  // Trip D: ₹42,500 (17000 + 8500 + 17000)
+  // Total: ₹166,800
+
   console.log('\n✅ Seed complete!\n')
-  console.log('  📊 Prisma Studio: npx prisma studio')
-  console.log('  🌐 API Endpoints:')
-  console.log('     GET http://localhost:4000/api/v1/destinations')
-  console.log('     GET http://localhost:4000/api/v1/trips')
-  console.log('     GET http://localhost:4000/api/v1/trips/slug/goa-beach-blast-3n4d')
+  console.log('  📊 Revenue Summary (Demo Organizer):')
+  console.log('     Trip A (Ladakh):  ₹85,500  — 4 travelers, 2 pending requests')
+  console.log('     Trip B (Goa):     ₹26,800  — 5 travelers, instant book')
+  console.log('     Trip C (Lonavala):₹12,000  — 8 completed, 2 cancelled')
+  console.log('     Trip D (Manali):  ₹42,500  — 5 completed, 2 rejected requests')
+  console.log('     Total Revenue:   ₹166,800')
   console.log('')
   console.log('  🔐 Test Accounts (password: Test@1234):')
-  console.log('     admin@travelapp.com (ADMIN)')
-  console.log('     rahul@tripvibes.com (ORGANIZER)')
-  console.log('     priya@wanderlust.in (ORGANIZER)')
-  console.log('     amit@gmail.com (TRAVELER)')
-  console.log('     sneha@gmail.com (TRAVELER)')
-  console.log('     vikram@gmail.com (TRAVELER)')
+  console.log('     admin@travelapp.com      (ADMIN)')
+  console.log('     rahul@tripvibes.com      (ORGANIZER)')
+  console.log('     priya@wanderlust.in      (ORGANIZER)')
+  console.log('     demo.organizer@test.com  (ORGANIZER) ← Dashboard demo')
+  console.log('     amit@gmail.com           (TRAVELER)')
+  console.log('     sneha@gmail.com          (TRAVELER)')
+  console.log('     vikram@gmail.com         (TRAVELER)')
+  console.log('     rohan@gmail.com          (TRAVELER)')
+  console.log('     ananya@gmail.com         (TRAVELER)')
+  console.log('     karan@gmail.com          (TRAVELER)')
+  console.log('     meera@gmail.com          (TRAVELER)')
+  console.log('     arjun@gmail.com          (TRAVELER)')
+  console.log('     pooja@gmail.com          (TRAVELER)')
 }
 
 main()

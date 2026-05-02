@@ -145,6 +145,7 @@ model User {
   notifications     Notification[]
   cancelledBookings Booking[]          @relation("canceller")
   tripRequests      TripRequest[]
+  tripEdits         TripEditHistory[]
 
   @@index([email])
   @@index([role])
@@ -226,8 +227,10 @@ model Trip {
   pickupLocation     String?
   pickupTime         String?
   photos             String[]
+  itineraryDocUrl    String?
   status             TripStatus         @default(DRAFT)
   bookingMode        BookingMode        @default(INSTANT)
+  acceptingBookings  Boolean            @default(true)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -239,6 +242,7 @@ model Trip {
   reviews       Review[]
   conversations Conversation[]
   tripRequests  TripRequest[]
+  editHistory   TripEditHistory[]
 
   @@index([destinationId, startDate, status])
   @@index([slug])
@@ -471,6 +475,22 @@ model WebhookEvent {
 
   @@index([eventId])
   @@index([status])
+}
+
+model TripEditHistory {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  editedById    String
+  editedBy      User     @relation(fields: [editedById], references: [id])
+  snapshot      Json
+  changedFields String[]
+  editNote      String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([tripId, createdAt])
+  @@index([editedById])
 }
 
 model TripRequest {
