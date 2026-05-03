@@ -5,6 +5,7 @@ import { logger } from '../../../src/utils/logger'
 const mockTx = {
   trip: { update: vi.fn() },
   destination: { update: vi.fn() },
+  tripTransferPoint: { updateMany: vi.fn(), createMany: vi.fn() },
 }
 
 const mockTripRepo = {
@@ -23,6 +24,9 @@ const mockTripRepo = {
 
 const mockDestinationRepo = {
   findById: vi.fn(),
+  findBySlug: vi.fn(),
+  findByName: vi.fn(),
+  create: vi.fn(),
   incrementTripCount: vi.fn(),
   decrementTripCount: vi.fn(),
 }
@@ -47,8 +51,10 @@ const mockOrganizer = {
   totalReviews: 20,
 }
 
+const MOCK_DEST_ID = 'clh1234567890abcdefghijkl'
+
 const mockDestination = {
-  id: 'dest-1',
+  id: MOCK_DEST_ID,
   name: 'Goa',
   slug: 'goa',
 }
@@ -57,7 +63,7 @@ const mockTrip = {
   id: 'trip-1',
   title: 'Goa Beach Getaway',
   slug: 'goa-beach-getaway-dec-2025',
-  destinationId: 'dest-1',
+  destinationId: MOCK_DEST_ID,
   organizerId: 'org-1',
   tripType: 'BEACH',
   bookingMode: 'INSTANT',
@@ -73,9 +79,11 @@ const mockTrip = {
   inclusions: ['transport', 'stay'],
   exclusions: ['insurance'],
   itinerary: [],
-  pickupLocation: 'Pune',
-  pickupTime: '6:00 AM',
   cancellationPolicy: 'FLEXIBLE',
+  transferPoints: [
+    { id: 'tp-1', type: 'PICKUP', label: 'Pune Station', address: null, time: '06:00 AM', extraCharge: 0, sortOrder: 0 },
+    { id: 'tp-2', type: 'DROP', label: 'Pune Station', address: null, time: '08:00 PM', extraCharge: 0, sortOrder: 0 },
+  ],
   destination: mockDestination,
   organizer: { ...mockOrganizer, verificationStatus: 'APPROVED' },
 }
@@ -134,6 +142,17 @@ describe('TripService', () => {
       expect(result.destination.name).toBe('Goa')
     })
 
+    it('should split transfer points into pickupPoints and dropPoints', async () => {
+      mockTripRepo.findBySlug.mockResolvedValue(mockTrip)
+
+      const result = await service.getTripBySlug('goa-beach-getaway-dec-2025')
+
+      expect(result.pickupPoints).toHaveLength(1)
+      expect(result.pickupPoints[0].label).toBe('Pune Station')
+      expect(result.dropPoints).toHaveLength(1)
+      expect(result.dropPoints[0].type).toBe('DROP')
+    })
+
     it('should throw NotFoundError for non-existent slug', async () => {
       mockTripRepo.findBySlug.mockResolvedValue(null)
 
@@ -144,7 +163,7 @@ describe('TripService', () => {
   describe('createTrip', () => {
     const createInput = {
       title: 'Goa Beach Getaway',
-      destinationId: 'dest-1',
+      destinationId: MOCK_DEST_ID,
       tripType: 'BEACH',
       bookingMode: 'INSTANT',
       description: 'An amazing beach trip to Goa with water sports and parties.',
@@ -158,11 +177,13 @@ describe('TripService', () => {
       exclusions: ['insurance'],
       itinerary: [],
       photos: [],
+      pickupPoints: [{ label: 'Pune Station', time: '06:00 AM' }],
+      dropPoints: [{ label: 'Pune Station', time: '08:00 PM' }],
     }
 
     it('should create a trip for an approved organizer', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockDestinationRepo.findById.mockResolvedValue(mockDestination)
+      mockDestinationRepo.findBySlug.mockResolvedValue(mockDestination)
       mockTripRepo.slugExists.mockResolvedValue(false)
       mockTripRepo.create.mockResolvedValue(mockTrip)
 
@@ -194,16 +215,39 @@ describe('TripService', () => {
 
     it('should throw ValidationError for invalid destination', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockDestinationRepo.findById.mockResolvedValue(null)
+      mockDestinationRepo.findBySlug.mockResolvedValue(null)
+      mockDestinationRepo.findByName.mockResolvedValue(null)
+      // resolveDestination auto-creates, so this test needs create to return null
+      mockDestinationRepo.create.mockResolvedValue(null)
 
       await expect(service.createTrip('user-1', createInput)).rejects.toThrow(
         'Invalid destination',
       )
     })
 
+    it('should include transfer points as nested create', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockDestinationRepo.findBySlug.mockResolvedValue(mockDestination)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+
+      await service.createTrip('user-1', createInput)
+
+      expect(mockTripRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transferPoints: {
+            create: expect.arrayContaining([
+              expect.objectContaining({ type: 'PICKUP', label: 'Pune Station', sortOrder: 0 }),
+              expect.objectContaining({ type: 'DROP', label: 'Pune Station', sortOrder: 0 }),
+            ]),
+          },
+        }),
+      )
+    })
+
     it('should generate unique slug with suffix if slug exists', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockDestinationRepo.findById.mockResolvedValue(mockDestination)
+      mockDestinationRepo.findBySlug.mockResolvedValue(mockDestination)
       mockTripRepo.slugExists
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false)
@@ -213,13 +257,49 @@ describe('TripService', () => {
 
       expect(mockTripRepo.slugExists).toHaveBeenCalledTimes(2)
     })
+
+    it('should resolve destination by slug when name is provided', async () => {
+      const existingBySlug = { id: 'dest-manali', name: 'Manali', slug: 'manali' }
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockDestinationRepo.findBySlug.mockResolvedValue(existingBySlug)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+
+      await service.createTrip('user-1', { ...createInput, destinationId: 'Manali' })
+
+      expect(mockDestinationRepo.findBySlug).toHaveBeenCalledWith('manali')
+      expect(mockTripRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ destination: { connect: { id: 'dest-manali' } } }),
+      )
+    })
+
+    it('should create new destination when slug and name both miss', async () => {
+      const newDest = { id: 'dest-new', name: 'Spiti Valley', slug: 'spiti-valley' }
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockDestinationRepo.findBySlug.mockResolvedValue(null)
+      mockDestinationRepo.findByName.mockResolvedValue(null)
+      mockDestinationRepo.create.mockResolvedValue(newDest)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+
+      await service.createTrip('user-1', { ...createInput, destinationId: 'Spiti Valley' })
+
+      expect(mockDestinationRepo.findBySlug).toHaveBeenCalledWith('spiti-valley')
+      expect(mockDestinationRepo.findByName).toHaveBeenCalledWith('Spiti Valley')
+      expect(mockDestinationRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Spiti Valley', slug: 'spiti-valley', state: 'Spiti Valley' }),
+      )
+      expect(mockTripRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ destination: { connect: { id: 'dest-new' } } }),
+      )
+    })
   })
 
   describe('updateTrip', () => {
     it('should update a trip owned by the organizer', async () => {
       mockTripRepo.findById.mockResolvedValue(mockTrip)
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.update.mockResolvedValue({ ...mockTrip, title: 'Updated Title' })
+      mockTx.trip.update.mockResolvedValue({ ...mockTrip, title: 'Updated Title' })
 
       const result = await service.updateTrip('user-1', 'trip-1', { title: 'Updated Title' })
 
@@ -233,6 +313,41 @@ describe('TripService', () => {
       await expect(
         service.updateTrip('user-2', 'trip-1', { title: 'X' }),
       ).rejects.toThrow('only manage your own')
+    })
+
+    it('should replace pickup points inside a transaction', async () => {
+      mockTripRepo.findById.mockResolvedValue(mockTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue(mockTrip)
+      mockTx.tripTransferPoint.updateMany.mockResolvedValue({ count: 1 })
+      mockTx.tripTransferPoint.createMany.mockResolvedValue({ count: 1 })
+
+      await service.updateTrip('user-1', 'trip-1', {
+        pickupPoints: [{ label: 'Delhi Airport T3', time: '05:00 AM', extraCharge: 500 }],
+      })
+
+      expect(mockTripRepo.withTransaction).toHaveBeenCalled()
+      expect(mockTx.tripTransferPoint.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ tripId: 'trip-1', type: 'PICKUP' }),
+        }),
+      )
+      expect(mockTx.tripTransferPoint.createMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: [expect.objectContaining({ type: 'PICKUP', label: 'Delhi Airport T3', sortOrder: 0 })],
+        }),
+      )
+    })
+
+    it('should not touch transfer points when arrays not provided', async () => {
+      mockTripRepo.findById.mockResolvedValue(mockTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue({ ...mockTrip, title: 'New Title' })
+
+      await service.updateTrip('user-1', 'trip-1', { title: 'New Title' })
+
+      expect(mockTx.tripTransferPoint.updateMany).not.toHaveBeenCalled()
+      expect(mockTx.tripTransferPoint.createMany).not.toHaveBeenCalled()
     })
 
     it('should throw ValidationError for completed trips', async () => {
@@ -260,8 +375,28 @@ describe('TripService', () => {
         expect.objectContaining({ where: { id: 'trip-1' }, data: { status: 'ACTIVE' } }),
       )
       expect(mockTx.destination.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'dest-1' }, data: { tripCount: { increment: 1 } } }),
+        expect.objectContaining({ where: { id: MOCK_DEST_ID }, data: { tripCount: { increment: 1 } } }),
       )
+    })
+
+    it('should throw ValidationError when trip has no pickup points', async () => {
+      mockTripRepo.findById.mockResolvedValue({
+        ...mockTrip,
+        transferPoints: [{ id: 'tp-2', type: 'DROP', label: 'X', sortOrder: 0 }],
+      })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.publishTrip('user-1', 'trip-1')).rejects.toThrow('pickup point')
+    })
+
+    it('should throw ValidationError when trip has no drop points', async () => {
+      mockTripRepo.findById.mockResolvedValue({
+        ...mockTrip,
+        transferPoints: [{ id: 'tp-1', type: 'PICKUP', label: 'X', sortOrder: 0 }],
+      })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.publishTrip('user-1', 'trip-1')).rejects.toThrow('drop point')
     })
 
     it('should throw ValidationError for non-DRAFT trip', async () => {
@@ -579,7 +714,7 @@ describe('TripService', () => {
 
       expect(mockTx.destination.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'dest-1' },
+          where: { id: MOCK_DEST_ID },
           data: { tripCount: { decrement: 1 } },
         }),
       )

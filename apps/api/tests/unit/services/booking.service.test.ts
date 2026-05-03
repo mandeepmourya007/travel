@@ -384,6 +384,11 @@ describe('BookingService', () => {
         commissionRate: 10,
         businessName: 'TripVibes',
       },
+      transferPoints: [
+        { id: 'tp-1', type: 'PICKUP', extraCharge: 500 },
+        { id: 'tp-2', type: 'DROP', extraCharge: 200 },
+        { id: 'tp-3', type: 'PICKUP', extraCharge: 0 },
+      ],
     }
 
     it('should create booking and Razorpay order for INSTANT trip', async () => {
@@ -717,6 +722,100 @@ describe('BookingService', () => {
       expect(result.bookingStatus).toBe('CONFIRMED')
       expect(result.paymentStatus).toBe('CAPTURED')
       expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('createBooking — transfer point validation', () => {
+    const validInput = {
+      tripId: 'trip-1',
+      numTravelers: 2,
+      travelers: [
+        { name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'Bob', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    }
+
+    const mockTrip = {
+      id: 'trip-1',
+      title: 'Goa Beach',
+      status: 'ACTIVE',
+      bookingMode: 'INSTANT',
+      acceptingBookings: true,
+      pricePerPerson: 5000,
+      earlyBirdPrice: null,
+      earlyBirdDeadline: null,
+      startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      bookingDeadline: null,
+      maxGroupSize: 20,
+      currentBookings: 5,
+      version: 0,
+      isDeleted: false,
+      organizer: { id: 'org-1', razorpayAccountId: 'acc_org123456789012', commissionRate: 10, businessName: 'TripVibes' },
+      transferPoints: [
+        { id: 'tp-1', type: 'PICKUP', extraCharge: 500 },
+        { id: 'tp-2', type: 'DROP', extraCharge: 200 },
+        { id: 'tp-3', type: 'PICKUP', extraCharge: 0 },
+      ],
+    }
+
+    function setupMocks() {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_tp', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({ id: 'booking-tp', bookingRef: 'TRP-TP-0001', totalAmount: 10000, expiresAt: new Date() })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-tp' })
+    }
+
+    it('should throw ValidationError when pickupPointId does not belong to trip', async () => {
+      setupMocks()
+
+      await expect(
+        service.createBooking('user-1', { ...validInput, pickupPointId: 'non-existent-id' }),
+      ).rejects.toThrow('pickup point does not belong')
+    })
+
+    it('should throw ValidationError when pickupPointId type is not PICKUP', async () => {
+      setupMocks()
+
+      await expect(
+        service.createBooking('user-1', { ...validInput, pickupPointId: 'tp-2' }),
+      ).rejects.toThrow('not a PICKUP type')
+    })
+
+    it('should throw ValidationError when dropPointId type is not DROP', async () => {
+      setupMocks()
+
+      await expect(
+        service.createBooking('user-1', { ...validInput, dropPointId: 'tp-1' }),
+      ).rejects.toThrow('not a DROP type')
+    })
+
+    it('should add pickup and drop extraCharge to totalAmount', async () => {
+      setupMocks()
+
+      await service.createBooking('user-1', { ...validInput, pickupPointId: 'tp-1', dropPointId: 'tp-2' })
+
+      // base 5000 + pickup 500 + drop 200 = 5700 per person × 2 = 11400 rupees = 1140000 paise
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        1140000,
+        expect.any(String),
+        expect.any(Array),
+        expect.any(Object),
+      )
+    })
+
+    it('should set totalAmount correctly when extraCharge is 0', async () => {
+      setupMocks()
+
+      await service.createBooking('user-1', { ...validInput, pickupPointId: 'tp-3' })
+
+      // base 5000 + pickup 0 = 5000 per person × 2 = 10000 rupees = 1000000 paise
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        1000000,
+        expect.any(String),
+        expect.any(Array),
+        expect.any(Object),
+      )
     })
   })
 })
