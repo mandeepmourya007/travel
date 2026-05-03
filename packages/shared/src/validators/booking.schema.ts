@@ -33,9 +33,14 @@ export const respondTripRequestSchema = z.object({
 
 // ─── Organizer Trip Participants Filters ──────────────
 
+const bookingStatusEnum = z.enum(['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'REFUNDED', 'EXPIRED'])
+
 export const tripBookingFiltersSchema = z.object({
   bookingStatus: z
-    .enum(['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'REFUNDED', 'EXPIRED'])
+    .union([
+      bookingStatusEnum,
+      z.string().refine((v) => v.includes(','), 'Invalid booking status').transform((val) => val.split(',')).pipe(z.array(bookingStatusEnum)),
+    ])
     .optional(),
   search: z.string().max(100).optional(),
   sort: z.enum(['newest', 'oldest', 'amount_desc', 'amount_asc']).default('newest'),

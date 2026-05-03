@@ -392,7 +392,9 @@ export class BookingRepository {
       tripId,
       isDeleted: false,
       ...(filters.bookingStatus && {
-        bookingStatus: filters.bookingStatus as Prisma.EnumBookingStatusFilter,
+        bookingStatus: Array.isArray(filters.bookingStatus)
+          ? { in: filters.bookingStatus }
+          : filters.bookingStatus as Prisma.EnumBookingStatusFilter,
       }),
       ...(filters.search && {
         user: {

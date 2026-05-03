@@ -66,7 +66,7 @@ export interface TravelerDetailItem {
 
 /** Filters for GET /trips/:tripId/bookings */
 export interface TripBookingFilters {
-  bookingStatus?: BookingStatus
+  bookingStatus?: BookingStatus | BookingStatus[]
   search?: string
   sort?: 'newest' | 'oldest' | 'amount_desc' | 'amount_asc'
   page?: number

@@ -19,8 +19,14 @@ export function useTripBookings(tripId: string, filters: TripBookingFilters = {}
   return useQuery({
     queryKey: bookingKeys.forTrip(tripId, filters),
     queryFn: async () => {
+      const params = {
+        ...filters,
+        bookingStatus: Array.isArray(filters.bookingStatus)
+          ? filters.bookingStatus.join(',')
+          : filters.bookingStatus,
+      }
       const res = await apiClient.get<PaginatedResponse>(`/trips/${tripId}/bookings`, {
-        params: filters,
+        params,
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
