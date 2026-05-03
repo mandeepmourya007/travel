@@ -8,6 +8,7 @@ import { NameInputForm } from '../name-input-form'
 
 // Mock zustand store so useUpdateProfile's store selectors work
 const mockSetAuth = vi.fn()
+const mockUpdateUser = vi.fn()
 vi.mock('@/store/auth.store', () => ({
   useAuthStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
@@ -16,6 +17,9 @@ vi.mock('@/store/auth.store', () => ({
       isAuthenticated: true,
       _hasHydrated: true,
       setAuth: mockSetAuth,
+      updateUser: mockUpdateUser,
+      markOnboardingComplete: vi.fn(),
+      completedOnboarding: true,
       clearAuth: vi.fn(),
       setHasHydrated: vi.fn(),
     }),
