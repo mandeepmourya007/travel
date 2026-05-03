@@ -52,3 +52,8 @@ export const notificationKeys = {
   list: () => [...notificationKeys.all, 'list'] as const,
   unreadCount: () => [...notificationKeys.all, 'unread'] as const,
 }
+
+export const profileKeys = {
+  all: ['profile'] as const,
+  me: () => [...profileKeys.all, 'me'] as const,
+}

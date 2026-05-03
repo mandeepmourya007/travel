@@ -1,20 +1,54 @@
-import { useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/store/auth.store'
+import { profileKeys } from '@/lib/query-keys'
+import type { UserProfileResponse, UpdateUserProfileDto, UpdateOrganizerProfileDto } from '@shared/types/user.types'
 
 /**
- * Updates authenticated user's profile (name and optionally role).
- * Used on onboarding page after signup/OTP/Google.
- * On success: updates user in Zustand store.
+ * Fetches the authenticated user's full profile (including organizer data).
+ * Query key: profileKeys.me()
+ */
+export function useProfile() {
+  const accessToken = useAuthStore((s) => s.accessToken)
+  return useQuery({
+    queryKey: profileKeys.me(),
+    queryFn: () =>
+      apiClient.get('/auth/profile').then((r) => r.data.data as UserProfileResponse),
+    staleTime: 60_000,
+    enabled: !!accessToken,
+  })
+}
+
+/**
+ * Updates authenticated user's profile (name, role).
+ * On success: invalidates profileKeys.me(), updates Zustand auth store.
  */
 export function useUpdateProfile() {
+  const queryClient = useQueryClient()
   const updateUser = useAuthStore((s) => s.updateUser)
 
   return useMutation({
-    mutationFn: (dto: { name: string; role?: 'TRAVELER' | 'ORGANIZER' }) =>
-      apiClient.patch('/auth/profile', dto).then(r => r.data.data),
+    mutationFn: (dto: UpdateUserProfileDto) =>
+      apiClient.patch('/auth/profile', dto).then((r) => r.data.data),
     onSuccess: (data: { id: string; name: string; role: string }) => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.me() })
       updateUser({ name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' })
+    },
+  })
+}
+
+/**
+ * Updates organizer-specific profile fields (businessName, description).
+ * On success: invalidates profileKeys.me()
+ */
+export function useUpdateOrganizerProfile() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (dto: UpdateOrganizerProfileDto) =>
+      apiClient.patch('/auth/profile/organizer', dto).then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.me() })
     },
   })
 }

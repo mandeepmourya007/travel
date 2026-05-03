@@ -5,6 +5,7 @@ type AvatarColor = 'primary' | 'accent' | 'highlight' | 'success'
 
 interface AvatarProps {
   name: string
+  src?: string | null
   size?: AvatarSize
   color?: AvatarColor
   className?: string
@@ -32,7 +33,21 @@ function getInitials(name: string): string {
     .toUpperCase()
 }
 
-export function Avatar({ name, size = 'md', color = 'primary', className }: AvatarProps) {
+export function Avatar({ name, src, size = 'md', color = 'primary', className }: AvatarProps) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className={cn(
+          'flex-shrink-0 rounded-full object-cover',
+          SIZE_CLASSES[size],
+          className,
+        )}
+      />
+    )
+  }
+
   return (
     <div
       className={cn(
