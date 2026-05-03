@@ -68,6 +68,20 @@ export class AuthController {
     res.json({ success: true, data: result })
   })
 
+  /** GET /auth/profile — Bearer (any role) — full profile with organizer data */
+  getFullProfile = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const profile = await this.authService.getFullProfile(req.user.userId)
+    res.json({ success: true, data: profile })
+  })
+
+  /** PATCH /auth/profile/organizer — Bearer (ORGANIZER only) */
+  updateOrganizerProfile = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const result = await this.authService.updateOrganizerProfile(req.user.userId, req.body)
+    res.json({ success: true, data: result })
+  })
+
   /** POST /auth/google — public */
   googleAuth = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.authService.googleAuth(req.body, {

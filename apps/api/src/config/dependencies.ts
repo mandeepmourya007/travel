@@ -107,7 +107,7 @@ const webhookController = paymentService
   : (null as unknown as WebhookController)
 
 // ── Routes ───────────────────────────────────────────
-export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware)
+export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)

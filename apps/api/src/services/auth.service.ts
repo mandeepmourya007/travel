@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import type { Logger } from 'pino'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
+import type { UserProfileResponse } from '@shared/types/user.types'
 import { DEFAULT_USER_NAME } from '@shared/constants/roles'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
@@ -158,19 +159,20 @@ export class AuthService {
   }
 
   /**
-   * Updates the authenticated user's profile (name and optionally role).
-   * Used during onboarding after signup/OTP/Google.
+   * Updates the authenticated user's profile (name, role).
+   * Used during onboarding after signup/OTP/Google + profile page edits.
    * Auto-creates OrganizerProfile when switching to ORGANIZER.
    * @throws {NotFoundError} User not found
    */
   async updateProfile(
     userId: string,
-    dto: { name: string; role?: 'TRAVELER' | 'ORGANIZER' },
+    dto: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' },
   ): Promise<{ id: string; name: string; role: string }> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
 
-    const updateData: { name: string; role?: 'TRAVELER' | 'ORGANIZER' } = { name: dto.name }
+    const updateData: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' } = {}
+    if (dto.name) updateData.name = dto.name
     if (dto.role) updateData.role = dto.role
 
     const updated = await this.userRepo.updateProfile(userId, updateData)
@@ -181,13 +183,68 @@ export class AuthService {
       if (!existing) {
         await this.organizerProfileRepo.create({
           user: { connect: { id: userId } },
-          businessName: dto.name,
+          businessName: dto.name || user.name,
         })
         this.logger.info({ userId }, 'OrganizerProfile auto-created via onboarding')
       }
     }
 
     return { id: updated.id, name: updated.name, role: updated.role }
+  }
+
+  /**
+   * Fetches the complete user profile including organizer data if applicable.
+   * Returns null organizerProfile for TRAVELERs or soft-deleted organizer profiles.
+   * @throws {NotFoundError} User not found
+   */
+  async getFullProfile(userId: string): Promise<UserProfileResponse> {
+    const user = await this.userRepo.findWithOrganizer(userId)
+    if (!user) throw new NotFoundError('User')
+
+    // Soft-delete check done here — Prisma 1-to-1 doesn't support nested where
+    const orgProfile = user.organizerProfile && !user.organizerProfile.isDeleted
+      ? {
+          id: user.organizerProfile.id,
+          businessName: user.organizerProfile.businessName,
+          description: user.organizerProfile.description,
+          verificationStatus: user.organizerProfile.verificationStatus,
+          rating: user.organizerProfile.rating,
+          totalReviews: user.organizerProfile.totalReviews,
+          totalTripsCompleted: user.organizerProfile.totalTripsCompleted,
+          bankAccountLinked: user.organizerProfile.bankAccountLinked,
+        }
+      : null
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+      isVerified: user.aadhaarVerified,
+      phoneVerified: user.phoneVerified,
+      createdAt: user.createdAt.toISOString(),
+      organizerProfile: orgProfile,
+    }
+  }
+
+  /**
+   * Updates organizer-specific profile fields (businessName, description).
+   * Uses existing organizerProfileRepo.update(id, data) — no new repo method.
+   * @throws {NotFoundError} OrganizerProfile not found for this user
+   */
+  async updateOrganizerProfile(
+    userId: string,
+    dto: { businessName?: string; description?: string },
+  ): Promise<{ businessName: string; description: string | null }> {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const updated = await this.organizerProfileRepo.update(profile.id, dto)
+    this.logger.info({ userId }, 'Organizer profile updated')
+
+    return { businessName: updated.businessName, description: updated.description }
   }
 
   /**

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import { ZodError } from 'zod'
 import { AppError, ValidationError } from '../errors/app-error'
 import { logger } from '../utils/logger'
 
@@ -26,6 +27,17 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
         code: err.code,
         message: err.message,
         ...(err instanceof ValidationError && err.details ? { details: err.details } : {}),
+      },
+    })
+  }
+
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: err.errors.map((e) => ({ field: e.path.join('.'), message: e.message })),
       },
     })
   }
