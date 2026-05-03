@@ -1096,4 +1096,8 @@ TODO
 2. dont allow Orgainze to go to trips list page only dashboard
 3. compare ui is viislbe in all pages please show in trips list page only not in dashboard or in my-bookings page 
 4. when i click on signin button no loader in button shown 
+5. please check pagniation
+6. modals are in viewport fix it
+7. trip is getting created event without click create trip
+8. uploaded image of trip is not visble
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*

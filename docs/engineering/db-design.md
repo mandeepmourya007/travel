@@ -152,7 +152,7 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 | 3 | **Destination** | ✅ NEW | ✅ | Normalized city/destination lookup for search + SEO |
 | 4 | **Trip** | — | ✅ | Trip listings with pricing, dates, capacity |
 | 5 | **Booking** | — | ✅ | Trip bookings with full lifecycle |
-| 6 | **TravelerDetail** | ✅ NEW | ✅ | Per-traveler info per booking (1NF compliant) |
+| 6 | **TravelerDetail** | ✅ NEW | ✅ | Per-traveler info per booking OR trip request (1NF compliant) |
 | 7 | **PaymentTransaction** | ✅ NEW | ❌ | Full payment/refund/escrow audit trail |
 | 8 | **Review** | — | ✅ | Post-trip verified reviews (multi-dimension) |
 | 9 | **Conversation** | — | ✅ | 1:1 chat threads (traveler ↔ organizer per trip) |
@@ -493,14 +493,18 @@ model Booking {
 
 ```prisma
 model TravelerDetail {
-  id         String   @id @default(cuid())
-  bookingId  String
-  booking    Booking  @relation(fields: [bookingId], references: [id])
-  name       String
-  phone      String?
-  age        Int?
-  gender     Gender?
-  isPrimary  Boolean  @default(false)   // The person who made the booking
+  id            String       @id @default(cuid())
+  bookingId     String?                              // Set for booking travelers
+  booking       Booking?     @relation(fields: [bookingId], references: [id])
+  tripRequestId String?                              // Set for trip request travelers
+  tripRequest   TripRequest? @relation(fields: [tripRequestId], references: [id])
+  name          String
+  phone         String?
+  age           Int?
+  gender        Gender?
+  isPrimary     Boolean      @default(false)         // The person who made the booking/request
+  emergencyContactName  String?
+  emergencyContactPhone String?
 
   // -- Mixin --
   isActive         Boolean   @default(true)
@@ -511,7 +515,9 @@ model TravelerDetail {
 
   // -- Indexes --
   @@index([bookingId])
+  @@index([tripRequestId])
   @@index([isDeleted])
+  // CONSTRAINT: At least one of bookingId or tripRequestId must be non-null (enforced in service layer)
 }
 ```
 
@@ -805,6 +811,7 @@ Trip 1───* Review
 Trip 1───* Conversation
 
 TripRequest 1───0..1 Booking (when converted)
+TripRequest 1───* TravelerDetail
 
 Booking 1───* TravelerDetail
 Booking 1───* PaymentTransaction
@@ -894,7 +901,7 @@ async confirmBooking(bookingId: string): Promise<Booking> {
 
 | Normal Form | Status | Explanation |
 |-------------|--------|-------------|
-| **1NF** | ✅ | All columns are atomic. `travelerDetails` JSON extracted to `TravelerDetail` table. Remaining JSON fields (`itinerary`, `inclusions`, `documents`, `metadata`) are **intentionally schemaless** — they vary per record and are not queried by sub-fields. |
+| **1NF** | ✅ | All columns are atomic. `travelerDetails` JSON extracted to `TravelerDetail` table (shared by both `Booking` and `TripRequest` via nullable FKs). Remaining JSON fields (`itinerary`, `inclusions`, `documents`, `metadata`) are **intentionally schemaless** — they vary per record and are not queried by sub-fields. |
 | **2NF** | ✅ | Every non-key column depends on the entire primary key. All tables use single-column `id` as PK, so 2NF is automatically satisfied. |
 | **3NF** | ✅ | No transitive dependencies. `OrganizerProfile.rating`, `OrganizerProfile.totalReviews`, `Trip.currentBookings`, and `Destination.tripCount` are **materialized caches** — documented as such, with recompute logic on writes. |
 
