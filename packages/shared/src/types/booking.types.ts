@@ -62,6 +62,8 @@ export interface TravelerDetailItem {
   age: number | null
   gender: string | null
   isPrimary: boolean
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
 }
 
 /** Filters for GET /trips/:tripId/bookings */
@@ -111,6 +113,7 @@ export interface MyBookingListItem {
     organizer: { id: string; businessName: string; rating: number; verified: boolean }
   }
   hasReview: boolean
+  travelerDetails: TravelerDetailItem[]
   pickupPoint?: { id: string; label: string; time?: string | null }
   dropPoint?: { id: string; label: string; time?: string | null }
 }
