@@ -787,7 +787,15 @@ async function main() {
     ],
   })
 
-  console.log('  ✓ Demo Trip B: ACTIVE (INSTANT) — 3 confirmed bookings, 5 travelers')
+  // Pending requests for Trip B (to test cross-trip pending requests page)
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripB.id, userId: trav4.id, numTravelers: 3, message: 'Can we get 3 spots? Planning a boys trip to Goa!', status: 'PENDING', approvalExpiresAt: inDays(4) },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripB.id, userId: trav6.id, numTravelers: 2, message: 'Interested in joining with a friend. Is there room?', status: 'PENDING', approvalExpiresAt: inDays(6) },
+  })
+
+  console.log('  ✓ Demo Trip B: ACTIVE (INSTANT) — 3 confirmed bookings, 5 travelers, 2 pending requests')
 
   // ── Trip C: COMPLETED — some joined, some cancelled ───
   const demoTripC = await prisma.trip.create({
@@ -973,6 +981,52 @@ async function main() {
   })
 
   console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 3 joined, 2 rejected, 3 reviews')
+
+  // ── Trip E: ACTIVE, REQUEST_BASED — only pending requests ──
+  const demoTripE = await prisma.trip.create({
+    data: {
+      organizerId: demoOrg.id,
+      destinationId: rishikesh.id,
+      title: 'Rishikesh Yoga & Rafting Retreat — 3N/4D',
+      slug: 'demo-rishikesh-yoga-rafting',
+      tripType: 'ADVENTURE',
+      bookingMode: 'REQUEST_BASED',
+      description: 'A unique blend of white-water rafting, yoga sessions, and riverside camping in Rishikesh. Small curated group.',
+      itinerary: [
+        { day: 1, title: 'Arrival & Yoga', description: 'Reach Rishikesh, evening yoga.', activities: [{ title: 'Check-in', time: '12:00 PM' }, { title: 'Yoga session', time: '5:00 PM' }, { title: 'Bonfire', time: '8:00 PM' }] },
+        { day: 2, title: 'Rafting Day', description: '16km rafting on the Ganges.', activities: [{ title: '16km rafting', time: '9:00 AM' }, { title: 'Cliff jumping', time: '1:00 PM' }, { title: 'Camping', time: '5:00 PM' }] },
+        { day: 3, title: 'Trek & Explore', description: 'Waterfall trek.', activities: [{ title: 'Neer Garh waterfall trek', time: '8:00 AM' }, { title: 'Ram Jhula', time: '2:00 PM' }, { title: 'Ganga Aarti', time: '6:30 PM' }] },
+        { day: 4, title: 'Departure', description: 'Morning yoga and leave.', activities: [{ title: 'Sunrise yoga', time: '6:00 AM' }, { title: 'Breakfast', time: '8:00 AM' }, { title: 'Departure', time: '10:00 AM' }] },
+      ],
+      startDate: inDays(25),
+      endDate: inDays(29),
+      pricePerPerson: 6500,
+      earlyBirdPrice: 5500,
+      earlyBirdDeadline: inDays(15),
+      minGroupSize: 8,
+      maxGroupSize: 16,
+      currentBookings: 0,
+      inclusions: ['Transport from Delhi', 'Camping + hostel (3N)', 'All meals', 'Rafting', 'Yoga sessions', 'Trek guide'],
+      exclusions: ['Personal expenses', 'Bungee jumping', 'Travel insurance'],
+      cancellationPolicy: 'MODERATE',
+      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
+      status: 'ACTIVE',
+      acceptingBookings: true,
+    },
+  })
+
+  // Pending requests for Trip E
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripE.id, userId: trav9.id, numTravelers: 2, message: 'Looking for a yoga + adventure combo. This seems perfect for me and my sister!', status: 'PENDING', approvalExpiresAt: inDays(7) },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripE.id, userId: traveler2.id, numTravelers: 1, message: 'Solo female traveler. Is this group safe and beginner-friendly for rafting?', status: 'PENDING', approvalExpiresAt: inDays(6) },
+  })
+  await prisma.tripRequest.create({
+    data: { tripId: demoTripE.id, userId: traveler3.id, numTravelers: 4, message: 'Group of 4 college friends. We all want to try rafting for the first time!', status: 'PENDING', approvalExpiresAt: inDays(5) },
+  })
+
+  console.log('  ✓ Demo Trip E: ACTIVE (REQUEST_BASED) — 3 pending requests')
 
   // Revenue summary:
   // Trip A: ₹85,500 (44000 + 19500 + 22000)
