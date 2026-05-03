@@ -9,11 +9,16 @@ import { OrganizerProfileRepository } from '../repositories/organizer-profile.re
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
+import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { AuthService } from '../services/auth.service'
+import { OtpService } from '../services/otp.service'
 import { DestinationService } from '../services/destination.service'
 import { TripService } from '../services/trip.service'
 import { UploadService } from '../services/upload.service'
 import { AuthController } from '../controllers/auth.controller'
+import { OtpController } from '../controllers/otp.controller'
+import { MockOtpProvider } from '../providers/mock-otp.provider'
+import { Msg91OtpProvider } from '../providers/msg91-otp.provider'
 import { DestinationController } from '../controllers/destination.controller'
 import { TripController } from '../controllers/trip.controller'
 import { UploadController } from '../controllers/upload.controller'
@@ -48,6 +53,7 @@ const bookingRepo = new BookingRepository(prisma)
 const tripRequestRepo = new TripRequestRepository(prisma)
 const paymentTxRepo = new PaymentTransactionRepository(prisma)
 const webhookEventRepo = new WebhookEventRepository(prisma)
+const verifCodeRepo = new VerificationCodeRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -79,11 +85,18 @@ const paymentService = razorpayClient
 
 const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger)
 
+const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
+  ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
+  : new MockOtpProvider(logger)
+
+const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, logger)
+
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
 
 // ── Controllers ──────────────────────────────────────
 const authController = new AuthController(authService)
+const otpController = new OtpController(otpService)
 const destinationController = new DestinationController(destinationService)
 const tripController = new TripController(tripService)
 const uploadController = new UploadController(uploadService)
@@ -93,7 +106,7 @@ const webhookController = paymentService
   : (null as unknown as WebhookController)
 
 // ── Routes ───────────────────────────────────────────
-export const authRoutes = createAuthRoutes(authController, authMiddleware)
+export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware)
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)

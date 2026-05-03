@@ -15,14 +15,19 @@ export class UserRepository {
     return this.prisma.user.findFirst({ where: { googleId } })
   }
 
+  async findByPhone(phone: string) {
+    return this.prisma.user.findUnique({ where: { phone } })
+  }
+
   async create(data: {
     name: string
-    email: string
+    email?: string
     phone?: string
     passwordHash?: string
     googleId?: string
     role: 'TRAVELER' | 'ORGANIZER'
     avatarUrl?: string
+    phoneVerified?: boolean
   }) {
     return this.prisma.user.create({ data })
   }
@@ -32,6 +37,10 @@ export class UserRepository {
       where: { id: userId },
       data: { passwordHash },
     })
+  }
+
+  async updateProfile(id: string, data: { name?: string }) {
+    return this.prisma.user.update({ where: { id }, data })
   }
 
   async emailExists(email: string): Promise<boolean> {
