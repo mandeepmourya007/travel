@@ -51,3 +51,9 @@ export class PaymentError extends AppError {
     super(message, 502, 'PAYMENT_FAILED')
   }
 }
+
+export class TooManyRequestsError extends AppError {
+  constructor(message = 'Too many requests') {
+    super(message, 429, 'TOO_MANY_REQUESTS')
+  }
+}

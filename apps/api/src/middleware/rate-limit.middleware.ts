@@ -44,4 +44,5 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
 
 export const generalRateLimit = createRateLimiter('general', 100, 60)
 export const authRateLimit = createRateLimiter('auth', 10, 60)
+export const otpRateLimit = createRateLimiter('otp', 5, 60)
 export const webhookRateLimit = createRateLimiter('webhook', 50, 60)

@@ -25,3 +25,19 @@ export const PAGINATION_DEFAULTS = {
   limit: 20,
   maxLimit: 50,
 } as const
+
+export const OTP_LENGTH = 4
+export const OTP_EXPIRY_MINUTES = 10
+export const OTP_MAX_ATTEMPTS = 5
+export const OTP_RESEND_COOLDOWN_SECONDS = 30
+export const OTP_RATE_LIMIT_WINDOW_MINUTES = 10
+export const OTP_RATE_LIMIT_MAX_SENDS = 3
+export const DEV_OTP = '0000'
+
+export const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict' as const,
+  maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
+  path: '/api/v1/auth',
+}

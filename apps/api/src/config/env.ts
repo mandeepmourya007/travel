@@ -16,6 +16,8 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional(),
   REDIS_URL: z.string().url().optional(),
   REDIS_TOKEN: z.string().optional(),
+  MSG91_AUTH_KEY: z.string().optional(),
+  MSG91_TEMPLATE_ID: z.string().optional(),
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 })
