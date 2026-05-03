@@ -39,6 +39,7 @@ export const tripBookingFiltersSchema = z.object({
   bookingStatus: z
     .union([
       bookingStatusEnum,
+      z.array(bookingStatusEnum),
       z.string().refine((v) => v.includes(','), 'Invalid booking status').transform((val) => val.split(',')).pipe(z.array(bookingStatusEnum)),
     ])
     .optional(),
