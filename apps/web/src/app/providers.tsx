@@ -7,6 +7,7 @@ import { CompareQueueProvider } from '@/hooks/use-compare-queue'
 import { GlobalCompareBar } from '@/components/trips/global-compare-bar'
 import { ToastProvider } from '@/components/shared/toast'
 import { RouteProgress } from '@/components/shared/route-progress'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -27,7 +28,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   )
 
-  return (
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+
+  const content = (
     <QueryClientProvider client={queryClient}>
       <Suspense fallback={null}>
         <RouteProgress />
@@ -41,4 +44,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )
+
+  if (googleClientId) {
+    return (
+      <GoogleOAuthProvider clientId={googleClientId}>
+        {content}
+      </GoogleOAuthProvider>
+    )
+  }
+
+  return content
 }

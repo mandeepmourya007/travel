@@ -44,10 +44,22 @@ export const handlers = [
 
   // PATCH /auth/profile — update profile
   http.patch(`${API}/auth/profile`, async ({ request }) => {
-    const body = (await request.json()) as { name: string }
+    const body = (await request.json()) as { name: string; role?: string }
     return HttpResponse.json({
       success: true,
-      data: { id: 'u1', name: body.name },
+      data: { id: 'u1', name: body.name, role: body.role || 'TRAVELER' },
+    })
+  }),
+
+  // POST /auth/google — Google OAuth
+  http.post(`${API}/auth/google`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        user: { id: 'u1', name: 'Google User', email: 'google@test.com', role: 'TRAVELER' },
+        tokens: { accessToken: 'google-jwt', expiresIn: 900 },
+        isNewUser: true,
+      },
     })
   }),
 ]

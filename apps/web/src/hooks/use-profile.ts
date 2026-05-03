@@ -3,21 +3,18 @@ import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/store/auth.store'
 
 /**
- * Updates authenticated user's profile (name). Used on onboarding page.
- * On success: updates user name in Zustand store.
+ * Updates authenticated user's profile (name and optionally role).
+ * Used on onboarding page after signup/OTP/Google.
+ * On success: updates user in Zustand store.
  */
 export function useUpdateProfile() {
-  const setAuth = useAuthStore((s) => s.setAuth)
-  const user = useAuthStore((s) => s.user)
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const updateUser = useAuthStore((s) => s.updateUser)
 
   return useMutation({
-    mutationFn: (dto: { name: string }) =>
+    mutationFn: (dto: { name: string; role?: 'TRAVELER' | 'ORGANIZER' }) =>
       apiClient.patch('/auth/profile', dto).then(r => r.data.data),
-    onSuccess: (data) => {
-      if (user && accessToken) {
-        setAuth({ ...user, name: data.name }, accessToken)
-      }
+    onSuccess: (data: { id: string; name: string; role: string }) => {
+      updateUser({ name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' })
     },
   })
 }
