@@ -27,6 +27,8 @@ export function makeMyBooking(overrides: Partial<MyBookingListItem> = {}): MyBoo
       organizer: { id: `org-${counter}`, businessName: `TripVibes ${counter}`, rating: 4.5, verified: true },
     },
     hasReview: false,
+    pickupPoint: { id: 'pp-1', label: 'Delhi Airport T3', time: '06:00 AM' },
+    dropPoint: { id: 'dp-1', label: 'Delhi Airport T3', time: '08:00 PM' },
     ...overrides,
   }
 }

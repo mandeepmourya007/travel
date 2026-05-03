@@ -51,6 +51,13 @@ export function makeTripDetail(overrides: Partial<TripDetail> = {}): TripDetail 
       totalTrips: 10,
       memberSince: '2023-01-01',
     },
+    pickupPoints: [
+      { id: 'clrk00000000000000pickup1', type: 'PICKUP' as const, label: 'Delhi Airport T3', time: '06:00 AM', extraCharge: 500, sortOrder: 0, address: null },
+      { id: 'clrk00000000000000pickup2', type: 'PICKUP' as const, label: 'Kashmere Gate ISBT', time: '07:00 AM', extraCharge: 0, sortOrder: 1, address: null },
+    ],
+    dropPoints: [
+      { id: 'clrk000000000000000drop01', type: 'DROP' as const, label: 'Delhi Airport T3', time: '08:00 PM', extraCharge: 500, sortOrder: 0, address: null },
+    ],
     reviews: [],
     ...overrides,
   }

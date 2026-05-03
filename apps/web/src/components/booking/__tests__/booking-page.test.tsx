@@ -262,6 +262,38 @@ describe('BookingPage', () => {
     })
   })
 
+  // ── 4b. Transfer Points ──
+
+  it('should render pickup and drop point selectors', async () => {
+    setupTripHandler()
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/transfer points/i)).toBeInTheDocument()
+    })
+
+    expect(screen.getByLabelText(/pickup point/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/drop point/i)).toBeInTheDocument()
+  })
+
+  it('should not render transfer points section when no points exist', async () => {
+    setupTripHandler(
+      makeTripDetail({
+        slug: 'goa-beach',
+        pickupPoints: [],
+        dropPoints: [],
+        acceptingBookings: true,
+      }),
+    )
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+    })
+
+    expect(screen.queryByText(/transfer points/i)).not.toBeInTheDocument()
+  })
+
   // ── 5. Form — Validation ──
 
   it('should show validation errors for empty required fields', async () => {
