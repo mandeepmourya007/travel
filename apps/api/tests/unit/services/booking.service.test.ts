@@ -78,6 +78,10 @@ function createMockBooking(overrides: Record<string, unknown> = {}) {
       },
     },
     review: null,
+    travelerDetails: [
+      { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
+      { id: 'td-2', name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
+    ],
     ...overrides,
   }
 }
@@ -182,6 +186,45 @@ describe('BookingService', () => {
 
       expect(result.data).toEqual([])
       expect(result.pagination.total).toBe(0)
+    })
+
+    it('should include travelerDetails array in response', async () => {
+      const booking = createMockBooking()
+      mockBookingRepo.findByUserId.mockResolvedValue({ data: [booking], total: 1 })
+
+      const result = await service.getMyBookings('user-1', {})
+
+      expect(result.data[0].travelerDetails).toHaveLength(2)
+      expect(result.data[0].travelerDetails[0]).toEqual({
+        id: 'td-1',
+        name: 'Alice',
+        phone: '9999999999',
+        age: 25,
+        gender: 'FEMALE',
+        isPrimary: true,
+        emergencyContactName: 'Bob',
+        emergencyContactPhone: '8888888888',
+      })
+    })
+
+    it('should include emergency contact fields in travelerDetails', async () => {
+      const booking = createMockBooking()
+      mockBookingRepo.findByUserId.mockResolvedValue({ data: [booking], total: 1 })
+
+      const result = await service.getMyBookings('user-1', {})
+
+      const primary = result.data[0].travelerDetails.find((t: { isPrimary: boolean }) => t.isPrimary)
+      expect(primary.emergencyContactName).toBe('Bob')
+      expect(primary.emergencyContactPhone).toBe('8888888888')
+    })
+
+    it('should return empty travelerDetails array when booking has none', async () => {
+      const booking = createMockBooking({ travelerDetails: [] })
+      mockBookingRepo.findByUserId.mockResolvedValue({ data: [booking], total: 1 })
+
+      const result = await service.getMyBookings('user-1', {})
+
+      expect(result.data[0].travelerDetails).toEqual([])
     })
   })
 
