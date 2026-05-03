@@ -16,6 +16,8 @@ const BOOKING_INCLUDE_LIST = {
       age: true,
       gender: true,
       isPrimary: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
     },
   },
   pickupPoint: { select: { id: true, label: true, time: true } },
@@ -33,6 +35,19 @@ const MY_BOOKING_INCLUDE = {
     },
   },
   review: { select: { id: true } },
+  travelerDetails: {
+    where: { isDeleted: false },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      age: true,
+      gender: true,
+      isPrimary: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
+    },
+  },
   pickupPoint: { select: { id: true, label: true, time: true } },
   dropPoint: { select: { id: true, label: true, time: true } },
 } as const

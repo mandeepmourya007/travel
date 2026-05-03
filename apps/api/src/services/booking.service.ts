@@ -72,6 +72,7 @@ export class BookingService {
           },
         },
         hasReview: b.review !== null,
+        travelerDetails: b.travelerDetails ?? [],
         pickupPoint: b.pickupPoint ?? undefined,
         dropPoint: b.dropPoint ?? undefined,
       })),
