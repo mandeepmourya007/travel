@@ -7,27 +7,30 @@ import { PhoneInputForm } from '@/components/auth/phone-input-form'
 import { OtpVerifyForm } from '@/components/auth/otp-verify-form'
 import { useSendOtp } from '@/hooks/use-otp'
 import { useAuthStore } from '@/store/auth.store'
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 
 export default function PhoneLoginPage() {
   const router = useRouter()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
+  const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const sendOtp = useSendOtp()
 
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
 
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) router.replace('/dashboard')
+    if (hasHydrated && isAuthenticated) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
   }, [hasHydrated, isAuthenticated, router])
 
-  /** Route based on isNewUser — new users need to set their name */
+  /** Route based on isNewUser — new users need onboarding (name + role) */
   const handleVerified = (data: { isNewUser: boolean }) => {
     if (data.isNewUser) {
-      router.push('/onboarding/profile')
+      router.push('/onboarding')
     } else {
-      router.push('/dashboard')
+      markOnboardingComplete()
+      router.push(getHomeRoute(useAuthStore.getState().user?.role))
     }
   }
 
@@ -52,6 +55,15 @@ export default function PhoneLoginPage() {
               onVerified={handleVerified}
               onEdit={() => setStep('phone')}
               onResend={async () => { await sendOtp.mutateAsync(phone) }}
+            />
+          )}
+
+          {step === 'phone' && (
+            <GoogleAuthSection
+              onSuccess={(isNewUser) => {
+                if (!isNewUser) markOnboardingComplete()
+                router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+              }}
             />
           )}
         </div>

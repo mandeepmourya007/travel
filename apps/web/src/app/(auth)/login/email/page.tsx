@@ -5,12 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { apiClient } from '@/lib/api-client'
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { loginSchema } from '@shared/validators/auth.schema'
+import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 
 export default function EmailLoginPage() {
   const router = useRouter()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [form, setForm] = useState({ email: '', password: '' })
@@ -20,7 +22,7 @@ export default function EmailLoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace('/dashboard')
+      router.replace(getHomeRoute(useAuthStore.getState().user?.role))
     }
   }, [hasHydrated, isAuthenticated, router])
 
@@ -46,7 +48,8 @@ export default function EmailLoginPage() {
       const { data: res } = await apiClient.post('/auth/login', result.data)
       if (res.success) {
         setAuth(res.data.user, res.data.tokens.accessToken)
-        router.push('/dashboard')
+        markOnboardingComplete()
+        router.push(getHomeRoute(res.data.user.role))
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.')
@@ -117,6 +120,13 @@ export default function EmailLoginPage() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
+
+          <GoogleAuthSection
+            onSuccess={(isNewUser) => {
+              if (!isNewUser) markOnboardingComplete()
+              router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+            }}
+          />
 
           <p className="mt-6 text-center text-sm text-neutral-500">
             Don&apos;t have an account?{' '}
