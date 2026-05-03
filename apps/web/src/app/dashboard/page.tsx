@@ -7,6 +7,19 @@ import { useOrganizerStats } from '@/hooks/use-organizer-stats'
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { ErrorState } from '@/components/shared/data-states'
 
+function ComingSoonCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="group relative rounded-xl">
+      {children}
+      <div className="pointer-events-none absolute inset-0 flex items-start justify-end rounded-xl bg-neutral-900/0 p-2 transition-colors group-hover:bg-neutral-900/5">
+        <span className="badge badge-warning text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
+          Coming Soon
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const { data: stats, isLoading, error, refetch } = useOrganizerStats()
@@ -38,10 +51,18 @@ export default function DashboardPage() {
           </div>
         ) : stats ? (
           <>
-            <StatCard label="Active Trips" value={stats.activeTrips} icon={<Map className="h-6 w-6" />} />
-            <StatCard label="Total Bookings" value={stats.totalBookings} icon={<Users className="h-6 w-6" />} />
-            <StatCard label="Revenue" value={`₹${stats.revenue.toLocaleString('en-IN')}`} icon={<IndianRupee className="h-6 w-6" />} />
-            <StatCard label="Pending Requests" value={stats.pendingRequests} icon={<Clock className="h-6 w-6" />} />
+            <ComingSoonCard>
+              <StatCard label="Active Trips" value={stats.activeTrips} icon={<Map className="h-6 w-6" />} />
+            </ComingSoonCard>
+            <ComingSoonCard>
+              <StatCard label="Total Bookings" value={stats.totalBookings} icon={<Users className="h-6 w-6" />} />
+            </ComingSoonCard>
+            <ComingSoonCard>
+              <StatCard label="Revenue" value={`₹${stats.revenue.toLocaleString('en-IN')}`} icon={<IndianRupee className="h-6 w-6" />} />
+            </ComingSoonCard>
+            <Link href="/dashboard/requests" className="transition-shadow hover:shadow-card-hover rounded-xl">
+              <StatCard label="Pending Requests" value={stats.pendingRequests} icon={<Clock className="h-6 w-6" />} />
+            </Link>
           </>
         ) : (
           <div className="col-span-full card-static p-8 text-center">
