@@ -3,7 +3,7 @@ import { TripController } from '../controllers/trip.controller'
 import { validate } from '../middleware/validate.middleware'
 import { createTripSchema, updateTripSchema, tripFiltersSchema } from '@shared/validators/trip.schema'
 import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema } from '@shared/validators/common.schema'
-import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema } from '@shared/validators/booking.schema'
+import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema, createTripRequestBodySchema } from '@shared/validators/booking.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
 
@@ -82,6 +82,16 @@ export function createTripRoutes(
     requireRole('ORGANIZER'),
     validate(cuidParamSchema, 'params'),
     tripController.getEditHistory,
+  )
+
+  // ─── Traveler Trip Request ──────────────────────────
+  router.post(
+    '/:tripId/request',
+    authMiddleware,
+    requireRole('TRAVELER'),
+    validate(tripIdParamSchema, 'params'),
+    validate(createTripRequestBodySchema),
+    tripController.createRequest,
   )
 
   // ─── Trip Participants Dashboard (organizer only) ────

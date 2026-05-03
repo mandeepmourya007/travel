@@ -113,6 +113,16 @@ export class TripController {
     res.json({ success: true, data: summary })
   })
 
+  /** POST /trips/:tripId/request — Traveler sends a booking request (C2 fix: map numberOfTravelers → numTravelers) */
+  createRequest = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.tripService.createTripRequest(
+      req.user!.userId,
+      req.params.tripId,
+      { numTravelers: req.body.numberOfTravelers, message: req.body.message, travelers: req.body.travelers },
+    )
+    res.status(201).json({ success: true, data: result })
+  })
+
   /** PATCH /trips/:tripId/requests/:requestId — Approve/reject a trip request (organizer only) */
   respondToRequest = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.tripService.respondToTripRequest(

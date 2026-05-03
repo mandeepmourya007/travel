@@ -2,14 +2,14 @@ import { Logger } from 'pino'
 import { Prisma, TransferPointType } from '@prisma/client'
 import type { CreateTripDto, UpdateTripDto, TripFilters } from '@shared/types/trip.types'
 import type { TripBookingFilters } from '@shared/types/booking.types'
-import type { TripRequestFilters } from '@shared/types/trip-request.types'
+import type { TripRequestFilters, TripRequestTraveler } from '@shared/types/trip-request.types'
 import { TripRepository, TRIP_INCLUDE_SUMMARY } from '../repositories/trip.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
-import { NotFoundError, ValidationError, ForbiddenError } from '../errors/app-error'
+import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '../utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
 
@@ -490,6 +490,64 @@ export class TripService {
   }
 
   /**
+   * Traveler sends a request to join a REQUEST_BASED trip.
+   *
+   * Validations:
+   * - Trip exists and is ACTIVE
+   * - Trip.bookingMode must be REQUEST_BASED
+   * - Trip.acceptingBookings must be true
+   * - Enough seats for numTravelers
+   * - No existing request from this user (@@unique handles via P2002)
+   *
+   * @throws NotFoundError — trip doesn't exist
+   * @throws ValidationError — trip not active, wrong mode, full, not accepting
+   * @throws ConflictError — user already has a request for this trip
+   */
+  async createTripRequest(
+    userId: string,
+    tripId: string,
+    dto: { numTravelers: number; message?: string; travelers?: TripRequestTraveler[] },
+  ) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+
+    if (trip.status !== 'ACTIVE') {
+      throw new ValidationError('This trip is not accepting requests')
+    }
+    if (trip.bookingMode !== 'REQUEST_BASED') {
+      throw new ValidationError('This trip accepts direct bookings — no request needed')
+    }
+    if (!trip.acceptingBookings) {
+      throw new ValidationError('This trip is no longer accepting bookings')
+    }
+
+    const seatsLeft = trip.maxGroupSize - trip.currentBookings
+    if (dto.numTravelers > seatsLeft) {
+      throw new ValidationError(
+        `Not enough seats. Requested: ${dto.numTravelers}, available: ${seatsLeft}`,
+      )
+    }
+
+    try {
+      const request = await this.tripRequestRepo.create({
+        tripId,
+        userId,
+        numTravelers: dto.numTravelers,
+        message: dto.message,
+        travelers: dto.travelers,
+      })
+      this.logger.info({ tripId, userId, requestId: request.id }, 'Trip request created')
+      return this.toRequestListItem(request)
+    } catch (error: unknown) {
+      // Prisma P2002 = unique constraint violation (user already requested this trip)
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictError('You already have a pending request for this trip')
+      }
+      throw error
+    }
+  }
+
+  /**
    * Verifies that a trip exists and the user is its owner.
    * Returns the trip and organizer profile for further use.
    */
@@ -540,6 +598,7 @@ export class TripService {
       respondedAt: r.respondedAt,
       responseNote: r.responseNote,
       approvalExpiresAt: r.approvalExpiresAt,
+      travelerDetails: r.travelerDetails ?? null,
       user: r.user,
     }
   }

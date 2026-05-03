@@ -1,11 +1,25 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, type Gender } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
+
+const TRAVELER_DETAIL_SELECT = {
+  where: { isDeleted: false },
+  select: {
+    name: true,
+    phone: true,
+    age: true,
+    gender: true,
+    isPrimary: true,
+    emergencyContactName: true,
+    emergencyContactPhone: true,
+  },
+} as const
 
 const REQUEST_INCLUDE_LIST = {
   user: {
     select: { id: true, name: true, email: true, avatarUrl: true },
   },
+  travelerDetails: TRAVELER_DETAIL_SELECT,
 } as const
 
 export class TripRequestRepository {
@@ -117,6 +131,117 @@ export class TripRequestRepository {
       include: {
         ...REQUEST_INCLUDE_LIST,
         trip: { select: { id: true, title: true, slug: true } },
+      },
+    })
+  }
+
+  /**
+   * Creates a new trip request with nested TravelerDetail rows.
+   *
+   * Used by: TripService.createTripRequest()
+   * Edge case: Prisma throws P2002 if @@unique(tripId, userId) violated
+   */
+  async create(data: {
+    tripId: string
+    userId: string
+    numTravelers: number
+    message?: string
+    travelers?: Array<{
+      name: string; phone: string; age: number; gender: string
+      isPrimary: boolean; emergencyContactName?: string; emergencyContactPhone?: string
+    }>
+  }) {
+    return this.prisma.tripRequest.create({
+      data: {
+        tripId: data.tripId,
+        userId: data.userId,
+        numTravelers: data.numTravelers,
+        message: data.message ?? null,
+        ...(data.travelers?.length && {
+          travelerDetails: {
+            create: data.travelers.map((t) => ({
+              name: t.name,
+              phone: t.phone,
+              age: t.age,
+              gender: t.gender as Gender,
+              isPrimary: t.isPrimary,
+              emergencyContactName: t.emergencyContactName,
+              emergencyContactPhone: t.emergencyContactPhone,
+            })),
+          },
+        }),
+      },
+      include: REQUEST_INCLUDE_LIST,
+    })
+  }
+
+  /**
+   * Finds active trip requests (PENDING or APPROVED non-expired) for a traveler.
+   * Used on the "Requests" tab of My Bookings.
+   *
+   * WHERE: userId, status IN (PENDING, APPROVED), isDeleted=false
+   *   - APPROVED must have approvalExpiresAt > now
+   * Include: trip context + travelerDetails relation
+   * Used by: BookingService.getMyPendingPaymentRequests()
+   */
+  async findPendingPaymentForUser(userId: string) {
+    return this.prisma.tripRequest.findMany({
+      where: {
+        userId,
+        isDeleted: false,
+        OR: [
+          { status: 'PENDING' },
+          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        travelerDetails: TRAVELER_DETAIL_SELECT,
+        trip: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            startDate: true,
+            endDate: true,
+            photos: true,
+            pricePerPerson: true,
+            destination: { select: { id: true, name: true, slug: true } },
+            organizer: { select: { id: true, businessName: true, verificationStatus: true } },
+          },
+        },
+      },
+    })
+  }
+
+  /**
+   * Marks a trip request as CONVERTED and links it to the created booking.
+   * Defensive: only updates if current status is APPROVED (prevents race with expiry cron).
+   *
+   * Used by: BookingService.confirmBooking() — after payment confirmed
+   */
+  async markConverted(id: string, bookingId: string) {
+    return this.prisma.tripRequest.update({
+      where: { id, status: 'APPROVED' },
+      data: { status: 'CONVERTED', bookingId },
+    })
+  }
+
+  /**
+   * Counts active trip requests (PENDING or APPROVED non-expired) for a user.
+   * Used for the "Requests" badge count on My Bookings.
+   *
+   * Used by: BookingService.getMyBookingSummary()
+   */
+  async countPendingPaymentForUser(userId: string): Promise<number> {
+    return this.prisma.tripRequest.count({
+      where: {
+        userId,
+        isDeleted: false,
+        OR: [
+          { status: 'PENDING' },
+          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+        ],
       },
     })
   }
