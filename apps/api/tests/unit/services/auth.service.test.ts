@@ -14,6 +14,7 @@ function createMockUserRepo() {
     create: vi.fn(),
     updatePassword: vi.fn(),
     updateProfile: vi.fn(),
+    updateGoogleId: vi.fn(),
     emailExists: vi.fn(),
   }
 }
@@ -55,6 +56,9 @@ const testUser = {
   isActive: true,
   avatarUrl: null,
   passwordHash: '$2b$12$hashedpassword',
+  googleId: null as string | null,
+  phone: null as string | null,
+  phoneVerified: false,
 }
 
 const meta = { userAgent: 'test-agent', ip: '127.0.0.1' }
@@ -78,6 +82,7 @@ describe('AuthService', () => {
       organizerProfileRepo as any,
       JWT_SECRET,
       mockLogger,
+      'test-google-client-id',
     )
   })
 
@@ -192,6 +197,15 @@ describe('AuthService', () => {
       userRepo.findByEmail.mockResolvedValue({ ...testUser, passwordHash: hashed, isActive: false })
 
       await expect(service.login(loginDto, meta)).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError with Google sign-in message when user has googleId but no password', async () => {
+      userRepo.findByEmail.mockResolvedValue({
+        ...testUser, passwordHash: null, googleId: 'google-123',
+      })
+      await expect(service.login(loginDto, meta)).rejects.toThrow(
+        'This account uses Google sign-in',
+      )
     })
   })
 
@@ -340,6 +354,199 @@ describe('AuthService', () => {
 
       await expect(service.updateProfile('bad-id', { name: 'X' }))
         .rejects.toThrow(NotFoundError)
+    })
+
+    it('should update user name and role together', async () => {
+      userRepo.findById.mockResolvedValue(testUser)
+      userRepo.updateProfile.mockResolvedValue({ ...testUser, name: 'New', role: 'ORGANIZER' })
+      organizerProfileRepo.create.mockResolvedValue({})
+
+      const result = await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
+
+      expect(result.name).toBe('New')
+      expect(result.role).toBe('ORGANIZER')
+    })
+
+    it('should auto-create OrganizerProfile when role changed to ORGANIZER', async () => {
+      userRepo.findById.mockResolvedValue({ ...testUser, role: 'TRAVELER' })
+      userRepo.updateProfile.mockResolvedValue({ ...testUser, name: 'New', role: 'ORGANIZER' })
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+      organizerProfileRepo.create.mockResolvedValue({})
+
+      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
+
+      expect(organizerProfileRepo.create).toHaveBeenCalledWith({
+        user: { connect: { id: 'user-123' } },
+        businessName: 'New',
+      })
+    })
+
+    it('should NOT create OrganizerProfile when role stays TRAVELER', async () => {
+      userRepo.findById.mockResolvedValue(testUser)
+      userRepo.updateProfile.mockResolvedValue({ ...testUser, name: 'New' })
+
+      await service.updateProfile('user-123', { name: 'New' })
+
+      expect(organizerProfileRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should NOT create OrganizerProfile if already ORGANIZER', async () => {
+      const orgUser = { ...testUser, role: 'ORGANIZER' as const }
+      userRepo.findById.mockResolvedValue(orgUser)
+      userRepo.updateProfile.mockResolvedValue({ ...orgUser, name: 'New' })
+      organizerProfileRepo.findByUserId.mockResolvedValue({ id: 'op-1' })
+
+      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
+
+      expect(organizerProfileRepo.create).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── signup with defaults ────────────────────────
+
+  describe('signup (simplified)', () => {
+    it('should create user with defaults when name and role not provided', async () => {
+      userRepo.emailExists.mockResolvedValue(false)
+      userRepo.create.mockResolvedValue({ ...testUser, name: 'User', role: 'TRAVELER' })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.signup(
+        { email: 'test@example.com', password: 'Password1' }, meta,
+      )
+
+      expect(userRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'User', role: 'TRAVELER' }),
+      )
+      expect(result.auth.user.name).toBe('User')
+    })
+  })
+
+  // ── googleAuth ─────────────────────────────────
+
+  describe('googleAuth', () => {
+    const googleMeta = { userAgent: 'test-agent', ip: '127.0.0.1' }
+    const googlePayload = {
+      email: 'google@example.com',
+      name: 'Google User',
+      sub: 'google-sub-123',
+      picture: 'https://photo.url/pic.jpg',
+    }
+
+    beforeEach(() => {
+      vi.spyOn(service as any, 'verifyGoogleToken').mockResolvedValue(googlePayload)
+    })
+
+    it('should login existing user found by googleId', async () => {
+      const existing = { ...testUser, googleId: 'google-sub-123', email: 'google@example.com' }
+      userRepo.findByGoogleId.mockResolvedValue(existing)
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(result.isNewUser).toBe(false)
+      expect(result.auth.user.email).toBe('google@example.com')
+      expect(userRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should link googleId when user found by email but not googleId', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue({ ...testUser, email: 'google@example.com' })
+      userRepo.updateGoogleId.mockResolvedValue({})
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(userRepo.updateGoogleId).toHaveBeenCalledWith('user-123', 'google-sub-123')
+      expect(result.isNewUser).toBe(false)
+    })
+
+    it('should create new user as TRAVELER with Google name and picture', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue(null)
+      userRepo.create.mockResolvedValue({
+        ...testUser, name: 'Google User', email: 'google@example.com',
+        googleId: 'google-sub-123', avatarUrl: 'https://photo.url/pic.jpg',
+      })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(userRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Google User',
+        email: 'google@example.com',
+        googleId: 'google-sub-123',
+        role: 'TRAVELER',
+        avatarUrl: 'https://photo.url/pic.jpg',
+      }))
+      expect(result.isNewUser).toBe(true)
+    })
+
+    it('should throw AuthError when Google token verification fails', async () => {
+      vi.spyOn(service as any, 'verifyGoogleToken').mockRejectedValue(
+        new AuthError('Google token verification failed'),
+      )
+      await expect(service.googleAuth({ idToken: 'bad' }, googleMeta)).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError when Google email is not verified', async () => {
+      vi.spyOn(service as any, 'verifyGoogleToken').mockRejectedValue(
+        new AuthError('Google email is not verified'),
+      )
+      await expect(service.googleAuth({ idToken: 'x' }, googleMeta))
+        .rejects.toThrow('Google email is not verified')
+    })
+
+    it('should throw AuthError when existing account is deactivated (by googleId)', async () => {
+      userRepo.findByGoogleId.mockResolvedValue({
+        ...testUser, googleId: 'google-sub-123', isActive: false,
+      })
+      await expect(service.googleAuth({ idToken: 'valid' }, googleMeta))
+        .rejects.toThrow('Account is deactivated')
+    })
+
+    it('should throw AuthError when existing account is deactivated (by email)', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue({ ...testUser, isActive: false })
+      await expect(service.googleAuth({ idToken: 'valid' }, googleMeta))
+        .rejects.toThrow('Account is deactivated')
+    })
+
+    it('should handle P2002 race condition by retrying as login', async () => {
+      userRepo.findByGoogleId.mockResolvedValueOnce(null)
+      userRepo.findByEmail.mockResolvedValue(null)
+      const p2002 = Object.assign(new Error('Unique'), { code: 'P2002' })
+      userRepo.create.mockRejectedValue(p2002)
+      userRepo.findByGoogleId.mockResolvedValueOnce({
+        ...testUser, googleId: 'google-sub-123', email: 'google@example.com',
+      })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      expect(result.isNewUser).toBe(false)
+    })
+
+    it('should set isNewUser true for newly created Google user', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue(null)
+      userRepo.create.mockResolvedValue({
+        ...testUser, name: 'Google User', email: 'google@example.com', googleId: 'google-sub-123',
+      })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      expect(result.isNewUser).toBe(true)
+    })
+
+    it('should use Google profile name, not default User', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue(null)
+      userRepo.create.mockResolvedValue({
+        ...testUser, name: 'Google User',
+      })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      expect(result.auth.user.name).toBe('Google User')
     })
   })
 })

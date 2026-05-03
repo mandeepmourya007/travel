@@ -22,6 +22,8 @@ function createMockAuthService() {
     logoutAll: vi.fn(),
     getMe: vi.fn(),
     verifyAccessToken: vi.fn(),
+    googleAuth: vi.fn(),
+    updateProfile: vi.fn(),
   } as unknown as AuthService & {
     signup: ReturnType<typeof vi.fn>
     login: ReturnType<typeof vi.fn>
@@ -30,6 +32,8 @@ function createMockAuthService() {
     logoutAll: ReturnType<typeof vi.fn>
     getMe: ReturnType<typeof vi.fn>
     verifyAccessToken: ReturnType<typeof vi.fn>
+    googleAuth: ReturnType<typeof vi.fn>
+    updateProfile: ReturnType<typeof vi.fn>
   }
 }
 
@@ -187,6 +191,39 @@ describe('Auth Routes (integration)', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.success).toBe(true)
+    })
+  })
+
+  // ── POST /google ───────────────────────────────────
+
+  describe('POST /api/v1/auth/google', () => {
+    it('returns 400 when idToken missing', async () => {
+      const res = await request(app).post('/api/v1/auth/google').send({})
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 201 for new Google user', async () => {
+      mockService.googleAuth.mockResolvedValue({
+        ...authResponse,
+        isNewUser: true,
+      })
+      const res = await request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'valid-google-token' })
+      expect(res.status).toBe(201)
+      expect(res.body.data.isNewUser).toBe(true)
+    })
+
+    it('returns 200 for existing Google user', async () => {
+      mockService.googleAuth.mockResolvedValue({
+        ...authResponse,
+        isNewUser: false,
+      })
+      const res = await request(app)
+        .post('/api/v1/auth/google')
+        .send({ idToken: 'valid-google-token' })
+      expect(res.status).toBe(200)
+      expect(res.body.data.isNewUser).toBe(false)
     })
   })
 

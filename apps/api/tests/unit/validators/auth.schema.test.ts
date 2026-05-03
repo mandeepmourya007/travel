@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema } from '@shared/validators/auth.schema'
+import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema, googleAuthSchema } from '@shared/validators/auth.schema'
 
 describe('signupSchema', () => {
   const validPayload = {
@@ -83,6 +83,16 @@ describe('signupSchema', () => {
     const result = signupSchema.safeParse({})
     expect(result.success).toBe(false)
   })
+
+  it('passes with email and password only (no name, no role)', () => {
+    const result = signupSchema.safeParse({ email: 'a@b.com', password: 'Password1' })
+    expect(result.success).toBe(true)
+  })
+
+  it('returns undefined for role when not provided', () => {
+    const result = signupSchema.parse({ email: 'a@b.com', password: 'Password1' })
+    expect(result.role).toBeUndefined()
+  })
 })
 
 describe('loginSchema', () => {
@@ -153,5 +163,31 @@ describe('updateProfileSchema', () => {
 
   it('should reject name with more than 100 chars', () => {
     expect(updateProfileSchema.safeParse({ name: 'A'.repeat(101) }).success).toBe(false)
+  })
+
+  it('should accept name with valid role', () => {
+    expect(updateProfileSchema.safeParse({ name: 'AB', role: 'ORGANIZER' }).success).toBe(true)
+  })
+
+  it('should accept name without role', () => {
+    expect(updateProfileSchema.safeParse({ name: 'AB' }).success).toBe(true)
+  })
+
+  it('should reject invalid role', () => {
+    expect(updateProfileSchema.safeParse({ name: 'AB', role: 'ADMIN' }).success).toBe(false)
+  })
+})
+
+describe('googleAuthSchema', () => {
+  it('should accept valid idToken', () => {
+    expect(googleAuthSchema.safeParse({ idToken: 'some-token' }).success).toBe(true)
+  })
+
+  it('should reject empty idToken', () => {
+    expect(googleAuthSchema.safeParse({ idToken: '' }).success).toBe(false)
+  })
+
+  it('should reject missing idToken', () => {
+    expect(googleAuthSchema.safeParse({}).success).toBe(false)
   })
 })
