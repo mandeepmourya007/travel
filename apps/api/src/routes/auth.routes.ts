@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { validate } from '../middleware/validate.middleware'
-import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema } from '@shared/validators/auth.schema'
+import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema, googleAuthSchema } from '@shared/validators/auth.schema'
 import { otpRateLimit } from '../middleware/rate-limit.middleware'
 
 export function createAuthRoutes(
@@ -19,6 +19,8 @@ export function createAuthRoutes(
   router.post('/logout-all', authMiddleware, authController.logoutAll)
   router.get('/me', authMiddleware, authController.getMe)
   router.patch('/profile', authMiddleware, validate(updateProfileSchema), authController.updateProfile)
+
+  router.post('/google', validate(googleAuthSchema), authController.googleAuth)
 
   router.post('/otp/send', otpRateLimit, validate(sendOtpSchema), otpController.sendOtp)
   router.post('/otp/verify', otpRateLimit, validate(verifyOtpSchema), otpController.verifyOtp)

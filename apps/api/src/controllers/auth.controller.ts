@@ -61,9 +61,24 @@ export class AuthController {
     res.json({ success: true, data: user })
   })
 
+  /** PATCH /auth/profile — Bearer (any role) */
   updateProfile = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) throw new AuthError('Not authenticated')
-    const user = await this.authService.updateProfile(req.user.userId, req.body)
-    res.json({ success: true, data: { id: user.id, name: user.name } })
+    const result = await this.authService.updateProfile(req.user.userId, req.body)
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /auth/google — public */
+  googleAuth = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.authService.googleAuth(req.body, {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    })
+
+    res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS)
+    res.status(result.isNewUser ? 201 : 200).json({
+      success: true,
+      data: { ...result.auth, isNewUser: result.isNewUser },
+    })
   })
 }

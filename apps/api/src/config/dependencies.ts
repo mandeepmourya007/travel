@@ -62,6 +62,7 @@ export const authService = new AuthService(
   organizerProfileRepo,
   JWT_SECRET,
   logger,
+  env.GOOGLE_CLIENT_ID,
 )
 
 const destinationService = new DestinationService(destinationRepo, logger)

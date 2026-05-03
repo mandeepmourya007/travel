@@ -39,8 +39,20 @@ export class UserRepository {
     })
   }
 
-  async updateProfile(id: string, data: { name?: string }) {
+  /**
+   * Updates user profile fields (name and optionally role).
+   * Used by: AuthService.updateProfile
+   */
+  async updateProfile(id: string, data: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' }) {
     return this.prisma.user.update({ where: { id }, data })
+  }
+
+  /**
+   * Links a Google account to an existing user by setting their googleId.
+   * Used by: AuthService.googleAuth (Case B — email match, no googleId yet)
+   */
+  async updateGoogleId(userId: string, googleId: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { googleId } })
   }
 
   async emailExists(email: string): Promise<boolean> {

@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import type { Logger } from 'pino'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
+import { DEFAULT_USER_NAME } from '@shared/constants/roles'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
@@ -16,7 +17,10 @@ export class AuthService {
     private organizerProfileRepo: OrganizerProfileRepository,
     private jwtSecret: string,
     private logger: Logger,
+    private googleClientId?: string,
   ) {}
+
+  private googleOAuthClient?: import('google-auth-library').OAuth2Client
 
   async signup(
     dto: SignupDto,
@@ -29,11 +33,11 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS)
     const user = await this.userRepo.create({
-      name: dto.name,
+      name: dto.name || DEFAULT_USER_NAME,
       email: dto.email,
       phone: dto.phone,
       passwordHash,
-      role: dto.role,
+      role: dto.role || 'TRAVELER',
     })
 
     // Auto-create OrganizerProfile for ORGANIZER signups (same transaction prevents orphans)
@@ -60,8 +64,15 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const user = await this.userRepo.findByEmail(dto.email)
-    if (!user || !user.passwordHash) {
+    if (!user) {
       throw new AuthError('Invalid email or password')
+    }
+    if (!user.passwordHash) {
+      throw new AuthError(
+        user.googleId
+          ? 'This account uses Google sign-in. Please use the Google button.'
+          : 'Invalid email or password',
+      )
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash)
@@ -147,15 +158,123 @@ export class AuthService {
   }
 
   /**
-   * Updates the authenticated user's profile (currently name only).
-   * Used during onboarding after OTP signup.
+   * Updates the authenticated user's profile (name and optionally role).
+   * Used during onboarding after signup/OTP/Google.
+   * Auto-creates OrganizerProfile when switching to ORGANIZER.
    * @throws {NotFoundError} User not found
    */
-  async updateProfile(userId: string, dto: { name: string }): Promise<{ id: string; name: string }> {
+  async updateProfile(
+    userId: string,
+    dto: { name: string; role?: 'TRAVELER' | 'ORGANIZER' },
+  ): Promise<{ id: string; name: string; role: string }> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
-    const updated = await this.userRepo.updateProfile(userId, { name: dto.name })
-    return { id: updated.id, name: updated.name }
+
+    const updateData: { name: string; role?: 'TRAVELER' | 'ORGANIZER' } = { name: dto.name }
+    if (dto.role) updateData.role = dto.role
+
+    const updated = await this.userRepo.updateProfile(userId, updateData)
+
+    // Auto-create OrganizerProfile when switching to ORGANIZER (if not already exists)
+    if (dto.role === 'ORGANIZER' && user.role !== 'ORGANIZER') {
+      const existing = await this.organizerProfileRepo.findByUserId(userId)
+      if (!existing) {
+        await this.organizerProfileRepo.create({
+          user: { connect: { id: userId } },
+          businessName: dto.name,
+        })
+        this.logger.info({ userId }, 'OrganizerProfile auto-created via onboarding')
+      }
+    }
+
+    return { id: updated.id, name: updated.name, role: updated.role }
+  }
+
+  /**
+   * Authenticates a user via Google OAuth ID token.
+   * Flow: verify token → find by googleId → find by email (link) → create new.
+   * New users always get role TRAVELER; onboarding handles role selection.
+   * Handles P2002 race condition (concurrent signup) by retrying as login.
+   * @throws {AuthError} Invalid/unverified Google token, deactivated account, Google not configured
+   */
+  async googleAuth(
+    dto: { idToken: string },
+    meta: { userAgent?: string; ip?: string },
+  ): Promise<{ auth: AuthResponse; refreshToken: string; isNewUser: boolean }> {
+    const google = await this.verifyGoogleToken(dto.idToken)
+
+    // Case A: existing user by googleId
+    let user = await this.userRepo.findByGoogleId(google.sub)
+    if (user) {
+      if (!user.isActive) throw new AuthError('Account is deactivated')
+      this.logger.info({ userId: user.id }, 'Google login (by googleId)')
+      return { ...(await this.issueTokens(user, meta)), isNewUser: false }
+    }
+
+    // Case B: existing user by email — link googleId
+    user = await this.userRepo.findByEmail(google.email)
+    if (user) {
+      if (!user.isActive) throw new AuthError('Account is deactivated')
+      await this.userRepo.updateGoogleId(user.id, google.sub)
+      this.logger.info({ userId: user.id }, 'Google login (linked googleId)')
+      return { ...(await this.issueTokens(user, meta)), isNewUser: false }
+    }
+
+    // Case C: new user — always TRAVELER, onboarding handles role
+    try {
+      user = await this.userRepo.create({
+        name: google.name,
+        email: google.email,
+        googleId: google.sub,
+        role: 'TRAVELER',
+        avatarUrl: google.picture,
+      })
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+        const existing = await this.userRepo.findByGoogleId(google.sub)
+          || await this.userRepo.findByEmail(google.email)
+        if (existing) {
+          return { ...(await this.issueTokens(existing, meta)), isNewUser: false }
+        }
+      }
+      throw err
+    }
+
+    this.logger.info({ userId: user.id }, 'New user via Google')
+    return { ...(await this.issueTokens(user, meta)), isNewUser: true }
+  }
+
+  // Lazy-loads Google OAuth2Client to avoid importing google-auth-library at startup
+  private async getGoogleClient() {
+    if (!this.googleClientId) throw new AuthError('Google sign-in is not configured')
+    if (!this.googleOAuthClient) {
+      const { OAuth2Client } = await import('google-auth-library')
+      this.googleOAuthClient = new OAuth2Client(this.googleClientId)
+    }
+    return this.googleOAuthClient
+  }
+
+  // Verifies Google ID token and extracts user profile (email, name, sub, picture)
+  private async verifyGoogleToken(idToken: string) {
+    const client = await this.getGoogleClient()
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken,
+        audience: this.googleClientId!,
+      })
+      const payload = ticket.getPayload()
+      if (!payload) throw new AuthError('Invalid Google token')
+      if (!payload.email_verified) throw new AuthError('Google email is not verified')
+      return {
+        email: payload.email!.toLowerCase(),
+        name: payload.name || payload.email!.split('@')[0],
+        sub: payload.sub,
+        picture: payload.picture,
+      }
+    } catch (err) {
+      if (err instanceof AuthError) throw err
+      throw new AuthError('Google token verification failed')
+    }
   }
 
   private generateAccessToken(payload: { userId: string; role: string }): string {
