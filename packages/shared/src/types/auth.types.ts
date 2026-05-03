@@ -1,9 +1,9 @@
 export interface SignupDto {
-  name: string
   email: string
-  phone?: string
   password: string
-  role: 'TRAVELER' | 'ORGANIZER'
+  name?: string
+  phone?: string
+  role?: 'TRAVELER' | 'ORGANIZER'
 }
 
 export interface LoginDto {
@@ -43,6 +43,11 @@ export interface OtpSendResponse {
 
 export interface UpdateProfileDto {
   name: string
+  role?: 'TRAVELER' | 'ORGANIZER'
+}
+
+export interface GoogleAuthDto {
+  idToken: string
 }
 
 export interface OtpVerifyResponse {

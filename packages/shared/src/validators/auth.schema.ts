@@ -4,19 +4,19 @@ import { z } from 'zod'
 export const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/
 
 export const signupSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim(),
   email: z.string().email('Invalid email address').toLowerCase().trim(),
-  phone: z
-    .string()
-    .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number')
-    .optional(),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
-  role: z.enum(['TRAVELER', 'ORGANIZER']),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim().optional(),
+  phone: z
+    .string()
+    .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number')
+    .optional(),
+  role: z.enum(['TRAVELER', 'ORGANIZER']).optional(),
 })
 
 export const loginSchema = z.object({
@@ -49,4 +49,9 @@ export const verifyOtpSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  role: z.enum(['TRAVELER', 'ORGANIZER']).optional(),
+})
+
+export const googleAuthSchema = z.object({
+  idToken: z.string().min(1, 'ID token is required'),
 })
