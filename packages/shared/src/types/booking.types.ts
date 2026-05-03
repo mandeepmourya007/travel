@@ -88,7 +88,7 @@ export interface TripBookingSummary {
 // ─── Traveler "My Bookings" View ────────────────────
 
 /** Tab filter values for the My Bookings page */
-export type MyBookingTab = 'all' | 'upcoming' | 'completed' | 'cancelled'
+export type MyBookingTab = 'all' | 'upcoming' | 'payment_pending' | 'completed' | 'cancelled'
 
 /** Traveler's booking list item — shown on the "My Bookings" page */
 export interface MyBookingListItem {
@@ -131,6 +131,7 @@ export interface MyBookingSummary {
   upcoming: number
   completed: number
   cancelled: number
+  paymentPending: number
 }
 
 /** Request body for POST /bookings/:id/cancel */

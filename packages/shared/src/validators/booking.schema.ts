@@ -1,29 +1,35 @@
 import { z } from 'zod'
 
+/** Reusable traveler detail schema — shared between booking and trip request */
+export const travelerDetailSchema = z.object({
+  name: z.string().min(2).trim(),
+  phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
+  age: z.number().int().min(1).max(120),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
+  isPrimary: z.boolean().default(false),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
+})
+
 export const createBookingSchema = z.object({
   tripId: z.string().cuid(),
   pickupPointId: z.string().cuid('Invalid pickup point').optional(),
   dropPointId: z.string().cuid('Invalid drop point').optional(),
   numTravelers: z.number().int().min(1).max(10),
-  travelers: z
-    .array(
-      z.object({
-        name: z.string().min(2).trim(),
-        phone: z.string().regex(/^[6-9]\d{9}$/, 'Invalid Indian phone number'),
-        age: z.number().int().min(1).max(120),
-        gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
-        isPrimary: z.boolean().default(false),
-        emergencyContactName: z.string().optional(),
-        emergencyContactPhone: z.string().optional(),
-      }),
-    )
-    .min(1),
+  travelers: z.array(travelerDetailSchema).min(1),
 })
 
 export const createTripRequestSchema = z.object({
   tripId: z.string().cuid(),
   message: z.string().max(500).optional(),
   numberOfTravelers: z.number().int().min(1).max(10),
+})
+
+/** Body-only schema for POST /trips/:tripId/request — tripId comes from URL params (H3 fix) */
+export const createTripRequestBodySchema = z.object({
+  message: z.string().max(500).optional(),
+  numberOfTravelers: z.number().int().min(1).max(10),
+  travelers: z.array(travelerDetailSchema).min(1),
 })
 
 export const respondTripRequestSchema = z.object({
@@ -68,7 +74,7 @@ export const createReviewSchema = z.object({
 // ─── Traveler "My Bookings" Filters & Actions ───────
 
 export const myBookingFiltersSchema = z.object({
-  tab: z.enum(['all', 'upcoming', 'completed', 'cancelled']).optional(),
+  tab: z.enum(['all', 'upcoming', 'payment_pending', 'completed', 'cancelled']).optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })

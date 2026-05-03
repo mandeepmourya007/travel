@@ -1,4 +1,10 @@
+import { z } from 'zod'
+import { travelerDetailSchema } from '../validators/booking.schema'
+
 export type TripRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
+
+/** Traveler detail — derived from shared Zod schema (1NF via TravelerDetail table) */
+export type TripRequestTraveler = z.infer<typeof travelerDetailSchema>
 
 export interface TripRequest {
   id: string
@@ -21,6 +27,7 @@ export interface CreateTripRequestDto {
   tripId: string
   message?: string
   numberOfTravelers: number
+  travelers: TripRequestTraveler[]
 }
 
 export interface RespondTripRequestDto {
@@ -40,6 +47,7 @@ export interface TripRequestListItem {
   respondedAt: string | null
   responseNote: string | null
   approvalExpiresAt: string | null
+  travelerDetails: TripRequestTraveler[] | null
   user: {
     id: string
     name: string
@@ -59,4 +67,32 @@ export interface TripRequestFilters {
 /** TripRequestListItem extended with trip context — used on the cross-trip pending requests page */
 export interface PendingRequestWithTrip extends TripRequestListItem {
   trip: { id: string; title: string; slug: string }
+}
+
+// ─── Traveler "Payment Pending" View ─────────────────
+
+/** Traveler's view of their trip request — shown in "Payment Pending" tab on My Bookings */
+export interface MyTripRequestItem {
+  id: string
+  tripId: string
+  numTravelers: number
+  message: string | null
+  status: TripRequestStatus
+  approvalExpiresAt: string | null
+  createdAt: string
+  /** true when status=APPROVED AND approvalExpiresAt > now */
+  canPay: boolean
+  /** Traveler details collected at request time */
+  travelerDetails: TripRequestTraveler[] | null
+  trip: {
+    id: string
+    title: string
+    slug: string
+    startDate: string
+    endDate: string
+    photos: string[]
+    pricePerPerson: number
+    destination: { id: string; name: string; slug: string }
+    organizer: { id: string; businessName: string; verified: boolean }
+  }
 }
