@@ -18,6 +18,8 @@ const BOOKING_INCLUDE_LIST = {
       isPrimary: true,
     },
   },
+  pickupPoint: { select: { id: true, label: true, time: true } },
+  dropPoint: { select: { id: true, label: true, time: true } },
 } as const
 
 const MY_BOOKING_INCLUDE = {
@@ -31,6 +33,8 @@ const MY_BOOKING_INCLUDE = {
     },
   },
   review: { select: { id: true } },
+  pickupPoint: { select: { id: true, label: true, time: true } },
+  dropPoint: { select: { id: true, label: true, time: true } },
 } as const
 
 export class BookingRepository {
@@ -221,6 +225,8 @@ export class BookingRepository {
     numTravelers: number
     totalAmount: number
     expiresAt: Date
+    pickupPointId?: string
+    dropPointId?: string
     travelers: Array<{
       name: string
       phone: string
@@ -239,6 +245,8 @@ export class BookingRepository {
         totalAmount: data.totalAmount,
         expiresAt: data.expiresAt,
         bookingStatus: 'PENDING_PAYMENT',
+        pickupPointId: data.pickupPointId ?? null,
+        dropPointId: data.dropPointId ?? null,
         travelerDetails: {
           create: data.travelers,
         },

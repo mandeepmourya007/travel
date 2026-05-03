@@ -1,8 +1,8 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/async-handler'
 import { BookingService } from '../services/booking.service'
-import type { CreateBookingDto, VerifyPaymentDto } from '@shared/types/payment.types'
-import type { MyBookingFilters } from '@shared/types/booking.types'
+import type { VerifyPaymentDto } from '@shared/types/payment.types'
+import type { CreateBookingDto, MyBookingFilters } from '@shared/types/booking.types'
 
 export class BookingController {
   constructor(private bookingService: BookingService) {}

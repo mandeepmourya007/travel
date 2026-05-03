@@ -72,6 +72,8 @@ export class BookingService {
           },
         },
         hasReview: b.review !== null,
+        pickupPoint: b.pickupPoint ?? undefined,
+        dropPoint: b.dropPoint ?? undefined,
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     }
@@ -165,6 +167,8 @@ export class BookingService {
     userId: string,
     input: {
       tripId: string
+      pickupPointId?: string
+      dropPointId?: string
       numTravelers: number
       travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
     },
@@ -221,13 +225,29 @@ export class BookingService {
       }
     }
 
-    // 3. Calculate price
+    // 3. Validate transfer points (if provided)
+    let pickupExtraCharge = 0
+    let dropExtraCharge = 0
+    if (input.pickupPointId) {
+      const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.pickupPointId)
+      if (!point) throw new ValidationError('Selected pickup point does not belong to this trip')
+      if (point.type !== 'PICKUP') throw new ValidationError('Selected pickup point is not a PICKUP type')
+      pickupExtraCharge = point.extraCharge ?? 0
+    }
+    if (input.dropPointId) {
+      const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.dropPointId)
+      if (!point) throw new ValidationError('Selected drop point does not belong to this trip')
+      if (point.type !== 'DROP') throw new ValidationError('Selected drop point is not a DROP type')
+      dropExtraCharge = point.extraCharge ?? 0
+    }
+
+    // 4. Calculate price (base + transfer point extra charges)
     const isEarlyBird = trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date()
     const pricePerPerson = isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
-    const totalAmount = pricePerPerson * input.numTravelers
+    const totalAmount = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
     const amountInPaise = totalAmount * 100
 
-    // 4. Build order-level transfers (H4 fix)
+    // 5. Build order-level transfers (H4 fix)
     // Skip transfers in non-production when organizer has seeded/mock linked account
     const isRealAccount =
       env.NODE_ENV === 'production' ||
@@ -261,6 +281,8 @@ export class BookingService {
       numTravelers: input.numTravelers,
       totalAmount,
       expiresAt,
+      pickupPointId: input.pickupPointId,
+      dropPointId: input.dropPointId,
       travelers: input.travelers,
     })
 

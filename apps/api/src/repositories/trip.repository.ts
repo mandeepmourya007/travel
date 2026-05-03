@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 
-const TRIP_INCLUDE_SUMMARY = {
+export const TRIP_INCLUDE_SUMMARY = {
   destination: {
     select: { id: true, name: true, slug: true },
   },
@@ -30,6 +30,14 @@ const TRIP_INCLUDE_DETAIL = {
     },
     orderBy: { createdAt: 'desc' as const },
     take: 10,
+  },
+  transferPoints: {
+    where: { isDeleted: false },
+    orderBy: { sortOrder: 'asc' as const },
+    select: {
+      id: true, type: true, label: true, address: true,
+      time: true, extraCharge: true, sortOrder: true,
+    },
   },
 } as const
 
@@ -206,6 +214,10 @@ export class TripRepository {
             razorpayAccountId: true,
             commissionRate: true,
           },
+        },
+        transferPoints: {
+          where: { isDeleted: false },
+          select: { id: true, type: true, extraCharge: true },
         },
       },
     })

@@ -1,16 +1,16 @@
 import { Logger } from 'pino'
-import { Prisma } from '@prisma/client'
+import { Prisma, TransferPointType } from '@prisma/client'
 import type { CreateTripDto, UpdateTripDto, TripFilters } from '@shared/types/trip.types'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
-import { TripRepository } from '../repositories/trip.repository'
+import { TripRepository, TRIP_INCLUDE_SUMMARY } from '../repositories/trip.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { NotFoundError, ValidationError, ForbiddenError } from '../errors/app-error'
-import { generateTripSlug } from '../utils/slug'
+import { generateSlug, generateTripSlug } from '../utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
 
 export class TripService {
@@ -69,7 +69,7 @@ export class TripService {
       throw new ForbiddenError('Organizer profile must be approved before creating trips')
     }
 
-    const destination = await this.destinationRepo.findById(input.destinationId)
+    const destination = await this.resolveDestination(input.destinationId)
     if (!destination) throw new ValidationError('Invalid destination')
 
     if (new Date(input.startDate) <= new Date()) {
@@ -101,12 +101,16 @@ export class TripService {
       exclusions: input.exclusions,
       itinerary: input.itinerary as unknown as Prisma.InputJsonValue,
       photos: input.photos,
-      pickupLocation: input.pickupLocation,
-      pickupTime: input.pickupTime,
+      transferPoints: {
+        create: [
+          ...input.pickupPoints.map((p, i) => ({ ...p, type: TransferPointType.PICKUP, sortOrder: i })),
+          ...input.dropPoints.map((p, i) => ({ ...p, type: TransferPointType.DROP, sortOrder: i })),
+        ],
+      },
       itineraryDocUrl: input.itineraryDocUrl,
       bookingDeadline: input.bookingDeadline ? new Date(input.bookingDeadline) : undefined,
       organizer: { connect: { id: profile.id } },
-      destination: { connect: { id: input.destinationId } },
+      destination: { connect: { id: destination.id } },
     })
 
     this.logger.info({ tripId: trip.id, slug }, 'Trip created')
@@ -130,7 +134,7 @@ export class TripService {
     const scalarFields: (keyof UpdateTripDto)[] = [
       'title', 'description', 'tripType', 'bookingMode', 'pricePerPerson',
       'earlyBirdPrice', 'minGroupSize', 'maxGroupSize', 'cancellationPolicy',
-      'inclusions', 'exclusions', 'itinerary', 'photos', 'pickupLocation', 'pickupTime',
+      'inclusions', 'exclusions', 'itinerary', 'photos',
       'itineraryDocUrl', 'acceptingBookings',
     ]
     for (const key of scalarFields) {
@@ -148,7 +152,48 @@ export class TripService {
       changedFields.push('destinationId')
     }
 
-    const updated = await this.tripRepo.update(tripId, updateData)
+    // Wrap scalar update + transfer point replacement in a single atomic transaction
+    const updated = await this.tripRepo.withTransaction(async (tx) => {
+      // Replace transfer points (soft-delete old + create new)
+      if (input.pickupPoints) {
+        await tx.tripTransferPoint.updateMany({
+          where: { tripId, type: TransferPointType.PICKUP, isDeleted: false },
+          data: { isDeleted: true, isActive: false, deletedAt: new Date() },
+        })
+        await tx.tripTransferPoint.createMany({
+          data: input.pickupPoints.map((p, i) => ({
+            ...p, tripId, type: TransferPointType.PICKUP, sortOrder: i,
+          })),
+        })
+        changedFields.push('pickupPoints')
+      }
+      if (input.dropPoints) {
+        await tx.tripTransferPoint.updateMany({
+          where: { tripId, type: TransferPointType.DROP, isDeleted: false },
+          data: { isDeleted: true, isActive: false, deletedAt: new Date() },
+        })
+        await tx.tripTransferPoint.createMany({
+          data: input.dropPoints.map((p, i) => ({
+            ...p, tripId, type: TransferPointType.DROP, sortOrder: i,
+          })),
+        })
+        changedFields.push('dropPoints')
+      }
+
+      // Scalar field update inside same tx — include transferPoints so returned trip is complete
+      return tx.trip.update({
+        where: { id: tripId },
+        data: updateData as Prisma.TripUpdateInput,
+        include: {
+          ...TRIP_INCLUDE_SUMMARY,
+          transferPoints: {
+            where: { isDeleted: false },
+            orderBy: { sortOrder: 'asc' as const },
+            select: { id: true, type: true, label: true, address: true, time: true, extraCharge: true, sortOrder: true },
+          },
+        },
+      })
+    })
 
     // Record edit history (skip for drafts to avoid noise)
     if (trip.status !== 'DRAFT' && changedFields.length > 0) {
@@ -246,6 +291,12 @@ export class TripService {
     if (!trip.title || !trip.description || !trip.pricePerPerson) {
       throw new ValidationError('Trip must have title, description, and price before publishing')
     }
+
+    const tripWithPoints = trip as typeof trip & { transferPoints?: { type: string }[] }
+    const hasPickup = tripWithPoints.transferPoints?.some((p) => p.type === 'PICKUP')
+    const hasDrop = tripWithPoints.transferPoints?.some((p) => p.type === 'DROP')
+    if (!hasPickup) throw new ValidationError('Trip must have at least one pickup point before publishing')
+    if (!hasDrop) throw new ValidationError('Trip must have at least one drop point before publishing')
 
     const updated = await this.tripRepo.withTransaction(async (tx) => {
       const result = await tx.trip.update({
@@ -456,6 +507,30 @@ export class TripService {
     return { trip, profile }
   }
 
+  /**
+   * Resolves a destination input that can be an existing slug/ID or a new name.
+   * Lookup order: slug (indexed, unique) → name (case-insensitive) → auto-create.
+   */
+  private async resolveDestination(destinationId: string) {
+    const input = destinationId.trim()
+    const slug = generateSlug(input)
+
+    // 1. Try slug lookup (fast, indexed, covers both typed names and existing slugs)
+    const bySlug = await this.destinationRepo.findBySlug(slug)
+    if (bySlug) return bySlug
+
+    // 2. Try exact name (case-insensitive) — covers names that may not match slug
+    const byName = await this.destinationRepo.findByName(input)
+    if (byName) return byName
+
+    // 3. Auto-create new destination
+    return this.destinationRepo.create({
+      name: input,
+      slug,
+      state: input,
+    })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toSummary(trip: any) {
     return {
@@ -498,8 +573,8 @@ export class TripService {
       inclusions: trip.inclusions,
       exclusions: trip.exclusions,
       itinerary: trip.itinerary,
-      pickupLocation: trip.pickupLocation,
-      pickupTime: trip.pickupTime,
+      pickupPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === 'PICKUP') ?? [],
+      dropPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === 'DROP') ?? [],
       earlyBirdDeadline: trip.earlyBirdDeadline,
       bookingDeadline: trip.bookingDeadline,
       reviews: trip.reviews?.map((r: { id: string; overallRating: number; comment: string | null; createdAt: Date; user: { id: string; name: string; avatarUrl: string | null } }) => ({

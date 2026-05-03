@@ -26,6 +26,13 @@ export class DestinationRepository {
     })
   }
 
+  /** Case-insensitive lookup by destination name. Used by TripService.resolveDestination. */
+  async findByName(name: string) {
+    return this.prisma.destination.findFirst({
+      where: { name: { equals: name, mode: 'insensitive' }, isDeleted: false },
+    })
+  }
+
   async create(data: Prisma.DestinationCreateInput) {
     return this.prisma.destination.create({ data })
   }
