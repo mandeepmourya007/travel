@@ -20,11 +20,35 @@ export interface AuthResponse {
   user: {
     id: string
     name: string
-    email: string
+    email?: string
     role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
     avatarUrl?: string
   }
   tokens: AuthTokens
+}
+
+export interface SendOtpDto {
+  phone: string
+}
+
+export interface VerifyOtpDto {
+  phone: string
+  otp: string
+}
+
+export interface OtpSendResponse {
+  message: string
+  retryAfter: number
+}
+
+export interface UpdateProfileDto {
+  name: string
+}
+
+export interface OtpVerifyResponse {
+  user: AuthResponse['user']
+  tokens: AuthTokens
+  isNewUser: boolean
 }
 
 export interface JwtPayload {
