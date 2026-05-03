@@ -15,7 +15,7 @@ interface PaginatedResponse {
  * Query key: bookingKeys.myBookings(filters) — staleTime 15s
  * Error handling: caller should render ErrorState on error
  */
-export function useMyBookings(filters: MyBookingFilters = {}) {
+export function useMyBookings(filters: MyBookingFilters = {}, enabled = true) {
   return useQuery({
     queryKey: bookingKeys.myBookings(filters),
     queryFn: async () => {
@@ -26,5 +26,6 @@ export function useMyBookings(filters: MyBookingFilters = {}) {
     },
     staleTime: 15_000,
     placeholderData: (prev) => prev,
+    enabled,
   })
 }
