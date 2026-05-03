@@ -35,6 +35,7 @@ export const tripRequestKeys = {
   all: ['tripRequests'] as const,
   forTrip: (tripId: string, filters?: TripRequestFilters) => [...tripRequestKeys.all, 'trip', tripId, filters] as const,
   myRequests: () => [...tripRequestKeys.all, 'my'] as const,
+  allPending: () => [...tripRequestKeys.all, 'allPending'] as const,
 }
 
 export const destinationKeys = {

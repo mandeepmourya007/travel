@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { tripRequestKeys, bookingKeys } from '@/lib/query-keys'
+import { tripRequestKeys, bookingKeys, organizerKeys } from '@/lib/query-keys'
 import type { TripRequestListItem } from '@shared/types/trip-request.types'
 
 interface RespondPayload {
@@ -13,7 +13,7 @@ interface RespondPayload {
 /**
  * Mutation hook to approve or reject a trip request.
  *
- * Invalidates: tripRequestKeys.all, bookingKeys.tripSummary(tripId)
+ * Invalidates: tripRequestKeys.all, bookingKeys.tripSummary(tripId), organizerKeys.stats()
  * Error handling: returns error for toast display
  */
 export function useRespondToRequest() {
@@ -30,6 +30,7 @@ export function useRespondToRequest() {
     onSuccess: (_data, { tripId }) => {
       queryClient.invalidateQueries({ queryKey: tripRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: bookingKeys.tripSummary(tripId) })
+      queryClient.invalidateQueries({ queryKey: organizerKeys.stats() })
     },
   })
 }
