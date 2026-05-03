@@ -494,4 +494,33 @@ describe('MyBookingsList', () => {
     expect(screen.getByText('Cancelled')).toBeInTheDocument()
     expect(screen.getByText('Expired')).toBeInTheDocument()
   })
+
+  // ── 14. Traveler Details Accordion ──
+
+  it('should show traveler details accordion when numTravelers > 1', async () => {
+    const booking = makeMyBooking({ numTravelers: 2 })
+    setupHandlers({ bookings: [booking] })
+
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /travelers/i })).toBeInTheDocument()
+    })
+  })
+
+  it('should show inline traveler name when numTravelers is 1', async () => {
+    const booking = makeMyBooking({
+      numTravelers: 1,
+      travelerDetails: [
+        { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
+      ],
+    })
+    setupHandlers({ bookings: [booking] })
+
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Alice')).toBeInTheDocument()
+    })
+  })
 })
