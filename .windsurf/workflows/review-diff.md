@@ -279,7 +279,33 @@ Output the review as a structured report with this format:
 
 ---
 
-## Step 5: Ask User for Action
+## Step 5: Plan Completion Check
+
+If a plan file exists for the current feature, verify every planned item is implemented in the diff.
+
+1. **Find the plan** — Look in `.windsurf/plans/` for a file matching the current feature or branch name. If multiple candidates exist or none are obvious, ask the user which plan applies. If no plan exists, skip this step entirely.
+2. **Read the plan** — Use `read_file` to load the plan and extract every action item / step / checklist entry.
+3. **Cross-check against the diff** — For each planned item, determine whether the diff contains a corresponding change. Mark each as:
+   - ✅ **Done** — Change is present in the diff
+   - ❌ **Missing** — No matching change found
+4. **Add to the review report** — Append a **Plan Compliance** section to the Step 4 report:
+
+```markdown
+## Plan Compliance
+- **Plan file:** `.windsurf/plans/<filename>.md`
+- **Items completed:** X / Y
+
+| # | Planned Item | Status | Notes |
+|---|-------------|--------|-------|
+| 1 | Description of item | ✅ Done | — |
+| 2 | Description of item | ❌ Missing | What's missing |
+```
+
+5. **Flag gaps** — If any planned items are missing, add a 🟠 **HIGH** issue per missing item in the review report's Issues Found section.
+
+---
+
+## Step 6: Ask User for Action
 
 After presenting the report, ask:
 
