@@ -1069,7 +1069,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [ ] **Review system** — post-trip review form, review listing
 - [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
 - [ ] **Admin panel** — organizer approvals, dispute handling, platform stats
-- [ ] **Google OAuth** — social login
+- [x] **Google OAuth** — social login (GoogleOAuthProvider, useGoogleAuth hook, POST /auth/google, GoogleAuthSection on login/signup pages)
 - [ ] **Email notifications** — booking confirmation, trip updates
 - [ ] **SEO** — Schema.org markup, sitemap generation
 - [ ] **Trip status auto-transitions** — ACTIVE → FULL when seats filled, ACTIVE/FULL → COMPLETED after endDate, escrow release on completion
