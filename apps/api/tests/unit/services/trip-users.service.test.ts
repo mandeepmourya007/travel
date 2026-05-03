@@ -42,6 +42,7 @@ const mockTripRequestRepo = {
   findByTripId: vi.fn(),
   findById: vi.fn(),
   updateStatus: vi.fn(),
+  findAllPendingForOrganizer: vi.fn(),
 }
 
 // ── Test Data Factories ─────────────────────────────────
@@ -449,6 +450,44 @@ describe('TripService — Trip Participants Dashboard', () => {
       await expect(
         service.respondToTripRequest('user-1', 'trip-1', 'req-1', 'APPROVED'),
       ).rejects.toThrow('Not enough seats')
+    })
+  })
+
+  // ─── getAllPendingRequests ─────────────────────────────
+
+  describe('getAllPendingRequests', () => {
+    it('should return pending requests with trip context when organizer has pending requests', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      const request = createMockRequest({
+        trip: { id: 'trip-1', title: 'Goa Beach Getaway', slug: 'goa-beach-getaway-dec-2025' },
+      })
+      mockTripRequestRepo.findAllPendingForOrganizer.mockResolvedValue([request])
+
+      const result = await service.getAllPendingRequests('user-1')
+
+      expect(result).toHaveLength(1)
+      expect(result[0].id).toBe('req-1')
+      expect(result[0].numTravelers).toBe(3)
+      expect(result[0].user.name).toBe('Amit Kumar')
+      expect(result[0].trip).toEqual({ id: 'trip-1', title: 'Goa Beach Getaway', slug: 'goa-beach-getaway-dec-2025' })
+      expect(mockTripRequestRepo.findAllPendingForOrganizer).toHaveBeenCalledWith('org-1')
+    })
+
+    it('should return empty array when no pending requests exist', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRequestRepo.findAllPendingForOrganizer.mockResolvedValue([])
+
+      const result = await service.getAllPendingRequests('user-1')
+
+      expect(result).toEqual([])
+    })
+
+    it('should throw ForbiddenError when organizer profile not found', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(
+        service.getAllPendingRequests('user-1'),
+      ).rejects.toThrow('Organizer profile not found')
     })
   })
 })

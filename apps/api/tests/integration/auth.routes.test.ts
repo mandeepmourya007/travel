@@ -9,6 +9,7 @@ import { OtpService } from '../../src/services/otp.service'
 import { createAuthRoutes } from '../../src/routes/auth.routes'
 import { createAuthMiddleware } from '../../src/middleware/auth.middleware'
 import { errorHandler } from '../../src/middleware/error-handler.middleware'
+import { requireRole } from '../../src/middleware/role.middleware'
 import { AuthError, ConflictError } from '../../src/errors/app-error'
 
 // ── Mock AuthService ──────────────────────────────────
@@ -56,7 +57,7 @@ function createTestApp(mockService: ReturnType<typeof createMockAuthService>) {
   const mockOtpService = { sendOtp: vi.fn(), verifyOtp: vi.fn() } as unknown as OtpService
   const otpController = new OtpController(mockOtpService)
   const authMiddleware = createAuthMiddleware(mockService)
-  const router = createAuthRoutes(controller, otpController, authMiddleware)
+  const router = createAuthRoutes(controller, otpController, authMiddleware, requireRole)
 
   app.use('/api/v1/auth', router)
   app.use(errorHandler)
