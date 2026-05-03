@@ -3,7 +3,9 @@ import request from 'supertest'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import { AuthController } from '../../src/controllers/auth.controller'
+import { OtpController } from '../../src/controllers/otp.controller'
 import { AuthService } from '../../src/services/auth.service'
+import { OtpService } from '../../src/services/otp.service'
 import { createAuthRoutes } from '../../src/routes/auth.routes'
 import { createAuthMiddleware } from '../../src/middleware/auth.middleware'
 import { errorHandler } from '../../src/middleware/error-handler.middleware'
@@ -47,8 +49,10 @@ function createTestApp(mockService: ReturnType<typeof createMockAuthService>) {
   app.use(cookieParser())
 
   const controller = new AuthController(mockService)
+  const mockOtpService = { sendOtp: vi.fn(), verifyOtp: vi.fn() } as unknown as OtpService
+  const otpController = new OtpController(mockOtpService)
   const authMiddleware = createAuthMiddleware(mockService)
-  const router = createAuthRoutes(controller, authMiddleware)
+  const router = createAuthRoutes(controller, otpController, authMiddleware)
 
   app.use('/api/v1/auth', router)
   app.use(errorHandler)

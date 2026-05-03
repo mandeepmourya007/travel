@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { signupSchema, loginSchema } from '@shared/validators/auth.schema'
+import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema } from '@shared/validators/auth.schema'
 
 describe('signupSchema', () => {
   const validPayload = {
@@ -109,5 +109,49 @@ describe('loginSchema', () => {
   it('rejects missing fields', () => {
     const result = loginSchema.safeParse({})
     expect(result.success).toBe(false)
+  })
+})
+
+describe('sendOtpSchema', () => {
+  it('should accept valid 10-digit phone starting with 6-9', () => {
+    expect(sendOtpSchema.safeParse({ phone: '9876543210' }).success).toBe(true)
+    expect(sendOtpSchema.safeParse({ phone: '6123456789' }).success).toBe(true)
+  })
+
+  it('should reject phone with less than 10 digits', () => {
+    expect(sendOtpSchema.safeParse({ phone: '98765' }).success).toBe(false)
+  })
+
+  it('should reject phone starting with 0-5', () => {
+    expect(sendOtpSchema.safeParse({ phone: '1234567890' }).success).toBe(false)
+  })
+})
+
+describe('verifyOtpSchema', () => {
+  it('should accept valid phone + 4-digit OTP', () => {
+    expect(verifyOtpSchema.safeParse({ phone: '9876543210', otp: '1234' }).success).toBe(true)
+  })
+
+  it('should reject non-numeric OTP', () => {
+    expect(verifyOtpSchema.safeParse({ phone: '9876543210', otp: 'abcd' }).success).toBe(false)
+  })
+
+  it('should reject OTP with length not equal to 4', () => {
+    expect(verifyOtpSchema.safeParse({ phone: '9876543210', otp: '123' }).success).toBe(false)
+    expect(verifyOtpSchema.safeParse({ phone: '9876543210', otp: '12345' }).success).toBe(false)
+  })
+})
+
+describe('updateProfileSchema', () => {
+  it('should accept name with 2+ chars', () => {
+    expect(updateProfileSchema.safeParse({ name: 'AB' }).success).toBe(true)
+  })
+
+  it('should reject name with less than 2 chars', () => {
+    expect(updateProfileSchema.safeParse({ name: 'A' }).success).toBe(false)
+  })
+
+  it('should reject name with more than 100 chars', () => {
+    expect(updateProfileSchema.safeParse({ name: 'A'.repeat(101) }).success).toBe(false)
   })
 })

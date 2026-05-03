@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { AuthService } from '../../../src/services/auth.service'
-import { AuthError, ConflictError } from '../../../src/errors/app-error'
+import { AuthError, ConflictError, NotFoundError } from '../../../src/errors/app-error'
 
 // ── Test doubles ──────────────────────────────────────
 
@@ -13,6 +13,7 @@ function createMockUserRepo() {
     findByGoogleId: vi.fn(),
     create: vi.fn(),
     updatePassword: vi.fn(),
+    updateProfile: vi.fn(),
     emailExists: vi.fn(),
   }
 }
@@ -49,7 +50,7 @@ const JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters'
 const testUser = {
   id: 'user-123',
   name: 'John Doe',
-  email: 'john@example.com',
+  email: 'john@example.com' as string | null,
   role: 'TRAVELER' as const,
   isActive: true,
   avatarUrl: null,
@@ -317,6 +318,28 @@ describe('AuthService', () => {
       const token = jwt.sign({ userId: 'u1', role: 'TRAVELER' }, 'wrong-secret')
 
       expect(() => service.verifyAccessToken(token)).toThrow(AuthError)
+    })
+  })
+
+  // ── updateProfile ──────────────────────────────
+
+  describe('updateProfile', () => {
+    it('should update user name and return updated user', async () => {
+      const updated = { ...testUser, name: 'New Name' }
+      userRepo.findById.mockResolvedValue(testUser)
+      userRepo.updateProfile.mockResolvedValue(updated)
+
+      const result = await service.updateProfile('user-123', { name: 'New Name' })
+
+      expect(userRepo.updateProfile).toHaveBeenCalledWith('user-123', { name: 'New Name' })
+      expect(result.name).toBe('New Name')
+    })
+
+    it('should throw NotFoundError when user does not exist', async () => {
+      userRepo.findById.mockResolvedValue(null)
+
+      await expect(service.updateProfile('bad-id', { name: 'X' }))
+        .rejects.toThrow(NotFoundError)
     })
   })
 })
