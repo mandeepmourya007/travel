@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { ArrowLeft, Users } from 'lucide-react'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { ErrorState } from '@/components/shared/data-states'
 import { useToast } from '@/components/shared/toast'
@@ -15,6 +16,8 @@ import { TravelerForm, type TravelerFormValues } from '@/components/booking/trav
 import { PriceSummary } from '@/components/booking/price-summary'
 import { BookingSuccess } from '@/components/booking/booking-success'
 import { BookingPageSkeleton } from './loading'
+import { formatCurrency } from '@/lib/format'
+import type { TripRequestTraveler } from '@shared/types/trip-request.types'
 
 interface BookingResult {
   bookingRef: string
@@ -30,6 +33,7 @@ export default function BookingPage({
   params: { slug: string }
 }) {
   const { slug } = params
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const user = useAuthStore((s) => s.user)
 
@@ -37,7 +41,23 @@ export default function BookingPage({
   const createBooking = useCreateBooking()
   const verifyPayment = useVerifyPayment()
 
-  const [numTravelers, setNumTravelers] = useState(1)
+  // Pre-fill from approved request if coming from Payment Pending tab
+  const requestId = searchParams.get('requestId')
+  const prefillCount = Number(searchParams.get('numTravelers')) || 1
+  const lockedTravelers = !!requestId
+  const [numTravelers, setNumTravelers] = useState(prefillCount)
+
+  // Load traveler details from sessionStorage (stashed by handlePayNow)
+  const savedTravelers = useMemo<TripRequestTraveler[] | null>(() => {
+    if (!requestId || typeof window === 'undefined') return null
+    try {
+      const raw = sessionStorage.getItem(`request-travelers-${requestId}`)
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  }, [requestId])
+
+  // True when we have both requestId AND saved travelers → show pay-only mode
+  const isPayOnlyMode = lockedTravelers && !!savedTravelers?.length
   const [phase, setPhase] = useState<'form' | 'success'>('form')
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -54,7 +74,7 @@ export default function BookingPage({
     : !trip.acceptingBookings ? 'notAccepting'
     : 'form'
 
-  async function handleSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
+  async function startPayment(travelers: TravelerFormValues['travelers'], pickupPointId?: string, dropPointId?: string) {
     if (!trip || !user) return
     setIsProcessing(true)
 
@@ -62,9 +82,9 @@ export default function BookingPage({
       const result = await createBooking.mutateAsync({
         tripId: trip.id,
         numTravelers,
-        travelers: data.travelers,
-        pickupPointId: data.pickupPointId || undefined,
-        dropPointId: data.dropPointId || undefined,
+        travelers,
+        pickupPointId: pickupPointId || undefined,
+        dropPointId: dropPointId || undefined,
       })
 
       if (!result.razorpayKeyId) {
@@ -99,6 +119,8 @@ export default function BookingPage({
               numTravelers,
               amountPaid: result.amountInRupees,
             })
+            // Clear stashed traveler details after successful payment
+            if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
             setPhase('success')
           } catch {
             // verifyPayment hook already shows error toast
@@ -189,22 +211,84 @@ export default function BookingPage({
                 <ArrowLeft className="h-4 w-4" />
                 Back to {trip.title}
               </Link>
-              <h1 className="text-2xl font-display font-bold text-neutral-900 mt-2">Complete Your Booking</h1>
+              <h1 className="text-2xl font-display font-bold text-neutral-900 mt-2">
+                {isPayOnlyMode ? 'Confirm & Pay' : 'Complete Your Booking'}
+              </h1>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
-                <TravelerForm
-                  trip={trip}
-                  numTravelers={numTravelers}
-                  onNumTravelersChange={setNumTravelers}
-                  onSubmit={handleSubmit}
-                  isPending={isProcessing}
-                />
+                {isPayOnlyMode && savedTravelers ? (
+                  /* ── Pay-only mode: show read-only traveler summary ── */
+                  <div className="space-y-4">
+                    <div className="card-static p-4">
+                      <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5 mb-3">
+                        <Users className="h-4 w-4 text-primary-500" />
+                        {savedTravelers.length} Traveler{savedTravelers.length > 1 ? 's' : ''}
+                      </h3>
+                      <div className="space-y-2">
+                        {savedTravelers.map((t, i) => (
+                          <div key={i} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
+                            <div>
+                              <p className="text-sm font-medium text-neutral-800">
+                                {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(You)</span>}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                {t.age} yrs &middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()} &middot; {t.phone}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="card-static p-4">
+                      <PriceSummary trip={trip} numTravelers={numTravelers} />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => startPayment(
+                        savedTravelers.map((t, i) => ({
+                          name: t.name,
+                          phone: t.phone,
+                          age: t.age,
+                          gender: t.gender,
+                          isPrimary: i === 0,
+                          emergencyContactName: t.emergencyContactName ?? '',
+                          emergencyContactPhone: t.emergencyContactPhone ?? '',
+                        })),
+                      )}
+                      disabled={isProcessing}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Pay ${formatCurrency(trip.pricePerPerson * numTravelers)}`
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  /* ── Standard form mode ── */
+                  <TravelerForm
+                    trip={trip}
+                    numTravelers={numTravelers}
+                    onNumTravelersChange={setNumTravelers}
+                    onSubmit={(data) => startPayment(data.travelers, data.pickupPointId, data.dropPointId)}
+                    isPending={isProcessing}
+                    lockedTravelers={lockedTravelers}
+                  />
+                )}
               </div>
-              <div className="lg:col-span-1">
-                <PriceSummary trip={trip} numTravelers={numTravelers} />
-              </div>
+              {!isPayOnlyMode && (
+                <div className="lg:col-span-1">
+                  <PriceSummary trip={trip} numTravelers={numTravelers} />
+                </div>
+              )}
             </div>
           </>
         )}
