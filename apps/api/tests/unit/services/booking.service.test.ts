@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
 import { logger } from '../../../src/utils/logger'
@@ -26,6 +27,9 @@ const mockTripRepo = {
 
 const mockTripRequestRepo = {
   findApprovedForUser: vi.fn(),
+  countPendingPaymentForUser: vi.fn().mockResolvedValue(0),
+  findPendingPaymentForUser: vi.fn().mockResolvedValue([]),
+  markConverted: vi.fn(),
 }
 
 const mockPaymentTxRepo = {
@@ -248,6 +252,7 @@ describe('BookingService', () => {
         upcoming: 4,     // CONFIRMED(3) + PENDING_PAYMENT(1)
         completed: 5,
         cancelled: 3,    // CANCELLED(1) + EXPIRED(2)
+        paymentPending: 0,
       })
     })
 
@@ -256,7 +261,7 @@ describe('BookingService', () => {
 
       const result = await service.getMyBookingSummary('user-1')
 
-      expect(result).toEqual({ all: 0, upcoming: 0, completed: 0, cancelled: 0 })
+      expect(result).toEqual({ all: 0, upcoming: 0, completed: 0, cancelled: 0, paymentPending: 0 })
     })
 
     it('should merge EXPIRED into cancelled count', async () => {
