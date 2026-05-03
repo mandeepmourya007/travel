@@ -1,16 +1,29 @@
-import { Redis } from '@upstash/redis'
+import IORedis from 'ioredis'
 import { logger } from '../utils/logger'
 
-function createRedisClient(): Redis | null {
+/**
+ * Creates a singleton ioredis client.
+ * Connects via REDIS_URL (TCP, e.g. redis://:password@host:6379).
+ * Returns null when REDIS_URL is unset — rate limiting gracefully disabled.
+ */
+function createRedisClient(): IORedis | null {
   const url = process.env.REDIS_URL
-  const token = process.env.REDIS_TOKEN
-
-  if (!url || !token) {
-    logger.warn('Redis not configured — rate limiting and caching disabled')
+  if (!url) {
+    logger.warn('REDIS_URL not set — rate limiting and caching disabled')
     return null
   }
 
-  return new Redis({ url, token })
+  const client = new IORedis(url, {
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+  })
+  client.on('connect', () => logger.info('Redis: connected'))
+  client.on('error', (err: Error) => logger.error({ error: err.message }, 'Redis connection error'))
+
+  // Connect asynchronously — won't block module import; errors handled by event listener
+  client.connect().catch(() => {})
+
+  return client
 }
 
 export const redis = createRedisClient()

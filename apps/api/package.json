@@ -18,8 +18,6 @@
   "dependencies": {
     "@prisma/client": "^5.17.0",
     "@travel/shared": "*",
-    "@upstash/ratelimit": "^2.0.0",
-    "@upstash/redis": "^1.34.0",
     "bcrypt": "^5.1.0",
     "cloudinary": "^2.4.0",
     "compression": "^1.7.4",
@@ -28,6 +26,7 @@
     "express": "^4.19.0",
     "google-auth-library": "^10.6.2",
     "helmet": "^7.1.0",
+    "ioredis": "^5.4.0",
     "jsonwebtoken": "^9.0.0",
     "node-cron": "^3.0.0",
     "pino": "^9.3.0",

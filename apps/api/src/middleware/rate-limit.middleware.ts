@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
-import { Ratelimit } from '@upstash/ratelimit'
 import { redis } from '../config/redis'
+import { SlidingWindowRateLimiter } from '../utils/rate-limiter'
 import { logger } from '../utils/logger'
 
 function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: number) {
@@ -8,11 +8,7 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
     return (_req: Request, _res: Response, next: NextFunction) => next()
   }
 
-  const limiter = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(maxRequests, `${windowSeconds} s`),
-    prefix: `ratelimit:${prefix}`,
-  })
+  const limiter = new SlidingWindowRateLimiter(redis, prefix, maxRequests, windowSeconds * 1000)
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
