@@ -27,6 +27,11 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
 
   const coverPhoto = trip.photos[0]
 
+  // Derived permission flags — single source of truth for button states
+  const canPublish = trip.status === 'DRAFT' && !!onPublish
+  const canToggleBookings = trip.status === 'ACTIVE' && !!onToggleBookings
+  const canDelete = (trip.status === 'DRAFT' || trip.status === 'ACTIVE') && !!onDelete
+
   return (
     <>
       <div className="card flex flex-col sm:flex-row sm:items-center gap-4 p-4">
@@ -59,14 +64,17 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {trip.status === 'DRAFT' && onPublish && (
-            <button onClick={() => onPublish(trip.id)} className="btn-primary py-1.5 px-4 text-sm">
-              Publish
-            </button>
-          )}
-          <Link href={`/dashboard/trips/${trip.id}/users?name=${encodeURIComponent(trip.title)}`} className="btn-outline py-1.5 px-4 text-sm">
+        {/* Actions — always visible; disabled when not applicable */}
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <button
+            onClick={() => onPublish?.(trip.id)}
+            disabled={!canPublish}
+            className="btn-primary py-1.5 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            title={canPublish ? 'Publish Trip' : 'Only DRAFT trips can be published'}
+          >
+            Publish
+          </button>
+          <Link href={`/dashboard/trips/${trip.id}/users?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
             <Users className="h-4 w-4 mr-1" /> Participants
           </Link>
           <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost py-1.5 px-3" title="Edit">
@@ -78,24 +86,22 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
           <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost py-1.5 px-3" title="Edit History">
             <History className="h-4 w-4" />
           </Link>
-          {trip.status === 'ACTIVE' && onToggleBookings && (
-            <button
-              onClick={() => onToggleBookings(trip.id)}
-              className="btn-ghost py-1.5 px-3"
-              title={trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings'}
-            >
-              {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
-            </button>
-          )}
-          {(trip.status === 'DRAFT' || trip.status === 'ACTIVE') && onDelete && (
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="btn-ghost py-1.5 px-3 text-error-500"
-              title="Delete Trip"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
+          <button
+            onClick={() => onToggleBookings?.(trip.id)}
+            disabled={!canToggleBookings}
+            className="btn-ghost py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={canToggleBookings ? (trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings') : 'Only ACTIVE trips can toggle bookings'}
+          >
+            {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => { if (canDelete) setShowDeleteModal(true) }}
+            disabled={!canDelete}
+            className="btn-ghost py-1.5 px-3 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={canDelete ? 'Delete Trip' : 'Only DRAFT or ACTIVE trips can be deleted'}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
