@@ -111,7 +111,7 @@ export const authRoutes = createAuthRoutes(authController, otpController, authMi
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
-export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware)
+export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null
