@@ -387,17 +387,7 @@ export class TripService {
     const { data, total } = await this.tripRequestRepo.findByTripId(tripId, filters, { offset, limit })
 
     return {
-      data: data.map((r) => ({
-        id: r.id,
-        numTravelers: r.numTravelers,
-        message: r.message,
-        status: r.status,
-        createdAt: r.createdAt,
-        respondedAt: r.respondedAt,
-        responseNote: r.responseNote,
-        approvalExpiresAt: r.approvalExpiresAt,
-        user: r.user,
-      })),
+      data: data.map((r) => this.toRequestListItem(r)),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     }
   }
@@ -478,17 +468,25 @@ export class TripService {
       'Trip request responded',
     )
 
-    return {
-      id: updated.id,
-      numTravelers: updated.numTravelers,
-      message: updated.message,
-      status: updated.status,
-      createdAt: updated.createdAt,
-      respondedAt: updated.respondedAt,
-      responseNote: updated.responseNote,
-      approvalExpiresAt: updated.approvalExpiresAt,
-      user: updated.user,
-    }
+    return this.toRequestListItem(updated)
+  }
+
+  /**
+   * Returns all pending trip requests across organizer's trips, with trip context.
+   * Used by the dashboard "Pending Requests" page for cross-trip view.
+   * No pagination — pending requests are low-volume.
+   *
+   * @throws ForbiddenError — organizer profile not found
+   */
+  async getAllPendingRequests(userId: string) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new ForbiddenError('Organizer profile not found')
+
+    const requests = await this.tripRequestRepo.findAllPendingForOrganizer(profile.id)
+    return requests.map((r) => ({
+      ...this.toRequestListItem(r),
+      trip: r.trip,
+    }))
   }
 
   /**
@@ -529,6 +527,21 @@ export class TripService {
       slug,
       state: input,
     })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toRequestListItem(r: any) {
+    return {
+      id: r.id,
+      numTravelers: r.numTravelers,
+      message: r.message,
+      status: r.status,
+      createdAt: r.createdAt,
+      respondedAt: r.respondedAt,
+      responseNote: r.responseNote,
+      approvalExpiresAt: r.approvalExpiresAt,
+      user: r.user,
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

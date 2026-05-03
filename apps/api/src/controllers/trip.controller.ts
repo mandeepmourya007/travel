@@ -76,6 +76,12 @@ export class TripController {
     res.json({ success: true, data: stats })
   })
 
+  /** GET /trips/organizer/pending-requests — All pending requests across trips (organizer only) */
+  getAllPendingRequests = asyncHandler(async (req: Request, res: Response) => {
+    const data = await this.tripService.getAllPendingRequests(req.user!.userId)
+    res.json({ success: true, data })
+  })
+
   // ─── Trip Participants Dashboard ──────────────────────
 
   /** GET /trips/:tripId/bookings — List bookings for a trip (organizer only) */

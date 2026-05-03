@@ -100,6 +100,27 @@ export class TripRequestRepository {
     })
   }
 
+  /**
+   * Fetches ALL pending requests across an organizer's non-deleted trips.
+   * Includes trip context (id, title, slug) for FE grouping.
+   * Used by: TripService.getAllPendingRequests()
+   * No pagination — pending requests are low-volume by nature.
+   */
+  async findAllPendingForOrganizer(organizerId: string) {
+    return this.prisma.tripRequest.findMany({
+      where: {
+        status: 'PENDING',
+        isDeleted: false,
+        trip: { organizerId, isDeleted: false },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        ...REQUEST_INCLUDE_LIST,
+        trip: { select: { id: true, title: true, slug: true } },
+      },
+    })
+  }
+
   // Builds dynamic WHERE clause for status + user name search
   private buildWhere(
     tripId: string,

@@ -29,6 +29,13 @@ export function createTripRoutes(
     tripController.getOrganizerStats,
   )
 
+  router.get(
+    '/organizer/pending-requests',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    tripController.getAllPendingRequests,
+  )
+
   // Public
   router.get('/', validate(tripFiltersSchema, 'query'), tripController.search)
   router.get('/slug/:slug', validate(slugParamSchema, 'params'), tripController.getBySlug)
