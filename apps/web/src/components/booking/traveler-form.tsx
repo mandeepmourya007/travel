@@ -62,8 +62,8 @@ export function TravelerForm({
     defaultValues: saved ?? {
       tripId: trip.id,
       numTravelers: 1,
-      pickupPointId: trip.pickupPoints?.[0]?.id ?? '',
-      dropPointId: trip.dropPoints?.[0]?.id ?? '',
+      pickupPointId: trip.pickupPoints?.[0]?.id ?? undefined,
+      dropPointId: trip.dropPoints?.[0]?.id ?? undefined,
       travelers: [
         {
           name: user?.name || '',
