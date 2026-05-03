@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { apiClient } from '@/lib/api-client'
@@ -12,8 +12,10 @@ import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar'
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, clearAuth } = useAuthStore()
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const handleLogout = useCallback(async () => {
+    setLoggingOut(true)
     try {
       await apiClient.post('/auth/logout')
     } catch {
@@ -36,8 +38,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <p className="text-sm font-medium text-neutral-800">{user?.name}</p>
                   <p className="text-xs text-neutral-400">{user?.role}</p>
                 </div>
-                <button onClick={handleLogout} className="btn-ghost text-sm">
-                  Logout
+                <button
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="btn-ghost text-sm flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {loggingOut ? <><span className="spinner spinner-sm" /> Logging out...</> : 'Logout'}
                 </button>
               </div>
             </div>

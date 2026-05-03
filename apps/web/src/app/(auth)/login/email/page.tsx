@@ -53,7 +53,6 @@ export default function EmailLoginPage() {
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -117,7 +116,11 @@ export default function EmailLoginPage() {
               disabled={loading}
               className="btn-primary w-full disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="spinner spinner-sm" /> Signing in...
+                </span>
+              ) : 'Sign in'}
             </button>
           </form>
 

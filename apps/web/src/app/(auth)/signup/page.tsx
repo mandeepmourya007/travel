@@ -58,7 +58,6 @@ export default function SignupPage() {
       } else {
         setError(err instanceof Error ? err.message : 'Signup failed. Please try again.')
       }
-    } finally {
       setLoading(false)
     }
   }
@@ -124,7 +123,11 @@ export default function SignupPage() {
               disabled={loading}
               className="btn-primary w-full disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="spinner spinner-sm" /> Creating account...
+                </span>
+              ) : 'Create account'}
             </button>
           </form>
 

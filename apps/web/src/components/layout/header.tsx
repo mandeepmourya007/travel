@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Search, Menu, X, User, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { apiClient } from '@/lib/api-client'
@@ -13,12 +13,14 @@ export function Header() {
   const { isAuthenticated, user, clearAuth, _hasHydrated } = useAuthStore()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true)
     try { await apiClient.post('/auth/logout') } catch { /* best-effort */ }
     clearAuth()
     router.push('/login')
-  }
+  }, [clearAuth, router])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -81,10 +83,11 @@ export function Header() {
               )}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+                disabled={loggingOut}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-50 disabled:pointer-events-none"
                 aria-label="Log out"
               >
-                <LogOut className="h-4 w-4" />
+                {loggingOut ? <span className="spinner spinner-sm" /> : <LogOut className="h-4 w-4" />}
               </button>
             </>
           ) : (
@@ -157,10 +160,11 @@ export function Header() {
               )}
               <button
                 onClick={() => { setMobileMenuOpen(false); handleLogout() }}
-                className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-error-600 hover:bg-error-50"
+                disabled={loggingOut}
+                className="flex w-full items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-error-600 hover:bg-error-50 disabled:opacity-50 disabled:pointer-events-none"
               >
-                <LogOut className="h-4 w-4" />
-                Log out
+                {loggingOut ? <span className="spinner spinner-sm" /> : <LogOut className="h-4 w-4" />}
+                {loggingOut ? 'Logging out...' : 'Log out'}
               </button>
             </>
           ) : (
