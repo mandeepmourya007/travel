@@ -55,3 +55,8 @@ export interface TripRequestFilters {
   page?: number
   limit?: number
 }
+
+/** TripRequestListItem extended with trip context — used on the cross-trip pending requests page */
+export interface PendingRequestWithTrip extends TripRequestListItem {
+  trip: { id: string; title: string; slug: string }
+}
