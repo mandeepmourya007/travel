@@ -375,6 +375,7 @@ export class BookingRepository {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        tripRequest: { select: { id: true, status: true } },
       },
     })
   }

@@ -1,5 +1,6 @@
 import { Logger } from 'pino'
 import type { MyBookingFilters, MyBookingSummary, CancelBookingResult } from '@shared/types/booking.types'
+import type { MyTripRequestItem } from '@shared/types/trip-request.types'
 import type { CreateBookingResponse, VerifyPaymentDto, VerifyPaymentResponse } from '@shared/types/payment.types'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRepository } from '../repositories/trip.repository'
@@ -44,8 +45,10 @@ export class BookingService {
 
     const { data, total } = await this.bookingRepo.findByUserId(userId, filters.tab, { offset, limit })
 
+    type BookingRow = Awaited<ReturnType<BookingRepository['findByUserId']>>['data'][number]
+
     return {
-      data: data.map((b: any) => ({
+      data: data.map((b: BookingRow) => ({
         id: b.id,
         bookingRef: b.bookingRef,
         bookingStatus: b.bookingStatus,
@@ -107,7 +110,8 @@ export class BookingService {
           cancelled += count; break
       }
     }
-    return { all, upcoming, completed, cancelled }
+    const paymentPending = await this.tripRequestRepo.countPendingPaymentForUser(userId)
+    return { all, upcoming, completed, cancelled, paymentPending }
   }
 
   /**
@@ -375,6 +379,11 @@ export class BookingService {
     // Update booking to CONFIRMED
     await this.bookingRepo.updateStatus(bookingId, 'CONFIRMED')
 
+    // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow (C1 fix)
+    if (booking.tripRequest && booking.tripRequest.status === 'APPROVED') {
+      await this.tripRequestRepo.markConverted(booking.tripRequest.id, bookingId)
+    }
+
     this.logger.info({ bookingId }, 'Booking confirmed')
 
     return {
@@ -431,6 +440,46 @@ export class BookingService {
 
     // Confirm booking (capture + seats)
     return this.confirmBooking(bookingId)
+  }
+
+  /**
+   * Returns the traveler's approved trip requests that are awaiting payment.
+   * Used by the "Payment Pending" tab on My Bookings page.
+   *
+   * Business rule: only returns requests where approvalExpiresAt > now
+   * (expired ones don't show — they'll be cleaned up by cron)
+   */
+  async getMyPendingPaymentRequests(userId: string): Promise<MyTripRequestItem[]> {
+    const requests = await this.tripRequestRepo.findPendingPaymentForUser(userId)
+
+    type PendingRequest = Awaited<ReturnType<TripRequestRepository['findPendingPaymentForUser']>>[number]
+
+    return requests.map((r: PendingRequest) => ({
+      id: r.id,
+      tripId: r.tripId,
+      numTravelers: r.numTravelers,
+      message: r.message,
+      status: r.status,
+      approvalExpiresAt: r.approvalExpiresAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+      canPay: r.status === 'APPROVED',
+      travelerDetails: r.travelerDetails?.length ? r.travelerDetails : null,
+      trip: {
+        id: r.trip.id,
+        title: r.trip.title,
+        slug: r.trip.slug,
+        startDate: r.trip.startDate.toISOString(),
+        endDate: r.trip.endDate.toISOString(),
+        photos: r.trip.photos,
+        pricePerPerson: r.trip.pricePerPerson,
+        destination: r.trip.destination,
+        organizer: {
+          id: r.trip.organizer.id,
+          businessName: r.trip.organizer.businessName,
+          verified: r.trip.organizer.verificationStatus === 'APPROVED',
+        },
+      },
+    }))
   }
 
   /** Refund % based on cancellation policy and hours until trip */

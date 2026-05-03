@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
+import type { UserRole } from '@shared/types/user.types'
 import { BookingController } from '../controllers/booking.controller'
 import { validate } from '../middleware/validate.middleware'
 import { myBookingFiltersSchema, cancelBookingSchema, createBookingSchema, verifyPaymentSchema } from '@shared/validators/booking.schema'
@@ -8,6 +9,7 @@ import { cuidParamSchema } from '@shared/validators/common.schema'
 export function createBookingRoutes(
   bookingController: BookingController,
   authMiddleware: RequestHandler,
+  _requireRole: (...roles: UserRole[]) => RequestHandler,
 ) {
   const router = Router()
 
@@ -30,6 +32,12 @@ export function createBookingRoutes(
     '/my/summary',
     authMiddleware,
     bookingController.getMyBookingSummary,
+  )
+
+  router.get(
+    '/my/pending-requests',
+    authMiddleware,
+    bookingController.getPendingRequests,
   )
 
   router.post(
