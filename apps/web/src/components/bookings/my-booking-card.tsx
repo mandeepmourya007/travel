@@ -6,6 +6,7 @@ import { MapPin, Calendar, Users } from 'lucide-react'
 import type { MyBookingListItem } from '@shared/types/booking.types'
 import { formatCurrency, formatDateRange } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
+import { TravelerDetailsAccordion } from './traveler-details-accordion'
 
 interface MyBookingCardProps {
   booking: MyBookingListItem
@@ -86,6 +87,11 @@ export function MyBookingCard({ booking, onCancel }: MyBookingCardProps) {
             </span>
           )}
         </div>
+
+        {/* Traveler details accordion */}
+        {booking.travelerDetails && booking.travelerDetails.length > 0 && (
+          <TravelerDetailsAccordion travelers={booking.travelerDetails} />
+        )}
 
         {/* Bottom: amount + actions — mobile: stacked, desktop: row */}
         <div className="flex flex-col gap-2 border-t border-neutral-100 pt-2 md:flex-row md:items-center md:justify-between">

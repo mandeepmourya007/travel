@@ -146,6 +146,7 @@ export function ParticipantDrawer({ item, onClose }: ParticipantDrawerProps) {
                       <th className="px-4 py-2">Age</th>
                       <th className="px-4 py-2">Gender</th>
                       <th className="px-4 py-2">Phone</th>
+                      <th className="px-4 py-2">Emergency</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -163,6 +164,14 @@ export function ParticipantDrawer({ item, onClose }: ParticipantDrawerProps) {
                           {td.phone ? (
                             <span className="flex items-center gap-1">
                               <Phone className="h-3 w-3" /> {td.phone}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-2.5 text-neutral-600">
+                          {td.emergencyContactName ? (
+                            <span>
+                              {td.emergencyContactName}
+                              {td.emergencyContactPhone ? ` · ${td.emergencyContactPhone}` : ''}
                             </span>
                           ) : '—'}
                         </td>
