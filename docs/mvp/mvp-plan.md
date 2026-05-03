@@ -656,7 +656,7 @@ LOGIN:
 | **Chat** | Socket.IO | Real-time in-app messaging with anti-leakage filters |
 | **Hosting** | Vercel (FE) + Railway/Render (BE) | Free tiers, independent scaling |
 | **Search** | PostgreSQL full-text (MVP) | Good enough for launch; Algolia later |
-| **Cache** | Upstash Redis | Rate limiting, session cache, Socket.IO adapter |
+| **Cache** | Redis (ioredis) | Rate limiting, session cache, Socket.IO adapter |
 | **Logging** | Pino | Structured JSON logging, fastest Node.js logger |
 
 > **Note:** Full architecture details, folder structure, and design patterns are in [`docs/engineering/tech-stack.md`](../engineering/tech-stack.md).
@@ -857,7 +857,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Environment config + validation
 - [x] Pino structured logging (singleton)
 - [x] CORS whitelist config
-- [x] Redis client (Upstash, graceful null)
+- [x] Redis client (ioredis, graceful null)
 
 #### ✅ Shared Package (`packages/shared`)
 - [x] Auth types (`SignupDto`, `LoginDto`, `AuthTokens`, `AuthResponse`, `JwtPayload`)
@@ -877,7 +877,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Auth middleware (Bearer token verification)
 - [x] Role middleware (`requireRole(...roles)` RBAC)
 - [x] Validation middleware (Zod)
-- [x] Rate limiting middleware (Upstash Redis — general, auth, webhook tiers)
+- [x] Rate limiting middleware (ioredis + sliding window Lua — general, auth, otp, webhook tiers)
 - [x] Request logger middleware (Pino structured logging)
 - [x] Error handler middleware (typed errors, Pino logging)
 - [x] Typed errors (`AppError`, `NotFoundError`, `ValidationError`, `AuthError`, `ConflictError`, `ForbiddenError`)

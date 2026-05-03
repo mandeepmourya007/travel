@@ -62,7 +62,7 @@ A senior architect-level tech spec for building a scalable, maintainable group t
 | Pattern | Where Used | File(s) | Why |
 |---------|-----------|---------|-----|
 | **Singleton** | Prisma client instance (one per process, shared globally) | `lib/prisma.ts` | Prevents connection pool exhaustion; Next.js hot-reload safe via `globalForPrisma` |
-| **Singleton** | Redis client (one Upstash connection) | `config/redis.ts` | Single connection reused across rate limiting, caching, Socket.IO adapter |
+| **Singleton** | Redis client (one ioredis TCP connection) | `config/redis.ts` | Single connection reused across rate limiting, caching, Socket.IO adapter |
 | **Singleton** | Pino logger (one instance, child loggers per request) | `utils/logger.ts` | Consistent config, base fields (service name, env) attached once |
 | **Factory Method** | Query key factories — `tripKeys.list(filters)`, `bookingKeys.detail(id)` | `lib/query-keys.ts` | Produces consistent cache keys; TanStack Query invalidation relies on key shape |
 | **Factory Method** | Error class hierarchy — `new NotFoundError('Trip')` produces 404 with code | `errors/*.error.ts` | Each subclass is a factory that constructs the correct statusCode + error code |
@@ -279,7 +279,7 @@ travel-app/
 │       │   ├── config/
 │       │   │   ├── env.ts            # Environment variable validation (Zod)
 │       │   │   ├── database.ts       # DB connection config (lib/prisma.ts)
-│       │   │   ├── redis.ts          # Upstash Redis client
+│       │   │   ├── redis.ts          # ioredis client (TCP)
 │       │   │   ├── razorpay.ts       # Razorpay client init
 │       │   │   ├── cloudinary.ts     # Cloudinary config
 │       │   │   └── cors.ts           # CORS whitelist
@@ -774,8 +774,7 @@ export function ErrorState({ message = 'Failed to load', onRetry }: DataStatePro
 | express-rate-limit | 7.x | Rate limiting |
 | multer | 1.x | File uploads |
 | node-cron | 3.x | Scheduled jobs (escrow release, reminders) |
-| @upstash/redis | 1.x | Redis client (rate limiting, cache) |
-| @upstash/ratelimit | 2.x | Redis-backed distributed rate limiting |
+| ioredis | 5.x | Redis client (TCP — rate limiting, cache, Socket.IO adapter) |
 | crypto | built-in | SHA-256 hashing for refresh tokens + webhook signatures |
 | cloudinary | 2.x | Signed upload URL generation (images never route through Express) |
 | uuid | 10.x | Request ID generation for distributed tracing |
@@ -906,7 +905,7 @@ export const corsOptions: cors.CorsOptions = {
 STANDARD ROUTES (user-facing):
   Request
     → Request ID Middleware (generate UUID per request)
-    → Rate Limit Middleware (Redis-backed via @upstash/ratelimit)
+    → Rate Limit Middleware (Redis-backed sliding window via ioredis)
     → CORS Middleware (origin whitelist)
     → Request Logger Middleware (structured Pino logs)
     → Auth Middleware (JWT verification)
@@ -1703,7 +1702,7 @@ export function initSocket(server: HttpServer) {
       origin: corsOptions.origin,    // Reuse CORS whitelist from config/cors.ts
       credentials: true,
     },
-    adapter: createAdapter(redis),   // Redis adapter for horizontal scaling (Upstash)
+    adapter: createAdapter(redis),   // Redis adapter for horizontal scaling
   })
 
   // Auth middleware — verify JWT before connection
@@ -1777,67 +1776,63 @@ export function scan(content: string): FilterResult {
 
 ## 9b. Redis Cache & Rate Limiting
 
-> **Why Upstash Redis?** Serverless Redis that works on free tier. Production platforms (Swiggy, Zomato)
-> use Redis for rate limiting, caching, and session management. Without Redis, `express-rate-limit`
-> uses in-memory storage — breaks with multiple server instances.
+> **Why Redis?** Production platforms (Swiggy, Zomato) use Redis for rate limiting, caching, and
+> session management. Without Redis, `express-rate-limit` uses in-memory storage — breaks with
+> multiple server instances. We use ioredis (TCP) connecting to a Docker Redis container in dev
+> and a managed Redis instance in production.
 
 ### Redis Client Setup
 
 ```typescript
 // config/redis.ts
-import { Redis } from '@upstash/redis'
-import { env } from './env'
+import IORedis from 'ioredis'
+import { logger } from '../utils/logger'
 
-export const redis = new Redis({
-  url: env.REDIS_URL,
-  token: env.REDIS_TOKEN,
-})
+function createRedisClient(): IORedis | null {
+  const url = process.env.REDIS_URL
+  if (!url) {
+    logger.warn('REDIS_URL not set — rate limiting and caching disabled')
+    return null
+  }
+  const client = new IORedis(url, { maxRetriesPerRequest: 3 })
+  client.on('connect', () => logger.info('Redis: connected'))
+  client.on('error', (err: Error) => logger.error({ error: err.message }, 'Redis connection error'))
+  return client
+}
+
+export const redis = createRedisClient()
 ```
 
 ### Rate Limiting (Redis-Backed)
 
 ```typescript
+// utils/rate-limiter.ts — Atomic sliding window via Redis sorted sets + Lua
+export class SlidingWindowRateLimiter {
+  constructor(private redis: IORedis, private prefix: string, private max: number, private windowMs: number) {}
+  async limit(identifier: string): Promise<{ success: boolean; limit: number; remaining: number; reset: number }>
+}
+
 // middleware/rate-limit.middleware.ts
-import { Ratelimit } from '@upstash/ratelimit'
-import { redis } from '@/config/redis'
+import { redis } from '../config/redis'
+import { SlidingWindowRateLimiter } from '../utils/rate-limiter'
 
-// General API: 100 requests per minute per IP
-export const generalRateLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(100, '1m'),
-  prefix: 'ratelimit:general',
-})
-
-// Auth endpoints: 5 requests per minute per IP (brute-force protection)
-export const authRateLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(5, '1m'),
-  prefix: 'ratelimit:auth',
-})
-
-// Webhook: 50 requests per minute (Razorpay IPs)
-export const webhookRateLimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(50, '1m'),
-  prefix: 'ratelimit:webhook',
-})
-
-export function rateLimitMiddleware(limiter: Ratelimit) {
-  return async (req: Request, res: Response, next: NextFunction) => {
-    const identifier = req.ip || 'unknown'
-    const { success, limit, remaining, reset } = await limiter.limit(identifier)
+function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: number) {
+  if (!redis) return (_req, _res, next) => next()  // graceful fallback
+  const limiter = new SlidingWindowRateLimiter(redis, prefix, maxRequests, windowSeconds * 1000)
+  return async (req, res, next) => {
+    const { success, limit, remaining, reset } = await limiter.limit(req.ip || 'unknown')
     res.setHeader('X-RateLimit-Limit', limit)
     res.setHeader('X-RateLimit-Remaining', remaining)
     res.setHeader('X-RateLimit-Reset', reset)
-    if (!success) {
-      return res.status(429).json({
-        success: false,
-        error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
-      })
-    }
+    if (!success) return res.status(429).json({ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: '...' } })
     next()
   }
 }
+
+export const generalRateLimit = createRateLimiter('general', 100, 60)
+export const authRateLimit    = createRateLimiter('auth', 10, 60)
+export const otpRateLimit     = createRateLimiter('otp', 5, 60)
+export const webhookRateLimit = createRateLimiter('webhook', 50, 60)
 ```
 
 ### Cache Patterns
@@ -2159,9 +2154,8 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string(),
   CLOUDINARY_API_SECRET: z.string(),
 
-  // Redis (Upstash)
-  REDIS_URL: z.string().url(),
-  REDIS_TOKEN: z.string(),
+  // Redis (ioredis TCP)
+  REDIS_URL: z.string().startsWith('redis://').optional(),
 
   // Client
   CLIENT_URL: z.string().url(),
@@ -2182,7 +2176,7 @@ export const env = envSchema.parse(process.env)
 | **Railway** or **Render** | Express API + Socket.IO | Free tier → $5/mo when needed |
 | **Supabase** or **Neon** | PostgreSQL | Free tier (500MB) |
 | **Cloudinary** | Image storage + CDN | Free tier (25K transforms/mo) |
-| **Upstash** | Redis (cache + rate limit) | Free tier (10K commands/day) |
+| **Redis** (Docker dev / managed prod) | Cache + rate limit | Free (Docker) or ~₹0-400/mo managed |
 | **Total** | | **₹0-500/month** to start |
 
 ### CI/CD Pipeline
@@ -2313,7 +2307,7 @@ module.exports = {
 | Railway (Pro) | ₹400 |
 | Supabase (Pro) | ₹2,100 |
 | Cloudinary (Plus) | ₹750 |
-| Upstash Redis | ₹0-400 |
+| Redis (managed) | ₹0-400 |
 | SMS (MSG91) | ₹500-1,000 |
 | **Total** | **~₹5,500-6,500/month** |
 

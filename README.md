@@ -10,7 +10,7 @@ A full-stack group travel aggregator platform ("Swiggy for group trips") targeti
 | **Backend** | Express 4, TypeScript 5, Prisma 5, PostgreSQL |
 | **Payments** | Razorpay Escrow |
 | **Real-time** | Socket.IO |
-| **Cache/Rate Limit** | Upstash Redis |
+| **Cache/Rate Limit** | Redis (ioredis) |
 | **File Uploads** | Cloudinary (direct upload with signed URLs) |
 | **Monorepo** | Turborepo |
 
