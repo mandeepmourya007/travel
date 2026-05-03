@@ -107,6 +107,7 @@ async function main() {
       totalTripsCompleted: 35,
       bankAccountLinked: true,
       commissionRate: 10.0,
+      razorpayAccountId: 'acc_seed_org1_dev',
     },
   })
 
@@ -121,6 +122,7 @@ async function main() {
       totalTripsCompleted: 18,
       bankAccountLinked: true,
       commissionRate: 10.0,
+      razorpayAccountId: 'acc_seed_org2_dev',
     },
   })
 
@@ -613,6 +615,7 @@ async function main() {
       totalTripsCompleted: 4,
       bankAccountLinked: true,
       commissionRate: 10.0,
+      razorpayAccountId: 'acc_seed_demo_dev',
     },
   })
 
