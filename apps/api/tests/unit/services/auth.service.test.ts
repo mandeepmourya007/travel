@@ -16,6 +16,7 @@ function createMockUserRepo() {
     updateProfile: vi.fn(),
     updateGoogleId: vi.fn(),
     emailExists: vi.fn(),
+    findWithOrganizer: vi.fn(),
   }
 }
 
@@ -400,6 +401,7 @@ describe('AuthService', () => {
 
       expect(organizerProfileRepo.create).not.toHaveBeenCalled()
     })
+
   })
 
   // ── signup with defaults ────────────────────────
@@ -547,6 +549,120 @@ describe('AuthService', () => {
 
       const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
       expect(result.auth.user.name).toBe('Google User')
+    })
+  })
+
+  // ── getFullProfile ──────────────────────────────────
+
+  describe('getFullProfile', () => {
+    const travelerWithProfile = {
+      ...testUser,
+      phone: '9876543210',
+      phoneVerified: true,
+      aadhaarVerified: false,
+      createdAt: new Date('2025-01-15'),
+      organizerProfile: null,
+    }
+
+    const organizerWithProfile = {
+      ...travelerWithProfile,
+      id: 'user-org',
+      role: 'ORGANIZER' as const,
+      organizerProfile: {
+        id: 'org-1',
+        businessName: 'Trek India Adventures',
+        description: 'Best treks in India',
+        verificationStatus: 'APPROVED' as const,
+        rating: 4.5,
+        totalReviews: 120,
+        totalTripsCompleted: 45,
+        bankAccountLinked: true,
+        isDeleted: false,
+      },
+    }
+
+    it('should return traveler profile without organizer data', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue(travelerWithProfile)
+
+      const result = await service.getFullProfile('user-123')
+
+      expect(result.id).toBe('user-123')
+      expect(result.organizerProfile).toBeNull()
+    })
+
+    it('should return organizer profile with business fields', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue(organizerWithProfile)
+
+      const result = await service.getFullProfile('user-org')
+
+      expect(result.organizerProfile).not.toBeNull()
+      expect(result.organizerProfile!.businessName).toBe('Trek India Adventures')
+      expect(result.organizerProfile!.rating).toBe(4.5)
+    })
+
+    it('should exclude soft-deleted organizer profile', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue({
+        ...organizerWithProfile,
+        organizerProfile: { ...organizerWithProfile.organizerProfile, isDeleted: true },
+      })
+
+      const result = await service.getFullProfile('user-org')
+
+      expect(result.organizerProfile).toBeNull()
+    })
+
+    it('should throw NotFoundError when user does not exist', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue(null)
+
+      await expect(service.getFullProfile('nonexistent'))
+        .rejects.toThrow(NotFoundError)
+    })
+  })
+
+  // ── updateOrganizerProfile ──────────────────────────
+
+  describe('updateOrganizerProfile', () => {
+    const orgProfile = {
+      id: 'org-1',
+      userId: 'user-org',
+      businessName: 'Trek India',
+      description: 'Best treks',
+      isDeleted: false,
+    }
+
+    it('should update organizer business fields', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      organizerProfileRepo.update.mockResolvedValue({
+        ...orgProfile,
+        businessName: 'New Business',
+      })
+
+      const result = await service.updateOrganizerProfile('user-org', {
+        businessName: 'New Business',
+      })
+
+      expect(result.businessName).toBe('New Business')
+      expect(organizerProfileRepo.update).toHaveBeenCalledWith('org-1', { businessName: 'New Business' })
+    })
+
+    it('should throw NotFoundError when organizer profile does not exist', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(
+        service.updateOrganizerProfile('user-1', { businessName: 'X' }),
+      ).rejects.toThrow(NotFoundError)
+    })
+
+    it('should log the update event', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      organizerProfileRepo.update.mockResolvedValue(orgProfile)
+
+      await service.updateOrganizerProfile('user-org', { description: 'New desc' })
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-org' }),
+        expect.any(String),
+      )
     })
   })
 })
