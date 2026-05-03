@@ -2,33 +2,41 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { MyBookingTab, MyBookingListItem } from '@shared/types/booking.types'
 import { useMyBookings } from '@/hooks/use-my-bookings'
 import { useMyBookingSummary } from '@/hooks/use-my-booking-summary'
+import { useMyPendingRequests } from '@/hooks/use-my-pending-requests'
 import { Tabs } from '@/components/shared/tabs'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { MyBookingCard } from './my-booking-card'
+import { PendingPaymentCard } from './pending-payment-card'
 import { CancelBookingModal } from './cancel-booking-modal'
 
 const TAB_EMPTY_MESSAGES: Record<MyBookingTab, string> = {
   all: "You haven't booked any trips yet.",
   upcoming: 'No upcoming trips. Time to plan one!',
+  payment_pending: 'No trip requests yet. Request to join a trip!',
   completed: 'No completed trips yet.',
   cancelled: 'No cancelled bookings.',
 }
 
 export function MyBookingsList() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<MyBookingTab>('all')
   const [page, setPage] = useState(1)
   const [cancelTarget, setCancelTarget] = useState<MyBookingListItem | null>(null)
 
+  const isPendingTab = activeTab === 'payment_pending'
   const filters = { tab: activeTab === 'all' ? undefined : activeTab, page }
-  const { data, isLoading, isError, refetch } = useMyBookings(filters)
+  const { data, isLoading, isError, refetch } = useMyBookings(filters, !isPendingTab)
+  const pendingQuery = useMyPendingRequests(isPendingTab)
   const { data: summary } = useMyBookingSummary()
 
   const tabItems = [
     { label: `All (${summary?.all ?? 0})`, value: 'all' },
     { label: `Upcoming (${summary?.upcoming ?? 0})`, value: 'upcoming' },
+    { label: `Requests (${summary?.paymentPending ?? 0})`, value: 'payment_pending' },
     { label: `Completed (${summary?.completed ?? 0})`, value: 'completed' },
     { label: `Cancelled (${summary?.cancelled ?? 0})`, value: 'cancelled' },
   ]
@@ -38,9 +46,22 @@ export function MyBookingsList() {
     setPage(1)
   }
 
+  // ── Payment Pending tab — separate data source (C3 fix) ──
+  const handlePayNow = (request: { id: string; numTravelers: number; travelerDetails: unknown; trip: { slug: string } }) => {
+    // Store traveler details from approved request for pre-fill on booking page
+    if (request.travelerDetails) {
+      sessionStorage.setItem(`request-travelers-${request.id}`, JSON.stringify(request.travelerDetails))
+    }
+    router.push(`/trips/${request.trip.slug}/book?requestId=${request.id}&numTravelers=${request.numTravelers}`)
+  }
+
   // ── 4-state rendering ──
 
-  if (isLoading) {
+  const activeLoading = isPendingTab ? pendingQuery.isLoading : isLoading
+  const activeError = isPendingTab ? pendingQuery.isError : isError
+  const activeRefetch = isPendingTab ? pendingQuery.refetch : refetch
+
+  if (activeLoading) {
     return (
       <div className="space-y-4">
         <div className="skeleton h-10 w-full max-w-md rounded-lg" />
@@ -58,12 +79,15 @@ export function MyBookingsList() {
     )
   }
 
-  if (isError) {
-    return <ErrorState title="Couldn't load bookings" onRetry={refetch} />
+  if (activeError) {
+    return <ErrorState title="Couldn't load bookings" onRetry={activeRefetch} />
   }
 
   const bookings = data?.data ?? []
+  const pendingRequests = pendingQuery.data ?? []
   const pagination = data?.pagination
+
+  const isEmpty = isPendingTab ? pendingRequests.length === 0 : bookings.length === 0
 
   return (
     <div>
@@ -78,7 +102,7 @@ export function MyBookingsList() {
       </div>
 
       {/* Empty state */}
-      {bookings.length === 0 ? (
+      {isEmpty ? (
         <EmptyState
           message={TAB_EMPTY_MESSAGES[activeTab]}
           action={
@@ -89,6 +113,16 @@ export function MyBookingsList() {
             ) : undefined
           }
         />
+      ) : isPendingTab ? (
+        <div className="space-y-4">
+          {pendingRequests.map((request) => (
+            <PendingPaymentCard
+              key={request.id}
+              request={request}
+              onPayNow={handlePayNow}
+            />
+          ))}
+        </div>
       ) : (
         <>
           {/* Booking cards */}

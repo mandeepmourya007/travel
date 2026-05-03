@@ -22,6 +22,7 @@ interface TravelerFormProps {
   onNumTravelersChange: (count: number) => void
   onSubmit: (data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) => void
   isPending: boolean
+  lockedTravelers?: boolean
 }
 
 const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER'] as const
@@ -32,6 +33,7 @@ export function TravelerForm({
   onNumTravelersChange,
   onSubmit,
   isPending,
+  lockedTravelers = false,
 }: TravelerFormProps) {
   const user = useAuthStore((s) => s.user)
   const seatsLeft = Math.max(0, trip.maxGroupSize - trip.currentBookings)
@@ -86,12 +88,15 @@ export function TravelerForm({
     return () => subscription.unsubscribe()
   }, [watch, storageKey])
 
-  // Sync parent numTravelers from restored data on mount
+  // Sync field array + parent state on mount
   useEffect(() => {
-    if (saved && saved.numTravelers !== numTravelers) {
+    if (lockedTravelers) {
+      // Pre-fill from approved request — force field array to match locked count
+      handleNumChange(numTravelers)
+    } else if (saved && saved.numTravelers !== numTravelers) {
       onNumTravelersChange(saved.numTravelers)
     }
-  // eslint-disable-next-line -- run only on mount to sync restored numTravelers
+  // eslint-disable-next-line -- run only on mount to sync restored/locked numTravelers
   }, [])
 
   const { fields, append, remove } = useFieldArray({
@@ -147,7 +152,7 @@ export function TravelerForm({
           <button
             type="button"
             onClick={() => handleNumChange(numTravelers - 1)}
-            disabled={numTravelers <= 1}
+            disabled={lockedTravelers || numTravelers <= 1}
             className="btn-secondary h-9 w-9 flex items-center justify-center rounded-md"
             aria-label="Decrease travelers"
           >
@@ -157,7 +162,7 @@ export function TravelerForm({
           <button
             type="button"
             onClick={() => handleNumChange(numTravelers + 1)}
-            disabled={numTravelers >= maxTravelers}
+            disabled={lockedTravelers || numTravelers >= maxTravelers}
             className="btn-secondary h-9 w-9 flex items-center justify-center rounded-md"
             aria-label="Increase travelers"
           >
@@ -167,6 +172,11 @@ export function TravelerForm({
             ({seatsLeft} seat{seatsLeft !== 1 ? 's' : ''} left)
           </span>
         </div>
+        {lockedTravelers && (
+          <p className="text-xs text-neutral-400 mt-2">
+            Traveler count is locked to your approved request.
+          </p>
+        )}
       </div>
 
       {/* Pickup & Drop Point Selectors */}
