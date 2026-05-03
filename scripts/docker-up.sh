@@ -24,6 +24,20 @@ if ! docker info >/dev/null 2>&1; then
   fi
 fi
 
+# ── Wait for Docker socket to be fully ready ──────────
+MAX_RETRIES=10
+for i in $(seq 1 $MAX_RETRIES); do
+  if docker info >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$i" -eq "$MAX_RETRIES" ]; then
+    echo "❌ Docker daemon not ready after ${MAX_RETRIES}s. Try: colima restart"
+    exit 1
+  fi
+  echo "⏳ Waiting for Docker socket... (${i}/${MAX_RETRIES})"
+  sleep 1
+done
+
 echo "🚀 Starting TravelApp (Docker)..."
 echo ""
 

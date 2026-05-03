@@ -1,7 +1,8 @@
+# Requires Docker Compose v2.24.0+ (for env_file required: false)
 services:
   # ── PostgreSQL ───────────────────────────────────────
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15-alpine3.20
     container_name: travel-postgres
     restart: unless-stopped
     ports:
@@ -13,6 +14,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     shm_size: 64m
+    # ⚠️ DEV ONLY — disables durability for speed; never use in staging/prod
     command: postgres -c fsync=off -c full_page_writes=off -c synchronous_commit=off
     deploy:
       resources:
@@ -24,15 +26,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - backend
 
   # ── Redis ────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine3.20
     container_name: travel-redis
     restart: unless-stopped
     ports:
       - '6379:6379'
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
+    command: redis-server --requirepass dev-redis-pass --maxmemory 64mb --maxmemory-policy allkeys-lru --save ""
     tmpfs:
       - /data
     deploy:
@@ -41,10 +45,12 @@ services:
           memory: 96M
           cpus: '0.25'
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD-SHELL', 'REDISCLI_AUTH=dev-redis-pass redis-cli ping']
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - backend
 
   # ── Backend API ──────────────────────────────────────
   api:
@@ -56,17 +62,17 @@ services:
     restart: unless-stopped
     ports:
       - '4000:4000'
+    env_file:
+      - path: .env.docker
+        required: false
     environment:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
       JWT_SECRET: docker-dev-jwt-secret-min-32-chars-long
       JWT_REFRESH_SECRET: docker-dev-refresh-secret-min-32-chars
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      REDIS_URL: redis://:dev-redis-pass@redis:6379
       CLIENT_URL: http://localhost:3000
-      GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
       LOG_LEVEL: debug
     volumes:
       - ./apps/api/src:/app/apps/api/src
@@ -81,6 +87,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:4000/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - frontend
+      - backend
 
   # ── Frontend Web ─────────────────────────────────────
   web:
@@ -91,9 +106,13 @@ services:
     restart: unless-stopped
     ports:
       - '3000:3000'
+    env_file:
+      - path: .env.docker
+        required: false
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+      # Server-side env for SSR / route handlers (resolves inside Docker network)
+      API_URL_INTERNAL: http://api:4000/api/v1
       NEXT_TELEMETRY_DISABLED: 1
     volumes:
       - ./apps/web/src:/app/apps/web/src
@@ -105,7 +124,10 @@ services:
           memory: 768M
           cpus: '1'
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
 
   # ── Prisma Migrate (run once, then exit) ─────────────
   migrate:
@@ -122,7 +144,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - backend
 
 volumes:
   pgdata:
   nextcache:
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

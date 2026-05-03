@@ -1,4 +1,5 @@
-FROM node:20-alpine
+# syntax=docker/dockerfile:1
+FROM node:20-alpine3.20
 
 RUN apk add --no-cache dumb-init
 
@@ -10,8 +11,8 @@ COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 RUN mkdir -p apps/api && echo '{"name":"@travel/api","private":true}' > apps/api/package.json
 
-RUN npm install --workspace=@travel/web --workspace=@travel/shared --include-workspace-root \
- && npm cache clean --force \
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --workspace=@travel/web --workspace=@travel/shared --include-workspace-root \
  && rm -rf /tmp/*
 
 # ── Source layer ──────────────────────────────────────

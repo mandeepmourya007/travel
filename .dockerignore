@@ -13,6 +13,10 @@ dist
 **/.DS_Store
 coverage
 **/coverage
+tests
+**/tests
+**/*.test.ts
+**/*.spec.ts
 .turbo
 **/.turbo
 docs

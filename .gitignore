@@ -18,6 +18,7 @@ apps/api/prisma/migrations/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.docker
 
 # IDE
 .vscode/

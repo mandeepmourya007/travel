@@ -1,5 +1,8 @@
-FROM node:20-alpine
+# syntax=docker/dockerfile:1
+FROM node:20-alpine3.20
 
+# dumb-init: proper PID 1 signal handling
+# openssl: required by Prisma Client for database connections
 RUN apk add --no-cache dumb-init openssl
 
 WORKDIR /app
@@ -10,8 +13,8 @@ COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 RUN mkdir -p apps/web && echo '{"name":"@travel/web","private":true}' > apps/web/package.json
 
-RUN npm install --workspace=@travel/api --workspace=@travel/shared --include-workspace-root \
- && npm cache clean --force \
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --workspace=@travel/api --workspace=@travel/shared --include-workspace-root \
  && rm -rf /tmp/*
 
 # ── Source layer ──────────────────────────────────────
