@@ -28,4 +28,4 @@ ENV NODE_OPTIONS="--max-old-space-size=256"
 EXPOSE 4000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["/app/node_modules/.bin/tsx", "watch", "src/index.ts"]
+CMD ["node", "--env-file=.env", "--import=tsx", "--watch", "src/index.ts"]

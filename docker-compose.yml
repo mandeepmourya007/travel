@@ -76,6 +76,9 @@ services:
       LOG_LEVEL: debug
     volumes:
       - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/prisma:/app/apps/api/prisma
+      - ./apps/api/tests:/app/apps/api/tests
+      - ./apps/api/.env:/app/apps/api/.env:ro
       - ./packages/shared/src:/app/packages/shared/src
     deploy:
       resources:
