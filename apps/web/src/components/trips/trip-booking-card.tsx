@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
+import { RequestToBookModal } from './request-to-book-modal'
 import type { TripDetail, TransferPoint } from '@shared/types/trip.types'
 
 function PointsList({ title, iconColor, points }: { title: string; iconColor: string; points: TransferPoint[] }) {
@@ -33,6 +35,7 @@ interface TripBookingCardProps {
 export function TripBookingCard({ trip }: TripBookingCardProps) {
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
+  const [showRequestModal, setShowRequestModal] = useState(false)
 
   return (
     <div className="card sticky top-24 p-6">
@@ -119,13 +122,32 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
         <button disabled className="btn-disabled w-full text-center">
           Fully Booked
         </button>
-      ) : (
+      ) : trip.bookingMode === 'INSTANT' ? (
         <Link
           href={`/trips/${trip.slug}/book`}
           className="btn-primary w-full text-center block"
         >
-          {trip.bookingMode === 'INSTANT' ? 'Book Now' : 'Request to Book'}
+          Book Now
         </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowRequestModal(true)}
+          className="btn-primary w-full text-center"
+        >
+          Request to Book
+        </button>
+      )}
+
+      {showRequestModal && (
+        <RequestToBookModal
+          open={showRequestModal}
+          onClose={() => setShowRequestModal(false)}
+          tripId={trip.id}
+          tripTitle={trip.title}
+          pricePerPerson={trip.pricePerPerson}
+          seatsLeft={seatsLeft}
+        />
       )}
 
       {/* Escrow trust badge */}

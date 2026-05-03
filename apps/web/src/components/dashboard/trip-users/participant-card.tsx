@@ -1,6 +1,7 @@
 'use client'
 
-import { Check, X, Users, Eye } from 'lucide-react'
+import { useState } from 'react'
+import { Check, X, Users, Eye, ChevronDown, ChevronUp, Phone } from 'lucide-react'
 import { Avatar } from '@/components/shared/avatar'
 import { cn } from '@/lib/utils'
 import { formatCurrency, timeAgo } from '@/lib/format'
@@ -76,66 +77,98 @@ interface RequestCardProps {
 
 export function RequestCard({ request, onApprove, onReject, onViewDetails, isResponding }: RequestCardProps) {
   const isPending = request.status === 'PENDING'
+  const [showTravelers, setShowTravelers] = useState(false)
+  const travelers = request.travelerDetails
 
   return (
     <div
-      onClick={() => onViewDetails(request)}
       className={cn(
-        'card flex cursor-pointer items-center gap-4 p-4 transition-shadow hover:shadow-card-hover',
+        'card p-4 transition-shadow hover:shadow-card-hover',
         isPending && 'border-l-4 border-l-warning-400',
       )}
     >
-      <Avatar name={request.user.name} size="md" color={isPending ? 'highlight' : 'primary'} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="truncate font-semibold text-neutral-800">{request.user.name}</p>
-          <span className={STATUS_COLORS[request.status] ?? 'badge'}>
-            {request.status}
-          </span>
-        </div>
-        <p className="mt-0.5 text-sm text-neutral-500">
-          {request.user.email}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" /> {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
-          </span>
-          {request.message && (
-            <span className="truncate max-w-[200px] italic text-neutral-400">
-              &ldquo;{request.message}&rdquo;
+      <div className="flex items-center gap-4">
+        <Avatar name={request.user.name} size="md" color={isPending ? 'highlight' : 'primary'} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate font-semibold text-neutral-800">{request.user.name}</p>
+            <span className={STATUS_COLORS[request.status] ?? 'badge'}>
+              {request.status}
             </span>
-          )}
-          <span className="text-xs">{timeAgo(request.createdAt)}</span>
+          </div>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            {request.user.email}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" /> {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
+            </span>
+            {request.message && (
+              <span className="truncate max-w-[200px] italic text-neutral-400">
+                &ldquo;{request.message}&rdquo;
+              </span>
+            )}
+            <span className="text-xs">{timeAgo(request.createdAt)}</span>
+          </div>
         </div>
+
+        {isPending ? (
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); onApprove(request) }}
+              disabled={isResponding}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 transition-colors hover:bg-success-100 disabled:opacity-50"
+              aria-label="Approve request"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onReject(request) }}
+              disabled={isResponding}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-error-50 text-error-500 transition-colors hover:bg-error-100 disabled:opacity-50"
+              aria-label="Reject request"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onViewDetails(request) }}
+            className="btn-ghost shrink-0 p-2"
+            aria-label="View request details"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      {isPending ? (
-        <div className="flex shrink-0 items-center gap-2">
+      {/* Expandable traveler details */}
+      {travelers && travelers.length > 0 && (
+        <div className="mt-3 border-t border-neutral-100 pt-3">
           <button
-            onClick={(e) => { e.stopPropagation(); onApprove(request) }}
-            disabled={isResponding}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 transition-colors hover:bg-success-100 disabled:opacity-50"
-            aria-label="Approve request"
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowTravelers((v) => !v) }}
+            className="flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700"
           >
-            <Check className="h-4 w-4" />
+            {showTravelers ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {showTravelers ? 'Hide' : 'Show'} traveler details
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onReject(request) }}
-            disabled={isResponding}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-error-50 text-error-500 transition-colors hover:bg-error-100 disabled:opacity-50"
-            aria-label="Reject request"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {showTravelers && (
+            <div className="mt-2 space-y-1.5">
+              {travelers.map((t, i) => (
+                <div key={i} className="flex items-center justify-between rounded-md bg-neutral-50 px-3 py-1.5 text-sm">
+                  <span className="font-medium text-neutral-700">
+                    {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(Primary)</span>}
+                  </span>
+                  <span className="flex items-center gap-2 text-xs text-neutral-500">
+                    <span>{t.age}y &middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()}</span>
+                    <span className="inline-flex items-center gap-0.5"><Phone className="h-3 w-3" />{t.phone}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <button
-          onClick={(e) => { e.stopPropagation(); onViewDetails(request) }}
-          className="btn-ghost shrink-0 p-2"
-          aria-label="View request details"
-        >
-          <Eye className="h-4 w-4" />
-        </button>
       )}
     </div>
   )
