@@ -25,9 +25,11 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # ── Wait for Docker socket to be fully ready ──────────
-MAX_RETRIES=10
+# Use "docker compose version" as a heavier smoke-test — docker info can pass
+# on a half-alive Colima VM while compose/BuildKit connections still fail.
+MAX_RETRIES=15
 for i in $(seq 1 $MAX_RETRIES); do
-  if docker info >/dev/null 2>&1; then
+  if docker info >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     break
   fi
   if [ "$i" -eq "$MAX_RETRIES" ]; then
@@ -35,7 +37,7 @@ for i in $(seq 1 $MAX_RETRIES); do
     exit 1
   fi
   echo "⏳ Waiting for Docker socket... (${i}/${MAX_RETRIES})"
-  sleep 1
+  sleep 2
 done
 
 echo "🚀 Starting TravelApp (Docker)..."
