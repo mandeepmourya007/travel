@@ -1,9 +1,30 @@
 'use client'
 
 import Link from 'next/link'
-import { Shield, Check, X as XIcon } from 'lucide-react'
+import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
-import type { TripDetail } from '@shared/types/trip.types'
+import type { TripDetail, TransferPoint } from '@shared/types/trip.types'
+
+function PointsList({ title, iconColor, points }: { title: string; iconColor: string; points: TransferPoint[] }) {
+  if (!points?.length) return null
+  return (
+    <div className="mb-3 last:mb-0">
+      <h4 className="flex items-center gap-1.5 text-sm font-semibold text-neutral-700 mb-1.5">
+        <MapPin className={`h-3.5 w-3.5 ${iconColor}`} /> {title}
+      </h4>
+      <ul className="space-y-1">
+        {points.map((p) => (
+          <li key={p.id} className="flex items-center justify-between text-sm">
+            <span className="text-neutral-600">{p.label}{p.time ? ` · ${p.time}` : ''}</span>
+            {p.extraCharge > 0 && (
+              <span className="text-xs text-accent-600">+{formatCurrency(p.extraCharge)}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
 
 interface TripBookingCardProps {
   trip: TripDetail
@@ -82,6 +103,14 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* Transfer Points */}
+      {(trip.pickupPoints?.length > 0 || trip.dropPoints?.length > 0) && (
+        <div className="mb-4 border-t border-neutral-100 pt-4">
+          <PointsList title="Pickup Points" iconColor="text-primary-500" points={trip.pickupPoints} />
+          <PointsList title="Drop Points" iconColor="text-neutral-400" points={trip.dropPoints} />
         </div>
       )}
 

@@ -75,6 +75,16 @@ export function MyBookingCard({ booking, onCancel }: MyBookingCardProps) {
             by {trip.organizer.businessName}
             {trip.organizer.verified && <span className="ml-0.5 text-green-500">✓</span>}
           </span>
+          {booking.pickupPoint && (
+            <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
+              Pickup: {booking.pickupPoint.label}{booking.pickupPoint.time ? ` · ${booking.pickupPoint.time}` : ''}
+            </span>
+          )}
+          {booking.dropPoint && (
+            <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
+              Drop: {booking.dropPoint.label}{booking.dropPoint.time ? ` · ${booking.dropPoint.time}` : ''}
+            </span>
+          )}
         </div>
 
         {/* Bottom: amount + actions — mobile: stacked, desktop: row */}

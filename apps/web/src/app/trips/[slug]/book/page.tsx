@@ -54,7 +54,7 @@ export default function BookingPage({
     : !trip.acceptingBookings ? 'notAccepting'
     : 'form'
 
-  async function handleSubmit(data: { travelers: TravelerFormValues['travelers'] }) {
+  async function handleSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
     if (!trip || !user) return
     setIsProcessing(true)
 
@@ -63,6 +63,8 @@ export default function BookingPage({
         tripId: trip.id,
         numTravelers,
         travelers: data.travelers,
+        pickupPointId: data.pickupPointId || undefined,
+        dropPointId: data.dropPointId || undefined,
       })
 
       if (!result.razorpayKeyId) {

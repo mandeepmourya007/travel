@@ -6,6 +6,7 @@ import { TripDetailHeader } from '@/components/trips/trip-detail-header'
 import { TripItinerary } from '@/components/trips/trip-itinerary'
 import { TripBookingCard } from '@/components/trips/trip-booking-card'
 import { TripReviews } from '@/components/trips/trip-reviews'
+import { TransferPointsTable } from '@/components/trips/transfer-points-table'
 import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
 import { ArrowLeft } from 'lucide-react'
 import TripDetailLoading from './loading'
@@ -62,6 +63,7 @@ export default function TripDetailPage({
         <div className="lg:col-span-2 space-y-10">
           <TripDetailHeader trip={trip} />
           <TripItinerary itinerary={trip.itinerary} />
+          <TransferPointsTable pickupPoints={trip.pickupPoints} dropPoints={trip.dropPoints} />
           <TripReviews reviews={trip.reviews} />
           <TripOrganizerCard organizer={trip.organizer} />
         </div>

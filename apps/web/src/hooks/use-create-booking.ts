@@ -5,6 +5,8 @@ import type { CreateBookingResponse } from '@shared/types/payment.types'
 
 interface CreateBookingInput {
   tripId: string
+  pickupPointId?: string
+  dropPointId?: string
   numTravelers: number
   travelers: {
     name: string

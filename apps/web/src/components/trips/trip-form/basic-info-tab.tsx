@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useDestinations } from '@/hooks/use-destinations'
 import { FormField } from './form-field'
@@ -20,8 +21,11 @@ const BOOKING_MODES = [
 ] as const
 
 export function BasicInfoTab() {
-  const { register, formState: { errors } } = useFormContext<CreateTripDto>()
+  const { register, formState: { errors }, setValue, watch } = useFormContext<CreateTripDto>()
   const { data: destinations } = useDestinations()
+  const currentVal = watch('destinationId')
+  const isExistingId = destinations?.some((d) => d.id === currentVal)
+  const [useCustom, setUseCustom] = useState(!isExistingId && !!currentVal)
 
   return (
     <div className="space-y-6">
@@ -35,12 +39,38 @@ export function BasicInfoTab() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <FormField label="Destination" error={errors.destinationId?.message} required>
-          <select {...register('destinationId')} className="input">
-            <option value="">Select destination</option>
-            {destinations?.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+          {useCustom ? (
+            <div className="flex gap-2">
+              <input
+                {...register('destinationId')}
+                placeholder="e.g. Manali, Himachal Pradesh"
+                className="input flex-1"
+              />
+              <button
+                type="button"
+                onClick={() => { setUseCustom(false); setValue('destinationId', '') }}
+                className="shrink-0 text-xs text-primary-600 hover:text-primary-700 underline"
+              >
+                Select existing
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <select {...register('destinationId')} className="input flex-1">
+                <option value="">Select destination</option>
+                {destinations?.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => { setUseCustom(true); setValue('destinationId', '') }}
+                className="shrink-0 text-xs text-primary-600 hover:text-primary-700 underline"
+              >
+                Add new
+              </button>
+            </div>
+          )}
         </FormField>
 
         <FormField label="Trip Type" error={errors.tripType?.message} required>

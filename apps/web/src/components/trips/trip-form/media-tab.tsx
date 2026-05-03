@@ -75,25 +75,6 @@ export function MediaTab() {
         </p>
       </FormField>
 
-      {/* Pickup Details */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-        <FormField label="Pickup Location" error={errors.pickupLocation?.message}>
-          <input
-            {...register('pickupLocation')}
-            placeholder="e.g. Pune Railway Station"
-            className="input"
-          />
-        </FormField>
-
-        <FormField label="Pickup Time" error={errors.pickupTime?.message}>
-          <input
-            {...register('pickupTime')}
-            placeholder="e.g. 6:00 AM"
-            className="input"
-          />
-        </FormField>
-      </div>
-
       {/* Itinerary Doc URL */}
       <FormField label="Itinerary Document URL" error={errors.itineraryDocUrl?.message}>
         <input

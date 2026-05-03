@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { MapPin } from 'lucide-react'
 import { createBookingSchema } from '@shared/validators/booking.schema'
 import { useAuthStore } from '@/store/auth.store'
 import { formatCurrency } from '@/lib/format'
@@ -19,7 +20,7 @@ interface TravelerFormProps {
   trip: TripDetail
   numTravelers: number
   onNumTravelersChange: (count: number) => void
-  onSubmit: (data: { travelers: TravelerFormValues['travelers'] }) => void
+  onSubmit: (data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) => void
   isPending: boolean
 }
 
@@ -61,6 +62,8 @@ export function TravelerForm({
     defaultValues: saved ?? {
       tripId: trip.id,
       numTravelers: 1,
+      pickupPointId: trip.pickupPoints?.[0]?.id ?? '',
+      dropPointId: trip.dropPoints?.[0]?.id ?? '',
       travelers: [
         {
           name: user?.name || '',
@@ -124,7 +127,7 @@ export function TravelerForm({
   function onFormSubmit(data: TravelerFormValues) {
     // Clear persisted form on successful submit
     sessionStorage.removeItem(storageKey)
-    onSubmit({ travelers: data.travelers })
+    onSubmit({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
   }
 
   const pricePerPerson = getEffectivePrice(trip)
@@ -165,6 +168,61 @@ export function TravelerForm({
           </span>
         </div>
       </div>
+
+      {/* Pickup & Drop Point Selectors */}
+      {(trip.pickupPoints?.length > 0 || trip.dropPoints?.length > 0) && (
+        <div className="card p-4 space-y-4">
+          <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
+            <MapPin className="h-4 w-4 text-primary-500" /> Transfer Points
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {trip.pickupPoints?.length > 0 && (
+              <div>
+                <label htmlFor="pickupPointId" className="block text-xs font-medium text-neutral-600 mb-1">
+                  Pickup Point
+                </label>
+                <select
+                  id="pickupPointId"
+                  className="input w-full"
+                  value={watch('pickupPointId')}
+                  onChange={(e) => setValue('pickupPointId', e.target.value)}
+                >
+                  {trip.pickupPoints.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {errors.pickupPointId && (
+                  <p className="text-xs text-error-500 mt-1">{errors.pickupPointId.message}</p>
+                )}
+              </div>
+            )}
+            {trip.dropPoints?.length > 0 && (
+              <div>
+                <label htmlFor="dropPointId" className="block text-xs font-medium text-neutral-600 mb-1">
+                  Drop Point
+                </label>
+                <select
+                  id="dropPointId"
+                  className="input w-full"
+                  value={watch('dropPointId')}
+                  onChange={(e) => setValue('dropPointId', e.target.value)}
+                >
+                  {trip.dropPoints.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ''}
+                    </option>
+                  ))}
+                </select>
+                {errors.dropPointId && (
+                  <p className="text-xs text-error-500 mt-1">{errors.dropPointId.message}</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Traveler fields */}
       {fields.map((field, index) => (
