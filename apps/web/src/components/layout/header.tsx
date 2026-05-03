@@ -71,6 +71,12 @@ export function Header() {
               >
                 My Bookings
               </Link>
+              <Link
+                href="/profile"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                Profile
+              </Link>
               <span className="text-sm text-neutral-500">Hi, {user?.name.split(' ')[0]}</span>
               {user?.role === 'ORGANIZER' && (
                 <Link
@@ -148,6 +154,13 @@ export function Header() {
                 className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
               >
                 My Bookings
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                Profile
               </Link>
               {user?.role === 'ORGANIZER' && (
                 <Link

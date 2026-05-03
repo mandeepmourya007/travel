@@ -26,7 +26,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, disabled: true },
   { label: 'Reviews', href: '/dashboard/reviews', icon: Star, disabled: true },
   { label: 'Payments', href: '/dashboard/payments', icon: Wallet, disabled: true },
-  { label: 'Profile', href: '/dashboard/profile', icon: UserCircle, disabled: true },
+  { label: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
 export function DashboardSidebar() {
