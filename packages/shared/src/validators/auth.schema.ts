@@ -48,10 +48,15 @@ export const verifyOtpSchema = z.object({
 })
 
 export const updateProfileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim().optional(),
   role: z.enum(['TRAVELER', 'ORGANIZER']).optional(),
 })
 
 export const googleAuthSchema = z.object({
   idToken: z.string().min(1, 'ID token is required'),
+})
+
+export const updateOrganizerProfileSchema = z.object({
+  businessName: z.string().min(2, 'Business name must be at least 2 characters').max(100).trim().optional(),
+  description: z.string().max(500, 'Description too long').trim().optional(),
 })
