@@ -117,6 +117,11 @@ enum TripRequestStatus {
   CONVERTED
 }
 
+enum TransferPointType {
+  PICKUP
+  DROP
+}
+
 // ─── Models (15 MVP Tables) ──────────────────────────────
 
 model User {
@@ -226,8 +231,6 @@ model Trip {
   inclusions         Json
   exclusions         Json               @default("[]")
   cancellationPolicy CancellationPolicy @default(FLEXIBLE)
-  pickupLocation     String?
-  pickupTime         String?
   photos             String[]
   itineraryDocUrl    String?
   status             TripStatus         @default(DRAFT)
@@ -244,7 +247,8 @@ model Trip {
   reviews       Review[]
   conversations Conversation[]
   tripRequests  TripRequest[]
-  editHistory   TripEditHistory[]
+  editHistory      TripEditHistory[]
+  transferPoints   TripTransferPoint[]
 
   @@index([destinationId, startDate, status])
   @@index([slug])
@@ -271,6 +275,11 @@ model Booking {
   cancelledById      String?
   cancelledBy        User?     @relation("canceller", fields: [cancelledById], references: [id])
 
+  pickupPointId String?
+  pickupPoint   TripTransferPoint? @relation("pickupPoint", fields: [pickupPointId], references: [id])
+  dropPointId   String?
+  dropPoint     TripTransferPoint? @relation("dropPoint", fields: [dropPointId], references: [id])
+
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
@@ -286,6 +295,30 @@ model Booking {
   @@index([userId, bookingStatus])
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])
+  @@index([isDeleted])
+}
+
+model TripTransferPoint {
+  id          String             @id @default(cuid())
+  tripId      String
+  trip        Trip               @relation(fields: [tripId], references: [id])
+  type        TransferPointType
+  label       String
+  address     String?
+  time        String?
+  extraCharge Int                @default(0)
+  sortOrder   Int                @default(0)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookingsAsPickup Booking[] @relation("pickupPoint")
+  bookingsAsDrop   Booking[] @relation("dropPoint")
+
+  @@index([tripId, type])
   @@index([isDeleted])
 }
 

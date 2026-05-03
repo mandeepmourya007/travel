@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const SOFT_DELETE_MODELS = [
-  'User', 'OrganizerProfile', 'Destination', 'Trip', 'Booking',
+  'User', 'OrganizerProfile', 'Destination', 'Trip', 'TripTransferPoint', 'Booking',
   'TravelerDetail', 'Review', 'Conversation', 'Message',
   'Notification', 'TripRequest',
 ] as const
