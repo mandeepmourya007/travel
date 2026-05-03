@@ -15,6 +15,7 @@ async function main() {
   await prisma.review.deleteMany()
   await prisma.tripRequest.deleteMany()
   await prisma.booking.deleteMany()
+  await prisma.tripTransferPoint.deleteMany()
   await prisma.trip.deleteMany()
   await prisma.destination.deleteMany()
   await prisma.refreshToken.deleteMany()
@@ -180,10 +181,9 @@ async function main() {
       inclusions: ['AC bus from Pune', 'Hotel stay (3N)', 'Breakfast & dinner', 'Water sports (3 activities)', 'Sightseeing'],
       exclusions: ['Lunch', 'Personal expenses', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      pickupLocation: 'Pune — Shivaji Nagar Bus Stand',
-      pickupTime: '6:00 AM',
       photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
       status: 'ACTIVE',
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', time: '6:00 AM' }] },
     },
   })
 
@@ -208,10 +208,9 @@ async function main() {
       inclusions: ['Transport from Pune', 'Breakfast & lunch', 'Trek guide', 'First aid'],
       exclusions: ['Dinner', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      pickupLocation: 'Pune — Wakad Bridge',
-      pickupTime: '5:30 AM',
       photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
       status: 'ACTIVE',
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:30 AM' }] },
     },
   })
 
@@ -273,10 +272,9 @@ async function main() {
       inclusions: ['Transport', 'Hotel (2N)', 'NYE party entry', 'Meals'],
       exclusions: ['Drinks', 'Personal expenses'],
       cancellationPolicy: 'MODERATE',
-      pickupLocation: 'Pune — Swargate',
-      pickupTime: '10:00 PM',
       photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800'],
       status: 'DRAFT',
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Swargate', time: '10:00 PM' }] },
     },
   })
 
@@ -335,10 +333,9 @@ async function main() {
       inclusions: ['Transport from Delhi', 'Camping (1N)', 'Rafting', 'Meals', 'Bonfire'],
       exclusions: ['Personal expenses', 'Tips'],
       cancellationPolicy: 'FLEXIBLE',
-      pickupLocation: 'Delhi — Kashmere Gate ISBT',
-      pickupTime: '11:00 PM',
       photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
       status: 'ACTIVE',
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM' }] },
     },
   })
 
@@ -392,10 +389,9 @@ async function main() {
       inclusions: ['Transport', 'Villa stay (1N)', 'All meals', 'Team activities', 'BBQ'],
       exclusions: ['Drinks', 'Personal expenses'],
       cancellationPolicy: 'MODERATE',
-      pickupLocation: 'Pune — Hinjewadi Phase 1',
-      pickupTime: '8:00 AM',
       photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
       status: 'ACTIVE',
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Hinjewadi Phase 1', time: '8:00 AM' }] },
     },
   })
 
@@ -672,11 +668,10 @@ async function main() {
       inclusions: ['Flights assistance', 'Hotel + camping (6N)', 'All meals', 'Permits', 'Bike rental', 'Guide'],
       exclusions: ['Flights', 'Travel insurance', 'Personal expenses'],
       cancellationPolicy: 'STRICT',
-      pickupLocation: 'Leh Airport',
-      pickupTime: '10:00 AM',
       photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
       status: 'ACTIVE',
       acceptingBookings: true,
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Leh Airport', time: '10:00 AM' }] },
     },
   })
 
@@ -757,11 +752,10 @@ async function main() {
       inclusions: ['AC bus from Pune', 'Hotel (2N)', 'Breakfast & dinner', 'Water sports (2)'],
       exclusions: ['Lunch', 'Drinks', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      pickupLocation: 'Pune — Shivaji Nagar',
-      pickupTime: '6:00 AM',
       photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
       status: 'ACTIVE',
       acceptingBookings: true,
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Shivaji Nagar', time: '6:00 AM' }] },
     },
   })
 
@@ -817,11 +811,10 @@ async function main() {
       inclusions: ['Transport', 'Breakfast & lunch', 'Guide', 'First aid'],
       exclusions: ['Dinner', 'Rain gear'],
       cancellationPolicy: 'FLEXIBLE',
-      pickupLocation: 'Pune — Wakad Bridge',
-      pickupTime: '5:00 AM',
       photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
       status: 'COMPLETED',
       acceptingBookings: false,
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:00 AM' }] },
     },
   })
 
@@ -863,6 +856,20 @@ async function main() {
     ],
   })
 
+  // Traveler details for Trip C
+  await prisma.travelerDetail.createMany({
+    data: [
+      { bookingId: dBookingC1.id, name: 'Rohan Mehta', phone: '+919876500001', age: 29, gender: 'MALE', isPrimary: true, emergencyContactName: 'Sonal Mehta', emergencyContactPhone: '+919876500010' },
+      { bookingId: dBookingC2.id, name: 'Ananya Iyer', phone: '+919876500002', age: 26, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Suresh Iyer', emergencyContactPhone: '+919876500011' },
+      { bookingId: dBookingC2.id, name: 'Priya Iyer', age: 24, gender: 'FEMALE' },
+      { bookingId: dBookingC3.id, name: 'Karan Singh', phone: '+919876500003', age: 31, gender: 'MALE', isPrimary: true },
+      { bookingId: dBookingC4.id, name: 'Amit Kulkarni', phone: '+919876543212', age: 28, gender: 'MALE', isPrimary: true, emergencyContactName: 'Riya Kulkarni', emergencyContactPhone: '+919876543220' },
+      { bookingId: dBookingC4.id, name: 'Riya Kulkarni', phone: '+919876543220', age: 26, gender: 'FEMALE' },
+      { bookingId: dBookingC5.id, name: 'Sneha Deshmukh', phone: '+919876543213', age: 25, gender: 'FEMALE', isPrimary: true },
+      { bookingId: dBookingC6.id, name: 'Pooja Sharma', phone: '+919876500006', age: 27, gender: 'FEMALE', isPrimary: true },
+    ],
+  })
+
   // Reviews for completed Trip C
   await prisma.review.createMany({
     data: [
@@ -900,11 +907,10 @@ async function main() {
       inclusions: ['Volvo bus', 'Hotel (3N)', 'All meals', 'Snow activities', 'Bonfire'],
       exclusions: ['Shopping', 'Paragliding', 'Insurance'],
       cancellationPolicy: 'MODERATE',
-      pickupLocation: 'Pune — Swargate',
-      pickupTime: '6:00 PM',
       photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
       status: 'COMPLETED',
       acceptingBookings: false,
+      transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Swargate', time: '6:00 PM' }] },
     },
   })
 
@@ -943,6 +949,17 @@ async function main() {
       { bookingId: dBookingD1.id, type: 'PAYMENT', amount: 17000, status: 'CAPTURED', razorpayOrderId: 'order_demo_d01', razorpayPaymentId: 'pay_demo_d01' },
       { bookingId: dBookingD2.id, type: 'PAYMENT', amount: 8500, status: 'CAPTURED', razorpayOrderId: 'order_demo_d02', razorpayPaymentId: 'pay_demo_d02' },
       { bookingId: dBookingD3.id, type: 'PAYMENT', amount: 17000, status: 'CAPTURED', razorpayOrderId: 'order_demo_d03', razorpayPaymentId: 'pay_demo_d03' },
+    ],
+  })
+
+  // Traveler details for Trip D
+  await prisma.travelerDetail.createMany({
+    data: [
+      { bookingId: dBookingD1.id, name: 'Rohan Mehta', phone: '+919876500001', age: 29, gender: 'MALE', isPrimary: true, emergencyContactName: 'Sonal Mehta', emergencyContactPhone: '+919876500010' },
+      { bookingId: dBookingD1.id, name: 'Sonal Mehta', age: 27, gender: 'FEMALE' },
+      { bookingId: dBookingD2.id, name: 'Ananya Iyer', phone: '+919876500002', age: 26, gender: 'FEMALE', isPrimary: true },
+      { bookingId: dBookingD3.id, name: 'Vikram Joshi', phone: '+919876543214', age: 30, gender: 'MALE', isPrimary: true, emergencyContactName: 'Neha Joshi', emergencyContactPhone: '+919876543221' },
+      { bookingId: dBookingD3.id, name: 'Neha Joshi', phone: '+919876543221', age: 28, gender: 'FEMALE' },
     ],
   })
 
