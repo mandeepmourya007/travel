@@ -1,5 +1,17 @@
 import { z } from 'zod'
 
+/** Accepts a string (newline-separated) or string[] and normalizes to string[] */
+const stringOrArray = z.preprocess(
+  (val) => val == null ? val : typeof val === 'string' ? val.split('\n').map((s: string) => s.trim()).filter(Boolean) : val,
+  z.array(z.string()),
+)
+
+/** Accepts datetime-local ('2026-06-01T14:56') and full ISO ('2026-06-01T14:56:00.000Z'), rejects loose strings */
+const ISO_OR_LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/
+const datetimeString = z.string()
+  .refine((val) => ISO_OR_LOCAL.test(val) && !isNaN(Date.parse(val)), { message: 'Invalid datetime' })
+  .transform((val) => new Date(val).toISOString())
+
 const itineraryActivitySchema = z.object({
   time: z.string().optional(),
   title: z.string().min(1),
@@ -17,29 +29,36 @@ const itineraryDaySchema = z.object({
   excludes: z.array(z.string()).optional(),
 })
 
+const transferPointSchema = z.object({
+  label: z.string().min(2, 'Label must be at least 2 characters').max(100).trim(),
+  address: z.string().max(200).optional(),
+  time: z.string().max(20).optional(),
+  extraCharge: z.number().int().min(0).default(0),
+})
+
 export const createTripSchema = z
   .object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(100).trim(),
-    destinationId: z.string().cuid(),
+    destinationId: z.string().min(1, 'Destination is required'),
     tripType: z.enum(['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP']),
     bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).default('INSTANT'),
     description: z.string().min(20, 'Description must be at least 20 characters'),
-    startDate: z.string().datetime(),
-    endDate: z.string().datetime(),
+    startDate: datetimeString,
+    endDate: datetimeString,
     pricePerPerson: z.number().int().positive().min(100, 'Minimum price is ₹100'),
     minGroupSize: z.number().int().min(2),
     maxGroupSize: z.number().int().max(50),
     cancellationPolicy: z.enum(['FLEXIBLE', 'MODERATE', 'STRICT']).default('FLEXIBLE'),
-    inclusions: z.array(z.string()).default([]),
-    exclusions: z.array(z.string()).default([]),
+    inclusions: stringOrArray.default([]),
+    exclusions: stringOrArray.default([]),
     itinerary: z.array(itineraryDaySchema).default([]),
-    photos: z.array(z.string().url()).max(8).default([]),
-    pickupLocation: z.string().optional(),
-    pickupTime: z.string().optional(),
+    photos: z.array(z.string().url()).min(1, 'At least one photo is required').max(8),
+    pickupPoints: z.array(transferPointSchema).min(1, 'At least one pickup point is required').max(10, 'Maximum 10 pickup points'),
+    dropPoints: z.array(transferPointSchema).min(1, 'At least one drop point is required').max(10, 'Maximum 10 drop points'),
     earlyBirdPrice: z.number().int().positive().optional(),
-    earlyBirdDeadline: z.string().datetime().optional(),
-    itineraryDocUrl: z.string().url().optional(),
-    bookingDeadline: z.string().datetime().optional(),
+    earlyBirdDeadline: datetimeString.optional(),
+    itineraryDocUrl: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+    bookingDeadline: datetimeString.optional(),
   })
   .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
     message: 'End date must be after start date',
@@ -77,22 +96,22 @@ export const updateTripSchema = z
       .optional(),
     bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).optional(),
     description: z.string().min(20, 'Description must be at least 20 characters').optional(),
-    startDate: z.string().datetime().optional(),
-    endDate: z.string().datetime().optional(),
+    startDate: datetimeString.optional(),
+    endDate: datetimeString.optional(),
     pricePerPerson: z.number().int().positive().min(100, 'Minimum price is ₹100').optional(),
     earlyBirdPrice: z.number().int().positive().optional(),
-    earlyBirdDeadline: z.string().datetime().optional(),
+    earlyBirdDeadline: datetimeString.optional(),
     minGroupSize: z.number().int().min(2).optional(),
     maxGroupSize: z.number().int().max(50).optional(),
     cancellationPolicy: z.enum(['FLEXIBLE', 'MODERATE', 'STRICT']).optional(),
-    inclusions: z.array(z.string()).optional(),
-    exclusions: z.array(z.string()).optional(),
+    inclusions: stringOrArray.optional(),
+    exclusions: stringOrArray.optional(),
     itinerary: z.array(itineraryDaySchema).optional(),
     photos: z.array(z.string().url()).max(8).optional(),
-    pickupLocation: z.string().optional(),
-    pickupTime: z.string().optional(),
-    itineraryDocUrl: z.string().url().optional(),
-    bookingDeadline: z.string().datetime().optional(),
+    pickupPoints: z.array(transferPointSchema).min(1).max(10).optional(),
+    dropPoints: z.array(transferPointSchema).min(1).max(10).optional(),
+    itineraryDocUrl: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
+    bookingDeadline: datetimeString.optional(),
     acceptingBookings: z.boolean().optional(),
   })
   .refine(

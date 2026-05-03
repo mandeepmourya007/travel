@@ -19,7 +19,9 @@ export interface Booking {
 
 export interface CreateBookingDto {
   tripId: string
-  numberOfTravelers: number
+  pickupPointId?: string
+  dropPointId?: string
+  numTravelers: number
   travelers: TravelerInfo[]
 }
 
@@ -28,6 +30,7 @@ export interface TravelerInfo {
   phone: string
   age: number
   gender: 'MALE' | 'FEMALE' | 'OTHER'
+  isPrimary: boolean
   emergencyContactName?: string
   emergencyContactPhone?: string
 }
@@ -108,6 +111,8 @@ export interface MyBookingListItem {
     organizer: { id: string; businessName: string; rating: number; verified: boolean }
   }
   hasReview: boolean
+  pickupPoint?: { id: string; label: string; time?: string | null }
+  dropPoint?: { id: string; label: string; time?: string | null }
 }
 
 /** Query params for GET /bookings/my */

@@ -40,8 +40,8 @@ export interface TripDetail extends Omit<TripSummary, 'organizer'> {
   inclusions: string[]
   exclusions: string[]
   itinerary: ItineraryDay[]
-  pickupLocation?: string
-  pickupTime?: string
+  pickupPoints: TransferPoint[]
+  dropPoints: TransferPoint[]
   status: TripStatus
   acceptingBookings: boolean
   bookingDeadline?: string | null
@@ -69,6 +69,23 @@ export interface ItineraryDay {
   activities: ItineraryActivity[]
   includes?: string[]
   excludes?: string[]
+}
+
+export interface TransferPoint {
+  id: string
+  type: 'PICKUP' | 'DROP'
+  label: string
+  address?: string | null
+  time?: string | null
+  extraCharge: number
+  sortOrder: number
+}
+
+export interface CreateTransferPointDto {
+  label: string
+  address?: string
+  time?: string
+  extraCharge?: number
 }
 
 export interface TripFilters {
@@ -103,8 +120,8 @@ export interface CreateTripDto {
   exclusions: string[]
   itinerary: ItineraryDay[]
   photos: string[]
-  pickupLocation?: string
-  pickupTime?: string
+  pickupPoints: CreateTransferPointDto[]
+  dropPoints: CreateTransferPointDto[]
   itineraryDocUrl?: string
   bookingDeadline?: string
 }

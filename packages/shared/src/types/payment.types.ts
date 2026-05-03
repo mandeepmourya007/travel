@@ -1,17 +1,3 @@
-export interface CreateBookingDto {
-  tripId: string
-  numTravelers: number
-  travelers: {
-    name: string
-    phone: string
-    age: number
-    gender: 'MALE' | 'FEMALE' | 'OTHER'
-    isPrimary: boolean
-    emergencyContactName?: string
-    emergencyContactPhone?: string
-  }[]
-}
-
 export interface CreateBookingResponse {
   bookingId: string
   bookingRef: string

@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 export const createBookingSchema = z.object({
   tripId: z.string().cuid(),
+  pickupPointId: z.string().cuid('Invalid pickup point').optional(),
+  dropPointId: z.string().cuid('Invalid drop point').optional(),
   numTravelers: z.number().int().min(1).max(10),
   travelers: z
     .array(
