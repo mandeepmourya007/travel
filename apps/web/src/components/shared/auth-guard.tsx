@@ -7,18 +7,23 @@ import { Spinner } from '@/components/shared/spinner'
 
 interface AuthGuardProps {
   children: React.ReactNode
+  allowedRoles?: ('TRAVELER' | 'ORGANIZER' | 'ADMIN')[]
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   const router = useRouter()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
+  const userRole = useAuthStore((s) => s.user?.role)
 
   useEffect(() => {
     if (hasHydrated && !isAuthenticated) {
       router.replace('/login')
     }
-  }, [hasHydrated, isAuthenticated, router])
+    if (hasHydrated && isAuthenticated && allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+      router.replace('/')
+    }
+  }, [hasHydrated, isAuthenticated, allowedRoles, userRole, router])
 
   if (!hasHydrated) {
     return (
@@ -29,6 +34,10 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (!isAuthenticated) {
+    return null
+  }
+
+  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
     return null
   }
 

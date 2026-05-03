@@ -65,12 +65,14 @@ export function Header() {
           </Link>
           {_hasHydrated && isAuthenticated ? (
             <>
-              <Link
-                href="/my-bookings"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                My Bookings
-              </Link>
+              {user?.role !== 'ORGANIZER' && (
+                <Link
+                  href="/my-bookings"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                >
+                  My Bookings
+                </Link>
+              )}
               <Link
                 href="/profile"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
@@ -148,13 +150,15 @@ export function Header() {
           </Link>
           {_hasHydrated && isAuthenticated ? (
             <>
-              <Link
-                href="/my-bookings"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-              >
-                My Bookings
-              </Link>
+              {user?.role !== 'ORGANIZER' && (
+                <Link
+                  href="/my-bookings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                >
+                  My Bookings
+                </Link>
+              )}
               <Link
                 href="/profile"
                 onClick={() => setMobileMenuOpen(false)}
