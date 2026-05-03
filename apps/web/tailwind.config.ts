@@ -53,6 +53,11 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '20%, 60%': { transform: 'translateX(-4px)' },
+          '40%, 80%': { transform: 'translateX(4px)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
@@ -62,6 +67,7 @@ const config: Config = {
         'slide-up': 'slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'fade-in': 'fade-in 0.2s ease-out',
         'page-enter': 'page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
+        shake: 'shake 0.4s ease-in-out',
       },
     },
   },
