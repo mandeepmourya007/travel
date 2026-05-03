@@ -59,9 +59,12 @@ export default function TripUsersPage() {
 
   // ── Data hooks ──────────────────────────────────────
   const summary = useTripSummary(tripId)
+  const bookingStatusFilter = activeTab === 'confirmed'
+    ? (['CONFIRMED', 'COMPLETED'] as BookingStatus[])
+    : (bookingStatus || undefined) as BookingStatus | undefined
   const bookings = useTripBookings(tripId, {
     search: bookingSearch || undefined,
-    bookingStatus: (bookingStatus || undefined) as BookingStatus | undefined,
+    bookingStatus: bookingStatusFilter,
     page: bookingPage,
     limit: 20,
   })
@@ -164,7 +167,7 @@ export default function TripUsersPage() {
           onStatusChange={() => {}}
           statusOptions={[]}
           hideStatusFilter
-          data={bookings.data?.data?.filter((b) => b.bookingStatus === 'CONFIRMED')}
+          data={bookings.data?.data}
           pagination={bookings.data?.pagination}
           isLoading={bookings.isLoading}
           error={bookings.error}
