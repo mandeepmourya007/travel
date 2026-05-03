@@ -6,7 +6,7 @@ import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/type
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
-import { AuthError, ConflictError } from '../errors/app-error'
+import { AuthError, ConflictError, NotFoundError } from '../errors/app-error'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS } from '../utils/constants'
 
 export class AuthService {
@@ -51,24 +51,8 @@ export class AuthService {
       }
     }
 
-    const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
-    const refreshToken = await this.generateRefreshToken(user.id, meta)
-
     this.logger.info({ userId: user.id, role: user.role }, 'User signed up')
-
-    return {
-      auth: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatarUrl: user.avatarUrl ?? undefined,
-        },
-        tokens: { accessToken, expiresIn: 900 },
-      },
-      refreshToken,
-    }
+    return this.issueTokens(user, meta)
   }
 
   async login(
@@ -89,24 +73,8 @@ export class AuthService {
       throw new AuthError('Account is deactivated')
     }
 
-    const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
-    const refreshToken = await this.generateRefreshToken(user.id, meta)
-
     this.logger.info({ userId: user.id }, 'User logged in')
-
-    return {
-      auth: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatarUrl: user.avatarUrl ?? undefined,
-        },
-        tokens: { accessToken, expiresIn: 900 },
-      },
-      refreshToken,
-    }
+    return this.issueTokens(user, meta)
   }
 
   async refresh(rawRefreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
@@ -139,6 +107,32 @@ export class AuthService {
     this.logger.info({ userId }, 'All sessions revoked')
   }
 
+  /**
+   * Generates access + refresh token pair for an authenticated user.
+   * @internal Called by AuthService (signup/login) and OtpService (OTP verify).
+   * Not intended for controller-level access.
+   */
+  async issueTokens(
+    user: { id: string; name: string; email: string | null; role: string; avatarUrl: string | null },
+    meta: { userAgent?: string; ip?: string },
+  ): Promise<{ auth: AuthResponse; refreshToken: string }> {
+    const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
+    const refreshToken = await this.generateRefreshToken(user.id, meta)
+    return {
+      auth: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email ?? undefined,
+          role: user.role as AuthResponse['user']['role'],
+          avatarUrl: user.avatarUrl ?? undefined,
+        },
+        tokens: { accessToken, expiresIn: 900 },
+      },
+      refreshToken,
+    }
+  }
+
   async getMe(userId: string): Promise<AuthResponse['user']> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new AuthError('User not found')
@@ -146,10 +140,22 @@ export class AuthService {
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      email: user.email ?? undefined,
       role: user.role,
       avatarUrl: user.avatarUrl ?? undefined,
     }
+  }
+
+  /**
+   * Updates the authenticated user's profile (currently name only).
+   * Used during onboarding after OTP signup.
+   * @throws {NotFoundError} User not found
+   */
+  async updateProfile(userId: string, dto: { name: string }): Promise<{ id: string; name: string }> {
+    const user = await this.userRepo.findById(userId)
+    if (!user) throw new NotFoundError('User')
+    const updated = await this.userRepo.updateProfile(userId, { name: dto.name })
+    return { id: updated.id, name: updated.name }
   }
 
   private generateAccessToken(payload: { userId: string; role: string }): string {

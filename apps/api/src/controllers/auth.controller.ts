@@ -2,15 +2,7 @@ import { Request, Response } from 'express'
 import { AuthService } from '../services/auth.service'
 import { asyncHandler } from '../utils/async-handler'
 import { AuthError } from '../errors/app-error'
-import { REFRESH_TOKEN_DAYS } from '../utils/constants'
-
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
-  path: '/api/v1/auth',
-}
+import { COOKIE_OPTIONS } from '../utils/constants'
 
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -67,5 +59,11 @@ export class AuthController {
     if (!req.user) throw new AuthError('Not authenticated')
     const user = await this.authService.getMe(req.user.userId)
     res.json({ success: true, data: user })
+  })
+
+  updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const user = await this.authService.updateProfile(req.user.userId, req.body)
+    res.json({ success: true, data: { id: user.id, name: user.name } })
   })
 }
