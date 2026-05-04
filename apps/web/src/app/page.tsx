@@ -1,5 +1,4 @@
-import { Header } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
+import { AppShell } from '@/components/layout/app-shell'
 import { HeroSection } from '@/components/home/hero-section'
 import { PopularDestinations } from '@/components/home/popular-destinations'
 import { TrendingTrips } from '@/components/home/trending-trips'
@@ -21,15 +20,11 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <>
-      <Header />
-      <main className="min-h-screen">
-        <HeroSection />
-        <PopularDestinations />
-        <TrendingTrips />
-        <WhyBookSection />
-      </main>
-      <Footer />
-    </>
+    <AppShell>
+      <HeroSection />
+      <PopularDestinations />
+      <TrendingTrips />
+      <WhyBookSection />
+    </AppShell>
   )
 }
