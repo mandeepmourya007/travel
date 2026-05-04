@@ -7,6 +7,8 @@ async function main() {
   console.log('🌱 Seeding database...\n')
 
   // ── Clean existing data (reverse FK order) ──────────
+  await prisma.walletTransaction.deleteMany()
+  await prisma.wallet.deleteMany()
   await prisma.message.deleteMany()
   await prisma.conversation.deleteMany()
   await prisma.notification.deleteMany()
@@ -93,7 +95,29 @@ async function main() {
     },
   })
 
-  console.log('  ✓ Created 6 users (1 admin, 2 organizers, 3 travelers)')
+  // Additional organizers for PENDING + REJECTED verification status
+  const organizer3User = await prisma.user.create({
+    data: {
+      name: 'Siddharth Rao',
+      email: 'sid@trekbuddy.in',
+      passwordHash,
+      role: 'ORGANIZER',
+      phone: '+919876543214',
+      avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SR',
+    },
+  })
+  const organizer4User = await prisma.user.create({
+    data: {
+      name: 'Nisha Gupta',
+      email: 'nisha@roadtrips.co',
+      passwordHash,
+      role: 'ORGANIZER',
+      phone: '+919876543215',
+      avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=NG',
+    },
+  })
+
+  console.log('  ✓ Created 8 users (1 admin, 4 organizers, 3 travelers)')
 
   // ── Organizer Profiles ──────────────────────────────
   const org1 = await prisma.organizerProfile.create({
@@ -126,7 +150,37 @@ async function main() {
     },
   })
 
-  console.log('  ✓ Created 2 organizer profiles')
+  // PENDING organizer — just submitted, awaiting verification
+  const org3 = await prisma.organizerProfile.create({
+    data: {
+      userId: organizer3User.id,
+      businessName: 'TrekBuddy Co',
+      description: 'Hiking and trekking adventures around the Western Ghats.',
+      verificationStatus: 'PENDING',
+      rating: 0,
+      totalReviews: 0,
+      totalTripsCompleted: 0,
+      bankAccountLinked: false,
+      commissionRate: 10.0,
+    },
+  })
+
+  // REJECTED organizer — failed verification
+  await prisma.organizerProfile.create({
+    data: {
+      userId: organizer4User.id,
+      businessName: 'RoadTrips.co',
+      description: 'Budget road trips across India.',
+      verificationStatus: 'REJECTED',
+      rating: 0,
+      totalReviews: 0,
+      totalTripsCompleted: 0,
+      bankAccountLinked: false,
+      commissionRate: 10.0,
+    },
+  })
+
+  console.log('  ✓ Created 4 organizer profiles (2 APPROVED, 1 PENDING, 1 REJECTED)')
 
   // ── Destinations ────────────────────────────────────
   const goa = await prisma.destination.create({
@@ -145,13 +199,19 @@ async function main() {
     data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800' },
   })
   const alibaug = await prisma.destination.create({
-    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' },
+    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' },
   })
   const hampi = await prisma.destination.create({
-    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800' },
+    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800' },
+  })
+  const jaipur = await prisma.destination.create({
+    data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800' },
+  })
+  const mumbai = await prisma.destination.create({
+    data: { name: 'Mumbai to Goa', slug: 'mumbai-goa-highway', state: 'Maharashtra', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800' },
   })
 
-  console.log('  ✓ Created 7 destinations')
+  console.log('  ✓ Created 9 destinations')
 
   // ── Trips ───────────────────────────────────────────
   const now = new Date()
@@ -397,7 +457,144 @@ async function main() {
     },
   })
 
-  console.log('  ✓ Created 8 trips (6 ACTIVE, 1 DRAFT, 1 REQUEST_BASED)')
+  // ── Trip 9: CULTURAL trip type ───────────────────────
+  const trip9 = await prisma.trip.create({
+    data: {
+      organizerId: org2.id,
+      destinationId: jaipur.id,
+      title: 'Jaipur Heritage Walk — 2N/3D',
+      slug: 'jaipur-heritage-walk-2n3d',
+      tripType: 'CULTURAL',
+      bookingMode: 'INSTANT',
+      description: 'Explore the Pink City! Visit Amber Fort, Hawa Mahal, City Palace, and experience authentic Rajasthani culture, food, and crafts.',
+      itinerary: [
+        { day: 1, title: 'Arrival & City Tour', description: 'Explore Jaipur city.', activities: [{ title: 'Hawa Mahal', time: '10:00 AM' }, { title: 'City Palace', time: '2:00 PM' }, { title: 'Rajasthani thali dinner', time: '7:30 PM' }] },
+        { day: 2, title: 'Forts & Crafts', description: 'Amber Fort and local artisans.', activities: [{ title: 'Amber Fort', time: '8:00 AM' }, { title: 'Block printing workshop', time: '2:00 PM' }, { title: 'Nahargarh sunset', time: '5:30 PM' }] },
+        { day: 3, title: 'Departure', description: 'Markets and departure.', activities: [{ title: 'Johari Bazaar shopping', time: '9:00 AM' }, { title: 'Departure', time: '1:00 PM' }] },
+      ],
+      startDate: inDays(18),
+      endDate: inDays(21),
+      pricePerPerson: 4599,
+      minGroupSize: 8,
+      maxGroupSize: 20,
+      currentBookings: 5,
+      inclusions: ['Train from Pune', 'Hotel (2N)', 'Breakfast & dinner', 'Fort entry tickets', 'Heritage guide'],
+      exclusions: ['Lunch', 'Shopping', 'Travel insurance'],
+      cancellationPolicy: 'MODERATE',
+      photos: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800'],
+      status: 'ACTIVE',
+      transferPoints: {
+        create: [
+          { type: 'PICKUP', label: 'Pune Junction Railway Station', time: '6:00 PM', sortOrder: 0 },
+          { type: 'DROP', label: 'Pune Junction Railway Station', time: '8:00 PM', sortOrder: 1 },
+        ],
+      },
+    },
+  })
+
+  // ── Trip 10: ROAD_TRIP trip type ───────────────────────
+  const trip10 = await prisma.trip.create({
+    data: {
+      organizerId: org1.id,
+      destinationId: mumbai.id,
+      title: 'Mumbai–Goa Coastal Road Trip — 3N/4D',
+      slug: 'mumbai-goa-coastal-road-trip',
+      tripType: 'ROAD_TRIP',
+      bookingMode: 'INSTANT',
+      description: 'Epic coastal road trip from Mumbai to Goa via the Konkan coast! Stop at hidden beaches, forts, and seafood shacks along the way.',
+      itinerary: [
+        { day: 1, title: 'Mumbai to Alibaug', description: 'Start the road trip.', activities: [{ title: 'Mumbai pickup', time: '6:00 AM' }, { title: 'Alibaug beach stop', time: '10:00 AM' }, { title: 'Murud-Janjira Fort', time: '2:00 PM' }] },
+        { day: 2, title: 'Alibaug to Ganpatipule', description: 'Coastal drive south.', activities: [{ title: 'Drive along coast', time: '8:00 AM' }, { title: 'Ganpatipule temple', time: '1:00 PM' }, { title: 'Beach camping', time: '5:00 PM' }] },
+        { day: 3, title: 'Ganpatipule to Goa', description: 'Final stretch to Goa.', activities: [{ title: 'Scenic drive', time: '8:00 AM' }, { title: 'Palolem beach', time: '3:00 PM' }, { title: 'Beach party', time: '9:00 PM' }] },
+        { day: 4, title: 'Goa & Departure', description: 'Explore Goa, fly back.', activities: [{ title: 'North Goa', time: '9:00 AM' }, { title: 'Airport drop', time: '4:00 PM' }] },
+      ],
+      startDate: inDays(25),
+      endDate: inDays(29),
+      pricePerPerson: 8499,
+      earlyBirdPrice: 7499,
+      earlyBirdDeadline: inDays(15),
+      minGroupSize: 4,
+      maxGroupSize: 8,
+      currentBookings: 3,
+      inclusions: ['SUV rental', 'Fuel', 'Hotel + camping (3N)', 'Breakfast & dinner', 'Fort tickets'],
+      exclusions: ['Flights', 'Lunch', 'Personal expenses'],
+      cancellationPolicy: 'STRICT',
+      photos: ['https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      status: 'ACTIVE',
+      transferPoints: {
+        create: [
+          { type: 'PICKUP', label: 'Mumbai — Dadar TT', time: '6:00 AM', sortOrder: 0 },
+          { type: 'DROP', label: 'Goa — Dabolim Airport', time: '4:00 PM', sortOrder: 1 },
+        ],
+      },
+    },
+  })
+
+  // ── Trip 11: FULL status (sold out) ───────────────────
+  await prisma.trip.create({
+    data: {
+      organizerId: org1.id,
+      destinationId: alibaug.id,
+      title: 'Alibaug Beach Day — SOLD OUT',
+      slug: 'alibaug-beach-day-sold-out',
+      tripType: 'WEEKEND',
+      bookingMode: 'INSTANT',
+      description: 'Quick beach getaway to Alibaug from Pune. This trip is SOLD OUT!',
+      itinerary: [
+        { day: 1, title: 'Beach Day', description: 'Full day at Alibaug.', activities: [{ title: 'Ferry to Alibaug', time: '8:00 AM' }, { title: 'Kolaba Fort', time: '11:00 AM' }, { title: 'Beach games', time: '2:00 PM' }, { title: 'Ferry back', time: '6:00 PM' }] },
+      ],
+      startDate: inDays(5),
+      endDate: inDays(6),
+      pricePerPerson: 999,
+      minGroupSize: 15,
+      maxGroupSize: 15,
+      currentBookings: 15,
+      inclusions: ['Ferry tickets', 'Lunch', 'Beach activities'],
+      exclusions: ['Snacks', 'Personal expenses'],
+      cancellationPolicy: 'FLEXIBLE',
+      photos: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      status: 'FULL',
+      acceptingBookings: false,
+      transferPoints: {
+        create: [
+          { type: 'PICKUP', label: 'Mumbai — Gateway of India', time: '7:00 AM', sortOrder: 0 },
+          { type: 'DROP', label: 'Mumbai — Gateway of India', time: '8:00 PM', sortOrder: 1 },
+        ],
+      },
+    },
+  })
+
+  // ── Trip 12: CANCELLED status ─────────────────────────
+  await prisma.trip.create({
+    data: {
+      organizerId: org2.id,
+      destinationId: hampi.id,
+      title: 'Hampi Heritage Tour — CANCELLED',
+      slug: 'hampi-heritage-tour-cancelled',
+      tripType: 'CULTURAL',
+      bookingMode: 'REQUEST_BASED',
+      description: 'Explore the ancient ruins of Hampi. Unfortunately, this trip has been cancelled due to insufficient bookings.',
+      itinerary: [
+        { day: 1, title: 'Arrival', description: 'Reach Hampi.', activities: [{ title: 'Check-in', time: '10:00 AM' }, { title: 'Virupaksha Temple', time: '3:00 PM' }] },
+        { day: 2, title: 'Ruins Tour', description: 'Full day exploration.', activities: [{ title: 'Vittala Temple', time: '8:00 AM' }, { title: 'Elephant Stables', time: '12:00 PM' }, { title: 'Sunset at Hemakuta', time: '5:30 PM' }] },
+        { day: 3, title: 'Departure', description: 'Head back.', activities: [{ title: 'Breakfast', time: '8:00 AM' }, { title: 'Departure', time: '10:00 AM' }] },
+      ],
+      startDate: inDays(35),
+      endDate: inDays(38),
+      pricePerPerson: 5499,
+      minGroupSize: 10,
+      maxGroupSize: 20,
+      currentBookings: 2,
+      inclusions: ['Transport from Pune', 'Hotel (2N)', 'All meals', 'Guide', 'Entry tickets'],
+      exclusions: ['Shopping', 'Tips'],
+      cancellationPolicy: 'MODERATE',
+      photos: ['https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800'],
+      status: 'CANCELLED',
+      acceptingBookings: false,
+    },
+  })
+
+  console.log('  ✓ Created 12 trips (8 ACTIVE, 1 DRAFT, 1 FULL, 1 CANCELLED, 1 COMPLETED)')
 
   // ── Bookings ────────────────────────────────────────
   const booking1 = await prisma.booking.create({
@@ -467,8 +664,8 @@ async function main() {
       { bookingId: booking3.id, name: 'Vikram Joshi', phone: '+919876543214', age: 30, gender: 'MALE', isPrimary: true },
       { bookingId: booking3.id, name: 'Neha Joshi', age: 28, gender: 'FEMALE' },
       { bookingId: booking4.id, name: 'Amit Kulkarni', phone: '+919876543212', age: 28, gender: 'MALE', isPrimary: true },
-      { bookingId: booking4.id, name: 'Rohit M', age: 27, gender: 'MALE' },
-      { bookingId: booking4.id, name: 'Saurabh P', age: 29, gender: 'MALE' },
+      { bookingId: booking4.id, name: 'Rohit M', age: 27, gender: 'OTHER' },
+      { bookingId: booking4.id, name: 'Saurabh P', age: 29, gender: 'PREFER_NOT_TO_SAY' },
     ],
   })
 
@@ -576,18 +773,46 @@ async function main() {
 
   console.log('  ✓ Created 2 conversations with 5 messages')
 
-  // ── Notifications ───────────────────────────────────
+  // ── Notifications (all channels × all types) ─────────
   await prisma.notification.createMany({
     data: [
+      // IN_APP channel
       { userId: traveler1.id, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your booking for "Goa Beach Blast" is confirmed. Ref: TRV-2025-0001', sentAt: new Date(), readAt: new Date() },
       { userId: traveler2.id, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your booking for "Lonavala Monsoon Trek" is confirmed. Ref: TRV-2025-0002', sentAt: new Date() },
       { userId: traveler3.id, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your booking for "Ladakh Road Trip" is confirmed. Ref: TRV-2025-0003', sentAt: new Date() },
-      { userId: traveler1.id, channel: 'IN_APP', type: 'TRIP_REMINDER', title: 'Trip in 2 weeks!', body: 'Your Goa Beach Blast trip starts in 14 days. Start packing! 🏖️', sentAt: new Date() },
+      { userId: traveler1.id, channel: 'IN_APP', type: 'TRIP_REMINDER', title: 'Trip in 2 weeks!', body: 'Your Goa Beach Blast trip starts in 14 days. Start packing!', sentAt: new Date() },
       { userId: organizer1User.id, channel: 'IN_APP', type: 'REVIEW_REQUEST', title: 'New Review!', body: 'Amit Kulkarni left a 5-star review for "Goa Beach Blast". Check it out!', sentAt: new Date() },
+      { userId: traveler1.id, channel: 'IN_APP', type: 'BOOKING_CANCELLED', title: 'Booking Cancelled', body: 'Your booking TRV-2025-0005 has been cancelled.', sentAt: new Date() },
+      { userId: traveler1.id, channel: 'IN_APP', type: 'PAYMENT_RECEIVED', title: 'Payment Received', body: 'We received your payment of ₹11,998 for Goa Beach Blast.', sentAt: new Date(), readAt: new Date() },
+      { userId: traveler2.id, channel: 'IN_APP', type: 'PAYMENT_FAILED', title: 'Payment Failed', body: 'Your payment for Ladakh trip failed. Please retry.', sentAt: new Date() },
+      { userId: traveler1.id, channel: 'IN_APP', type: 'REFUND_PROCESSED', title: 'Refund Processed', body: 'Your refund of ₹1,500 has been credited to your wallet.', sentAt: new Date() },
+      { userId: traveler3.id, channel: 'IN_APP', type: 'CHAT_MESSAGE', title: 'New Message', body: 'You have a new message from Wanderlust India.', sentAt: new Date() },
+      { userId: organizer1User.id, channel: 'IN_APP', type: 'TRIP_REQUEST_RECEIVED', title: 'New Trip Request', body: 'Amit Kulkarni has requested to join "Goa Couples Retreat".', sentAt: new Date() },
+      { userId: traveler1.id, channel: 'IN_APP', type: 'TRIP_REQUEST_APPROVED', title: 'Request Approved!', body: 'Your request to join "Goa Couples Retreat" has been approved!', sentAt: new Date(), readAt: new Date() },
+      { userId: traveler2.id, channel: 'IN_APP', type: 'TRIP_REQUEST_REJECTED', title: 'Request Declined', body: 'Your request to join "Manali Winter Retreat" was declined.', sentAt: new Date() },
+      { userId: organizer2User.id, channel: 'IN_APP', type: 'ORGANIZER_APPROVED', title: 'Profile Approved!', body: 'Your organizer profile has been approved. Start creating trips!', sentAt: new Date(), readAt: new Date() },
+      { userId: organizer3User.id, channel: 'IN_APP', type: 'ORGANIZER_REJECTED', title: 'Profile Rejected', body: 'Your organizer profile needs additional documents.', sentAt: new Date() },
+      { userId: admin.id, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'System Alert', body: 'Webhook processing queue has 5 pending events.', sentAt: new Date() },
+
+      // EMAIL channel
+      { userId: traveler1.id, channel: 'EMAIL', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmation Email', body: 'Your booking for "Goa Beach Blast" is confirmed. Check your email for details.', sentAt: new Date() },
+      { userId: traveler2.id, channel: 'EMAIL', type: 'REFUND_PROCESSED', title: 'Refund Confirmation', body: 'Your refund has been processed. It will reflect in 5-7 business days.', sentAt: new Date() },
+      { userId: organizer1User.id, channel: 'EMAIL', type: 'PAYMENT_RECEIVED', title: 'Payment Alert', body: 'You received a payment of ₹11,998 for Goa Beach Blast.', sentAt: new Date() },
+
+      // SMS channel
+      { userId: traveler1.id, channel: 'SMS', type: 'TRIP_REMINDER', title: 'Trip Reminder SMS', body: 'Reminder: Your Goa Beach Blast trip starts tomorrow at 6:00 AM!', sentAt: new Date() },
+      { userId: traveler3.id, channel: 'SMS', type: 'BOOKING_CONFIRMED', title: 'Booking SMS', body: 'Booking confirmed! Ref: TRV-2025-0003. Details on app.', sentAt: new Date() },
+
+      // PUSH channel
+      { userId: traveler1.id, channel: 'PUSH', type: 'CHAT_MESSAGE', title: 'New Message', body: 'Rahul from TripVibes replied to your question.', sentAt: new Date() },
+      { userId: traveler2.id, channel: 'PUSH', type: 'TRIP_REMINDER', title: 'Trip Tomorrow!', body: 'Pack your bags! Lonavala trek starts tomorrow.', sentAt: new Date() },
+
+      // Failed notification
+      { userId: traveler3.id, channel: 'EMAIL', type: 'PAYMENT_FAILED', title: 'Payment Alert', body: 'Your payment failed.', sentAt: null, failureReason: 'Email delivery bounced' },
     ],
   })
 
-  console.log('  ✓ Created 5 notifications')
+  console.log('  ✓ Created 24 notifications (all 4 channels × all 14 types)')
 
   // ══════════════════════════════════════════════════════
   // ── Demo Organizer: full dashboard data ────────────────
@@ -1295,6 +1520,188 @@ async function main() {
   // Trip D: ₹42,500 (17000 + 8500 + 17000)
   // Total: ₹166,800
 
+  // ══════════════════════════════════════════════════════
+  // ── Wallets & Wallet Transactions ──────────────────────
+  // ══════════════════════════════════════════════════════
+
+  // Create wallets for all users (eager creation on signup)
+  const allUsers = [admin, organizer1User, organizer2User, organizer3User, organizer4User, traveler1, traveler2, traveler3, demoOrgUser, trav4, trav5, trav6, trav7, trav8, trav9]
+
+  for (const user of allUsers) {
+    await prisma.wallet.create({
+      data: { userId: user.id, balance: 0 },
+    })
+  }
+
+  // ── Traveler1 (amit@gmail.com): Refund + Cashback → has balance ──
+  const amitWallet = await prisma.wallet.findUnique({ where: { userId: traveler1.id } })
+  if (amitWallet) {
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: amitWallet.id,
+        amount: 1500,
+        type: 'REFUND',
+        referenceModel: 'Booking',
+        referenceId: booking1.id,
+        description: 'Refund for Goa Beach Blast partial cancellation',
+        balanceBefore: 0,
+        balanceAfter: 1500,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: amitWallet.id,
+        amount: 200,
+        type: 'CASHBACK',
+        referenceModel: 'Booking',
+        referenceId: booking4.id,
+        description: 'Cashback for Rishikesh Rafting booking',
+        balanceBefore: 1500,
+        balanceAfter: 1700,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: amitWallet.id,
+        amount: 500,
+        type: 'PROMOTIONAL_CREDIT',
+        referenceModel: 'User',
+        referenceId: traveler1.id,
+        description: 'Welcome bonus credit',
+        balanceBefore: 1700,
+        balanceAfter: 2200,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: amitWallet.id,
+        amount: 800,
+        type: 'BOOKING_DEDUCTION',
+        referenceModel: 'Booking',
+        referenceId: booking1.id,
+        description: 'Wallet used for Goa Beach Blast rebooking',
+        balanceBefore: 2200,
+        balanceAfter: 1400,
+      },
+    })
+    await prisma.wallet.update({ where: { id: amitWallet.id }, data: { balance: 1400 } })
+  }
+
+  // ── Traveler2 (sneha@gmail.com): Admin credit ──
+  const snehaWallet = await prisma.wallet.findUnique({ where: { userId: traveler2.id } })
+  if (snehaWallet) {
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: snehaWallet.id,
+        amount: 300,
+        type: 'ADMIN_CREDIT',
+        referenceModel: 'User',
+        referenceId: traveler2.id,
+        description: 'Compensation for delayed trip start',
+        balanceBefore: 0,
+        balanceAfter: 300,
+      },
+    })
+    await prisma.wallet.update({ where: { id: snehaWallet.id }, data: { balance: 300 } })
+  }
+
+  // ── Trav4 (rohan@gmail.com): Refund from cancelled Trip C booking ──
+  const rohanWallet = await prisma.wallet.findUnique({ where: { userId: trav4.id } })
+  if (rohanWallet) {
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: rohanWallet.id,
+        amount: 750,
+        type: 'REFUND',
+        referenceModel: 'Booking',
+        referenceId: dBookingC1.id,
+        description: 'Partial refund for Lonavala trek',
+        balanceBefore: 0,
+        balanceAfter: 750,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: rohanWallet.id,
+        amount: 100,
+        type: 'CASHBACK',
+        referenceModel: 'Booking',
+        referenceId: dBookingA1.id,
+        description: 'Cashback for Ladakh Explorer booking',
+        balanceBefore: 750,
+        balanceAfter: 850,
+      },
+    })
+    await prisma.wallet.update({ where: { id: rohanWallet.id }, data: { balance: 850 } })
+  }
+
+  // ── Trav9 (pooja@gmail.com): Promotional credit + EXPIRY ──
+  const poojaWallet = await prisma.wallet.findUnique({ where: { userId: trav9.id } })
+  if (poojaWallet) {
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: poojaWallet.id,
+        amount: 500,
+        type: 'PROMOTIONAL_CREDIT',
+        referenceModel: 'User',
+        referenceId: trav9.id,
+        description: 'Referral bonus credit',
+        balanceBefore: 0,
+        balanceAfter: 500,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: poojaWallet.id,
+        amount: 250,
+        type: 'EXPIRY',
+        referenceModel: 'WalletTransaction',
+        referenceId: 'expired_promo_batch_001',
+        description: 'Promotional credit expired after 90 days',
+        balanceBefore: 500,
+        balanceAfter: 250,
+      },
+    })
+    await prisma.wallet.update({ where: { id: poojaWallet.id }, data: { balance: 250 } })
+  }
+
+  // ── Trav7 (meera@gmail.com): ADMIN_DEBIT ──
+  const meeraWallet = await prisma.wallet.findUnique({ where: { userId: trav7.id } })
+  if (meeraWallet) {
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: meeraWallet.id,
+        amount: 1000,
+        type: 'ADMIN_CREDIT',
+        referenceModel: 'User',
+        referenceId: trav7.id,
+        description: 'Admin credited for trip disruption compensation',
+        balanceBefore: 0,
+        balanceAfter: 1000,
+      },
+    })
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: meeraWallet.id,
+        amount: 400,
+        type: 'ADMIN_DEBIT',
+        referenceModel: 'User',
+        referenceId: trav7.id,
+        description: 'Admin corrected over-credited amount',
+        balanceBefore: 1000,
+        balanceAfter: 600,
+      },
+    })
+    await prisma.wallet.update({ where: { id: meeraWallet.id }, data: { balance: 600 } })
+  }
+
+  console.log('  ✓ Created 15 wallets + 12 wallet transactions (all 7 types)')
+  console.log('     amit@gmail.com:  ₹1,400 (REFUND + CASHBACK + PROMOTIONAL_CREDIT + BOOKING_DEDUCTION)')
+  console.log('     sneha@gmail.com: ₹300   (ADMIN_CREDIT)')
+  console.log('     rohan@gmail.com: ₹850   (REFUND + CASHBACK)')
+  console.log('     pooja@gmail.com: ₹250   (PROMOTIONAL_CREDIT + EXPIRY)')
+  console.log('     meera@gmail.com: ₹600   (ADMIN_CREDIT + ADMIN_DEBIT)')
+
   console.log('\n✅ Seed complete!\n')
   console.log('  📊 Revenue Summary (Demo Organizer):')
   console.log('     Trip A (Ladakh):  ₹85,500  — 4 travelers, 2 pending requests')
@@ -1305,18 +1712,20 @@ async function main() {
   console.log('')
   console.log('  🔐 Test Accounts (password: Test@1234):')
   console.log('     admin@travelapp.com      (ADMIN)')
-  console.log('     rahul@tripvibes.com      (ORGANIZER)')
-  console.log('     priya@wanderlust.in      (ORGANIZER)')
-  console.log('     demo.organizer@test.com  (ORGANIZER) ← Dashboard demo')
-  console.log('     amit@gmail.com           (TRAVELER)')
-  console.log('     sneha@gmail.com          (TRAVELER)')
+  console.log('     rahul@tripvibes.com      (ORGANIZER — APPROVED)')
+  console.log('     priya@wanderlust.in      (ORGANIZER — APPROVED)')
+  console.log('     sid@trekbuddy.in         (ORGANIZER — PENDING)')
+  console.log('     nisha@roadtrips.co       (ORGANIZER — REJECTED)')
+  console.log('     demo.organizer@test.com  (ORGANIZER — Dashboard demo)')
+  console.log('     amit@gmail.com           (TRAVELER — wallet ₹1,400)')
+  console.log('     sneha@gmail.com          (TRAVELER — wallet ₹300)')
   console.log('     vikram@gmail.com         (TRAVELER)')
-  console.log('     rohan@gmail.com          (TRAVELER)')
+  console.log('     rohan@gmail.com          (TRAVELER — wallet ₹850)')
   console.log('     ananya@gmail.com         (TRAVELER)')
   console.log('     karan@gmail.com          (TRAVELER)')
-  console.log('     meera@gmail.com          (TRAVELER)')
+  console.log('     meera@gmail.com          (TRAVELER — wallet ₹600)')
   console.log('     arjun@gmail.com          (TRAVELER)')
-  console.log('     pooja@gmail.com          (TRAVELER)')
+  console.log('     pooja@gmail.com          (TRAVELER — wallet ₹250)')
 }
 
 main()
