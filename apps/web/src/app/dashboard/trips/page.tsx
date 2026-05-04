@@ -17,7 +17,7 @@ export default function MyTripsPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-page-enter space-y-4">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="skeleton h-8 w-32" />
           <div className="skeleton h-10 w-32" />
@@ -34,7 +34,7 @@ export default function MyTripsPage() {
   }
 
   return (
-    <div className="animate-page-enter">
+    <div>
       <div className="flex items-center justify-between">
         <h2 className="font-display text-2xl font-bold text-neutral-900">My Trips</h2>
         <Link href="/dashboard/trips/create" className="btn-primary flex items-center gap-2 text-sm">

@@ -18,7 +18,7 @@ export default function MyPaymentsPage() {
 
   return (
     <AuthGuard allowedRoles={['TRAVELER', 'ADMIN']}>
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 md:py-8 animate-page-enter space-y-6">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 md:py-8 space-y-6">
         <h1 className="font-display text-xl font-bold text-neutral-900 md:text-2xl">My Payments</h1>
 
         {/* Summary cards */}

@@ -66,7 +66,7 @@ export default function PendingRequestsPage() {
   const groups = data ? groupByTrip(data) : []
 
   return (
-    <div className="animate-page-enter space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/dashboard" className="btn-ghost p-2">

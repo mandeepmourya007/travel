@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading, error, refetch } = useOrganizerStats()
 
   return (
-    <div className="animate-page-enter">
+    <div>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-neutral-900">

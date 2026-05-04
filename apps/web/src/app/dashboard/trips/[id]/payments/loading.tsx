@@ -2,7 +2,7 @@ import { StatItemSkeleton } from '@/components/payments/payment-summary-cards'
 
 export default function TripPaymentsLoading() {
   return (
-    <div className="animate-page-enter space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="skeleton h-10 w-10 rounded-lg" />
         <div className="skeleton h-8 w-48" />

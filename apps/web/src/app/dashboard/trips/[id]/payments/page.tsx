@@ -24,7 +24,7 @@ export default function TripPaymentsPage() {
   const payments = useTripPayments(tripId, { ...filters, page })
 
   return (
-    <div className="animate-page-enter space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/dashboard/trips" className="btn-ghost p-2">
