@@ -101,6 +101,7 @@ enum NotificationType {
 enum VerificationCodeType {
   EMAIL_VERIFY
   PHONE_OTP
+  EMAIL_OTP
   PASSWORD_RESET
 }
 
@@ -145,6 +146,7 @@ model User {
   avatarUrl       String?
   aadhaarVerified Boolean   @default(false)
   phoneVerified   Boolean   @default(false)
+  emailVerified   Boolean   @default(false)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
