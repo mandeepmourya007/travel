@@ -159,7 +159,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
       {/* Cancellation */}
       {trip.cancellationPolicy && (
         <p className="mt-2 text-xs text-neutral-400">
-          Cancellation: {trip.cancellationPolicy.replace('_', ' ').toLowerCase()}
+          Cancellation: {trip.cancellationPolicy.replace(/_/g, ' ').toLowerCase()}
         </p>
       )}
     </div>

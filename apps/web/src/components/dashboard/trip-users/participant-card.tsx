@@ -161,8 +161,8 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
                     {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(Primary)</span>}
                   </span>
                   <span className="flex items-center gap-2 text-xs text-neutral-500">
-                    <span>{t.age}y &middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()}</span>
-                    <span className="inline-flex items-center gap-0.5"><Phone className="h-3 w-3" />{t.phone}</span>
+                    <span>{t.age}y {t.gender ? <>&middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()}</> : null}</span>
+                    {t.phone && <span className="inline-flex items-center gap-0.5"><Phone className="h-3 w-3" />{t.phone}</span>}
                   </span>
                 </div>
               ))}

@@ -42,7 +42,8 @@ export function ReviewTab() {
         <SummaryRow label="Cancellation Policy" value={values.cancellationPolicy || '—'} />
         <SummaryRow label="Photos" value={`${(values.photos || []).length} uploaded`} />
         <SummaryRow label="Itinerary Days" value={`${(values.itinerary || []).length} days`} />
-        {values.pickupLocation && <SummaryRow label="Pickup" value={`${values.pickupLocation} at ${values.pickupTime || '—'}`} />}
+        {values.pickupPoints?.length > 0 && <SummaryRow label="Pickup Points" value={`${values.pickupPoints.length} configured`} />}
+        {values.dropPoints?.length > 0 && <SummaryRow label="Drop Points" value={`${values.dropPoints.length} configured`} />}
         {values.itineraryDocUrl && <SummaryRow label="Itinerary Doc" value="Linked" />}
       </div>
 

@@ -54,8 +54,6 @@ export default function EditTripPage() {
     exclusions: trip.exclusions,
     itinerary: trip.itinerary,
     photos: trip.photos,
-    pickupLocation: trip.pickupLocation ?? undefined,
-    pickupTime: trip.pickupTime ?? undefined,
   }
 
   const handleSubmit = (data: CreateTripDto) => {
