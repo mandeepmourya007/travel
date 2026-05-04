@@ -11,6 +11,12 @@ export function isAppApiError(err: unknown): err is AppApiError {
   return err instanceof Error && 'status' in err && typeof (err as AppApiError).status === 'number'
 }
 
+/** Extract a user-friendly error message from an API error or fallback to a default. */
+export function getErrorMessage(err: Error | null, fallback = 'Something went wrong'): string | undefined {
+  if (!err) return undefined
+  return isAppApiError(err) ? err.message : fallback
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
 
 export const apiClient = axios.create({
