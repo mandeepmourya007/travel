@@ -61,7 +61,7 @@ services:
     container_name: travel-api
     restart: unless-stopped
     ports:
-      - '4000:4000'
+      - '4001:4000'
     env_file:
       - path: .env.docker
         required: false
