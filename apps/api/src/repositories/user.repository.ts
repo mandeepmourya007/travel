@@ -28,6 +28,7 @@ export class UserRepository {
     role: 'TRAVELER' | 'ORGANIZER'
     avatarUrl?: string
     phoneVerified?: boolean
+    emailVerified?: boolean
   }) {
     return this.prisma.user.create({ data })
   }

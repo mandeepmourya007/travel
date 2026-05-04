@@ -6,7 +6,7 @@ export class VerificationCodeRepository {
   /** Stores a new verification code (hashed). */
   async create(data: {
     userId?: string
-    type: 'EMAIL_VERIFY' | 'PHONE_OTP' | 'PASSWORD_RESET'
+    type: 'EMAIL_VERIFY' | 'PHONE_OTP' | 'EMAIL_OTP' | 'PASSWORD_RESET'
     identifier: string
     codeHash: string
     expiresAt: Date
@@ -15,11 +15,11 @@ export class VerificationCodeRepository {
   }
 
   /**
-   * Gets the most recent UNUSED code for a phone+type (ordered by createdAt desc).
+   * Gets the most recent UNUSED code for an identifier+type (ordered by createdAt desc).
    * Note: Expiry is checked in the service layer, not here.
    * Used by: OtpService.sendOtp() (cooldown check), OtpService.verifyOtp()
    */
-  async findLatestByIdentifier(identifier: string, type: 'PHONE_OTP') {
+  async findLatestByIdentifier(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP') {
     return this.prisma.verificationCode.findFirst({
       where: {
         identifier,
@@ -46,8 +46,8 @@ export class VerificationCodeRepository {
     })
   }
 
-  /** Invalidates all active codes for a phone. Used by: OtpService.sendOtp() before sending new code. */
-  async invalidateExisting(identifier: string, type: 'PHONE_OTP') {
+  /** Invalidates all active codes for an identifier. Used by: OtpService.sendOtp() before sending new code. */
+  async invalidateExisting(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP') {
     return this.prisma.verificationCode.updateMany({
       where: { identifier, type, usedAt: null },
       data: { usedAt: new Date() },
@@ -55,10 +55,10 @@ export class VerificationCodeRepository {
   }
 
   /**
-   * Counts codes sent in the last N minutes for a phone.
+   * Counts codes sent in the last N minutes for an identifier.
    * Used by: OtpService.sendOtp() for rate limiting (max 3 per 10 min).
    */
-  async countRecentByIdentifier(identifier: string, type: 'PHONE_OTP', minutesAgo: number): Promise<number> {
+  async countRecentByIdentifier(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP', minutesAgo: number): Promise<number> {
     return this.prisma.verificationCode.count({
       where: {
         identifier,

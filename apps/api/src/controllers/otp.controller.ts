@@ -23,4 +23,22 @@ export class OtpController {
     res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
     res.json({ success: true, data: { user: auth.user, tokens: auth.tokens, isNewUser } })
   })
+
+  /** POST /auth/otp/email/send — public */
+  sendEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.sendEmailOtp(req.body.email)
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /auth/otp/email/verify — public */
+  verifyEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { auth, refreshToken, isNewUser } = await this.otpService.verifyEmailOtp(
+      req.body.email,
+      req.body.otp,
+      { userAgent: req.headers['user-agent'], ip: req.ip },
+    )
+
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
+    res.json({ success: true, data: { user: auth.user, tokens: auth.tokens, isNewUser } })
+  })
 }
