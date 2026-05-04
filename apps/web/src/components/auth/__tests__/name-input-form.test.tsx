@@ -6,6 +6,8 @@ import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { NameInputForm } from '../name-input-form'
 
+const API = 'http://localhost:4000/api/v1'
+
 // Mock zustand store so useUpdateProfile's store selectors work
 const mockSetAuth = vi.fn()
 const mockUpdateUser = vi.fn()
@@ -57,7 +59,7 @@ describe('NameInputForm', () => {
 
   it('should show spinner on button during API call (isPending)', async () => {
     server.use(
-      http.patch('*/auth/profile', async () => {
+      http.patch(`${API}/auth/profile`, async () => {
         await new Promise((r) => setTimeout(r, 200))
         return HttpResponse.json({ success: true, data: { id: 'u1', name: 'Mandeep' } })
       }),
@@ -95,7 +97,7 @@ describe('NameInputForm', () => {
 
   it('should show error when API fails', async () => {
     server.use(
-      http.patch('*/auth/profile', () => {
+      http.patch(`${API}/auth/profile`, () => {
         return HttpResponse.json(
           { success: false, error: { message: 'Server error' } },
           { status: 500 },

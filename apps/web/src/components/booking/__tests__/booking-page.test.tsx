@@ -18,6 +18,7 @@ const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => '/trips/goa-beach/book',
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 // Mock next/link

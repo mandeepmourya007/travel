@@ -43,6 +43,7 @@ export function makeMyBookingSummary(overrides: Partial<MyBookingSummary> = {}):
     upcoming: 4,
     completed: 5,
     cancelled: 1,
+    paymentPending: 0,
     ...overrides,
   }
 }

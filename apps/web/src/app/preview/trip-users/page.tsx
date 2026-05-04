@@ -31,9 +31,9 @@ const MOCK_BOOKINGS: TripBookingListItem[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     user: { id: 'u1', name: 'Rahul Sharma', email: 'rahul@example.com', avatarUrl: null },
     travelerDetails: [
-      { id: 't1', name: 'Rahul Sharma', phone: '9876543210', age: 28, gender: 'Male', isPrimary: true },
-      { id: 't2', name: 'Priya Sharma', phone: '9876543211', age: 26, gender: 'Female', isPrimary: false },
-      { id: 't3', name: 'Amit Sharma', phone: null, age: 30, gender: 'Male', isPrimary: false },
+      { id: 't1', name: 'Rahul Sharma', phone: '9876543210', age: 28, gender: 'Male', isPrimary: true, emergencyContactName: 'Mom', emergencyContactPhone: '9000000001' },
+      { id: 't2', name: 'Priya Sharma', phone: '9876543211', age: 26, gender: 'Female', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
+      { id: 't3', name: 'Amit Sharma', phone: null, age: 30, gender: 'Male', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
     ],
   },
   {
@@ -45,8 +45,8 @@ const MOCK_BOOKINGS: TripBookingListItem[] = [
     createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     user: { id: 'u2', name: 'Neha Patel', email: 'neha.patel@example.com', avatarUrl: null },
     travelerDetails: [
-      { id: 't4', name: 'Neha Patel', phone: '9123456789', age: 25, gender: 'Female', isPrimary: true },
-      { id: 't5', name: 'Rohan Patel', phone: '9123456780', age: 27, gender: 'Male', isPrimary: false },
+      { id: 't4', name: 'Neha Patel', phone: '9123456789', age: 25, gender: 'Female', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
+      { id: 't5', name: 'Rohan Patel', phone: '9123456780', age: 27, gender: 'Male', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
     ],
   },
   {
@@ -58,7 +58,7 @@ const MOCK_BOOKINGS: TripBookingListItem[] = [
     createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     user: { id: 'u3', name: 'Vikram Singh', email: 'vikram@example.com', avatarUrl: null },
     travelerDetails: [
-      { id: 't6', name: 'Vikram Singh', phone: '9988776655', age: 32, gender: 'Male', isPrimary: true },
+      { id: 't6', name: 'Vikram Singh', phone: '9988776655', age: 32, gender: 'Male', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
     ],
   },
   {
@@ -84,6 +84,7 @@ const MOCK_REQUESTS: TripRequestListItem[] = [
     responseNote: null,
     approvalExpiresAt: null,
     user: { id: 'u5', name: 'Ananya Reddy', email: 'ananya@example.com', avatarUrl: null },
+    travelerDetails: null,
   },
   {
     id: 'r2',
@@ -95,6 +96,7 @@ const MOCK_REQUESTS: TripRequestListItem[] = [
     responseNote: null,
     approvalExpiresAt: null,
     user: { id: 'u6', name: 'Karthik Menon', email: 'karthik.m@example.com', avatarUrl: null },
+    travelerDetails: null,
   },
   {
     id: 'r3',
@@ -106,6 +108,7 @@ const MOCK_REQUESTS: TripRequestListItem[] = [
     responseNote: null,
     approvalExpiresAt: null,
     user: { id: 'u7', name: 'Deepika Nair', email: 'deepika@example.com', avatarUrl: null },
+    travelerDetails: null,
   },
   {
     id: 'r4',
@@ -117,6 +120,7 @@ const MOCK_REQUESTS: TripRequestListItem[] = [
     responseNote: 'Welcome aboard!',
     approvalExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     user: { id: 'u8', name: 'Arjun Desai', email: 'arjun.d@example.com', avatarUrl: null },
+    travelerDetails: null,
   },
   {
     id: 'r5',
@@ -128,6 +132,7 @@ const MOCK_REQUESTS: TripRequestListItem[] = [
     responseNote: 'Sorry, not enough seats for a group of 6.',
     approvalExpiresAt: null,
     user: { id: 'u9', name: 'Meera Joshi', email: 'meera.j@example.com', avatarUrl: null },
+    travelerDetails: null,
   },
 ]
 
