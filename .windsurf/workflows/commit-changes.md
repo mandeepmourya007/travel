@@ -34,6 +34,17 @@ git ls-files --others --exclude-standard
 
 ---
 
+## Step 2.5: Scope Check — Only Commit Current Task Files
+
+**CRITICAL:** Before grouping, filter the diff to ONLY files touched in the current conversation/task.
+
+- **Include:** Files you created or edited during this session
+- **Exclude:** Files that appear in `git status` but were NOT part of the current task (e.g., docs from a different feature, unrelated config changes, files the user edited independently)
+- **When uncertain:** Ask the user "Should I include `<file>`?" — never assume
+- **Rule:** If a file wasn't discussed, created, or modified as part of the current task, leave it unstaged
+
+---
+
 ## Step 3: Group Files by Feature
 
 Classify every changed/new file into logical commit groups using this priority order:
