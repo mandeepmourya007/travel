@@ -117,7 +117,6 @@ beforeEach(() => {
     mockPaymentTxRepo as any,
     mockWebhookEventRepo as any,
     KEY_SECRET,
-    WEBHOOK_SECRET,
     mockLogger as any,
   )
 })
