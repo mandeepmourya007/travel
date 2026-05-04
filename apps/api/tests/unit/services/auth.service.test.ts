@@ -47,6 +47,14 @@ function createMockOrganizerProfileRepo() {
   }
 }
 
+function createMockWalletRepo() {
+  return {
+    create: vi.fn(),
+    findByUserId: vi.fn(),
+    findOrCreate: vi.fn(),
+  }
+}
+
 const JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters'
 
 const testUser = {
@@ -71,16 +79,19 @@ describe('AuthService', () => {
   let userRepo: ReturnType<typeof createMockUserRepo>
   let refreshTokenRepo: ReturnType<typeof createMockRefreshTokenRepo>
   let organizerProfileRepo: ReturnType<typeof createMockOrganizerProfileRepo>
+  let walletRepo: ReturnType<typeof createMockWalletRepo>
 
   beforeEach(() => {
     vi.clearAllMocks()
     userRepo = createMockUserRepo()
     refreshTokenRepo = createMockRefreshTokenRepo()
     organizerProfileRepo = createMockOrganizerProfileRepo()
+    walletRepo = createMockWalletRepo()
     service = new AuthService(
       userRepo as any,
       refreshTokenRepo as any,
       organizerProfileRepo as any,
+      walletRepo as any,
       JWT_SECRET,
       mockLogger,
       'test-google-client-id',
