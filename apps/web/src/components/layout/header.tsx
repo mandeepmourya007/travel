@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Search, Menu, X, User, LogOut } from 'lucide-react'
+import { Search, Menu, X, User, LogOut, Wallet, Shield } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
@@ -59,12 +59,21 @@ export function Header() {
           {_hasHydrated && isAuthenticated ? (
             <>
               {user?.role !== 'ORGANIZER' && (
-                <Link
-                  href="/my-bookings"
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                >
-                  My Bookings
-                </Link>
+                <>
+                  <Link
+                    href="/my-bookings"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                  >
+                    My Bookings
+                  </Link>
+                  <Link
+                    href="/my-payments"
+                    className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    My Payments
+                  </Link>
+                </>
               )}
               <Link
                 href="/profile"
@@ -80,6 +89,15 @@ export function Header() {
                 >
                   <User className="h-4 w-4" />
                   Dashboard
+                </Link>
+              )}
+              {user?.role === 'ADMIN' && (
+                <Link
+                  href="/admin/payments"
+                  className="flex items-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
                 </Link>
               )}
               <button
@@ -144,13 +162,23 @@ export function Header() {
           {_hasHydrated && isAuthenticated ? (
             <>
               {user?.role !== 'ORGANIZER' && (
-                <Link
-                  href="/my-bookings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
-                >
-                  My Bookings
-                </Link>
+                <>
+                  <Link
+                    href="/my-bookings"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  >
+                    My Bookings
+                  </Link>
+                  <Link
+                    href="/my-payments"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    My Payments
+                  </Link>
+                </>
               )}
               <Link
                 href="/profile"
@@ -166,6 +194,16 @@ export function Header() {
                   className="block rounded-lg px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
                 >
                   Dashboard
+                </Link>
+              )}
+              {user?.role === 'ADMIN' && (
+                <Link
+                  href="/admin/payments"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
                 </Link>
               )}
               <button

@@ -7,7 +7,6 @@ import {
   Map,
   MessageSquare,
   Star,
-  Wallet,
   UserCircle,
   Plus,
 } from 'lucide-react'
@@ -25,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'My Trips', href: '/dashboard/trips', icon: Map },
   { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, disabled: true },
   { label: 'Reviews', href: '/dashboard/reviews', icon: Star, disabled: true },
-  { label: 'Payments', href: '/dashboard/payments', icon: Wallet, disabled: true },
   { label: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
