@@ -56,6 +56,15 @@ export interface OtpVerifyResponse {
   isNewUser: boolean
 }
 
+export interface SendEmailOtpDto {
+  email: string
+}
+
+export interface VerifyEmailOtpDto {
+  email: string
+  otp: string
+}
+
 export interface JwtPayload {
   userId: string
   role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'

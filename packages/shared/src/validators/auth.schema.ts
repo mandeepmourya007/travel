@@ -3,6 +3,9 @@ import { z } from 'zod'
 /** 10-digit Indian phone number starting with 6-9. Shared across FE + BE. */
 export const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/
 
+/** Basic email format validation. Shared across FE + BE. */
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export const signupSchema = z.object({
   email: z.string().email('Invalid email address').toLowerCase().trim(),
   password: z
@@ -44,6 +47,19 @@ export const sendOtpSchema = z.object({
 
 export const verifyOtpSchema = z.object({
   phone: z.string().regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number'),
+  otp: z.string().length(4, 'OTP must be 4 digits').regex(/^\d{4}$/, 'OTP must be numeric'),
+})
+
+export const firebaseVerifySchema = z.object({
+  idToken: z.string().min(1, 'Firebase ID token is required'),
+})
+
+export const sendEmailOtpSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
+})
+
+export const verifyEmailOtpSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
   otp: z.string().length(4, 'OTP must be 4 digits').regex(/^\d{4}$/, 'OTP must be numeric'),
 })
 
