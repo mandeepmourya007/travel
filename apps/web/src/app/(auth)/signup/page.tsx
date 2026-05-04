@@ -8,6 +8,7 @@ import { apiClient, isAppApiError } from '@/lib/api-client'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { signupSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
+import { EmailInput } from '@/components/shared/email-input'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -82,23 +83,13 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="input"
-                placeholder="you@example.com"
-              />
-              {getFieldError('email') && (
-                <p className="mt-1 text-xs text-error-500">{getFieldError('email')}</p>
-              )}
-            </div>
+            <EmailInput
+              id="email"
+              label="Email"
+              value={form.email}
+              onChange={(val) => setForm((f) => ({ ...f, email: val }))}
+              error={getFieldError('email')}
+            />
 
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-neutral-700">

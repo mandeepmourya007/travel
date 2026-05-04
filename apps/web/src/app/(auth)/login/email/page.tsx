@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { loginSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
+import { EmailInput } from '@/components/shared/email-input'
 
 export default function EmailLoginPage() {
   const router = useRouter()
@@ -75,23 +76,13 @@ export default function EmailLoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-neutral-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className="input"
-                placeholder="you@example.com"
-              />
-              {fieldErrors.email && (
-                <p className="mt-1 text-xs text-error-500">{fieldErrors.email}</p>
-              )}
-            </div>
+            <EmailInput
+              id="email"
+              label="Email"
+              value={form.email}
+              onChange={(val) => setForm((f) => ({ ...f, email: val }))}
+              error={fieldErrors.email}
+            />
 
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-neutral-700">
@@ -140,6 +131,10 @@ export default function EmailLoginPage() {
 
           <p className="mt-3 text-center text-sm text-neutral-500">
             Or{' '}
+            <Link href="/login/email-otp" className="font-medium text-primary-600 hover:text-primary-700">
+              login with email OTP
+            </Link>
+            {' · '}
             <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
               login with phone
             </Link>
