@@ -14,7 +14,7 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="mx-auto max-w-md rounded-xl bg-error-50 border border-red-200 p-8 text-center">
+    <div className="mx-auto max-w-md rounded-xl bg-error-50 border border-error-200 p-8 text-center">
       <p className="text-4xl mb-2">😕</p>
       <h3 className="text-base font-semibold text-neutral-800">{title}</h3>
       <p className="mt-1 text-sm text-neutral-500">{message}</p>

@@ -6,7 +6,7 @@ import { MapPin } from 'lucide-react'
 import { usePopularDestinations } from '@/hooks/use-destinations'
 
 export function PopularDestinations() {
-  const { data: destinations, isLoading } = usePopularDestinations()
+  const { data: destinations, isLoading, error } = usePopularDestinations()
 
   if (isLoading) {
     return (
@@ -23,6 +23,21 @@ export function PopularDestinations() {
               />
             ))}
           </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <h2 className="font-display text-2xl font-bold text-neutral-800">
+            Popular Destinations from Pune
+          </h2>
+          <p className="mt-8 text-center text-neutral-400 py-12">
+            Could not load destinations. Please try again later.
+          </p>
         </div>
       </section>
     )

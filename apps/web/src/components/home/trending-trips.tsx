@@ -8,7 +8,7 @@ import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
 import { useCompareQueue } from '@/hooks/use-compare-queue'
 
 export function TrendingTrips() {
-  const { data, isLoading } = useTrendingTrips()
+  const { data, isLoading, error } = useTrendingTrips()
   const { selectedIds, toggle } = useCompareQueue()
 
   return (
@@ -33,6 +33,10 @@ export function TrendingTrips() {
               <TripCardSkeleton key={i} />
             ))}
           </div>
+        ) : error ? (
+          <p className="text-center text-neutral-400 py-12">
+            Could not load trending trips. Please try again later.
+          </p>
         ) : data?.trips.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.trips.slice(0, 6).map((trip) => (
