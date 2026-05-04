@@ -9,6 +9,8 @@ dist
 .env
 .env.local
 .env.docker
+.env.prod
+.env.prod.example
 .DS_Store
 **/.DS_Store
 coverage
