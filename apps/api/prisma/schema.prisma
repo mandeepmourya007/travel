@@ -122,6 +122,16 @@ enum TransferPointType {
   DROP
 }
 
+enum WalletTransactionType {
+  REFUND
+  CASHBACK
+  BOOKING_DEDUCTION
+  ADMIN_CREDIT
+  ADMIN_DEBIT
+  PROMOTIONAL_CREDIT
+  EXPIRY
+}
+
 // ─── Models (15 MVP Tables) ──────────────────────────────
 
 model User {
@@ -153,6 +163,7 @@ model User {
   cancelledBookings Booking[]          @relation("canceller")
   tripRequests      TripRequest[]
   tripEdits         TripEditHistory[]
+  wallet            Wallet?
 
   @@index([email])
   @@index([role])
@@ -267,6 +278,7 @@ model Booking {
   user           User          @relation(fields: [userId], references: [id])
   numTravelers   Int           @default(1)
   totalAmount    Int
+  walletAmount   Int           @default(0)
   tripProtection Boolean       @default(false)
   bookingStatus  BookingStatus @default(PENDING_PAYMENT)
   expiresAt      DateTime?
@@ -542,6 +554,47 @@ model WebhookEvent {
   @@index([status])
   @@index([createdAt])
   @@index([mode])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  currency  String   @default("INR")
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transactions WalletTransaction[]
+
+  @@index([isDeleted])
+  // IMPORTANT: After migration, run raw SQL to add CHECK constraint:
+  // ALTER TABLE "Wallet" ADD CONSTRAINT wallet_balance_non_negative CHECK (balance >= 0);
+}
+
+model WalletTransaction {
+  id             String                @id @default(cuid())
+  walletId       String
+  wallet         Wallet                @relation(fields: [walletId], references: [id])
+  amount         Int
+  type           WalletTransactionType
+  referenceModel String?
+  referenceId    String?
+  description    String
+  balanceBefore  Int
+  balanceAfter   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, referenceModel, referenceId])
+  @@index([walletId, createdAt])
+  @@index([referenceModel, referenceId])
+  @@index([type])
 }
 
 model TripEditHistory {
