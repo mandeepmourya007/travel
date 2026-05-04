@@ -24,7 +24,17 @@ export function webhookVerifyMiddleware(webhookSecret: string) {
       .update(req.body as Buffer)
       .digest('hex')
 
-    if (expectedSig !== signature) {
+    let isValid = false
+    try {
+      isValid = crypto.timingSafeEqual(
+        Buffer.from(expectedSig, 'hex'),
+        Buffer.from(signature, 'hex'),
+      )
+    } catch {
+      isValid = false
+    }
+
+    if (!isValid) {
       logger.warn('Webhook signature mismatch')
       throw new AuthError('Invalid webhook signature')
     }

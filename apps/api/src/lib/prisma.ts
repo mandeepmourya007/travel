@@ -6,7 +6,7 @@ const SOFT_DELETE_MODELS = [
   'Notification', 'TripRequest',
 ] as const
 
-const basePrisma = new PrismaClient({
+export const basePrisma = new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
 })
 
