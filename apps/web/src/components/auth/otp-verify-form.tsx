@@ -1,24 +1,41 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useVerifyOtp } from '@/hooks/use-otp'
 import { isAppApiError } from '@/lib/api-client'
 
 interface OtpVerifyFormProps {
-  phone: string
-  onVerified: (data: { isNewUser: boolean }) => void
+  /** Display text like "+91 98765 43210" or "user@example.com" */
+  identifier: string
+  /** Label prefix — "OTP sent to" is default */
+  identifierLabel?: string
   onEdit: () => void
+  /** Parent calls the verify mutation and returns the result. Throw to show error. */
+  onVerify: (otp: string) => Promise<{ isNewUser: boolean }>
   onResend: () => Promise<void>
+  /** External pending state (from parent's mutation) */
+  isPending?: boolean
+  /** External error (from parent's mutation) */
+  error?: Error | null
+  /** Number of OTP digits. Defaults to 4 (backend OTP). Use 6 for Firebase. */
+  otpLength?: number
 }
 
-const OTP_LENGTH = 4
-
-export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerifyFormProps) {
-  const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''))
+export function OtpVerifyForm({
+  identifier,
+  identifierLabel = 'OTP sent to',
+  onEdit,
+  onVerify,
+  onResend,
+  isPending = false,
+  error = null,
+  otpLength = 4,
+}: OtpVerifyFormProps) {
+  const [digits, setDigits] = useState<string[]>(Array(otpLength).fill(''))
   const [countdown, setCountdown] = useState(30)
   const [shaking, setShaking] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const verifyOtp = useVerifyOtp()
+  const onVerifyRef = useRef(onVerify)
+  onVerifyRef.current = onVerify
 
   // Auto-focus first box on mount
   useEffect(() => {
@@ -34,25 +51,24 @@ export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerify
 
   const handleVerify = useCallback(async (otp: string) => {
     try {
-      const data = await verifyOtp.mutateAsync({ phone, otp })
-      onVerified({ isNewUser: data.isNewUser })
+      await onVerifyRef.current(otp)
     } catch {
       // Trigger shake animation on error
       setShaking(true)
       setTimeout(() => setShaking(false), 500)
       // Clear digits so user can retry
-      setDigits(Array(OTP_LENGTH).fill(''))
+      setDigits(Array(otpLength).fill(''))
       inputRefs.current[0]?.focus()
     }
-  }, [phone, onVerified, verifyOtp.mutateAsync])
+  }, [otpLength])
 
-  // Auto-submit when all 4 digits filled
+  // Auto-submit when all digits filled
   useEffect(() => {
     const otp = digits.join('')
-    if (otp.length === OTP_LENGTH && /^\d{4}$/.test(otp)) {
+    if (otp.length === otpLength && /^\d+$/.test(otp)) {
       handleVerify(otp)
     }
-  }, [digits, handleVerify])
+  }, [digits, handleVerify, otpLength])
 
   const handleChange = (index: number, value: string) => {
     // Only allow single digit
@@ -62,7 +78,7 @@ export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerify
     setDigits(newDigits)
 
     // Auto-focus next box
-    if (digit && index < OTP_LENGTH - 1) {
+    if (digit && index < otpLength - 1) {
       inputRefs.current[index + 1]?.focus()
     }
   }
@@ -79,30 +95,27 @@ export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerify
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH)
-    if (pasted.length === OTP_LENGTH) {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, otpLength)
+    if (pasted.length === otpLength) {
       setDigits(pasted.split(''))
-      inputRefs.current[OTP_LENGTH - 1]?.focus()
+      inputRefs.current[otpLength - 1]?.focus()
     }
   }
 
   const handleResend = async () => {
     await onResend()
     setCountdown(30)
-    setDigits(Array(OTP_LENGTH).fill(''))
+    setDigits(Array(otpLength).fill(''))
     inputRefs.current[0]?.focus()
   }
 
-  // Format phone: 9876543210 → 98765 43210
-  const formattedPhone = `+91 ${phone.slice(0, 5)} ${phone.slice(5)}`
-
   return (
     <div className="space-y-6">
-      {/* Phone display + Edit link */}
+      {/* Identifier display + Edit link */}
       <div className="text-center">
         <p className="text-sm text-neutral-500">
-          OTP sent to{' '}
-          <span className="font-medium text-neutral-900">{formattedPhone}</span>
+          {identifierLabel}{' '}
+          <span className="font-medium text-neutral-900">{identifier}</span>
           {' '}
           <button type="button" onClick={onEdit} className="font-medium text-primary-600 hover:text-primary-700">
             Edit
@@ -130,9 +143,9 @@ export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerify
       </div>
 
       {/* Error message */}
-      {verifyOtp.error && (
+      {error && (
         <div role="alert" className="rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-500 text-center">
-          {isAppApiError(verifyOtp.error) ? verifyOtp.error.message : 'Something went wrong'}
+          {isAppApiError(error) ? error.message : 'Something went wrong'}
         </div>
       )}
 
@@ -140,10 +153,10 @@ export function OtpVerifyForm({ phone, onVerified, onEdit, onResend }: OtpVerify
       <button
         type="button"
         onClick={() => handleVerify(digits.join(''))}
-        disabled={digits.join('').length < OTP_LENGTH || verifyOtp.isPending}
+        disabled={digits.join('').length < otpLength || isPending}
         className="btn-primary w-full disabled:opacity-50"
       >
-        {verifyOtp.isPending ? (
+        {isPending ? (
           <span className="flex items-center justify-center gap-2">
             <span className="spinner spinner-sm" /> Verifying...
           </span>
