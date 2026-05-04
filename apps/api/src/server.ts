@@ -15,6 +15,12 @@ import { authRateLimit } from './middleware/rate-limit.middleware'
 export function createServer() {
   const app = express()
 
+  // ── Trust Nginx reverse proxy (production) ────────
+  // Without this, req.ip returns Nginx container IP for ALL requests,
+  // breaking rate limiting, request logging, and any IP-based logic.
+  // "1" = trust the first proxy hop (Nginx).
+  app.set('trust proxy', 1)
+
   // ── Security ──────────────────────────────────────
   app.use(helmet())
   app.use(cors(corsOptions))
