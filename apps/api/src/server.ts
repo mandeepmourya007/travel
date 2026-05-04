@@ -9,7 +9,7 @@ import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, walletRoutes, webhookRoutes } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, walletRoutes, webhookRoutes } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -52,6 +52,9 @@ export function createServer() {
 
   // ── API Routes ────────────────────────────────────
   app.use('/api/v1/auth', authRateLimit, authRoutes)
+  if (firebaseAuthRoutes) {
+    app.use('/api/v1/auth', firebaseAuthRoutes)
+  }
   app.use('/api/v1/destinations', destinationRoutes)
   app.use('/api/v1/trips', tripRoutes)
 

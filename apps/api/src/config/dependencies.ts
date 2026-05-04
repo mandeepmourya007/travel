@@ -19,6 +19,12 @@ import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { MockOtpProvider } from '../providers/mock-otp.provider'
 import { Msg91OtpProvider } from '../providers/msg91-otp.provider'
+import { NodemailerEmailProvider } from '../providers/nodemailer-email.provider'
+import { MockEmailProvider } from '../providers/mock-email.provider'
+import { FirebaseAuthService } from '../services/firebase-auth.service'
+import { FirebaseAuthController } from '../controllers/firebase-auth.controller'
+import { createFirebaseAuthRoutes } from '../routes/firebase-auth.routes'
+import { getFirebaseAuth } from './firebase'
 import { DestinationController } from '../controllers/destination.controller'
 import { TripController } from '../controllers/trip.controller'
 import { UploadController } from '../controllers/upload.controller'
@@ -100,7 +106,15 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
   : new MockOtpProvider(logger)
 
-const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, logger)
+const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
+  ? new NodemailerEmailProvider(
+      { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
+      env.SMTP_FROM || `TripCompare <${env.SMTP_USER}>`,
+      logger,
+    )
+  : new MockEmailProvider(logger)
+
+const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
 
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
@@ -120,6 +134,16 @@ const webhookController = paymentService
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)
+
+// Firebase auth routes — only created if Firebase Admin SDK is configured
+const firebaseAuth = getFirebaseAuth()
+export const firebaseAuthRoutes = firebaseAuth
+  ? (() => {
+      const firebaseAuthService = new FirebaseAuthService(firebaseAuth, userRepo, authService, logger)
+      const firebaseAuthController = new FirebaseAuthController(firebaseAuthService)
+      return createFirebaseAuthRoutes(firebaseAuthController)
+    })()
+  : null
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
