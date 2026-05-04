@@ -1,6 +1,7 @@
 import type { TripFilters } from '@shared/types/trip.types'
 import type { TripBookingFilters, MyBookingFilters } from '@shared/types/booking.types'
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
+import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/payment.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -57,4 +58,18 @@ export const notificationKeys = {
 export const profileKeys = {
   all: ['profile'] as const,
   me: () => [...profileKeys.all, 'me'] as const,
+}
+
+export const paymentKeys = {
+  all: ['payments'] as const,
+  myPayments: (filters?: PaymentHistoryFilters) =>
+    [...paymentKeys.all, 'my', filters] as const,
+  mySummary: () => [...paymentKeys.all, 'my', 'summary'] as const,
+  tripPayments: (tripId: string, filters?: PaymentHistoryFilters) =>
+    [...paymentKeys.all, 'trip', tripId, filters] as const,
+  tripSummary: (tripId: string) =>
+    [...paymentKeys.all, 'trip', tripId, 'summary'] as const,
+  adminPayments: (filters?: AdminPaymentFilters) =>
+    [...paymentKeys.all, 'admin', filters] as const,
+  adminSummary: () => [...paymentKeys.all, 'admin', 'summary'] as const,
 }
