@@ -66,8 +66,8 @@ if [[ "$HOST_IP" != "localhost" && "$HOST_IP" != "127.0.0.1" ]]; then
   API_PORT=4001
 else
   export CLIENT_URL="${CLIENT_URL:-http://localhost:${WEB_PORT}}"
-  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}"
-  API_PORT=4000
+  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:4001/api/v1}"
+  API_PORT=4001
 fi
 
 echo "🚀 Starting TravelApp (Docker)..."
