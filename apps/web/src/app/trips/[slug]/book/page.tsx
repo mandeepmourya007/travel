@@ -3,12 +3,13 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Users } from 'lucide-react'
+import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { ErrorState } from '@/components/shared/data-states'
 import { useToast } from '@/components/shared/toast'
 import { useTripDetail } from '@/hooks/use-trip-detail'
 import { useCreateBooking } from '@/hooks/use-create-booking'
+import { isAppApiError } from '@/lib/api-client'
 import { useVerifyPayment } from '@/hooks/use-verify-payment'
 import { useAuthStore } from '@/store/auth.store'
 import { loadRazorpayScript } from '@/lib/razorpay'
@@ -18,6 +19,8 @@ import { BookingSuccess } from '@/components/booking/booking-success'
 import { BookingPageSkeleton } from './loading'
 import { formatCurrency } from '@/lib/format'
 import type { TripRequestTraveler } from '@shared/types/trip-request.types'
+
+type BookingRenderState = 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed' | 'notAccepting' | 'success' | 'alreadyBooked' | 'form'
 
 interface BookingResult {
   bookingRef: string
@@ -58,17 +61,18 @@ export default function BookingPage({
 
   // True when we have both requestId AND saved travelers → show pay-only mode
   const isPayOnlyMode = lockedTravelers && !!savedTravelers?.length
-  const [phase, setPhase] = useState<'form' | 'success'>('form')
+  const [phase, setPhase] = useState<'form' | 'success' | 'alreadyBooked'>('form')
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
   // H4: Derive render state to avoid complex inline conditions
   const seatsLeft = trip ? Math.max(0, trip.maxGroupSize - trip.currentBookings) : 0
   const deadlinePassed = trip?.bookingDeadline ? new Date(trip.bookingDeadline) < new Date() : false
-  const renderState: 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed' | 'notAccepting' | 'success' | 'form' =
+  const renderState: BookingRenderState =
     isLoading ? 'loading'
     : (error || !trip) ? 'error'
     : phase === 'success' ? 'success'
+    : phase === 'alreadyBooked' ? 'alreadyBooked'
     : seatsLeft === 0 ? 'fullyBooked'
     : deadlinePassed ? 'deadlinePassed'
     : !trip.acceptingBookings ? 'notAccepting'
@@ -136,8 +140,12 @@ export default function BookingPage({
           },
         },
       }).open()
-    } catch {
-      // createBooking hook already shows error toast
+    } catch (err) {
+      if (isAppApiError(err) && err.code === 'CONFLICT') {
+        setPhase('alreadyBooked')
+      } else {
+        toast({ variant: 'error', title: (err as Error).message || 'Failed to create booking. Please try again.' })
+      }
       setIsProcessing(false)
     }
   }
@@ -194,6 +202,33 @@ export default function BookingPage({
               <ArrowLeft className="h-4 w-4" />
               Back to Trip
             </Link>
+          </div>
+        )}
+
+        {renderState === 'alreadyBooked' && (
+          <div className="text-center py-16">
+            <CheckCircle className="mx-auto h-12 w-12 text-primary-500 mb-4" />
+            <h2 className="text-xl font-display font-bold text-neutral-800">
+              You&apos;ve Already Booked This Trip
+            </h2>
+            <p className="text-neutral-500 mt-2 max-w-md mx-auto">
+              You already have a confirmed booking for this trip. Check your bookings to view details.
+            </p>
+            <div className="flex items-center justify-center gap-3 mt-6">
+              <Link
+                href={`/trips/${slug}`}
+                className="btn-secondary inline-flex items-center gap-2 text-sm"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Trip
+              </Link>
+              <Link
+                href="/my-bookings"
+                className="btn-primary inline-flex items-center gap-2 text-sm"
+              >
+                View My Bookings
+              </Link>
+            </div>
           </div>
         )}
 

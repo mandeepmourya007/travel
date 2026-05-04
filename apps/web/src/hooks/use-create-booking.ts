@@ -1,6 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { useToast } from '@/components/shared/toast'
 import type { CreateBookingResponse } from '@shared/types/payment.types'
 
 interface CreateBookingInput {
@@ -23,11 +22,9 @@ interface CreateBookingInput {
  * Creates a booking and returns Razorpay order details for checkout.
  *
  * POST /bookings → CreateBookingResponse
- * Error handling: shows error toast via onError callback
+ * Error handling: callers use mutateAsync and handle errors (including CONFLICT) in their own catch block.
  */
 export function useCreateBooking() {
-  const { toast } = useToast()
-
   return useMutation({
     mutationFn: async (input: CreateBookingInput) => {
       const res = await apiClient.post<{ success: true; data: CreateBookingResponse }>(
@@ -35,9 +32,6 @@ export function useCreateBooking() {
         input,
       )
       return res.data.data
-    },
-    onError: () => {
-      toast({ variant: 'error', title: 'Failed to create booking. Please try again.' })
     },
   })
 }
