@@ -40,7 +40,32 @@ for i in $(seq 1 $MAX_RETRIES); do
   sleep 2
 done
 
+# ── Detect host IP (prompt if on a remote server) ──
+if [[ -z "${HOST_IP:-}" ]]; then
+  # Auto-detect: if running as root or no display, likely a remote server
+  if [[ "$(whoami)" == "root" ]] || [[ -z "${DISPLAY:-}" && -z "${TERM_PROGRAM:-}" ]]; then
+    SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo '')
+    echo "🌐 Remote server detected."
+    read -rp "   Enter server IP/domain [${SERVER_IP:-localhost}]: " INPUT_IP
+    HOST_IP="${INPUT_IP:-${SERVER_IP:-localhost}}"
+  else
+    HOST_IP="localhost"
+  fi
+fi
+
+# Set URLs based on HOST_IP
+if [[ "$HOST_IP" != "localhost" && "$HOST_IP" != "127.0.0.1" ]]; then
+  export CLIENT_URL="http://${HOST_IP}:3000"
+  export NEXT_PUBLIC_API_URL="http://${HOST_IP}:4001/api/v1"
+  API_PORT=4001
+else
+  export CLIENT_URL="${CLIENT_URL:-http://localhost:3000}"
+  export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}"
+  API_PORT=4000
+fi
+
 echo "🚀 Starting TravelApp (Docker)..."
+echo "   HOST: $HOST_IP"
 echo ""
 
 # ── Stop any existing containers ─────────────────────
@@ -68,13 +93,14 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ TravelApp is running!"
 echo ""
-echo "  Frontend:   http://localhost:3000"
-echo "  API:        http://localhost:4000"
-echo "  Health:     http://localhost:4000/health"
-echo "  Postgres:   localhost:5432  (travel_user / travel_pass)"
-echo "  Redis:      localhost:6379"
+echo "  Frontend:   http://${HOST_IP}:3000"
+echo "  API:        http://${HOST_IP}:${API_PORT}"
+echo "  Health:     http://${HOST_IP}:${API_PORT}/health"
+echo "  Postgres:   ${HOST_IP}:5432  (travel_user / travel_pass)"
+echo "  Redis:      ${HOST_IP}:6379"
 echo ""
 echo "  Logs:       docker compose logs -f"
 echo "  Stop:       ./scripts/docker-down.sh"
+echo "  Seed:       docker compose exec api npx tsx prisma/seed.ts"
 echo "  DB Studio:  docker compose exec api npx prisma studio"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
