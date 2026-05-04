@@ -34,6 +34,12 @@ export const OTP_RATE_LIMIT_WINDOW_MINUTES = 10
 export const OTP_RATE_LIMIT_MAX_SENDS = 3
 export const DEV_OTP = '0000'
 
+// ─── Wallet ──────────────────────────────────────────
+export const WALLET_CASHBACK_PERCENT = 5
+export const WALLET_SIGNUP_BONUS = 0
+export const WALLET_MAX_ADMIN_CREDIT = 50000
+export const WALLET_MAX_ADMIN_DEBIT = 50000
+
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
