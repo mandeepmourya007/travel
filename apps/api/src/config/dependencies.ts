@@ -74,7 +74,6 @@ const paymentService = razorpayClient
       paymentTxRepo,
       webhookEventRepo,
       env.RAZORPAY_KEY_SECRET || '',
-      env.RAZORPAY_WEBHOOK_SECRET || '',
       logger,
     )
   : env.NODE_ENV !== 'production'

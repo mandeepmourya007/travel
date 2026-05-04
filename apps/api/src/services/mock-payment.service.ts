@@ -35,7 +35,7 @@ export class MockPaymentService extends PaymentService {
       },
     } as any
 
-    super(razorpayStub, paymentTxRepo, webhookEventRepo, MOCK_KEY_SECRET, '', logger)
+    super(razorpayStub, paymentTxRepo, webhookEventRepo, MOCK_KEY_SECRET, logger)
     this.mockLogger = logger
   }
 

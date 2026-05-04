@@ -11,7 +11,6 @@ export class PaymentService {
     private paymentTxRepo: PaymentTransactionRepository,
     private webhookEventRepo: WebhookEventRepository,
     private keySecret: string,
-    private webhookSecret: string,
     private logger: Logger,
   ) {}
 
@@ -83,7 +82,14 @@ export class PaymentService {
       .update(`${orderId}|${paymentId}`)
       .digest('hex')
 
-    return expectedSig === signature
+    try {
+      return crypto.timingSafeEqual(
+        Buffer.from(expectedSig, 'hex'),
+        Buffer.from(signature, 'hex'),
+      )
+    } catch {
+      return false
+    }
   }
 
   /**
