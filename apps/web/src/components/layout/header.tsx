@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Search, Menu, X, User, LogOut, Wallet, Shield } from 'lucide-react'
+import { Search, Menu, X, User, LogOut, Wallet, Coins, Shield } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
@@ -75,6 +75,13 @@ export function Header() {
                   </Link>
                 </>
               )}
+              <Link
+                href="/wallet"
+                className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <Coins className="h-4 w-4" />
+                Wallet
+              </Link>
               <Link
                 href="/profile"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
@@ -180,6 +187,14 @@ export function Header() {
                   </Link>
                 </>
               )}
+              <Link
+                href="/wallet"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+              >
+                <Coins className="h-4 w-4" />
+                Wallet
+              </Link>
               <Link
                 href="/profile"
                 onClick={() => setMobileMenuOpen(false)}
