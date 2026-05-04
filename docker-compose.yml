@@ -108,11 +108,12 @@ services:
     container_name: travel-web
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - '${WEB_PORT:-3000}:${WEB_PORT:-3000}'
     env_file:
       - path: .env.docker
         required: false
     environment:
+      PORT: ${WEB_PORT:-3000}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4001/api/v1}
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
       # Server-side env for SSR / route handlers (resolves inside Docker network)
