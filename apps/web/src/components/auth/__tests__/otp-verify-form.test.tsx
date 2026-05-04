@@ -1,16 +1,16 @@
 import { screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { http, HttpResponse } from 'msw'
-import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { OtpVerifyForm } from '../otp-verify-form'
 
 const defaultProps = {
-  phone: '9876543210',
-  onVerified: vi.fn(),
+  identifier: '+91 98765 43210',
   onEdit: vi.fn(),
+  onVerify: vi.fn().mockResolvedValue({ isNewUser: false }),
   onResend: vi.fn().mockResolvedValue(undefined),
+  isPending: false,
+  error: null as Error | null,
 }
 
 describe('OtpVerifyForm', () => {
@@ -80,7 +80,7 @@ describe('OtpVerifyForm', () => {
     await user.paste('0000')
 
     await waitFor(() => {
-      expect(defaultProps.onVerified).toHaveBeenCalledWith({ isNewUser: true })
+      expect(defaultProps.onVerify).toHaveBeenCalledWith('0000')
     })
   })
 
@@ -100,7 +100,7 @@ describe('OtpVerifyForm', () => {
     expect(screen.getByRole('button', { name: /resend otp/i })).toBeInTheDocument()
   })
 
-  it('should call onVerified(data) callback on success', async () => {
+  it('should call onVerify with OTP string on success', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     renderWithQuery(<OtpVerifyForm {...defaultProps} />)
 
@@ -108,67 +108,46 @@ describe('OtpVerifyForm', () => {
     await user.paste('0000')
 
     await waitFor(() => {
-      expect(defaultProps.onVerified).toHaveBeenCalledWith({ isNewUser: true })
+      expect(defaultProps.onVerify).toHaveBeenCalledWith('0000')
     })
   })
 
-  it('should display phone number with Edit link', () => {
+  it('should display identifier with Edit link', () => {
     renderWithQuery(<OtpVerifyForm {...defaultProps} />)
 
     expect(screen.getByText(/\+91 98765 43210/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
   })
 
-  it('should show error message on wrong code', async () => {
-    server.use(
-      http.post('*/auth/otp/verify', () => {
-        return HttpResponse.json(
-          { success: false, error: { message: 'Invalid OTP', code: 'AUTH_ERROR' } },
-          { status: 401 },
-        )
-      }),
-    )
+  it('should show error message when error prop is set', () => {
+    const error = Object.assign(new Error('Invalid OTP'), { status: 401 })
+    renderWithQuery(<OtpVerifyForm {...defaultProps} error={error} />)
 
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+  })
+
+  it('should clear digits and shake on verify failure', async () => {
+    const failingVerify = vi.fn().mockRejectedValue(new Error('Invalid OTP'))
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderWithQuery(<OtpVerifyForm {...defaultProps} />)
+    renderWithQuery(<OtpVerifyForm {...defaultProps} onVerify={failingVerify} />)
 
     await user.click(screen.getByLabelText('Digit 1'))
     await user.paste('1234')
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeInTheDocument()
+      expect(failingVerify).toHaveBeenCalledWith('1234')
     })
-    expect(defaultProps.onVerified).not.toHaveBeenCalled()
+
+    // Digits should be cleared after error
+    await waitFor(() => {
+      expect(screen.getByLabelText('Digit 1')).toHaveValue('')
+    })
   })
 
-  it('should disable verify button during pending state', async () => {
-    server.use(
-      http.post('*/auth/otp/verify', async () => {
-        await new Promise((r) => setTimeout(r, 500))
-        return HttpResponse.json({
-          success: true,
-          data: {
-            user: { id: 'u1', name: 'User', role: 'TRAVELER' },
-            tokens: { accessToken: 'tok', expiresIn: 900 },
-            isNewUser: true,
-          },
-        })
-      }),
-    )
+  it('should show Verifying text when isPending is true', () => {
+    renderWithQuery(<OtpVerifyForm {...defaultProps} isPending={true} />)
 
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    renderWithQuery(<OtpVerifyForm {...defaultProps} />)
-
-    // Manually type digits to enter them without triggering immediate auto-submit race
-    await user.type(screen.getByLabelText('Digit 1'), '0')
-    await user.type(screen.getByLabelText('Digit 2'), '0')
-    await user.type(screen.getByLabelText('Digit 3'), '0')
-    // After the 4th digit, auto-submit fires
-    await user.type(screen.getByLabelText('Digit 4'), '0')
-
-    await waitFor(() => {
-      expect(screen.getByText(/verifying/i)).toBeInTheDocument()
-    })
+    expect(screen.getByText(/verifying/i)).toBeInTheDocument()
   })
 
   it('should call onEdit when Edit button is clicked', async () => {
@@ -193,6 +172,33 @@ describe('OtpVerifyForm', () => {
     expect(defaultProps.onResend).toHaveBeenCalled()
     await waitFor(() => {
       expect(screen.getByText(/resend otp in 0:30/i)).toBeInTheDocument()
+    })
+  })
+
+  it('should display custom identifierLabel', () => {
+    renderWithQuery(<OtpVerifyForm {...defaultProps} identifier="test@example.com" identifierLabel="Code sent to" />)
+
+    expect(screen.getByText(/code sent to/i)).toBeInTheDocument()
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
+  })
+
+  it('should render 6 input boxes when otpLength is 6', () => {
+    renderWithQuery(<OtpVerifyForm {...defaultProps} otpLength={6} />)
+
+    const inputs = screen.getAllByRole('textbox')
+    expect(inputs).toHaveLength(6)
+    expect(screen.getByLabelText('Digit 6')).toBeInTheDocument()
+  })
+
+  it('should auto-submit 6-digit OTP when otpLength is 6', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    renderWithQuery(<OtpVerifyForm {...defaultProps} otpLength={6} />)
+
+    await user.click(screen.getByLabelText('Digit 1'))
+    await user.paste('123456')
+
+    await waitFor(() => {
+      expect(defaultProps.onVerify).toHaveBeenCalledWith('123456')
     })
   })
 })

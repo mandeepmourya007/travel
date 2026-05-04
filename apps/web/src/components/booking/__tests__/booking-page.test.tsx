@@ -316,7 +316,8 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       // Zod produces "String must contain at least 2 character(s)" or similar
-      expect(screen.getByText(/at least 2|required/i)).toBeInTheDocument()
+      // Multiple validation errors may appear (name, phone, etc.), so use getAllByText
+      expect(screen.getAllByText(/at least 2|required/i).length).toBeGreaterThanOrEqual(1)
     })
   })
 
