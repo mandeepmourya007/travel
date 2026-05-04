@@ -940,6 +940,9 @@ const addToComparison = useMutation({
 [ ] Error boundary wraps individual cards/sections (not whole page)
 [ ] Mobile responsive (test at 375px width)
 [ ] Accessibility: form labels, button aria, focus states
+[ ] Page has layout.tsx with Header + Footer (or uses parent layout that provides them)
+[ ] Navigation link added (header/sidebar/menu) so user can reach the new page from the UI
+[ ] Verify navigation flow: login → navigate → page renders (manual or E2E test)
 ```
 
 ### Testing (Unit + Integration)
