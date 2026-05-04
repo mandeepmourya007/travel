@@ -1,12 +1,14 @@
 'use client'
 
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Modal } from '@/components/shared/modal'
 import { useCreateTripRequest } from '@/hooks/use-create-trip-request'
 import { useAuthStore } from '@/store/auth.store'
 import { cn } from '@/lib/utils'
+import { PhoneInput } from '@/components/shared/phone-input'
+import { NumberInput } from '@/components/shared/number-input'
 import { travelerDetailSchema } from '@shared/validators/booking.schema'
 
 const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER'] as const
@@ -146,27 +148,41 @@ export function RequestToBookModal({
                 )}
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <input
-                  {...register(`travelers.${i}.phone`)}
-                  placeholder="Phone (10 digits)"
-                  className={cn('input w-full text-sm', errors.travelers?.[i]?.phone && 'border-error-500')}
+                <Controller
+                  name={`travelers.${i}.phone`}
+                  control={control}
+                  render={({ field }) => (
+                    <PhoneInput
+                      id={`request-travelers-${i}-phone`}
+                      label="Phone"
+                      value={field.value ?? ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      error={errors.travelers?.[i]?.phone?.message}
+                    />
+                  )}
                 />
-                {errors.travelers?.[i]?.phone && (
-                  <p className="text-xs text-error-500 mt-0.5">{errors.travelers[i]!.phone!.message}</p>
-                )}
               </div>
               <div>
-                <input
-                  type="number"
-                  {...register(`travelers.${i}.age`, { valueAsNumber: true })}
-                  placeholder="Age"
-                  min={1}
-                  max={120}
-                  className={cn('input w-full text-sm', errors.travelers?.[i]?.age && 'border-error-500')}
+                <Controller
+                  name={`travelers.${i}.age`}
+                  control={control}
+                  render={({ field }) => (
+                    <NumberInput
+                      id={`request-travelers-${i}-age`}
+                      label="Age"
+                      value={field.value?.toString() ?? ''}
+                      onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      placeholder="Age"
+                      min={1}
+                      max={120}
+                      error={errors.travelers?.[i]?.age?.message}
+                    />
+                  )}
                 />
-                {errors.travelers?.[i]?.age && (
-                  <p className="text-xs text-error-500 mt-0.5">{errors.travelers[i]!.age!.message}</p>
-                )}
               </div>
               <div>
                 <select

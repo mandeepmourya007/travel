@@ -1,8 +1,9 @@
 'use client'
 
-import { useFormContext, useFieldArray } from 'react-hook-form'
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form'
 import { Plus, Trash2, MapPin } from 'lucide-react'
 import { FormField } from './form-field'
+import { NumberInput } from '@/components/shared/number-input'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
 const MAX_TRANSFER_POINTS = 10
@@ -74,11 +75,20 @@ export function TransferPointsTab() {
                 </FormField>
                 <div className="flex items-end gap-2">
                   <FormField label="Extra Charge (₹)" error={errors.pickupPoints?.[idx]?.extraCharge?.message}>
-                    <input
-                      type="number"
-                      {...register(`pickupPoints.${idx}.extraCharge`, { valueAsNumber: true })}
-                      placeholder="0"
-                      className="input"
+                    <Controller
+                      name={`pickupPoints.${idx}.extraCharge`}
+                      control={control}
+                      render={({ field }) => (
+                        <NumberInput
+                          id={`pickupPoints-${idx}-extraCharge`}
+                          value={field.value?.toString() ?? ''}
+                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          placeholder="0"
+                          min={0}
+                        />
+                      )}
                     />
                   </FormField>
                   <button
@@ -143,11 +153,20 @@ export function TransferPointsTab() {
                 </FormField>
                 <div className="flex items-end gap-2">
                   <FormField label="Extra Charge (₹)" error={errors.dropPoints?.[idx]?.extraCharge?.message}>
-                    <input
-                      type="number"
-                      {...register(`dropPoints.${idx}.extraCharge`, { valueAsNumber: true })}
-                      placeholder="0"
-                      className="input"
+                    <Controller
+                      name={`dropPoints.${idx}.extraCharge`}
+                      control={control}
+                      render={({ field }) => (
+                        <NumberInput
+                          id={`dropPoints-${idx}-extraCharge`}
+                          value={field.value?.toString() ?? ''}
+                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          placeholder="0"
+                          min={0}
+                        />
+                      )}
                     />
                   </FormField>
                   <button

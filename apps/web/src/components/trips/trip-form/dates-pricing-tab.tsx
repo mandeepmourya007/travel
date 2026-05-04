@@ -1,7 +1,8 @@
 'use client'
 
-import { useFormContext } from 'react-hook-form'
+import { useFormContext, Controller } from 'react-hook-form'
 import { FormField } from './form-field'
+import { NumberInput } from '@/components/shared/number-input'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
 const CANCELLATION_POLICIES = [
@@ -11,7 +12,7 @@ const CANCELLATION_POLICIES = [
 ] as const
 
 export function DatesPricingTab() {
-  const { register, watch, formState: { errors } } = useFormContext<CreateTripDto>()
+  const { register, watch, control, formState: { errors } } = useFormContext<CreateTripDto>()
   const earlyBirdPrice = watch('earlyBirdPrice')
 
   return (
@@ -28,40 +29,78 @@ export function DatesPricingTab() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <FormField label="Min Group Size" error={errors.minGroupSize?.message} required>
-          <input
-            type="number"
-            {...register('minGroupSize', { valueAsNumber: true })}
-            placeholder="e.g. 5"
-            className="input"
+          <Controller
+            name="minGroupSize"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="minGroupSize"
+                value={field.value?.toString() ?? ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                placeholder="e.g. 5"
+                min={1}
+              />
+            )}
           />
         </FormField>
 
         <FormField label="Max Group Size" error={errors.maxGroupSize?.message} required>
-          <input
-            type="number"
-            {...register('maxGroupSize', { valueAsNumber: true })}
-            placeholder="e.g. 20"
-            className="input"
+          <Controller
+            name="maxGroupSize"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="maxGroupSize"
+                value={field.value?.toString() ?? ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                placeholder="e.g. 20"
+                min={1}
+              />
+            )}
           />
         </FormField>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <FormField label="Price Per Person (₹)" error={errors.pricePerPerson?.message} required>
-          <input
-            type="number"
-            {...register('pricePerPerson', { valueAsNumber: true })}
-            placeholder="e.g. 4500"
-            className="input font-mono"
+          <Controller
+            name="pricePerPerson"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="pricePerPerson"
+                value={field.value?.toString() ?? ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                placeholder="e.g. 4500"
+                min={0}
+                inputClassName="font-mono"
+              />
+            )}
           />
         </FormField>
 
         <FormField label="Early Bird Price (₹)" error={errors.earlyBirdPrice?.message}>
-          <input
-            type="number"
-            {...register('earlyBirdPrice', { valueAsNumber: true })}
-            placeholder="Optional"
-            className="input font-mono"
+          <Controller
+            name="earlyBirdPrice"
+            control={control}
+            render={({ field }) => (
+              <NumberInput
+                id="earlyBirdPrice"
+                value={field.value?.toString() ?? ''}
+                onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                placeholder="Optional"
+                min={0}
+                inputClassName="font-mono"
+              />
+            )}
           />
         </FormField>
       </div>

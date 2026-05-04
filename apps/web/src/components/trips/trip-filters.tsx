@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
+import { NumberInput } from '@/components/shared/number-input'
 import { useDestinations } from '@/hooks/use-destinations'
 import { useDebounce } from '@/hooks/use-debounce'
 import { tripTypeLabel } from '@/lib/format'
@@ -129,22 +130,24 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
           Price Range
         </label>
         <div className="flex gap-2 items-center">
-          <input
-            type="number"
+          <NumberInput
+            id="filter-min-price"
             placeholder="Min"
             value={localMinPrice}
-            onChange={(e) => setLocalMinPrice(e.target.value)}
-            className="input text-sm w-24"
+            onChange={setLocalMinPrice}
             min={0}
+            className="w-24"
+            inputClassName="text-sm"
           />
           <span className="text-neutral-400">–</span>
-          <input
-            type="number"
+          <NumberInput
+            id="filter-max-price"
             placeholder="Max"
             value={localMaxPrice}
-            onChange={(e) => setLocalMaxPrice(e.target.value)}
-            className="input text-sm w-24"
+            onChange={setLocalMaxPrice}
             min={0}
+            className="w-24"
+            inputClassName="text-sm"
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { MapPin } from 'lucide-react'
@@ -11,6 +11,8 @@ import { formatCurrency } from '@/lib/format'
 import { getEffectivePrice } from '@/lib/trip-utils'
 import type { TripDetail } from '@shared/types/trip.types'
 import Link from 'next/link'
+import { PhoneInput } from '@/components/shared/phone-input'
+import { NumberInput } from '@/components/shared/number-input'
 
 /** Form values extracted from the Zod schema */
 export type TravelerFormValues = z.infer<typeof createBookingSchema>
@@ -260,40 +262,40 @@ export function TravelerForm({
               )}
             </div>
 
-            <div>
-              <label htmlFor={`travelers.${index}.phone`} className="block text-xs font-medium text-neutral-600 mb-1">
-                Phone
-              </label>
-              <input
-                id={`travelers.${index}.phone`}
-                {...register(`travelers.${index}.phone`)}
-                className="input w-full"
-                placeholder="9876543210"
-                aria-label={index === 0 ? 'Phone' : `Traveler ${index + 1} phone`}
-              />
-              {errors.travelers?.[index]?.phone && (
-                <p className="text-xs text-error-500 mt-1">{errors.travelers[index]!.phone!.message}</p>
+            <Controller
+              name={`travelers.${index}.phone`}
+              control={control}
+              render={({ field }) => (
+                <PhoneInput
+                  id={`travelers-${index}-phone`}
+                  label="Phone"
+                  value={field.value ?? ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  error={errors.travelers?.[index]?.phone?.message}
+                />
               )}
-            </div>
+            />
 
-            <div>
-              <label htmlFor={`travelers.${index}.age`} className="block text-xs font-medium text-neutral-600 mb-1">
-                Age
-              </label>
-              <input
-                id={`travelers.${index}.age`}
-                type="number"
-                {...register(`travelers.${index}.age`, { valueAsNumber: true })}
-                className="input w-full"
-                placeholder="28"
-                min={1}
-                max={120}
-                aria-label={index === 0 ? 'Age' : `Traveler ${index + 1} age`}
-              />
-              {errors.travelers?.[index]?.age && (
-                <p className="text-xs text-error-500 mt-1">{errors.travelers[index]!.age!.message}</p>
+            <Controller
+              name={`travelers.${index}.age`}
+              control={control}
+              render={({ field }) => (
+                <NumberInput
+                  id={`travelers-${index}-age`}
+                  label="Age"
+                  value={field.value?.toString() ?? ''}
+                  onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  placeholder="28"
+                  min={1}
+                  max={120}
+                  error={errors.travelers?.[index]?.age?.message}
+                />
               )}
-            </div>
+            />
 
             <div>
               <label htmlFor={`travelers.${index}.gender`} className="block text-xs font-medium text-neutral-600 mb-1">
@@ -331,17 +333,20 @@ export function TravelerForm({
                   placeholder="Contact name"
                 />
               </div>
-              <div>
-                <label htmlFor={`travelers.${index}.emergencyContactPhone`} className="block text-xs font-medium text-neutral-600 mb-1">
-                  Emergency Contact Phone
-                </label>
-                <input
-                  id={`travelers.${index}.emergencyContactPhone`}
-                  {...register(`travelers.${index}.emergencyContactPhone`)}
-                  className="input w-full"
-                  placeholder="9876543210"
-                />
-              </div>
+              <Controller
+                name={`travelers.${index}.emergencyContactPhone`}
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    id={`travelers-${index}-emergencyPhone`}
+                    label="Emergency Contact Phone"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                  />
+                )}
+              />
             </div>
           </details>
         </fieldset>
