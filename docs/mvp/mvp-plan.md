@@ -1100,4 +1100,5 @@ TODO
 6. modals are in viewport fix it
 7. trip is getting created event without click create trip
 8. uploaded image of trip is not visble
+9. please have cron job for expiry trip request removing tokens
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*

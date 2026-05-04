@@ -52,7 +52,7 @@ deletedAt    DateTime?                   // When soft-deleted
 import { PrismaClient } from '@prisma/client'
 
 const SOFT_DELETE_MODELS = [
-  'User', 'OrganizerProfile', 'Destination', 'Trip', 'Booking',
+  'User', 'OrganizerProfile', 'Destination', 'Trip', 'TripTransferPoint', 'Booking',
   'TravelerDetail', 'Review', 'Conversation', 'Message',
   'Notification', 'TripRequest',
 ] as const
@@ -141,7 +141,7 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 
 ---
 
-## 4. MVP Tables (15)
+## 4. MVP Tables (17)
 
 ### Table Overview
 
@@ -152,16 +152,18 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 | 3 | **Destination** | ✅ NEW | ✅ | Normalized city/destination lookup for search + SEO |
 | 4 | **Trip** | — | ✅ | Trip listings with pricing, dates, capacity |
 | 5 | **Booking** | — | ✅ | Trip bookings with full lifecycle |
-| 6 | **TravelerDetail** | ✅ NEW | ✅ | Per-traveler info per booking OR trip request (1NF compliant) |
-| 7 | **PaymentTransaction** | ✅ NEW | ❌ | Full payment/refund/escrow audit trail |
-| 8 | **Review** | — | ✅ | Post-trip verified reviews (multi-dimension) |
-| 9 | **Conversation** | — | ✅ | 1:1 chat threads (traveler ↔ organizer per trip) |
-| 10 | **Message** | — | ✅ | Individual chat messages with read tracking |
-| 11 | **RefreshToken** | ✅ NEW | ❌ | JWT refresh tokens — session management + revocation |
-| 12 | **VerificationCode** | ✅ NEW | ❌ | OTP + password reset codes with expiry + attempts |
-| 13 | **Notification** | ✅ NEW | ✅ | Email/SMS/push notification delivery log |
-| 14 | **WebhookEvent** | — | ❌ | Razorpay webhook audit log (idempotency) |
-| 15 | **TripRequest** | ✅ NEW | ✅ | Join request lifecycle — traveler requests, organizer approves/rejects |
+| 6 | **TripTransferPoint** | ✅ NEW | ✅ | Pickup/drop points per trip with optional extra charges |
+| 7 | **TravelerDetail** | ✅ NEW | ✅ | Per-traveler info per booking OR trip request (1NF compliant) |
+| 8 | **PaymentTransaction** | ✅ NEW | ❌ | Full payment/refund/escrow audit trail |
+| 9 | **Review** | — | ✅ | Post-trip verified reviews (multi-dimension) |
+| 10 | **Conversation** | — | ✅ | 1:1 chat threads (traveler ↔ organizer per trip) |
+| 11 | **Message** | — | ✅ | Individual chat messages with read tracking |
+| 12 | **RefreshToken** | ✅ NEW | ❌ | JWT refresh tokens — session management + revocation |
+| 13 | **VerificationCode** | ✅ NEW | ❌ | OTP + password reset codes with expiry + attempts |
+| 14 | **Notification** | ✅ NEW | ✅ | Email/SMS/push notification delivery log |
+| 15 | **WebhookEvent** | — | ❌ | Razorpay webhook audit log (idempotency) |
+| 16 | **TripEditHistory** | ✅ NEW | ❌ | Immutable audit log of trip edits (snapshots + changed fields) |
+| 17 | **TripRequest** | ✅ NEW | ✅ | Join request lifecycle — traveler requests, organizer approves/rejects |
 
 ---
 
@@ -220,6 +222,7 @@ enum PaymentType {
 
 enum PaymentStatus {
   INITIATED
+  AUTHORIZED
   CAPTURED
   FAILED
   REFUNDED
@@ -267,6 +270,11 @@ enum BookingMode {
   REQUEST_BASED    // Traveler requests → organizer approves → then traveler pays
 }
 
+enum TransferPointType {
+  PICKUP
+  DROP
+}
+
 enum TripRequestStatus {
   PENDING          // Traveler sent request, waiting for organizer
   APPROVED         // Organizer accepted — traveler can now book & pay
@@ -286,13 +294,14 @@ enum TripRequestStatus {
 model User {
   id              String    @id @default(cuid())
   name            String
-  email           String    @unique
+  email           String?   @unique             // Optional — supports phone-only OTP auth
   phone           String?   @unique
   passwordHash    String?
   googleId        String?   @unique
   role            UserRole  @default(TRAVELER)
   avatarUrl       String?
   aadhaarVerified Boolean   @default(false)
+  phoneVerified   Boolean   @default(false)     // Set true after OTP verification
 
   // -- Mixin --
   isActive         Boolean   @default(true)
@@ -312,6 +321,7 @@ model User {
   notifications     Notification[]
   cancelledBookings Booking[]         @relation("canceller")
   tripRequests      TripRequest[]
+  tripEdits         TripEditHistory[]
 
   // -- Indexes --
   @@index([email])
@@ -336,6 +346,7 @@ model OrganizerProfile {
   totalTripsCompleted Int                @default(0)        // Materialized cache
   bankAccountLinked   Boolean            @default(false)    // Gate escrow release
   commissionRate      Float              @default(10.0)     // Platform commission %
+  razorpayAccountId   String?                               // Razorpay linked account for route-based transfers
 
   // -- Mixin --
   isActive         Boolean   @default(true)
@@ -407,12 +418,13 @@ model Trip {
   currentBookings    Int                @default(0)   // Only CONFIRMED. Atomic update via $transaction.
   version            Int                @default(0)   // Optimistic locking for concurrent booking
   inclusions         Json               // { transport: 'AC Bus', stay: '3* Hotel', meals: 'All' }
+  exclusions         Json               @default("[]")    // Items NOT included
   cancellationPolicy CancellationPolicy @default(FLEXIBLE)
-  pickupLocation     String?
-  pickupTime         String?
   photos             String[]           // Array of Cloudinary URLs
+  itineraryDocUrl    String?            // Downloadable PDF itinerary
   status             TripStatus         @default(DRAFT)
   bookingMode        BookingMode        @default(INSTANT)  // INSTANT = pay now, REQUEST_BASED = organizer approves first
+  acceptingBookings  Boolean            @default(true)     // Organizer can pause bookings without changing status
 
   // -- Mixin --
   isActive         Boolean   @default(true)
@@ -426,6 +438,8 @@ model Trip {
   reviews            Review[]
   conversations      Conversation[]
   tripRequests       TripRequest[]
+  editHistory        TripEditHistory[]
+  transferPoints     TripTransferPoint[]
 
   // -- Indexes --
   @@index([destinationId, startDate, status])
@@ -464,6 +478,12 @@ model Booking {
   cancelledById       String?
   cancelledBy         User?       @relation("canceller", fields: [cancelledById], references: [id])
 
+  // -- Transfer Points --
+  pickupPointId       String?
+  pickupPoint         TripTransferPoint? @relation("pickupPoint", fields: [pickupPointId], references: [id])
+  dropPointId         String?
+  dropPoint           TripTransferPoint? @relation("dropPoint", fields: [dropPointId], references: [id])
+
   // -- Mixin --
   isActive         Boolean   @default(true)
   isDeleted        Boolean   @default(false)
@@ -489,7 +509,42 @@ model Booking {
 }
 ```
 
-#### 6. TravelerDetail (NEW)
+#### 6. TripTransferPoint (NEW)
+
+```prisma
+model TripTransferPoint {
+  id          String             @id @default(cuid())
+  tripId      String
+  trip        Trip               @relation(fields: [tripId], references: [id])
+  type        TransferPointType                        // PICKUP or DROP
+  label       String                                   // "Pune Station", "Mumbai Airport T2"
+  address     String?
+  time        String?                                  // "6:00 AM", "10:00 PM"
+  extraCharge Int                @default(0)           // Additional ₹ per person for this point
+  sortOrder   Int                @default(0)           // Display ordering
+
+  // -- Mixin --
+  isActive         Boolean   @default(true)
+  isDeleted        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  // -- Relations --
+  bookingsAsPickup   Booking[]  @relation("pickupPoint")
+  bookingsAsDrop     Booking[]  @relation("dropPoint")
+
+  // -- Indexes --
+  @@index([tripId, type])
+  @@index([isDeleted])
+}
+```
+
+**Use case:** Organizer defines multiple pickup/drop points per trip (e.g., "Pune Station +₹0", "Mumbai Airport +₹200"). Traveler selects during booking. Extra charges are added to total price.
+
+---
+
+#### 7. TravelerDetail (NEW)
 
 ```prisma
 model TravelerDetail {
@@ -521,7 +576,7 @@ model TravelerDetail {
 }
 ```
 
-#### 7. PaymentTransaction (NEW)
+#### 8. PaymentTransaction (NEW)
 
 ```prisma
 model PaymentTransaction {
@@ -551,7 +606,7 @@ model PaymentTransaction {
 }
 ```
 
-#### 8. Review
+#### 9. Review
 
 ```prisma
 model Review {
@@ -584,7 +639,7 @@ model Review {
 }
 ```
 
-#### 9. Conversation
+#### 10. Conversation
 
 ```prisma
 model Conversation {
@@ -615,7 +670,7 @@ model Conversation {
 }
 ```
 
-#### 10. Message
+#### 11. Message
 
 ```prisma
 model Message {
@@ -642,7 +697,7 @@ model Message {
 }
 ```
 
-#### 11. RefreshToken (NEW)
+#### 12. RefreshToken (NEW)
 
 ```prisma
 model RefreshToken {
@@ -665,7 +720,7 @@ model RefreshToken {
 }
 ```
 
-#### 12. VerificationCode (NEW)
+#### 13. VerificationCode (NEW)
 
 ```prisma
 model VerificationCode {
@@ -689,7 +744,7 @@ model VerificationCode {
 }
 ```
 
-#### 13. Notification (NEW)
+#### 14. Notification (NEW)
 
 ```prisma
 model Notification {
@@ -719,28 +774,78 @@ model Notification {
 }
 ```
 
-#### 14. WebhookEvent
+#### 15. WebhookEvent
 
 ```prisma
 model WebhookEvent {
-  id          String   @id @default(cuid())
-  eventId     String   @unique                   // Razorpay event ID (idempotency key)
-  event       String                              // "payment.captured", "refund.processed"
-  payload     Json                                // Raw Razorpay webhook payload
-  status      String   @default("COMPLETED")      // PROCESSING | COMPLETED | FAILED
-  processedAt DateTime?                           // When processing finished
+  id                String    @id @default(cuid())
 
-  // -- Timestamps only (NO soft-delete — audit log) --
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // ── Source Identification ──────────────────────────
+  source            String                         // "razorpay", future: "stripe", "cashfree"
+  externalEventId   String                         // Provider's event ID (idempotency key)
+  eventType         String                         // "payment.captured", "refund.processed"
 
-  // -- Indexes --
-  @@index([eventId])
+  // ── Internal Reference (Polymorphic) ───────────────
+  referenceModel    String?                        // "Booking", "PaymentTransaction"
+  referenceId       String?                        // ID of the referenced record
+
+  // ── External Reference ─────────────────────────────
+  externalId        String?                        // Razorpay payment/order/refund ID
+
+  // ── Payload Storage ────────────────────────────────
+  headers           Json?                          // Webhook request headers (for debugging)
+  payload           Json                           // Raw webhook payload
+  response          Json?                          // Our processing response
+
+  // ── Processing Status ──────────────────────────────
+  status            String    @default("RECEIVED") // RECEIVED | PROCESSING | COMPLETED | FAILED
+  mode              String    @default("live")     // "live" | "test"
+  failureReason     String?
+  attempts          Int       @default(1)          // Processing attempt count
+  processedAt       DateTime?
+
+  // ── Timestamps (NO soft-delete — immutable audit trail) ──
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // ── Indexes ────────────────────────────────────────
+  @@unique([source, externalEventId])              // Idempotency: one event per source
+  @@index([source, eventType])
+  @@index([referenceModel, referenceId])
+  @@index([externalId])
   @@index([status])
+  @@index([createdAt])
+  @@index([mode])
 }
 ```
 
-#### 15. TripRequest (NEW)
+#### 16. TripEditHistory (NEW)
+
+```prisma
+model TripEditHistory {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  editedById    String
+  editedBy      User     @relation(fields: [editedById], references: [id])
+  snapshot      Json                               // Full trip state before edit
+  changedFields String[]                           // ["pricePerPerson", "description"]
+  editNote      String?                            // "Updated pricing for monsoon season"
+
+  // -- Timestamps only (NO soft-delete — immutable audit trail) --
+  createdAt     DateTime @default(now())
+
+  // -- Indexes --
+  @@index([tripId, createdAt])
+  @@index([editedById])
+}
+```
+
+**Use case:** Every trip edit creates an immutable snapshot. Useful for dispute resolution ("organizer changed itinerary after I booked"), admin audit, and undo functionality.
+
+---
+
+#### 17. TripRequest (NEW)
 
 ```prisma
 model TripRequest {
@@ -799,6 +904,7 @@ User 1───* Notification
 User 1───* Conversation (as traveler)
 User 1───* Message (as sender)
 User 1───* Booking (as canceller)
+User 1───* TripEditHistory (as editor)
 
 OrganizerProfile 1───* Trip
 OrganizerProfile 1───* Conversation (as organizer)
@@ -809,6 +915,11 @@ Trip 1───* Booking
 Trip 1───* TripRequest
 Trip 1───* Review
 Trip 1───* Conversation
+Trip 1───* TripTransferPoint
+Trip 1───* TripEditHistory
+
+TripTransferPoint 1───* Booking (as pickupPoint)
+TripTransferPoint 1───* Booking (as dropPoint)
 
 TripRequest 1───0..1 Booking (when converted)
 TripRequest 1───* TravelerDetail
@@ -816,6 +927,8 @@ TripRequest 1───* TravelerDetail
 Booking 1───* TravelerDetail
 Booking 1───* PaymentTransaction
 Booking 1───1 Review (optional)
+Booking *───0..1 TripTransferPoint (pickup)
+Booking *───0..1 TripTransferPoint (drop)
 
 Conversation 1───* Message
 ```
@@ -827,7 +940,7 @@ Conversation 1───* Message
 | Scenario | Problem | Solution |
 |----------|---------|----------|
 | **Two users book the last seat** | Both read `currentBookings = 19` (max = 20), both try to book | Atomic SQL with optimistic locking: `UPDATE Trip SET currentBookings = currentBookings + N, version = version + 1 WHERE id = ? AND currentBookings + N <= maxGroupSize AND version = ?`. If 0 rows affected → "Trip is full" error. |
-| **Duplicate webhook** | Razorpay sends same event twice | `WebhookEvent.eventId` unique constraint + `findByEventId()` check before processing. |
+| **Duplicate webhook** | Razorpay sends same event twice | `WebhookEvent.(source, externalEventId)` composite unique constraint + check before processing. |
 | **Double booking** | Same user books same trip twice | Service-layer check inside `$transaction`: `SELECT ... WHERE tripId AND userId AND bookingStatus NOT IN ('CANCELLED', 'EXPIRED', 'REFUNDED')`. |
 | **Payment vs. cron expiry** | Cron expires booking while user is paying | Cron: `UPDATE Booking SET status = 'EXPIRED' WHERE status = 'PENDING_PAYMENT' AND expiresAt < NOW()` — atomic. Payment webhook checks `bookingStatus` before confirming; if EXPIRED → reject. |
 | **Concurrent review writes** | Two requests update organizer rating | Rating recompute uses `AVG()` aggregate inside `$transaction` — idempotent, always correct. |
@@ -894,6 +1007,13 @@ async confirmBooking(bookingId: string): Promise<Booking> {
 | `(userId, status)` | TripRequest | Traveler: my requests |
 | `(status, approvalExpiresAt)` | TripRequest | Cron: expire unactioned approvals |
 | `(tripId, userId)` unique | TripRequest | One request per user per trip |
+| `(tripId, type)` | TripTransferPoint | Pickup/drop points for a trip |
+| `(tripId, createdAt)` | TripEditHistory | Edit history timeline for a trip |
+| `(editedById)` | TripEditHistory | Edits by a specific user |
+| `(source, externalEventId)` unique | WebhookEvent | Idempotency: one event per source |
+| `(source, eventType)` | WebhookEvent | Filter by provider + event type |
+| `(referenceModel, referenceId)` | WebhookEvent | Find events for a specific record |
+| `(externalId)` | WebhookEvent | Lookup by Razorpay payment/order ID |
 
 ---
 
