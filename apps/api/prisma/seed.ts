@@ -1031,6 +1031,263 @@ async function main() {
 
   console.log('  ✓ Demo Trip E: ACTIVE (REQUEST_BASED) — 3 pending requests')
 
+  // ══════════════════════════════════════════════════════
+  // ── Bulk Payment Data — All Cases + Pagination ───────
+  // ══════════════════════════════════════════════════════
+  //
+  // Covers every PaymentType × PaymentStatus combo:
+  //   PAYMENT   → CAPTURED, AUTHORIZED, FAILED, INITIATED, REFUNDED
+  //   REFUND    → CAPTURED, INITIATED
+  //   ESCROW_RELEASE → CAPTURED
+  //
+  // Covers every BookingStatus:
+  //   CONFIRMED, COMPLETED, CANCELLED, REFUNDED, PENDING_PAYMENT, EXPIRED
+  // ──────────────────────────────────────────────────────
+
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 86400000)
+  const pricePool = [1299, 2499, 3500, 4999, 5500, 6200, 7400, 8999, 10500, 11998, 12500, 13999, 15000, 16500, 17999, 18500, 19999, 21000, 22500, 24999, 26000, 27500]
+
+  // Helper: create booking + one or more payment records
+  async function seedPaymentCase(opts: {
+    ref: string; tripId: string; userId: string; amount: number; travelers: number; dBack: number
+    bookingStatus: 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED' | 'PENDING_PAYMENT' | 'EXPIRED'
+    payments: Array<{ type: 'PAYMENT' | 'REFUND' | 'ESCROW_RELEASE'; status: 'INITIATED' | 'AUTHORIZED' | 'CAPTURED' | 'FAILED' | 'REFUNDED'; failureReason?: string; offsetDays?: number }>
+    cancelReason?: string
+  }) {
+    const booking = await prisma.booking.create({
+      data: {
+        bookingRef: opts.ref,
+        tripId: opts.tripId,
+        userId: opts.userId,
+        numTravelers: opts.travelers,
+        totalAmount: opts.amount,
+        bookingStatus: opts.bookingStatus,
+        ...(opts.bookingStatus === 'CANCELLED' && {
+          cancellationReason: opts.cancelReason ?? 'Plans changed',
+          cancelledAt: daysAgo(opts.dBack),
+          cancelledById: opts.userId,
+        }),
+        ...(opts.bookingStatus === 'PENDING_PAYMENT' && { expiresAt: inDays(2) }),
+        ...(opts.bookingStatus === 'EXPIRED' && { expiresAt: daysAgo(opts.dBack - 1) }),
+      },
+    })
+    for (const [j, p] of opts.payments.entries()) {
+      const offset = p.offsetDays ?? 0
+      await prisma.paymentTransaction.create({
+        data: {
+          bookingId: booking.id,
+          type: p.type,
+          amount: opts.amount,
+          status: p.status,
+          razorpayOrderId: `order_${opts.ref.toLowerCase()}_${j}`,
+          ...(p.status === 'CAPTURED' && p.type === 'PAYMENT' && { razorpayPaymentId: `pay_${opts.ref.toLowerCase()}_${j}` }),
+          ...(p.status === 'AUTHORIZED' && { razorpayPaymentId: `pay_${opts.ref.toLowerCase()}_${j}` }),
+          ...(p.status === 'REFUNDED' && p.type === 'PAYMENT' && { razorpayPaymentId: `pay_${opts.ref.toLowerCase()}_${j}` }),
+          ...(p.type === 'REFUND' && p.status === 'CAPTURED' && { razorpayRefundId: `rfnd_${opts.ref.toLowerCase()}_${j}` }),
+          ...(p.type === 'ESCROW_RELEASE' && { razorpayTransferId: `trf_${opts.ref.toLowerCase()}_${j}` }),
+          ...(p.failureReason && { failureReason: p.failureReason }),
+          createdAt: daysAgo(opts.dBack - offset),
+        },
+      })
+    }
+  }
+
+  // ── amit@gmail.com — all cases for traveler view ──────
+  const amitTrips = [trip2, trip3, trip5, trip7, trip8, demoTripA, demoTripB, demoTripD, demoTripE]
+  let n = 0
+  const amt = (i: number) => pricePool[i % pricePool.length]
+  const aTrip = (i: number) => amitTrips[i % amitTrips.length].id
+
+  // 10 × PAYMENT/CAPTURED — happy path (CONFIRMED bookings)
+  for (let i = 0; i < 10; i++) {
+    await seedPaymentCase({
+      ref: `AMT-CAP-${String(++n).padStart(3, '0')}`, tripId: aTrip(i), userId: traveler1.id,
+      amount: amt(i), travelers: (i % 3) + 1, dBack: 60 - i * 3,
+      bookingStatus: 'CONFIRMED',
+      payments: [{ type: 'PAYMENT', status: 'CAPTURED' }],
+    })
+  }
+
+  // 2 × PAYMENT/CAPTURED — COMPLETED bookings (past trips)
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `AMT-CMP-${String(++n).padStart(3, '0')}`, tripId: aTrip(i + 10), userId: traveler1.id,
+      amount: amt(i + 10), travelers: 2, dBack: 70 + i * 5,
+      bookingStatus: 'COMPLETED',
+      payments: [{ type: 'PAYMENT', status: 'CAPTURED' }],
+    })
+  }
+
+  // 2 × PAYMENT/AUTHORIZED — authorized but not yet captured
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `AMT-AUTH-${String(++n).padStart(3, '0')}`, tripId: aTrip(i + 2), userId: traveler1.id,
+      amount: amt(i + 12), travelers: 1, dBack: 3 + i,
+      bookingStatus: 'CONFIRMED',
+      payments: [{ type: 'PAYMENT', status: 'AUTHORIZED' }],
+    })
+  }
+
+  // 2 × PAYMENT/FAILED — failed payments
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `AMT-FAIL-${String(++n).padStart(3, '0')}`, tripId: aTrip(i + 4), userId: traveler1.id,
+      amount: amt(i + 14), travelers: 1, dBack: 10 + i * 5,
+      bookingStatus: 'PENDING_PAYMENT',
+      payments: [{ type: 'PAYMENT', status: 'FAILED', failureReason: i === 0 ? 'Insufficient funds' : 'Bank declined' }],
+    })
+  }
+
+  // 2 × PAYMENT/INITIATED — just started, awaiting gateway
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `AMT-INIT-${String(++n).padStart(3, '0')}`, tripId: aTrip(i + 6), userId: traveler1.id,
+      amount: amt(i + 16), travelers: 1, dBack: 1 + i,
+      bookingStatus: 'PENDING_PAYMENT',
+      payments: [{ type: 'PAYMENT', status: 'INITIATED' }],
+    })
+  }
+
+  // 1 × PAYMENT/REFUNDED — original payment marked as refunded
+  await seedPaymentCase({
+    ref: `AMT-PRFN-${String(++n).padStart(3, '0')}`, tripId: aTrip(7), userId: traveler1.id,
+    amount: amt(18), travelers: 2, dBack: 25,
+    bookingStatus: 'REFUNDED',
+    payments: [
+      { type: 'PAYMENT', status: 'REFUNDED' },
+      { type: 'REFUND', status: 'CAPTURED', offsetDays: 2 },
+    ],
+  })
+
+  // 2 × CANCELLED booking — PAYMENT/CAPTURED + REFUND/CAPTURED
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `AMT-CANC-${String(++n).padStart(3, '0')}`, tripId: aTrip(i + 3), userId: traveler1.id,
+      amount: amt(i + 19), travelers: 1, dBack: 30 + i * 5,
+      bookingStatus: 'CANCELLED',
+      cancelReason: i === 0 ? 'Schedule conflict' : 'Found better deal',
+      payments: [
+        { type: 'PAYMENT', status: 'CAPTURED' },
+        { type: 'REFUND', status: 'CAPTURED', offsetDays: 3 },
+      ],
+    })
+  }
+
+  // 1 × CANCELLED booking — PAYMENT/CAPTURED + REFUND/INITIATED (refund pending)
+  await seedPaymentCase({
+    ref: `AMT-CRFP-${String(++n).padStart(3, '0')}`, tripId: aTrip(5), userId: traveler1.id,
+    amount: amt(21), travelers: 1, dBack: 8,
+    bookingStatus: 'CANCELLED',
+    cancelReason: 'Health issue',
+    payments: [
+      { type: 'PAYMENT', status: 'CAPTURED' },
+      { type: 'REFUND', status: 'INITIATED', offsetDays: 1 },
+    ],
+  })
+
+  // 1 × EXPIRED booking — PAYMENT/INITIATED that timed out
+  await seedPaymentCase({
+    ref: `AMT-EXP-${String(++n).padStart(3, '0')}`, tripId: aTrip(8), userId: traveler1.id,
+    amount: amt(5), travelers: 1, dBack: 15,
+    bookingStatus: 'EXPIRED',
+    payments: [{ type: 'PAYMENT', status: 'INITIATED' }],
+  })
+
+  // 1 × ESCROW_RELEASE/CAPTURED — organizer payout for completed trip
+  await seedPaymentCase({
+    ref: `AMT-ESC-${String(++n).padStart(3, '0')}`, tripId: aTrip(0), userId: traveler1.id,
+    amount: amt(7), travelers: 2, dBack: 50,
+    bookingStatus: 'COMPLETED',
+    payments: [
+      { type: 'PAYMENT', status: 'CAPTURED' },
+      { type: 'ESCROW_RELEASE', status: 'CAPTURED', offsetDays: 14 },
+    ],
+  })
+
+  console.log(`  ✓ ${n} extra bookings for amit@gmail.com (all payment cases)`)
+  console.log('     PAYMENT: CAPTURED(12), AUTHORIZED(2), FAILED(2), INITIATED(3), REFUNDED(1)')
+  console.log('     REFUND: CAPTURED(3), INITIATED(1)')
+  console.log('     ESCROW_RELEASE: CAPTURED(1)')
+  console.log('     BookingStatus: CONFIRMED, COMPLETED, CANCELLED, REFUNDED, PENDING_PAYMENT, EXPIRED')
+
+  // ── Demo organizer Trip B — all cases for organizer view ──
+  const orgTravelers = [trav4, trav5, trav6, trav7, trav8, trav9, traveler2, traveler3]
+  let m = 0
+
+  // 12 × PAYMENT/CAPTURED
+  for (let i = 0; i < 12; i++) {
+    await seedPaymentCase({
+      ref: `ORG-CAP-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+      userId: orgTravelers[i % orgTravelers.length].id,
+      amount: amt(i + 5), travelers: (i % 2) + 1, dBack: 50 - i * 3,
+      bookingStatus: 'CONFIRMED',
+      payments: [{ type: 'PAYMENT', status: 'CAPTURED' }],
+    })
+  }
+
+  // 2 × PAYMENT/AUTHORIZED
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `ORG-AUTH-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+      userId: orgTravelers[(i + 4) % orgTravelers.length].id,
+      amount: amt(i + 17), travelers: 1, dBack: 5 + i,
+      bookingStatus: 'CONFIRMED',
+      payments: [{ type: 'PAYMENT', status: 'AUTHORIZED' }],
+    })
+  }
+
+  // 2 × PAYMENT/FAILED
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `ORG-FAIL-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+      userId: orgTravelers[(i + 6) % orgTravelers.length].id,
+      amount: amt(i + 19), travelers: 1, dBack: 12 + i * 4,
+      bookingStatus: 'PENDING_PAYMENT',
+      payments: [{ type: 'PAYMENT', status: 'FAILED', failureReason: i === 0 ? 'Card expired' : 'Network timeout' }],
+    })
+  }
+
+  // 2 × CANCELLED + REFUND/CAPTURED
+  for (let i = 0; i < 2; i++) {
+    await seedPaymentCase({
+      ref: `ORG-CANC-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+      userId: orgTravelers[(i + 2) % orgTravelers.length].id,
+      amount: amt(i + 8), travelers: 1, dBack: 35 + i * 5,
+      bookingStatus: 'CANCELLED',
+      cancelReason: 'Changed plans',
+      payments: [
+        { type: 'PAYMENT', status: 'CAPTURED' },
+        { type: 'REFUND', status: 'CAPTURED', offsetDays: 2 },
+      ],
+    })
+  }
+
+  // 1 × ESCROW_RELEASE/CAPTURED
+  await seedPaymentCase({
+    ref: `ORG-ESC-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+    userId: orgTravelers[0].id,
+    amount: amt(15), travelers: 2, dBack: 45,
+    bookingStatus: 'COMPLETED',
+    payments: [
+      { type: 'PAYMENT', status: 'CAPTURED' },
+      { type: 'ESCROW_RELEASE', status: 'CAPTURED', offsetDays: 10 },
+    ],
+  })
+
+  // 1 × PAYMENT/INITIATED
+  await seedPaymentCase({
+    ref: `ORG-INIT-${String(++m).padStart(3, '0')}`, tripId: demoTripB.id,
+    userId: orgTravelers[3].id,
+    amount: amt(2), travelers: 1, dBack: 1,
+    bookingStatus: 'PENDING_PAYMENT',
+    payments: [{ type: 'PAYMENT', status: 'INITIATED' }],
+  })
+
+  console.log(`  ✓ ${m} extra bookings for demo organizer Trip B (all payment cases)`)
+  console.log('     PAYMENT: CAPTURED(14), AUTHORIZED(2), FAILED(2), INITIATED(1)')
+  console.log('     REFUND: CAPTURED(2)')
+  console.log('     ESCROW_RELEASE: CAPTURED(1)')
+
   // Revenue summary:
   // Trip A: ₹85,500 (44000 + 19500 + 22000)
   // Trip B: ₹26,800 (11000 + 4800 + 11000)
