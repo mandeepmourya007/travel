@@ -1101,4 +1101,5 @@ TODO
 7. trip is getting created event without click create trip
 8. uploaded image of trip is not visble
 9. please have cron job for expiry trip request removing tokens
+10. nav bar is not conistent in all pages some where its missing somwere it different
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
