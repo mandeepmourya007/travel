@@ -6,6 +6,17 @@ export type TripRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' 
 /** Traveler detail — derived from shared Zod schema (1NF via TravelerDetail table) */
 export type TripRequestTraveler = z.infer<typeof travelerDetailSchema>
 
+/** Response shape for traveler details — DB columns are nullable unlike Zod input */
+export interface TripRequestTravelerResponse {
+  name: string
+  phone: string | null
+  age: number | null
+  gender: string | null
+  isPrimary: boolean
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+}
+
 export interface TripRequest {
   id: string
   tripId: string
@@ -47,7 +58,7 @@ export interface TripRequestListItem {
   respondedAt: string | null
   responseNote: string | null
   approvalExpiresAt: string | null
-  travelerDetails: TripRequestTraveler[] | null
+  travelerDetails: TripRequestTravelerResponse[] | null
   user: {
     id: string
     name: string
@@ -83,7 +94,7 @@ export interface MyTripRequestItem {
   /** true when status=APPROVED AND approvalExpiresAt > now */
   canPay: boolean
   /** Traveler details collected at request time */
-  travelerDetails: TripRequestTraveler[] | null
+  travelerDetails: TripRequestTravelerResponse[] | null
   trip: {
     id: string
     title: string
