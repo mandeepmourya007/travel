@@ -45,7 +45,7 @@ Rules:
 - One type file per domain: user.types.ts, trip.types.ts, booking.types.ts
 - Use TypeScript interfaces for data shapes, enums for fixed values
 - Export DTOs (Data Transfer Objects) for API request/response
-- Never use `any` — use `unknown` with type guards if needed
+- See `.windsurfrules` §1 for TypeScript strictness rules (no `any`, no `as unknown as`, named exports, etc.)
 - Add JSDoc comments for non-obvious fields
 ```
 
@@ -544,8 +544,7 @@ Checklist:
 - [ ] Controller methods are < 15 lines
 - [ ] All error paths throw typed AppError subclasses
 - [ ] Business events are logged (info level)
-- [ ] No console.log — use logger only
-- [ ] Types are strict — no `any`, no type assertions unless documented
+- [ ] All `.windsurfrules` satisfied (TypeScript, architecture, security, naming, API format)
 - [ ] Constants are in constants.ts, not magic numbers/strings in code
 ```
 
@@ -770,6 +769,7 @@ For mutations (create/update/delete), also:
 | `console.log` for debugging | Use structured logger |
 | Hardcoded strings/numbers | Use constants file |
 | `any` type | Use proper types or `unknown` |
+| `as unknown as X` double-cast | Fix the types, or use single `as X` if validate middleware has already parsed the value |
 | Skipping input validation | Zod schema on every endpoint |
 | Testing implementation details | Test behavior and outcomes |
 | One massive test file | Group by describe blocks per method |

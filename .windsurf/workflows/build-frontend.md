@@ -306,7 +306,7 @@ Rules:
 - Export interfaces for data shapes, enums for fixed values
 - DTOs for API request bodies (CreateBookingDto, TripFilters)
 - Response types match what the API actually returns
-- NEVER use `any` — use `unknown` + type guards if needed
+- See `.windsurfrules` §1 for TypeScript strictness rules (no `any`, no `as unknown as`, etc.)
 - Add JSDoc comments for non-obvious fields
 ```
 
@@ -721,17 +721,17 @@ export function TripCardSkeleton() {
   return (
     <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
       {/* Image placeholder */}
-      <div className="h-48 bg-neutral-200 animate-pulse" />
+      <div className="skeleton h-48" />
       <div className="p-4 space-y-3">
-        <div className="h-4 bg-neutral-200 rounded w-3/4 animate-pulse" />
-        <div className="h-3 bg-neutral-200 rounded w-1/2 animate-pulse" />
+        <div className="skeleton h-4 w-3/4" />
+        <div className="skeleton h-3 w-1/2" />
         <div className="flex gap-2 mt-2">
-          <div className="h-6 w-16 bg-neutral-200 rounded-full animate-pulse" />
-          <div className="h-6 w-20 bg-neutral-200 rounded-full animate-pulse" />
+          <div className="skeleton h-6 w-16 rounded-full" />
+          <div className="skeleton h-6 w-20 rounded-full" />
         </div>
         <div className="flex justify-between items-center mt-3">
-          <div className="h-5 w-20 bg-neutral-200 rounded animate-pulse" />
-          <div className="h-9 w-24 bg-neutral-200 rounded-lg animate-pulse" />
+          <div className="skeleton h-5 w-20" />
+          <div className="skeleton h-9 w-24 rounded-lg" />
         </div>
       </div>
     </div>
@@ -821,14 +821,14 @@ Next.js App Router automatically uses `error.tsx` and `loading.tsx` files per ro
 export default function TripsLoading() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="h-8 w-64 bg-neutral-200 rounded animate-pulse mb-6" />
+      <div className="skeleton h-8 w-64 mb-6" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
-            <div className="h-48 bg-neutral-200 animate-pulse" />
+            <div className="skeleton h-48" />
             <div className="p-4 space-y-3">
-              <div className="h-4 bg-neutral-200 rounded w-3/4 animate-pulse" />
-              <div className="h-3 bg-neutral-200 rounded w-1/2 animate-pulse" />
+              <div className="skeleton h-4 w-3/4" />
+              <div className="skeleton h-3 w-1/2" />
             </div>
           </div>
         ))}
@@ -934,13 +934,12 @@ const addToComparison = useMutation({
 [ ] Hook uses correct query key factory (for proper cache invalidation)
 [ ] Mutations invalidate related queries in onSuccess
 [ ] Error messages are user-friendly (not raw API errors)
-[ ] No `any` types — everything typed through shared types
-[ ] Loading state uses skeleton matching component shape (not generic spinner)
+[ ] All `.windsurfrules` satisfied (TypeScript, colors, skeletons, mobile-first, security, naming)
+[ ] Loading state uses `.skeleton` class matching component shape (not animate-pulse)
 [ ] Button shows loading spinner during mutation (isPending)
 [ ] Error boundary wraps individual cards/sections (not whole page)
-[ ] Mobile responsive (check design system breakpoints)
+[ ] Mobile responsive (test at 375px width)
 [ ] Accessibility: form labels, button aria, focus states
-[ ] No console.log left (use proper error handling)
 ```
 
 ### Testing (Unit + Integration)

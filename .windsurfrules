@@ -1,0 +1,164 @@
+# Project Rules — Group Travel Aggregator
+
+## 1. TypeScript Strictness
+
+- Never use `any` in production code — use `unknown` + type guards
+- Never use `as unknown as X` double-casts:
+  - ❌ `req.query as unknown as MyType`
+  - ✅ `req.query as MyType` (validate middleware already parses it)
+  - ✅ `as any` in tests for mock constructor injection
+  - If you need `as unknown as`, the types are wrong — fix them
+- No `@ts-ignore` or `@ts-expect-error` without a comment explaining why
+- Strict mode enabled (`strict: true` in tsconfig)
+- Named exports only — no default exports (easier refactoring, better IDE support)
+
+## 2. Architecture — Layered Pattern
+
+- **Never skip the Service layer:** Controller → Service → Repository (never Controller → Repository)
+- **Controllers are thin:** parse request + call service + send response (max ~15 lines per method)
+- **All business logic lives in services** (max ~30 lines per method, split if longer)
+- **DB queries ONLY in repositories** — services never write raw Prisma queries
+- **Use Dependency Injection** — services receive repos via constructor
+- **Use asyncHandler wrapper** — no try-catch in controllers
+- **Throw typed errors** (NotFoundError, ForbiddenError, ValidationError) — never silently swallow
+- **Use Pino logger** — no `console.log` in production code
+- **Constants in constants.ts** — no magic numbers/strings in code
+
+## 3. API Response Format
+
+- Success: `{ success: true, data: {...}, pagination?: {...} }`
+- Error: `{ success: false, error: { code: "MACHINE_READABLE", message: "Human readable" } }`
+- Validate all inputs at the edge with Zod schemas on every endpoint
+- Webhook routes use separate pipeline: no CORS, no auth middleware, raw body for HMAC verification
+
+## 4. Frontend — Component Rules
+
+- Props interface above component — new dev sees the contract first
+- Hook order inside components: hooks → derived state → handlers → return
+- Import order: external → internal → types → styles
+- Use `cn()` from shadcn/ui utils for conditional Tailwind classes
+- No inline styles — Tailwind only (exception: truly dynamic values like `style={{ width: `${percent}%` }}`)
+- Co-locate unit tests next to source: `trip-card.test.tsx` next to `trip-card.tsx`
+
+## 5. Frontend — 4-State Rendering (Mandatory)
+
+Every data-fetching component MUST handle all 4 states:
+```
+if (isLoading) return <Skeleton />       // Skeleton matching component shape
+if (error)     return <ErrorState />     // With retry button
+if (!data)     return <EmptyState />     // With relevant action
+return         <ActualComponent />       // Happy path
+```
+
+Three layers of error handling:
+1. Route-level error boundaries (Next.js `error.tsx`)
+2. Component-level error boundaries (isolate failures)
+3. Data-fetching error states (TanStack Query inline)
+
+## 6. Frontend — Query Keys & Data Fetching
+
+- Use query key factory pattern: `tripKeys.list(filters)`, never inline strings
+- Query key factories live in `lib/query-keys.ts` — single source of truth
+- Mutations must invalidate related queries in `onSuccess`
+- Custom hooks encapsulate all data fetching — never call `apiClient` directly in components
+
+## 7. Design System — Colors (WCAG AA Compliance)
+
+- **NEVER use `primary-500` for body text on white** — fails WCAG AA (3.1:1 < 4.5:1)
+- Use `primary-600` or `primary-700` for links and text on white backgrounds
+- `primary-500` ONLY for: button backgrounds, large headlines (≥18px bold), icons, badges
+- Same rule for `accent` and `highlight` — use `700` shade for text on white
+- Semantic colors: `500` for text, `50` for background (e.g., `text-success-500 bg-success-50`)
+- Never hardcode hex values — always use design tokens from `tokens.json`
+- New colors/spacing → add to `tokens.json` first, never directly in a component
+
+## 8. Design System — Skeletons & Loading
+
+- Use `.skeleton` CSS class for shimmer loading — never `animate-pulse`
+- Skeletons must match the shape of the component they replace
+- Button loading: disable button + show spinner left of text
+- Full page loading: centered spinner with `min-h-[50vh]`
+
+## 9. Design System — Animation Rules
+
+- No arbitrary animation values — register in `tailwind.config.ts`, fallback in `globals.css`
+- Keep animations ≤ 0.6s — longer feels sluggish on mobile
+- Infinite animations ONLY for loading indicators — never for UI chrome
+- GPU-promote animated elements with `will-change-transform`
+- Never bypass `prefers-reduced-motion` with inline styles — all animations via CSS classes
+
+## 10. Design System — Typography
+
+- Font pairing: Plus Jakarta Sans (display headings), Inter (body), JetBrains Mono (codes/prices)
+- `h1`, `h2`, `h3` use `font-display` — everything else uses `font-sans` (Inter)
+
+## 11. Design System — Spacing & Layout
+
+- All spacing is multiples of 4px — never arbitrary values
+- Max content width: 1280px (`max-w-7xl`)
+- Card grid: 3 columns desktop, 2 tablet, 1 mobile
+
+## 12. Mobile-First (Mandatory)
+
+- Write mobile styles as the **default** (no breakpoint prefix)
+- Use `sm:`, `md:`, `lg:` prefixes to enhance for larger screens
+- Never build desktop-first then "fix" mobile
+- Tables on mobile → stacked cards
+- Side-by-side on mobile → stack vertically (`flex-col` → `md:flex-row`)
+- Test every page at 375px width before done
+
+## 13. Dark Mode
+
+- Do NOT add `dark:` variants until the dark token set is finalized (Phase 2)
+
+## 14. Security
+
+- No hardcoded secrets, API keys, or tokens — `.env` only, validated with Zod at startup
+- Never log PII (passwords, tokens, Aadhaar, credit card numbers)
+- User input sanitized: Zod `.trim()`, `.toLowerCase()` for emails
+- No raw string concatenation in queries — Prisma parameterized or `$executeRaw` with template literals
+- bcrypt with salt rounds ≥ 12
+- Refresh tokens stored as SHA-256 hashes — never store raw
+- Images NEVER route through Express — Cloudinary direct upload with signed URLs
+
+## 15. Naming Conventions
+
+| Item | Convention | Example |
+|------|-----------|---------|
+| Files | kebab-case | `trip-card.tsx`, `booking.service.ts` |
+| Components | PascalCase | `TripCard`, `BookingForm` |
+| Functions | camelCase | `createBooking`, `handlePayment` |
+| Constants | SCREAMING_SNAKE | `MAX_GROUP_SIZE`, `ESCROW_HOLD_DAYS` |
+| Types/Interfaces | PascalCase | `TripSummary`, `CreateBookingDto` |
+| API routes | kebab-case | `/api/v1/my-trips` |
+| Env vars | SCREAMING_SNAKE | `DATABASE_URL`, `JWT_SECRET` |
+
+## 16. Git Conventions
+
+- Branch: `feat/trip-search`, `fix/booking-escrow`, `chore/update-deps`
+- Commits: conventional format — `feat: add trip comparison page`, `fix: handle duplicate webhook`
+- PR size: max ~300 lines changed
+
+## 17. Database
+
+- Soft-delete on all tables (except audit: PaymentTransaction, WebhookEvent, RefreshToken, VerificationCode)
+- All prices in whole rupees (`Int`, not `Float`)
+- Never edit a committed migration — create a new one
+- Add new columns as nullable first
+- One migration per feature, named descriptively (`add-payment-transaction-table`)
+- Prisma commands (generate, migrate, seed) run inside Docker: `docker compose exec api npx prisma <command>`
+
+## 18. Testing
+
+- Every public method MUST have tests — tests are first-class deliverables
+- One `describe` block per public service method, happy path always first
+- Naming: `"should <expected outcome> when <condition>"`
+- Arrange → Act → Assert pattern, `vi.clearAllMocks()` in `beforeEach`
+- BE minimum per method: happy path, not-found, authorization, validation, edge cases
+- FE minimum per component: loading, error, empty, data states
+- Test data via factory functions — override only relevant fields, deterministic dates
+
+## 19. Workflow Discipline
+
+- **Always create a todo list before implementing** — break the task into small, trackable steps using the todo_list tool
+- **After implementation is complete**, go through every rule in this file and confirm all are satisfied before marking the task as done
