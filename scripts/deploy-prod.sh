@@ -135,6 +135,7 @@ if [ ! -f "$ENV_FILE" ]; then
 # ─── Server ──────────────────────────────────────────
 SERVER_IP=$SERVER_IP
 SERVER_NAME=$SERVER_NAME
+WEB_PORT=3000
 # Set DOMAIN to enable HTTPS (Phase 2):
 # DOMAIN=tripcompare.in
 # ACME_EMAIL=you@email.com

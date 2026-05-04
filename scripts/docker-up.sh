@@ -53,13 +53,19 @@ if [[ -z "${HOST_IP:-}" ]]; then
   fi
 fi
 
+# Read WEB_PORT (from .env file or environment, default 3000)
+if [[ -z "${WEB_PORT:-}" && -f "$ROOT_DIR/.env" ]]; then
+  WEB_PORT=$(grep -E '^WEB_PORT=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '[:space:]' || true)
+fi
+WEB_PORT="${WEB_PORT:-3000}"
+
 # Set URLs based on HOST_IP
 if [[ "$HOST_IP" != "localhost" && "$HOST_IP" != "127.0.0.1" ]]; then
-  export CLIENT_URL="http://${HOST_IP}:3000"
+  export CLIENT_URL="http://${HOST_IP}:${WEB_PORT}"
   export NEXT_PUBLIC_API_URL="http://${HOST_IP}:4001/api/v1"
   API_PORT=4001
 else
-  export CLIENT_URL="${CLIENT_URL:-http://localhost:3000}"
+  export CLIENT_URL="${CLIENT_URL:-http://localhost:${WEB_PORT}}"
   export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:4000/api/v1}"
   API_PORT=4000
 fi
@@ -73,7 +79,7 @@ docker compose down --remove-orphans 2>/dev/null || true
 
 # ── Kill local processes on ports 3000/4000 ──────────
 lsof -ti:4000 | xargs kill -9 2>/dev/null || true
-lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+lsof -ti:${WEB_PORT} | xargs kill -9 2>/dev/null || true
 
 # ── Build and start ──────────────────────────────────
 echo "📦 Building images..."
@@ -93,7 +99,7 @@ echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ TravelApp is running!"
 echo ""
-echo "  Frontend:   http://${HOST_IP}:3000"
+echo "  Frontend:   http://${HOST_IP}:${WEB_PORT}"
 echo "  API:        http://${HOST_IP}:${API_PORT}"
 echo "  Health:     http://${HOST_IP}:${API_PORT}/health"
 echo "  Postgres:   ${HOST_IP}:5432  (travel_user / travel_pass)"
