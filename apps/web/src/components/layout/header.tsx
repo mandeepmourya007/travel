@@ -2,25 +2,18 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { Search, Menu, X, User, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
-import { apiClient } from '@/lib/api-client'
+import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
 
 export function Header() {
   const router = useRouter()
-  const { isAuthenticated, user, clearAuth, _hasHydrated } = useAuthStore()
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore()
+  const { logout: handleLogout, loggingOut } = useLogout('/login')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [loggingOut, setLoggingOut] = useState(false)
-
-  const handleLogout = useCallback(async () => {
-    setLoggingOut(true)
-    try { await apiClient.post('/auth/logout') } catch { /* best-effort */ }
-    clearAuth()
-    router.push('/login')
-  }, [clearAuth, router])
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()

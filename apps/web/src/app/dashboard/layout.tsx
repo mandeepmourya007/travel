@@ -1,29 +1,15 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
-import { apiClient } from '@/lib/api-client'
+import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { RoleGuard } from '@/components/shared/role-guard'
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { user, clearAuth } = useAuthStore()
-  const [loggingOut, setLoggingOut] = useState(false)
-
-  const handleLogout = useCallback(async () => {
-    setLoggingOut(true)
-    try {
-      await apiClient.post('/auth/logout')
-    } catch {
-      // ignore — still clear local state
-    }
-    clearAuth()
-    router.push('/')
-  }, [clearAuth, router])
+  const user = useAuthStore((s) => s.user)
+  const { logout: handleLogout, loggingOut } = useLogout('/')
 
   return (
     <AuthGuard>

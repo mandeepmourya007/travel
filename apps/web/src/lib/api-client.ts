@@ -8,7 +8,7 @@ export interface AppApiError extends Error {
 }
 
 export function isAppApiError(err: unknown): err is AppApiError {
-  return err instanceof Error && ('code' in err || 'status' in err)
+  return err instanceof Error && 'status' in err && typeof (err as AppApiError).status === 'number'
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
@@ -31,37 +31,56 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+// ── Refresh Mutex ────────────────────────────────────
+let refreshPromise: Promise<string | null> | null = null
+
+function doRefresh(): Promise<string | null> {
+  return axios
+    .post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true })
+    .then(({ data }) => {
+      const rawToken = data.data?.accessToken
+      const token = typeof rawToken === 'string' ? rawToken : undefined
+      if (token) {
+        const raw = localStorage.getItem('travel-auth')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          parsed.state.accessToken = token
+          localStorage.setItem('travel-auth', JSON.stringify(parsed))
+        }
+        return token
+      }
+      return null
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshPromise = null
+    })
+}
+
 // ── Response Interceptor ─────────────────────────────
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    // Token refresh on 401
+    // Token refresh on 401 — use mutex to avoid concurrent refreshes
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
-      try {
-        const { data } = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        )
-        if (data.data?.accessToken) {
-          // Update Zustand-persisted store
-          const raw = localStorage.getItem('travel-auth')
-          if (raw) {
-            const parsed = JSON.parse(raw)
-            parsed.state.accessToken = data.data.accessToken
-            localStorage.setItem('travel-auth', JSON.stringify(parsed))
-          }
-          originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`
-          return apiClient(originalRequest)
-        }
-      } catch {
-        localStorage.removeItem('travel-auth')
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
+
+      if (!refreshPromise) {
+        refreshPromise = doRefresh()
+      }
+      const newToken = await refreshPromise
+
+      if (newToken) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return apiClient(originalRequest)
+      }
+
+      localStorage.removeItem('travel-auth')
+      if (typeof window !== 'undefined') {
+        const returnTo = window.location.pathname + window.location.search
+        window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`
       }
     }
 
