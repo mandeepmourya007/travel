@@ -262,6 +262,7 @@ enum NotificationType {
 enum VerificationCodeType {
   EMAIL_VERIFY
   PHONE_OTP
+  EMAIL_OTP
   PASSWORD_RESET
 }
 
@@ -302,6 +303,7 @@ model User {
   avatarUrl       String?
   aadhaarVerified Boolean   @default(false)
   phoneVerified   Boolean   @default(false)     // Set true after OTP verification
+  emailVerified   Boolean   @default(false)     // Set true after email OTP verification
 
   // -- Mixin --
   isActive         Boolean   @default(true)
@@ -727,7 +729,7 @@ model VerificationCode {
   id          String               @id @default(cuid())
   userId      String?                                     // Nullable (pre-signup phone verify)
   user        User?                @relation(fields: [userId], references: [id])
-  type        VerificationCodeType                        // EMAIL_VERIFY, PHONE_OTP, PASSWORD_RESET
+  type        VerificationCodeType                        // EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET
   identifier  String                                      // Email or phone number
   codeHash    String                                      // bcrypt hash of the code
   expiresAt   DateTime                                    // 10min for OTP, 1hr for password reset
