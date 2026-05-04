@@ -8,6 +8,7 @@ import { DEFAULT_USER_NAME } from '@shared/constants/roles'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
+import { WalletRepository } from '../repositories/wallet.repository'
 import { AuthError, ConflictError, NotFoundError } from '../errors/app-error'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS } from '../utils/constants'
 
@@ -16,6 +17,7 @@ export class AuthService {
     private userRepo: UserRepository,
     private refreshTokenRepo: RefreshTokenRepository,
     private organizerProfileRepo: OrganizerProfileRepository,
+    private walletRepo: WalletRepository,
     private jwtSecret: string,
     private logger: Logger,
     private googleClientId?: string,
@@ -55,6 +57,8 @@ export class AuthService {
         throw err
       }
     }
+
+    await this.createWalletForUser(user.id)
 
     this.logger.info({ userId: user.id, role: user.role }, 'User signed up')
     return this.issueTokens(user, meta)
@@ -297,8 +301,20 @@ export class AuthService {
       throw err
     }
 
+    await this.createWalletForUser(user.id)
+
     this.logger.info({ userId: user.id }, 'New user via Google')
     return { ...(await this.issueTokens(user, meta)), isNewUser: true }
+  }
+
+  /** Eager wallet creation — every new user gets a wallet. Non-fatal on failure. */
+  private async createWalletForUser(userId: string): Promise<void> {
+    try {
+      await this.walletRepo.create(userId)
+      this.logger.info({ userId }, 'Wallet auto-created')
+    } catch (err) {
+      this.logger.error({ userId, err }, 'Failed to auto-create wallet')
+    }
   }
 
   // Lazy-loads Google OAuth2Client to avoid importing google-auth-library at startup
