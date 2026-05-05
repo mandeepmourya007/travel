@@ -840,8 +840,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 3-4** | Trip CRUD (organizer), trip listing/search (traveler) | ✅ Done |
 | **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
 | **Week 7-8** | Razorpay integration, booking flow, escrow | ✅ Done |
-| **Week 9-10** | Chat system, review system, organizer dashboard | ⬜ Not started |
-| **Week 11-12** | Admin panel, testing, bug fixes, deploy | ⬜ Not started |
+| **Week 9-10** | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done |
+| **Week 11-12** | Admin panel, chat system, review system, deploy | 🟡 In progress |
 
 **Total: ~12 weeks for a solo developer / 6-8 weeks with 2 developers**
 
@@ -869,11 +869,18 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Design tokens (`tokens.json` — colors, typography, spacing)
 
 #### ✅ Backend — Auth Module
-- [x] `UserRepository` — findById, findByEmail, create, emailExists, updatePassword
+- [x] `UserRepository` — findById, findByEmail, create, emailExists, updatePassword, updateProfile
 - [x] `RefreshTokenRepository` — create, findByHash, revokeByHash, revokeAllForUser, deleteExpired
-- [x] `AuthService` — signup, login, refresh, logout, logoutAll, getMe, verifyAccessToken
+- [x] `VerificationCodeRepository` — create, findLatest, markUsed, deleteExpired
+- [x] `AuthService` — signup, login, refresh, logout, logoutAll, getMe, verifyAccessToken, updateProfile (reissues JWT on role change)
+- [x] `OtpService` — sendOtp, verifyOtp (phone + email channels, rate limiting, expiry)
+- [x] `FirebaseAuthService` — verifyIdToken, loginOrCreate (Google sign-in via Firebase)
 - [x] `AuthController` — all endpoints with httpOnly cookie for refresh
-- [x] Auth routes (`POST /auth/signup`, `login`, `refresh`, `logout`, `logoutAll`, `GET /me`)
+- [x] `OtpController` — send-otp, verify-otp endpoints
+- [x] `FirebaseAuthController` — POST /auth/firebase endpoint
+- [x] Auth routes (`POST /auth/signup`, `login`, `refresh`, `logout`, `logoutAll`, `GET /me`, `PATCH /auth/profile`)
+- [x] OTP routes (`POST /auth/send-otp`, `POST /auth/verify-otp`)
+- [x] Firebase auth route (`POST /auth/firebase`)
 - [x] Auth middleware (Bearer token verification)
 - [x] Role middleware (`requireRole(...roles)` RBAC)
 - [x] Validation middleware (Zod)
@@ -882,6 +889,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Error handler middleware (typed errors, Pino logging)
 - [x] Typed errors (`AppError`, `NotFoundError`, `ValidationError`, `AuthError`, `ConflictError`, `ForbiddenError`)
 - [x] `asyncHandler` decorator
+- [x] OTP providers (MSG91 + mock provider with DI)
+- [x] Email providers (Nodemailer + mock provider with DI)
 
 #### ✅ Backend — Trip Module
 - [x] `TripRepository` — search (filters + pagination), findBySlug, findById, create, update
@@ -911,15 +920,19 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] `Tabs` component
 - [x] `Toast` provider + `useToast` hook
 - [x] `Tooltip` component
-- [x] `DataStates` (ErrorState/EmptyState patterns)
+- [x] `DataStates` (ErrorState/EmptyState patterns with `title` + `message` + retry)
+- [x] `Pagination` component (shared, ellipsis logic, link + button modes, accessible)
 - [x] `APP_NAME` constant from env
 
 #### ✅ Frontend — Auth Pages
-- [x] Login page (Zod client-side validation, field errors, redirect if authed)
+- [x] Login page — email/password, phone OTP, email OTP, Google sign-in (4 login methods)
 - [x] Signup page (Zod validation, role selection, `isAppApiError` guard)
+- [x] Onboarding flow — phone input → OTP verify → name input → profile setup
+- [x] Profile page (`/profile`) — view/edit name, role switching (TRAVELER ↔ ORGANIZER)
 - [x] Dashboard page (user info, logout, `AuthGuard` protected)
-- [x] Zustand auth store (persist + hydrate)
+- [x] Zustand auth store (persist + hydrate, `setAuth` for role change token refresh)
 - [x] Axios api-client (interceptors, token refresh, `AppApiError` type guard)
+- [x] `useUpdateProfile` hook (invalidates queries, updates auth store on role change)
 
 #### ✅ Frontend — Home Page
 - [x] Hero section with search bar
@@ -936,6 +949,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] `TripCardSkeleton` (shimmer loading)
 - [x] `TripGrid` (data grid + pagination)
 - [x] `TripFilters` (destination, trip type, price range with debounce, sort, mobile drawer)
+- [x] Shared `Pagination` component (replaces all inline pagination — ellipsis, prev/next, link + button modes)
+- [x] Organizer role redirect (organizers auto-redirect to `/dashboard`)
 - [x] `useTrips` hook (TanStack Query)
 - [x] `useDestinations` / `usePopularDestinations` hooks
 - [x] `useDebounce` hook
@@ -960,7 +975,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] `useTripDetail` hook
 - [x] Route-level `loading.tsx`
 
-#### ✅ Frontend — Tests
+#### ✅ Frontend Tests (277 tests passing)
 - [x] Vitest + React Testing Library + MSW setup
 - [x] Test factories (`tests/helpers/factories.ts`, `booking.factory.ts`, `trip.factory.ts`)
 - [x] AuthGuard tests (4 tests)
@@ -970,14 +985,22 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] TripComparisonTable tests (11 tests)
 - [x] Compare page tests (7 tests)
 - [x] useCompareTrips hook tests (4 tests)
-- [x] BookingPage tests (13 tests — loading, error, fully booked, deadline passed, form validation, submit, payment, dismiss)
-- [x] MyBookingsList tests (15 tests — loading, error, empty, data, cancel, pagination, status badges)
-- **Total: 92 tests passing**
+- [x] BookingPage tests (13 tests)
+- [x] MyBookingsList tests (15 tests)
+- [x] Pagination component tests (14 tests — rendering, button mode, link mode, ellipsis logic)
+- [x] Auth form tests — phone-input (8), name-input (7), onboarding (8), OTP verify (8)
+- [x] Profile page tests (profile-page.test.tsx)
+- [x] Payment tests — badges (10), filters, summary cards (8), transaction list (8+)
+- [x] Wallet tests — filters (6), transaction list (7+), tx-type-badge (7)
+- [x] Traveler details accordion tests
+- [x] Transfer points table tests (6)
+- [x] Shared input tests — email (8), phone (8), number (8)
+- [x] useWallet hook tests (5)
 
-#### 🟡 In Progress — Organizer Dashboard
+#### ✅ Organizer Dashboard
 - [x] `BookingRepository` — findByTripId (paginated, filtered), getTripBookingSummary
-- [x] `TripRequestRepository` — findByTripId (paginated, filtered), updateStatus
-- [x] `TripService` — getTripBookings, getTripRequests, getTripBookingSummary, respondToTripRequest
+- [x] `TripRequestRepository` — findByTripId (paginated, filtered), updateStatus, findExpiredOrRejectedForUser, resetToPending, expireApprovedRequests
+- [x] `TripService` — getTripBookings, getTripRequests, getTripBookingSummary, respondToTripRequest, createTripRequest (re-application after EXPIRED/REJECTED)
 - [x] `TripController` — 4 new endpoints for trip participants dashboard
 - [x] Trip participants routes (`GET /trips/:id/bookings`, `requests`, `summary`, `PATCH /trips/:id/requests/:requestId`)
 - [x] DI wiring for BookingRepository + TripRequestRepository
@@ -991,15 +1014,36 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] "Participants" button on trip list cards
 - [x] Trip name + ID shown on participants page header
 - [x] Preview page (`/preview/trip-users`) with mock data for auth-free UI review
-- [ ] **Organizer dashboard home** — overview stats, recent bookings, recent reviews
-- [ ] **Organizer trip list** — edit, publish, delete, stop/resume bookings (partially wired)
+- [x] Dashboard home page — overview stats (active trips, bookings, revenue, pending requests) with `StatCard` links
+- [x] Organizer trip list page (`/dashboard/trips`) — create, edit trips
+- [x] Trip create/edit form (tabbed form with Enter-key protection)
+- [x] Trip edit history page (`/dashboard/trips/[id]/history`)
+- [x] Trip payments page (`/dashboard/trips/[id]/payments`)
+- [x] Pending requests page (`/dashboard/requests`)
+- [x] `useOrganizerStats` hook
+- [x] `StatCard` component (clickable with `href` prop, non-clickable variant)
 
-#### 🟡 In Progress — Backend Tests
-- [x] Trip service unit tests (existing trip methods)
-- [x] Trip participants service tests (`trip-users.service.test.ts` — 24 test cases)
-- [x] Booking service unit tests (`booking.service.test.ts` — 42 test cases: createBooking, cancelBooking, getMyBookings, getMyBookingSummary, confirmBooking, verifyAndConfirmPayment)
-- [ ] Route integration tests
-- [ ] Repository unit tests
+#### ✅ Backend Tests (429 tests passing)
+- [x] Auth service unit tests (`auth.service.test.ts` — 48 tests: signup, login, refresh, logout, getMe, updateProfile)
+- [x] Firebase auth service tests (`firebase-auth.service.test.ts` — 6 tests)
+- [x] OTP service unit tests (`otp.service.test.ts` — 29 tests)
+- [x] Trip service unit tests (`trip.service.test.ts` — 42 tests)
+- [x] Trip request create tests (`trip-request-create.test.ts` — 23 tests: validation, creation, re-application after EXPIRED/REJECTED)
+- [x] Trip participants service tests (`trip-users.service.test.ts` — 27 tests)
+- [x] Booking service unit tests (`booking.service.test.ts` — 50 tests: createBooking, cancelBooking, getMyBookings, getMyBookingSummary, confirmBooking, verifyAndConfirmPayment)
+- [x] Payment service tests (`payment.service.test.ts` — 33 tests)
+- [x] Payment history service tests (`payment-history.service.test.ts` — 18 tests)
+- [x] Wallet service tests (`wallet.service.test.ts` — 30 tests)
+- [x] Destination service tests (`destination.service.test.ts` — 11 tests)
+- [x] Cron jobs tests (`cron-jobs.test.ts` — 7 tests: booking expiry, request expiry, token/code cleanup, graceful shutdown)
+- [x] Trip repository tests (`trip.repository.test.ts` — 14 tests)
+- [x] Auth routes integration tests (`auth.routes.test.ts` — 15 tests)
+- [x] Middleware tests (rate-limit: 4, validate: 5)
+- [x] Utility tests (email: 10, phone: 6, rate-limiter: 6)
+- [x] Validator tests (auth schema: 37 tests)
+- [x] Redis config tests (8 tests)
+- [ ] Repository unit tests (remaining repos)
+- [ ] Route integration tests (remaining routes)
 
 #### ✅ Backend — Booking & Payment Module
 - [x] `BookingRepository` — create, findActiveByUserAndTrip, findWithPaymentDetails, updateStatus, generateBookingRef (retry + collision check)
@@ -1021,7 +1065,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Booking routes (`POST /bookings`, `POST /bookings/:id/verify-payment`, `POST /bookings/:id/cancel`, `GET /bookings/my`, `GET /bookings/my/summary`)
 - [x] Webhook routes (`POST /webhooks/razorpay`) — placed before JSON parser in server.ts
 - [x] Razorpay config (`config/razorpay.ts`) — SDK initialization
-- [x] Cron jobs (`utils/cron-jobs.ts`) — booking expiry, approval expiry
+- [x] Cron jobs (`utils/cron-jobs.ts`) — booking expiry, approval expiry, verification code cleanup, refresh token cleanup
 - [x] DI wiring for all new repos, services, controllers
 - [x] Razorpay Route/Transfer conditional logic — skips transfers for mock accounts in dev, auto-enables for real linked accounts in production
 - [x] Shared types: `CreateBookingDto`, `CreateBookingResponse`, `VerifyPaymentDto`, `VerifyPaymentResponse`, `MyBookingFilters`
@@ -1065,12 +1109,56 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] **Webhook handler** — Raw body parsing, placed before JSON parser, idempotent via WebhookEvent
 - [x] **Test keys** — Working with `rzp_test_*` keys, Card + Netbanking verified
 
+#### ✅ Backend — Wallet Module
+- [x] `WalletRepository` — findByUserId, getOrCreate, credit, debit, getTransactions (paginated)
+- [x] `WalletService` — getBalance, getTransactions, credit, debit
+- [x] `WalletController` — GET /wallet/balance, GET /wallet/transactions
+- [x] Wallet routes with auth middleware
+- [x] Wallet types + validators in shared package
+
+#### ✅ Backend — Payment History Module
+- [x] `PaymentHistoryService` — getMyPayments, getPaymentSummary
+- [x] `PaymentHistoryController` — GET /payments/my, GET /payments/my/summary
+- [x] Payment history routes
+- [x] Admin payments endpoint
+
+#### ✅ Frontend — Wallet Page
+- [x] Wallet page (`/wallet`) with balance card + transaction list
+- [x] `WalletTransactionList` — desktop table + mobile cards, pagination
+- [x] `WalletTxTypeBadge`, `WalletTxCard` components
+- [x] Wallet filters (type, date range)
+- [x] `useWalletBalance`, `useWalletTransactions` hooks
+
+#### ✅ Frontend — My Payments Page
+- [x] My payments page (`/my-payments`) with summary cards + transaction list
+- [x] `PaymentTransactionList` — table with status/type badges, pagination
+- [x] `TravelerPaymentSummaryCards` component
+- [x] Payment filters (status, type, date range)
+- [x] `useMyPayments`, `useMyPaymentSummary` hooks
+
+#### ✅ Backend — Cron Jobs (Background Maintenance)
+- [x] `expireStaleBookings` — polls Razorpay before expiring PENDING_PAYMENT bookings (5 min interval)
+- [x] `expireStaleRequests` — expires APPROVED trip requests past 48h window (5 min interval)
+- [x] `cleanupExpiredCodes` — deletes old verification codes (1 hour interval)
+- [x] `cleanupStaleTokens` — deletes expired refresh tokens (1 hour interval)
+- [x] `startCronJobs` — single public API, DI for all repos, returns cleanup function
+- [x] Graceful shutdown — `stopCrons()` called before server close
+- [x] Re-application logic — users can re-apply after EXPIRED/REJECTED request (`resetToPending` with `$transaction`)
+
+#### ✅ Google / Firebase Auth
+- [x] Firebase Admin SDK integration (`config/firebase.ts`)
+- [x] `FirebaseAuthService` — verifyIdToken, loginOrCreate (Google sign-in)
+- [x] `FirebaseAuthController` — POST /auth/firebase
+- [x] Frontend Google sign-in button on login/signup pages
+
+#### ✅ Admin Panel (Partial)
+- [x] Admin payments page (`/admin/payments`) — view all platform payments
+
 #### ⬜ Not Started — Remaining Features
 - [ ] **Review system** — post-trip review form, review listing
 - [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
-- [ ] **Admin panel** — organizer approvals, dispute handling, platform stats
-- [x] **Google OAuth** — social login (GoogleOAuthProvider, useGoogleAuth hook, POST /auth/google, GoogleAuthSection on login/signup pages)
-- [ ] **Email notifications** — booking confirmation, trip updates
+- [ ] **Admin panel** — organizer approvals, dispute handling, platform stats (payments page done)
+- [ ] **Email notifications** — booking confirmation, trip updates (providers built, templates pending)
 - [ ] **SEO** — Schema.org markup, sitemap generation
 - [ ] **Trip status auto-transitions** — ACTIVE → FULL when seats filled, ACTIVE/FULL → COMPLETED after endDate, escrow release on completion
 
@@ -1090,16 +1178,16 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 ---
 
 TODO
-1. Login.signup page OTP verification for number and gmail
-  - future please update login/signup flow with login with OTP
-1. travel is redirect to dashboard please fix it
-2. dont allow Orgainze to go to trips list page only dashboard
-3. compare ui is viislbe in all pages please show in trips list page only not in dashboard or in my-bookings page 
-4. when i click on signin button no loader in button shown 
-5. please check pagniation
-6. modals are in viewport fix it
-7. trip is getting created event without click create trip
-8. uploaded image of trip is not visble
-9. please have cron job for expiry trip request removing tokens
-10. nav bar is not conistent in all pages some where its missing somwere it different
+1. ~~Login/signup page OTP verification for number and gmail~~ ✅ Done (phone OTP, email OTP, Google sign-in)
+2. ~~Traveler is redirected to dashboard — please fix~~ ✅ Done (organizer redirect to /dashboard, traveler stays on /trips)
+3. ~~Don't allow Organizer to go to trips list page, only dashboard~~ ✅ Done (header hides Explore Trips for ORGANIZER, /trips redirects organizers)
+4. ~~Compare UI visible in all pages — show in trips list page only~~ (needs verification)
+5. ~~When clicking signin button, no loader shown~~ (needs verification)
+6. ~~Please check pagination~~ ✅ Done (shared Pagination component with ellipsis: < 1 ... 4 5 6 ... 20 >)
+7. ~~Modals are in viewport — fix it~~ (needs verification)
+8. ~~Trip is getting created even without clicking create trip~~ ✅ Fixed (Enter key prevention on form)
+9. ~~Uploaded image of trip is not visible~~ (needs verification)
+10. ~~Please have cron job for expiry trip request + removing tokens~~ ✅ Done (4 cron jobs: bookings, requests, codes, tokens)
+11. ~~Nav bar is not consistent in all pages~~ ✅ Fixed (header role-based nav links)
+12. ~~Show proper error message if we are showing error in UI~~ ✅ Done (ErrorState with title + message props)
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*

@@ -605,7 +605,7 @@ All animations are registered in `tailwind.config.ts` under `theme.extend.keyfra
 | `animate-spin` | `spin` | 0.8s infinite | linear | Spinner loaders |
 | `animate-pulse-zoom` | `pulse-zoom` | 0.6s × 3 | ease-in-out (0.2s delay) | Compare button attention on first render |
 | `animate-pop` | `pop` | 0.25s | cubic-bezier(0.34, 1.56, 0.64, 1) | Compare button selection bounce |
-| `animate-slide-up` | `slide-up` | 0.3s | cubic-bezier(0.16, 1, 0.3, 1) | Floating bar entrance from bottom |
+| `animate-slide-up` | `slide-up` | 0.3s | cubic-bezier(0.16, 1, 0.3, 1) | Subtle entrance — 24px upward translate + fade-in |
 | `animate-fade-in` | `fade-in` | 0.2s | ease-out | Generic fade-in for overlays |
 
 ### GPU Acceleration
@@ -941,7 +941,7 @@ apps/
 @keyframes spin      { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
 @keyframes pulse-zoom { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
 @keyframes pop       { 0% { transform: scale(1) } 50% { transform: scale(1.15) } 100% { transform: scale(1) } }
-@keyframes slide-up  { from { transform: translateY(100%) } to { transform: translateY(0) } }
+@keyframes slide-up  { from { transform: translateY(24px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
 @keyframes fade-in   { from { opacity: 0 } to { opacity: 1 } }
 
 .animate-pulse-zoom { animation: pulse-zoom 0.6s ease-in-out 0.2s 3; }
