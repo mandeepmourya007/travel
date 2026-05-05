@@ -182,28 +182,23 @@ export class TripRepository {
    * - Cancelled bookings with refunds correctly reduce revenue
    */
   async calculateOrganizerRevenue(organizerId: string): Promise<number> {
-    const result = await this.prisma.paymentTransaction.aggregate({
+    const groups = await this.prisma.paymentTransaction.groupBy({
+      by: ['type'],
       _sum: { amount: true },
       where: {
         status: 'CAPTURED',
-        type: 'PAYMENT',
+        type: { in: ['PAYMENT', 'REFUND'] },
         booking: {
           trip: { organizerId, isDeleted: false },
         },
       },
     })
-    const refunds = await this.prisma.paymentTransaction.aggregate({
-      _sum: { amount: true },
-      where: {
-        status: 'CAPTURED',
-        type: 'REFUND',
-        booking: {
-          trip: { organizerId, isDeleted: false },
-        },
-      },
-    })
-    const payments = result._sum.amount ?? 0
-    const refunded = refunds._sum.amount ?? 0
+    let payments = 0
+    let refunded = 0
+    for (const g of groups) {
+      if (g.type === 'PAYMENT') payments = g._sum.amount ?? 0
+      if (g.type === 'REFUND') refunded = g._sum.amount ?? 0
+    }
     return payments - refunded
   }
 
@@ -218,6 +213,29 @@ export class TripRepository {
         status: 'PENDING',
         isDeleted: false,
         trip: { organizerId, isDeleted: false },
+      },
+    })
+  }
+
+  /**
+   * Lightweight trip fetch for validation-only use cases.
+   * No reviews, transfer points, or destination joins — just scalar + organizerId.
+   * Used by: TripService.createTripRequest()
+   */
+  async findByIdLite(id: string) {
+    return this.prisma.trip.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        organizerId: true,
+        status: true,
+        bookingMode: true,
+        acceptingBookings: true,
+        maxGroupSize: true,
+        currentBookings: true,
+        version: true,
+        title: true,
+        pricePerPerson: true,
       },
     })
   }
@@ -248,6 +266,32 @@ export class TripRepository {
         },
       },
     })
+  }
+
+  /**
+   * Counts trips for an organizer, optionally filtered by status.
+   * Used by: TripService.getOrganizerStats() — lightweight alternative to findByOrganizerId
+   */
+  async countByOrganizerId(organizerId: string, status?: string): Promise<number> {
+    return this.prisma.trip.count({
+      where: {
+        organizerId,
+        isDeleted: false,
+        ...(status && { status: status as Prisma.EnumTripStatusFilter }),
+      },
+    })
+  }
+
+  /**
+   * Sums currentBookings across all non-deleted trips for an organizer.
+   * Used by: TripService.getOrganizerStats() — avoids loading all trip rows
+   */
+  async sumBookingsByOrganizerId(organizerId: string): Promise<number> {
+    const result = await this.prisma.trip.aggregate({
+      _sum: { currentBookings: true },
+      where: { organizerId, isDeleted: false },
+    })
+    return result._sum.currentBookings ?? 0
   }
 
   // ─── Atomic Seat Operations (Optimistic Locking) ──────────

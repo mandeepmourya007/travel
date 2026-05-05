@@ -99,7 +99,7 @@ export class BookingRepository {
    * - INITIATED/FAILED transactions are excluded
    */
   async getTripBookingSummary(tripId: string) {
-    const [confirmedAgg, paymentAgg, refundAgg, pendingRequests] = await this.prisma.$transaction([
+    const [confirmedAgg, revenueGroups, pendingRequests] = await this.prisma.$transaction([
       this.prisma.booking.aggregate({
         _count: { id: true },
         _sum: { numTravelers: true },
@@ -109,19 +109,12 @@ export class BookingRepository {
           isDeleted: false,
         },
       }),
-      this.prisma.paymentTransaction.aggregate({
+      this.prisma.paymentTransaction.groupBy({
+        by: ['type'],
         _sum: { amount: true },
         where: {
           status: 'CAPTURED',
-          type: 'PAYMENT',
-          booking: { tripId, isDeleted: false },
-        },
-      }),
-      this.prisma.paymentTransaction.aggregate({
-        _sum: { amount: true },
-        where: {
-          status: 'CAPTURED',
-          type: 'REFUND',
+          type: { in: ['PAYMENT', 'REFUND'] },
           booking: { tripId, isDeleted: false },
         },
       }),
@@ -134,8 +127,12 @@ export class BookingRepository {
       }),
     ])
 
-    const payments = paymentAgg._sum.amount ?? 0
-    const refunds = refundAgg._sum.amount ?? 0
+    let payments = 0
+    let refunds = 0
+    for (const g of revenueGroups) {
+      if (g.type === 'PAYMENT') payments = g._sum.amount ?? 0
+      if (g.type === 'REFUND') refunds = g._sum.amount ?? 0
+    }
 
     return {
       confirmedCount: confirmedAgg._count.id,
@@ -250,7 +247,7 @@ export class BookingRepository {
       isPrimary: boolean
     }>
   }) {
-    const bookingRef = await this.generateBookingRef()
+    const bookingRef = this.generateBookingRef()
     return this.prisma.booking.create({
       data: {
         bookingRef,
@@ -381,22 +378,14 @@ export class BookingRepository {
   }
 
   /**
-   * Generates a unique booking reference: TRP-YYYY-XXXXXX.
-   * Retries up to 3 times on collision (UNIQUE constraint on bookingRef).
+   * Generates a unique booking reference: TRP-YYYY-XXXXXXXX.
+   * Uses timestamp + random bytes — zero DB queries.
+   * The UNIQUE constraint on bookingRef is the safety net for collisions.
    */
-  private async generateBookingRef(): Promise<string> {
+  private generateBookingRef(): string {
     const year = new Date().getFullYear()
-    const maxRetries = 3
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      const count = await this.prisma.booking.count()
-      const seq = String(count + 1).padStart(4, '0')
-      const suffix = crypto.randomBytes(2).toString('hex').toUpperCase()
-      const ref = `TRP-${year}-${seq}${suffix}`
-      const existing = await this.prisma.booking.findFirst({ where: { bookingRef: ref } })
-      if (!existing) return ref
-    }
-    // Fallback: use timestamp + random to guarantee uniqueness
-    return `TRP-${year}-${Date.now().toString(36).toUpperCase()}`
+    const random = crypto.randomBytes(4).toString('hex').toUpperCase()
+    return `TRP-${year}-${random}`
   }
 
   // Builds dynamic WHERE clause for bookingStatus + user name search

@@ -99,7 +99,7 @@ export class ReviewRepository {
     filters: ReviewListFilters,
     pagination: { offset: number; limit: number },
   ) {
-    const where: Prisma.ReviewWhereInput = { tripId }
+    const where: Prisma.ReviewWhereInput = { tripId, isDeleted: false }
     const orderBy = this.buildOrderBy(filters.sort)
 
     const [data, total] = await this.prisma.$transaction([

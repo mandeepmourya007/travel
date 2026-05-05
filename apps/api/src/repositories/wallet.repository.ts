@@ -17,9 +17,9 @@ export class WalletRepository {
    * Finds a wallet by userId. Returns null if not found or soft-deleted.
    */
   async findByUserId(userId: string) {
-    return this.prisma.wallet.findFirst({
-      where: { userId, isDeleted: false },
-    })
+    return this.prisma.wallet.findUnique({
+      where: { userId },
+    }).then(w => (w && !w.isDeleted) ? w : null)
   }
 
   /**

@@ -209,30 +209,30 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getMyPaymentSummary()
    */
   async getUserSummary(userId: string) {
-    const [totalPaid, totalRefunded, pendingRefunds, transactionCount] =
-      await this.prisma.$transaction([
-        this.prisma.paymentTransaction.aggregate({
-          where: { booking: { userId }, type: 'PAYMENT', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.aggregate({
-          where: { booking: { userId }, type: 'REFUND', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.aggregate({
-          where: { booking: { userId }, type: 'REFUND', status: 'INITIATED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.count({
-          where: { booking: { userId } },
-        }),
-      ])
-    return {
-      totalPaid: totalPaid._sum.amount ?? 0,
-      totalRefunded: totalRefunded._sum.amount ?? 0,
-      pendingRefunds: pendingRefunds._sum.amount ?? 0,
-      transactionCount,
+    const [groups, transactionCount] = await this.prisma.$transaction([
+      this.prisma.paymentTransaction.groupBy({
+        by: ['type', 'status'],
+        _sum: { amount: true },
+        where: {
+          booking: { userId },
+          type: { in: ['PAYMENT', 'REFUND'] },
+          status: { in: ['CAPTURED', 'INITIATED'] },
+        },
+      }),
+      this.prisma.paymentTransaction.count({
+        where: { booking: { userId } },
+      }),
+    ])
+    let totalPaid = 0
+    let totalRefunded = 0
+    let pendingRefunds = 0
+    for (const g of groups) {
+      const amt = g._sum.amount ?? 0
+      if (g.type === 'PAYMENT' && g.status === 'CAPTURED') totalPaid = amt
+      if (g.type === 'REFUND' && g.status === 'CAPTURED') totalRefunded = amt
+      if (g.type === 'REFUND' && g.status === 'INITIATED') pendingRefunds = amt
     }
+    return { totalPaid, totalRefunded, pendingRefunds, transactionCount }
   }
 
   /**
@@ -242,29 +242,30 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getTripPaymentSummary()
    */
   async getTripSummary(tripId: string) {
-    const [revenue, refunded, txCount, refundCount] =
-      await this.prisma.$transaction([
-        this.prisma.paymentTransaction.aggregate({
-          where: { booking: { tripId }, type: 'PAYMENT', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.aggregate({
-          where: { booking: { tripId }, type: 'REFUND', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.count({
-          where: { booking: { tripId } },
-        }),
-        this.prisma.paymentTransaction.count({
-          where: { booking: { tripId }, type: 'REFUND' },
-        }),
-      ])
-    return {
-      totalRevenue: revenue._sum.amount ?? 0,
-      totalRefunded: refunded._sum.amount ?? 0,
-      transactionCount: txCount,
-      refundCount,
+    const [groups, txCount, refundCount] = await this.prisma.$transaction([
+      this.prisma.paymentTransaction.groupBy({
+        by: ['type'],
+        _sum: { amount: true },
+        where: {
+          booking: { tripId },
+          status: 'CAPTURED',
+          type: { in: ['PAYMENT', 'REFUND'] },
+        },
+      }),
+      this.prisma.paymentTransaction.count({
+        where: { booking: { tripId } },
+      }),
+      this.prisma.paymentTransaction.count({
+        where: { booking: { tripId }, type: 'REFUND' },
+      }),
+    ])
+    let totalRevenue = 0
+    let totalRefunded = 0
+    for (const g of groups) {
+      if (g.type === 'PAYMENT') totalRevenue = g._sum.amount ?? 0
+      if (g.type === 'REFUND') totalRefunded = g._sum.amount ?? 0
     }
+    return { totalRevenue, totalRefunded, transactionCount: txCount, refundCount }
   }
 
   /**
@@ -273,27 +274,27 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getGlobalSummary()
    */
   async getGlobalSummary() {
-    const [revenue, refunded, txCount, failedCount] =
-      await this.prisma.$transaction([
-        this.prisma.paymentTransaction.aggregate({
-          where: { type: 'PAYMENT', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.aggregate({
-          where: { type: 'REFUND', status: 'CAPTURED' },
-          _sum: { amount: true },
-        }),
-        this.prisma.paymentTransaction.count({}),
-        this.prisma.paymentTransaction.count({
-          where: { status: 'FAILED' },
-        }),
-      ])
-    return {
-      totalRevenue: revenue._sum.amount ?? 0,
-      totalRefunded: refunded._sum.amount ?? 0,
-      transactionCount: txCount,
-      failedCount,
+    const [groups, txCount, failedCount] = await this.prisma.$transaction([
+      this.prisma.paymentTransaction.groupBy({
+        by: ['type'],
+        _sum: { amount: true },
+        where: {
+          status: 'CAPTURED',
+          type: { in: ['PAYMENT', 'REFUND'] },
+        },
+      }),
+      this.prisma.paymentTransaction.count({}),
+      this.prisma.paymentTransaction.count({
+        where: { status: 'FAILED' },
+      }),
+    ])
+    let totalRevenue = 0
+    let totalRefunded = 0
+    for (const g of groups) {
+      if (g.type === 'PAYMENT') totalRevenue = g._sum.amount ?? 0
+      if (g.type === 'REFUND') totalRefunded = g._sum.amount ?? 0
     }
+    return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
   }
 
   // ─── Private helpers ────────────────────────────────
