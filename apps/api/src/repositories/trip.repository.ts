@@ -15,6 +15,9 @@ export const TRIP_INCLUDE_SUMMARY = {
       verificationStatus: true,
     },
   },
+  _count: {
+    select: { reviews: { where: { isDeleted: false } } },
+  },
 } as const
 
 const TRIP_INCLUDE_DETAIL = {

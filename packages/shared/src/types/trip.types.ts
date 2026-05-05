@@ -148,6 +148,7 @@ export interface OrganizerTripListItem {
   maxGroupSize: number
   bookingMode: BookingMode
   destination: { name: string }
+  reviewCount: number
   photos: string[]
   createdAt: string
   updatedAt: string
