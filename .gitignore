@@ -10,7 +10,7 @@ out/
 build/
 
 # Prisma
-apps/api/prisma/migrations/
+# Note: migrations/ must be committed — required for `prisma migrate deploy` on servers
 
 # Environment variables
 .env
