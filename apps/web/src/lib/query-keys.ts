@@ -23,6 +23,8 @@ export const uploadKeys = {
 export const organizerKeys = {
   all: ['organizer'] as const,
   stats: () => [...organizerKeys.all, 'stats'] as const,
+  publicProfile: (id: string, params?: { tripsPage?: number; reviewsPage?: number }) =>
+    [...organizerKeys.all, 'public', id, params] as const,
 }
 
 export const bookingKeys = {
