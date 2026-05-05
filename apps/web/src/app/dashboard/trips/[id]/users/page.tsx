@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { deslugify } from '@shared/utils/slug'
 import { Tabs } from '@/components/shared/tabs'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { TripStatsBar, TripStatsBarSkeleton } from '@/components/dashboard/trip-users/trip-stats-bar'
@@ -42,7 +43,8 @@ export default function TripUsersPage() {
   const params = useParams<{ id: string }>()
   const searchParams = useSearchParams()
   const tripId = params.id
-  const tripName = searchParams.get('name')
+  const tripSlug = searchParams.get('trip')
+  const tripName = tripSlug ? deslugify(tripSlug) : null
 
   // ── Tab + Filter state ──────────────────────────────
   const [activeTab, setActiveTab] = useState('requests')

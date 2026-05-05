@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet, Star } from 'lucide-react'
 import { Modal } from '@/components/shared/modal'
 import { formatDateRange, formatCurrency } from '@/lib/format'
+import { slugify } from '@shared/utils/slug'
 import type { OrganizerTripListItem, TripStatus } from '@shared/types/trip.types'
 
 const STATUS_BADGE: Record<TripStatus, string> = {
@@ -52,7 +53,7 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             <h3 className="truncate font-semibold text-neutral-800">{trip.title}</h3>
             <span className={STATUS_BADGE[trip.status]}>{trip.status}</span>
             {trip.status === 'ACTIVE' && !trip.acceptingBookings && (
-              <span className="badge badge-warning text-[10px]">Bookings Closed</span>
+              <span className="badge badge-warning text-xs">Bookings Closed</span>
             )}
           </div>
           <p className="mt-1 text-sm text-neutral-500">
@@ -65,49 +66,55 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
         </div>
 
         {/* Actions — always visible; disabled when not applicable */}
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <button
-            onClick={() => onPublish?.(trip.id)}
-            disabled={!canPublish}
-            className="btn-primary py-1.5 px-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            title={canPublish ? 'Publish Trip' : 'Only DRAFT trips can be published'}
-          >
-            Publish
-          </button>
-          <Link href={`/dashboard/trips/${trip.id}/users?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
-            <Users className="h-4 w-4 mr-1" /> Participants
-          </Link>
-          <Link href={`/dashboard/trips/${trip.id}/payments?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
-            <Wallet className="h-4 w-4 mr-1" /> Payments
-          </Link>
-          <Link href={`/dashboard/trips/${trip.id}/reviews?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
-            <Star className="h-4 w-4 mr-1" /> Reviews
-          </Link>
-          <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost py-1.5 px-3" title="Edit">
-            <Edit className="h-4 w-4" />
-          </Link>
-          <Link href={`/trips/${trip.slug}`} className="btn-ghost py-1.5 px-3" title="View Public Page">
-            <Eye className="h-4 w-4" />
-          </Link>
-          <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost py-1.5 px-3" title="Edit History">
-            <History className="h-4 w-4" />
-          </Link>
-          <button
-            onClick={() => onToggleBookings?.(trip.id)}
-            disabled={!canToggleBookings}
-            className="btn-ghost py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={canToggleBookings ? (trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings') : 'Only ACTIVE trips can toggle bookings'}
-          >
-            {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
-          </button>
-          <button
-            onClick={() => { if (canDelete) setShowDeleteModal(true) }}
-            disabled={!canDelete}
-            className="btn-ghost py-1.5 px-3 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={canDelete ? 'Delete Trip' : 'Only DRAFT or ACTIVE trips can be deleted'}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {/* Text buttons */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <button
+              onClick={() => onPublish?.(trip.id)}
+              disabled={!canPublish}
+              className="btn-primary inline-flex items-center justify-center py-1.5 px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canPublish ? 'Publish Trip' : 'Only DRAFT trips can be published'}
+            >
+              Publish
+            </button>
+            <Link href={`/dashboard/trips/${trip.id}/users?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+              <Users className="h-4 w-4 shrink-0" /> Participants <span className="font-mono text-xs text-neutral-500">({trip.currentBookings})</span>
+            </Link>
+            <Link href={`/dashboard/trips/${trip.id}/payments?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+              <Wallet className="h-4 w-4 shrink-0" /> Payments
+            </Link>
+            <Link href={`/dashboard/trips/${trip.id}/reviews?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+              <Star className="h-4 w-4 shrink-0" /> Reviews <span className="font-mono text-xs text-neutral-500">({trip.reviewCount})</span>
+            </Link>
+          </div>
+          {/* Icon buttons */}
+          <div className="flex items-center gap-1">
+            <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost py-1.5 px-3" title="Edit">
+              <Edit className="h-4 w-4" />
+            </Link>
+            <Link href={`/trips/${trip.slug}`} className="btn-ghost py-1.5 px-3" title="View Public Page">
+              <Eye className="h-4 w-4" />
+            </Link>
+            <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost py-1.5 px-3" title="Edit History">
+              <History className="h-4 w-4" />
+            </Link>
+            <button
+              onClick={() => onToggleBookings?.(trip.id)}
+              disabled={!canToggleBookings}
+              className="btn-ghost py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canToggleBookings ? (trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings') : 'Only ACTIVE trips can toggle bookings'}
+            >
+              {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => { if (canDelete) setShowDeleteModal(true) }}
+              disabled={!canDelete}
+              className="btn-ghost py-1.5 px-3 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canDelete ? 'Delete Trip' : 'Only DRAFT or ACTIVE trips can be deleted'}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 

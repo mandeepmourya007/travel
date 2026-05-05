@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { deslugify } from '@shared/utils/slug'
 import { useTripPayments, useTripPaymentSummary } from '@/hooks/use-payments'
 import { TripPaymentSummaryCards, StatItemSkeleton } from '@/components/payments/payment-summary-cards'
 import { PaymentFilters } from '@/components/payments/payment-filters'
@@ -15,7 +16,8 @@ export default function TripPaymentsPage() {
   const params = useParams<{ id: string }>()
   const searchParams = useSearchParams()
   const tripId = params.id
-  const tripName = searchParams.get('name')
+  const tripSlug = searchParams.get('trip')
+  const tripName = tripSlug ? deslugify(tripSlug) : null
 
   const [filters, setFilters] = useState<PaymentHistoryFilters>({})
   const [page, setPage] = useState(1)

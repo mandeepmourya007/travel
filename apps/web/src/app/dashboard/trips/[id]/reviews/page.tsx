@@ -1,39 +1,62 @@
 'use client'
 
 import { useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, MessageSquare } from 'lucide-react'
+import { deslugify } from '@shared/utils/slug'
 import { useTripReviews } from '@/hooks/use-reviews'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { StarRating } from '@/components/shared/star-rating'
 import { Pagination } from '@/components/shared/pagination'
 import { OrganizerReviewCard } from '@/components/dashboard/organizer-review-card'
-import { MessageSquare } from 'lucide-react'
 
 export default function DashboardTripReviewsPage() {
   const { id: tripId } = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
+  const tripSlug = searchParams.get('trip')
+  const tripName = tripSlug ? deslugify(tripSlug) : null
   const [page, setPage] = useState(1)
   const { data, isLoading, error, refetch } = useTripReviews(tripId, { page, limit: 10 })
 
+  const header = (
+    <div className="flex items-center gap-3 mb-6">
+      <Link href="/dashboard/trips" className="btn-ghost p-2">
+        <ArrowLeft className="h-5 w-5" />
+      </Link>
+      <h1 className="font-display text-xl font-bold text-neutral-800">
+        {tripName ? `Reviews — ${tripName}` : 'Trip Reviews'}
+      </h1>
+    </div>
+  )
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="skeleton h-8 w-48 rounded" />
-        <div className="skeleton h-20 w-full rounded-lg" />
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="skeleton h-32 w-full rounded-lg" />
-        ))}
+      <div>
+        {header}
+        <div className="space-y-4">
+          <div className="skeleton h-20 w-full rounded-lg" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="skeleton h-32 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     )
   }
 
   if (error) {
-    return <ErrorState title="Couldn't load reviews" message={error.message} onRetry={refetch} />
+    return (
+      <div>
+        {header}
+        <ErrorState title="Couldn't load reviews" message={error.message} onRetry={refetch} />
+      </div>
+    )
   }
 
   if (!data || data.reviews.length === 0) {
     return (
       <div>
-        <h1 className="font-display text-xl font-bold text-neutral-800 mb-4">Trip Reviews</h1>
+        {header}
         <EmptyState
           message="No reviews for this trip yet."
           icon={<MessageSquare className="h-12 w-12 text-neutral-300" />}
@@ -46,7 +69,7 @@ export default function DashboardTripReviewsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-xl font-bold text-neutral-800 mb-4">Trip Reviews</h1>
+      {header}
 
       {/* Rating summary bar */}
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-neutral-100 bg-neutral-50 p-4 md:flex-row md:items-center md:gap-6">

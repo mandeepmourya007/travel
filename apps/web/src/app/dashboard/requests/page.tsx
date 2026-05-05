@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Map } from 'lucide-react'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
+import { slugify } from '@shared/utils/slug'
 import { RequestCard, ParticipantCardSkeleton } from '@/components/dashboard/trip-users/participant-card'
 import { RequestActionModal } from '@/components/dashboard/trip-users/request-action-modal'
 import { useAllPendingRequests } from '@/hooks/use-all-pending-requests'
@@ -101,7 +102,7 @@ export default function PendingRequestsPage() {
               <div className="mb-3 flex items-center gap-2">
                 <Map className="h-4 w-4 text-primary-400" />
                 <Link
-                  href={`/dashboard/trips/${group.trip.id}/users?name=${encodeURIComponent(group.trip.title)}`}
+                  href={`/dashboard/trips/${group.trip.id}/users?trip=${slugify(group.trip.title)}`}
                   className="font-semibold text-neutral-800 hover:text-primary-600 transition-colors"
                 >
                   {group.trip.title}
