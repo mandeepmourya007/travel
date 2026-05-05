@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useTrips } from '@/hooks/use-trips'
 import { TripCard } from './trip-card'
 import { TripCardSkeleton } from './trip-card-skeleton'
+import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import type { TripFilters, TripSummary } from '@shared/types/trip.types'
 
@@ -14,6 +15,7 @@ interface TripGridProps {
 }
 
 export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridProps) {
+  const searchParams = useSearchParams()
   const { data, isLoading, error, refetch } = useTrips(filters)
 
   if (isLoading) {
@@ -27,11 +29,17 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridP
   }
 
   if (error) {
-    return <ErrorState title="Failed to load trips" onRetry={refetch} />
+    return <ErrorState title="Failed to load trips" message={error.message} onRetry={refetch} />
   }
 
   if (!data?.trips.length) {
     return <EmptyState message="No trips found matching your search. Try adjusting filters." />
+  }
+
+  function buildPageHref(page: number) {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', String(page))
+    return `?${params.toString()}`
   }
 
   return (
@@ -52,39 +60,15 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridP
 
       {/* Pagination */}
       {data.pagination && data.pagination.totalPages > 1 && (
-        <Pagination
-          current={data.pagination.page}
-          total={data.pagination.totalPages}
-        />
+        <div className="mt-8">
+          <Pagination
+            currentPage={data.pagination.page}
+            totalPages={data.pagination.totalPages}
+            total={data.pagination.total}
+            buildHref={buildPageHref}
+          />
+        </div>
       )}
-    </div>
-  )
-}
-
-function Pagination({ current, total }: { current: number; total: number }) {
-  const searchParams = useSearchParams()
-
-  function buildPageHref(page: number) {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('page', String(page))
-    return `?${params.toString()}`
-  }
-
-  return (
-    <div className="flex items-center justify-center gap-2 mt-8">
-      {Array.from({ length: total }, (_, i) => i + 1).map((page) => (
-        <a
-          key={page}
-          href={buildPageHref(page)}
-          className={
-            page === current
-              ? 'h-9 w-9 rounded-lg bg-primary-500 text-white flex items-center justify-center text-sm font-semibold'
-              : 'h-9 w-9 rounded-lg bg-neutral-100 text-neutral-600 flex items-center justify-center text-sm font-medium hover:bg-neutral-200 transition-colors'
-          }
-        >
-          {page}
-        </a>
-      ))}
     </div>
   )
 }

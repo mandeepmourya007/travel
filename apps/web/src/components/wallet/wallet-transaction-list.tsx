@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { WalletTxTypeBadge } from './wallet-tx-type-badge'
+import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { formatCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -38,7 +39,7 @@ export function WalletTransactionList({
 
   // State 2: Error
   if (error) {
-    return <ErrorState message="Failed to load wallet transactions" onRetry={onRetry} />
+    return <ErrorState title="Failed to load wallet transactions" message={error?.message} onRetry={onRetry} />
   }
 
   // State 3: Empty
@@ -90,29 +91,13 @@ export function WalletTransactionList({
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
-          <p className="text-sm text-neutral-500">{pagination.total} total</p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onPageChange(page - 1)}
-              disabled={page <= 1}
-              className="btn-ghost p-2 disabled:opacity-30"
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-sm font-medium text-neutral-700">
-              {page} / {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => onPageChange(page + 1)}
-              disabled={page >= pagination.totalPages}
-              className="btn-ghost p-2 disabled:opacity-30"
-              aria-label="Next page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="border-t border-neutral-100 pt-4">
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            onPageChange={onPageChange}
+          />
         </div>
       )}
     </div>

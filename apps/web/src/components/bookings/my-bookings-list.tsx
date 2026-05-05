@@ -8,6 +8,7 @@ import { useMyBookings } from '@/hooks/use-my-bookings'
 import { useMyBookingSummary } from '@/hooks/use-my-booking-summary'
 import { useMyPendingRequests } from '@/hooks/use-my-pending-requests'
 import { Tabs } from '@/components/shared/tabs'
+import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { MyBookingCard } from './my-booking-card'
 import { PendingPaymentCard } from './pending-payment-card'
@@ -29,7 +30,7 @@ export function MyBookingsList() {
 
   const isPendingTab = activeTab === 'payment_pending'
   const filters = { tab: activeTab === 'all' ? undefined : activeTab, page }
-  const { data, isLoading, isError, refetch } = useMyBookings(filters, !isPendingTab)
+  const { data, isLoading, error, refetch } = useMyBookings(filters, !isPendingTab)
   const pendingQuery = useMyPendingRequests(isPendingTab)
   const { data: summary } = useMyBookingSummary()
 
@@ -58,7 +59,7 @@ export function MyBookingsList() {
   // ── 4-state rendering ──
 
   const activeLoading = isPendingTab ? pendingQuery.isLoading : isLoading
-  const activeError = isPendingTab ? pendingQuery.isError : isError
+  const activeError = isPendingTab ? pendingQuery.error : error
   const activeRefetch = isPendingTab ? pendingQuery.refetch : refetch
 
   if (activeLoading) {
@@ -80,7 +81,7 @@ export function MyBookingsList() {
   }
 
   if (activeError) {
-    return <ErrorState title="Couldn't load bookings" onRetry={activeRefetch} />
+    return <ErrorState title="Couldn't load bookings" message={activeError.message} onRetry={activeRefetch} />
   }
 
   const bookings = data?.data ?? []
@@ -138,26 +139,13 @@ export function MyBookingsList() {
 
           {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="btn-outline px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-neutral-500">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                disabled={page >= pagination.totalPages}
-                className="btn-outline px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
+            <div className="mt-6">
+              <Pagination
+                currentPage={page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </>

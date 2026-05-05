@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Tabs } from '@/components/shared/tabs'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { TripStatsBar, TripStatsBarSkeleton } from '@/components/dashboard/trip-users/trip-stats-bar'
@@ -11,6 +11,7 @@ import { BookingCard, RequestCard, ParticipantCardSkeleton } from '@/components/
 import { ParticipantDrawer } from '@/components/dashboard/trip-users/participant-drawer'
 import { RequestActionModal } from '@/components/dashboard/trip-users/request-action-modal'
 import { ParticipantFilters } from '@/components/dashboard/trip-users/participant-filters'
+import { Pagination } from '@/components/shared/pagination'
 import { useTripBookings } from '@/hooks/use-trip-bookings'
 import { useTripRequests } from '@/hooks/use-trip-requests'
 import { useTripSummary } from '@/hooks/use-trip-summary'
@@ -274,7 +275,7 @@ function BookingsTab({
           </div>
           {pagination && pagination.totalPages > 1 && (
             <Pagination
-              page={page}
+              currentPage={page}
               totalPages={pagination.totalPages}
               total={pagination.total}
               onPageChange={onPageChange}
@@ -353,7 +354,7 @@ function RequestsTab({
           </div>
           {pagination && pagination.totalPages > 1 && (
             <Pagination
-              page={page}
+              currentPage={page}
               totalPages={pagination.totalPages}
               total={pagination.total}
               onPageChange={onPageChange}
@@ -361,43 +362,6 @@ function RequestsTab({
           )}
         </>
       )}
-    </div>
-  )
-}
-
-function Pagination({
-  page,
-  totalPages,
-  total,
-  onPageChange,
-}: {
-  page: number
-  totalPages: number
-  total: number
-  onPageChange: (p: number) => void
-}) {
-  return (
-    <div className="flex items-center justify-between border-t border-neutral-100 pt-4">
-      <p className="text-sm text-neutral-500">{total} total</p>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1}
-          className="btn-ghost p-2 disabled:opacity-30"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <span className="text-sm font-medium text-neutral-700">
-          {page} / {totalPages}
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={page >= totalPages}
-          className="btn-ghost p-2 disabled:opacity-30"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
     </div>
   )
 }
