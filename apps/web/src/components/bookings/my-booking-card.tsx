@@ -114,12 +114,17 @@ export function MyBookingCard({ booking, onCancel }: MyBookingCardProps) {
               </button>
             )}
             {showReview && (
-              <Link
-                href={`/trips/${trip.slug}#reviews`}
-                className="rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-center text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
-              >
-                Leave Review
-              </Link>
+              <span className="relative group w-full md:w-auto">
+                <button
+                  disabled
+                  className="w-full rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-center text-sm font-medium text-primary-300 cursor-not-allowed transition-colors"
+                >
+                  Leave Review
+                </button>
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block whitespace-nowrap rounded-md bg-neutral-800 px-2 py-1 text-xs text-white shadow-lg">
+                  Coming Soon
+                </span>
+              </span>
             )}
             <Link
               href={`/trips/${trip.slug}`}

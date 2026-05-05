@@ -409,7 +409,7 @@ describe('MyBookingsList', () => {
 
   // ── 11. Review Link ──
 
-  it('should show "Leave Review" link for completed bookings without review', async () => {
+  it('should show disabled "Leave Review" button with "Coming Soon" for completed bookings without review', async () => {
     const booking = makeMyBooking({
       bookingStatus: 'COMPLETED',
       hasReview: false,
@@ -428,10 +428,9 @@ describe('MyBookingsList', () => {
       expect(screen.getByText(/leave review/i)).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('link', { name: /leave review/i })).toHaveAttribute(
-      'href',
-      '/trips/goa-beach-getaway#reviews',
-    )
+    const btn = screen.getByRole('button', { name: /leave review/i })
+    expect(btn).toBeDisabled()
+    expect(screen.getByText(/coming soon/i)).toBeInTheDocument()
   })
 
   it('should NOT show "Leave Review" link for completed bookings with existing review', async () => {
