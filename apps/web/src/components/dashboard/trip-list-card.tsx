@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet } from 'lucide-react'
+import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet, Star } from 'lucide-react'
 import { Modal } from '@/components/shared/modal'
 import { formatDateRange, formatCurrency } from '@/lib/format'
 import type { OrganizerTripListItem, TripStatus } from '@shared/types/trip.types'
@@ -79,6 +79,9 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
           </Link>
           <Link href={`/dashboard/trips/${trip.id}/payments?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
             <Wallet className="h-4 w-4 mr-1" /> Payments
+          </Link>
+          <Link href={`/dashboard/trips/${trip.id}/reviews?name=${encodeURIComponent(trip.title)}`} className="btn-outline inline-flex items-center py-1.5 px-4 text-sm">
+            <Star className="h-4 w-4 mr-1" /> Reviews
           </Link>
           <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost py-1.5 px-3" title="Edit">
             <Edit className="h-4 w-4" />
