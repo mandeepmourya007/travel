@@ -5,6 +5,7 @@ import { useTripDetail } from '@/hooks/use-trip-detail'
 import { TripDetailHeader } from '@/components/trips/trip-detail-header'
 import { TripItinerary } from '@/components/trips/trip-itinerary'
 import { TripBookingCard } from '@/components/trips/trip-booking-card'
+import { TripStickyBookBar } from '@/components/trips/trip-sticky-book-bar'
 import { TripReviews } from '@/components/trips/trip-reviews'
 import { TransferPointsTable } from '@/components/trips/transfer-points-table'
 import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
@@ -57,7 +58,7 @@ export default function TripDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 pb-24 lg:pb-8 sm:px-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-10">
@@ -68,11 +69,14 @@ export default function TripDetailPage({
           <TripOrganizerCard organizer={trip.organizer} />
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
+        {/* Sidebar — hidden on mobile, sticky sidebar on desktop */}
+        <div className="hidden lg:block lg:col-span-1">
           <TripBookingCard trip={trip} />
         </div>
       </div>
+
+      {/* Mobile sticky bottom bar */}
+      <TripStickyBookBar trip={trip} />
     </div>
   )
 }
