@@ -75,12 +75,10 @@ server {
         proxy_send_timeout 86400s;
     }
 
-    # ── Health check ─────────────────────────────────
+    # ── Health check (nginx-only, no upstream dependency) ─
     location /health {
-        proxy_pass http://api_upstream/health;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
         access_log off;
+        return 200 'ok';
     }
 
     # ── Next.js static assets (immutable, long cache) ─
