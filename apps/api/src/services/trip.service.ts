@@ -661,10 +661,14 @@ export class TripService {
       dropPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === 'DROP') ?? [],
       earlyBirdDeadline: trip.earlyBirdDeadline,
       bookingDeadline: trip.bookingDeadline,
-      reviews: trip.reviews?.map((r: { id: string; overallRating: number; comment: string | null; createdAt: Date; user: { id: string; name: string; avatarUrl: string | null } }) => ({
+      reviews: trip.reviews?.map((r: { id: string; overallRating: number; comment: string | null; photos: string[]; editedAt: Date | null; organizerReply: string | null; organizerReplyAt: Date | null; createdAt: Date; user: { id: string; name: string; avatarUrl: string | null } }) => ({
         id: r.id,
         overallRating: r.overallRating,
         comment: r.comment,
+        photos: r.photos,
+        editedAt: r.editedAt,
+        organizerReply: r.organizerReply,
+        organizerReplyAt: r.organizerReplyAt,
         createdAt: r.createdAt,
         user: { id: r.user.id, name: r.user.name, avatarUrl: r.user.avatarUrl },
       })) ?? [],
