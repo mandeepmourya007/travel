@@ -103,11 +103,22 @@ FAILED=()
 for svc in "${SERVICES[@]}"; do
   elapsed=0
   while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
-    status=$(docker inspect --format='{{.State.Health.Status}}' "travel-${svc}" 2>/dev/null || echo "missing")
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "travel-${svc}" 2>/dev/null || echo "missing")
 
     if [ "$status" = "healthy" ]; then
       echo "  ✅ ${svc} — healthy"
       break
+    elif [ "$status" = "no-healthcheck" ]; then
+      # No healthcheck defined — check if container is running
+      running=$(docker inspect --format='{{.State.Status}}' "travel-${svc}" 2>/dev/null || echo "missing")
+      if [ "$running" = "running" ]; then
+        echo "  ✅ ${svc} — running (no healthcheck)"
+        break
+      else
+        echo "  ❌ ${svc} — ${running}"
+        FAILED+=("$svc")
+        break
+      fi
     elif [ "$status" = "missing" ]; then
       echo "  ❌ ${svc} — container not found"
       FAILED+=("$svc")
