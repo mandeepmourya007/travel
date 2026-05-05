@@ -119,6 +119,7 @@ beforeEach(() => {
     mockEditHistoryRepo as any,
     mockBookingRepo as any,
     mockTripRequestRepo as any,
+    {} as any,
     logger as any,
   )
 })

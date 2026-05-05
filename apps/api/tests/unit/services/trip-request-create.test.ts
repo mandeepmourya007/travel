@@ -20,6 +20,7 @@ import { logger } from '../../../src/utils/logger'
 
 const mockTripRepo = {
   findById: vi.fn(),
+  findByIdLite: vi.fn(),
   findByIdForBooking: vi.fn(),
   search: vi.fn(),
   findBySlug: vi.fn(),
@@ -167,6 +168,7 @@ beforeEach(() => {
     mockEditHistoryRepo as any,
     mockBookingRepo as any,
     mockTripRequestRepo as any,
+    {} as any,
     logger as any,
   )
   bookingService = new BookingService(
@@ -186,7 +188,7 @@ beforeEach(() => {
 describe('TripService.createTripRequest', () => {
   it('should create a trip request for a valid REQUEST_BASED trip', async () => {
     const trip = createMockTrip()
-    mockTripRepo.findById.mockResolvedValue(trip)
+    mockTripRepo.findByIdLite.mockResolvedValue(trip)
 
     const createdRequest = createMockRequest({ status: 'PENDING', approvalExpiresAt: null })
     mockTripRequestRepo.create.mockResolvedValue(createdRequest)
@@ -215,7 +217,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw NotFoundError when trip does not exist', async () => {
-    mockTripRepo.findById.mockResolvedValue(null)
+    mockTripRepo.findByIdLite.mockResolvedValue(null)
 
     await expect(
       tripService.createTripRequest('user-10', 'trip-999', { numTravelers: 2 }),
@@ -223,7 +225,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw ValidationError when trip is not ACTIVE', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip({ status: 'DRAFT' }))
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip({ status: 'DRAFT' }))
 
     await expect(
       tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 2 }),
@@ -231,7 +233,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw ValidationError when trip is INSTANT mode', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip({ bookingMode: 'INSTANT' }))
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip({ bookingMode: 'INSTANT' }))
 
     await expect(
       tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 2 }),
@@ -239,7 +241,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw ValidationError when trip is not accepting bookings', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip({ acceptingBookings: false }))
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip({ acceptingBookings: false }))
 
     await expect(
       tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 2 }),
@@ -247,7 +249,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw ValidationError when not enough seats', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip({ currentBookings: 19 }))
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip({ currentBookings: 19 }))
 
     await expect(
       tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 3 }),
@@ -255,7 +257,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should throw ConflictError when user already has an active request', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip())
     mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(null)
     mockTripRequestRepo.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
@@ -270,7 +272,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should allow re-application when previous request was EXPIRED', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip())
     mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(
       { id: 'req-old', status: 'EXPIRED' },
     )
@@ -292,7 +294,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should allow re-application when previous request was REJECTED', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip())
     mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(
       { id: 'req-rejected', status: 'REJECTED' },
     )
@@ -309,7 +311,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should allow request with exactly the remaining seats', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip({ currentBookings: 18 }))
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip({ currentBookings: 18 }))
     mockTripRequestRepo.create.mockResolvedValue(createMockRequest({ numTravelers: 2, status: 'PENDING' }))
 
     const result = await tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 2 })
@@ -319,7 +321,7 @@ describe('TripService.createTripRequest', () => {
   })
 
   it('should pass undefined message when not provided', async () => {
-    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRepo.findByIdLite.mockResolvedValue(createMockTrip())
     mockTripRequestRepo.create.mockResolvedValue(createMockRequest({ message: null, status: 'PENDING' }))
 
     await tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 1 })

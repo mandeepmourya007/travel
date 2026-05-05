@@ -7,6 +7,7 @@ function createMockPrisma() {
   return {
     paymentTransaction: {
       aggregate: vi.fn(),
+      groupBy: vi.fn(),
     },
     tripRequest: {
       count: vi.fn(),
@@ -37,31 +38,21 @@ describe('TripRepository', () => {
   // ── calculateOrganizerRevenue ────────────────────
 
   describe('calculateOrganizerRevenue', () => {
-    it('should query CAPTURED PAYMENT transactions for the organizer', async () => {
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 50000 } }) // payments
-        .mockResolvedValueOnce({ _sum: { amount: 5000 } }) // refunds
+    it('should query CAPTURED PAYMENT and REFUND via single groupBy', async () => {
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 50000 } },
+        { type: 'REFUND', _sum: { amount: 5000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
       expect(revenue).toBe(45000)
-      // First call: CAPTURED PAYMENTs
-      expect(mockPrisma.paymentTransaction.aggregate).toHaveBeenNthCalledWith(1, {
+      expect(mockPrisma.paymentTransaction.groupBy).toHaveBeenCalledWith({
+        by: ['type'],
         _sum: { amount: true },
         where: {
           status: 'CAPTURED',
-          type: 'PAYMENT',
-          booking: {
-            trip: { organizerId: 'org-1', isDeleted: false },
-          },
-        },
-      })
-      // Second call: CAPTURED REFUNDs
-      expect(mockPrisma.paymentTransaction.aggregate).toHaveBeenNthCalledWith(2, {
-        _sum: { amount: true },
-        where: {
-          status: 'CAPTURED',
-          type: 'REFUND',
+          type: { in: ['PAYMENT', 'REFUND'] },
           booking: {
             trip: { organizerId: 'org-1', isDeleted: false },
           },
@@ -70,38 +61,28 @@ describe('TripRepository', () => {
     })
 
     it('should exclude INITIATED and FAILED payments from revenue', async () => {
-      // Only CAPTURED payments are queried; INITIATED/FAILED are not included
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 20000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 20000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
       expect(revenue).toBe(20000)
-      // Verify the where clause filters to status: 'CAPTURED' only
-      const paymentCall = mockPrisma.paymentTransaction.aggregate.mock.calls[0][0]
-      expect(paymentCall.where.status).toBe('CAPTURED')
-      expect(paymentCall.where.type).toBe('PAYMENT')
+      const call = mockPrisma.paymentTransaction.groupBy.mock.calls[0][0]
+      expect(call.where.status).toBe('CAPTURED')
     })
 
     it('should exclude deleted trips from revenue calculation', async () => {
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 10000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([])
 
       await repo.calculateOrganizerRevenue('org-1')
 
-      // Both queries filter isDeleted: false
-      const paymentWhere = mockPrisma.paymentTransaction.aggregate.mock.calls[0][0].where
-      const refundWhere = mockPrisma.paymentTransaction.aggregate.mock.calls[1][0].where
-      expect(paymentWhere.booking.trip.isDeleted).toBe(false)
-      expect(refundWhere.booking.trip.isDeleted).toBe(false)
+      const where = mockPrisma.paymentTransaction.groupBy.mock.calls[0][0].where
+      expect(where.booking.trip.isDeleted).toBe(false)
     })
 
-    it('should return 0 when no payments exist (null _sum)', async () => {
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: null } })
-        .mockResolvedValueOnce({ _sum: { amount: null } })
+    it('should return 0 when no payments exist (empty groupBy)', async () => {
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
@@ -109,10 +90,10 @@ describe('TripRepository', () => {
     })
 
     it('should subtract refunds from payments correctly', async () => {
-      // ₹100,000 captured - ₹25,000 refunded = ₹75,000
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 100000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 25000 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 100000 } },
+        { type: 'REFUND', _sum: { amount: 25000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
@@ -120,10 +101,10 @@ describe('TripRepository', () => {
     })
 
     it('should return negative when refunds exceed payments', async () => {
-      // Possible after price adjustments + full refunds
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 5000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 12000 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 5000 } },
+        { type: 'REFUND', _sum: { amount: 12000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
@@ -131,10 +112,10 @@ describe('TripRepository', () => {
     })
 
     it('should handle full refund scenario (revenue = 0)', async () => {
-      // All bookings cancelled and fully refunded
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 45000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 45000 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 45000 } },
+        { type: 'REFUND', _sum: { amount: 45000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
@@ -142,9 +123,9 @@ describe('TripRepository', () => {
     })
 
     it('should handle payments with no refunds', async () => {
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 80000 } })
-        .mockResolvedValueOnce({ _sum: { amount: null } }) // no refunds at all
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([
+        { type: 'PAYMENT', _sum: { amount: 80000 } },
+      ])
 
       const revenue = await repo.calculateOrganizerRevenue('org-1')
 
@@ -152,20 +133,13 @@ describe('TripRepository', () => {
     })
 
     it('should not include ESCROW_RELEASE transactions in revenue', async () => {
-      mockPrisma.paymentTransaction.aggregate
-        .mockResolvedValueOnce({ _sum: { amount: 50000 } })
-        .mockResolvedValueOnce({ _sum: { amount: 0 } })
+      mockPrisma.paymentTransaction.groupBy.mockResolvedValue([])
 
       await repo.calculateOrganizerRevenue('org-1')
 
-      // Verify first call uses type: 'PAYMENT' (not ESCROW_RELEASE)
-      const paymentCall = mockPrisma.paymentTransaction.aggregate.mock.calls[0][0]
-      expect(paymentCall.where.type).toBe('PAYMENT')
-      // Verify second call uses type: 'REFUND' (not ESCROW_RELEASE)
-      const refundCall = mockPrisma.paymentTransaction.aggregate.mock.calls[1][0]
-      expect(refundCall.where.type).toBe('REFUND')
-      // Only 2 aggregate calls — ESCROW_RELEASE is never queried
-      expect(mockPrisma.paymentTransaction.aggregate).toHaveBeenCalledTimes(2)
+      const call = mockPrisma.paymentTransaction.groupBy.mock.calls[0][0]
+      expect(call.where.type).toEqual({ in: ['PAYMENT', 'REFUND'] })
+      expect(mockPrisma.paymentTransaction.groupBy).toHaveBeenCalledTimes(1)
     })
   })
 

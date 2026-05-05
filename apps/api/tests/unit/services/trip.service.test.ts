@@ -20,6 +20,8 @@ const mockTripRepo = {
   withTransaction: vi.fn((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
   calculateOrganizerRevenue: vi.fn(),
   countPendingRequests: vi.fn(),
+  countByOrganizerId: vi.fn(),
+  sumBookingsByOrganizerId: vi.fn(),
 }
 
 const mockDestinationRepo = {
@@ -95,6 +97,7 @@ beforeEach(() => {
     mockDestinationRepo as any,
     mockOrganizerProfileRepo as any,
     mockEditHistoryRepo as any,
+    {} as any,
     {} as any,
     {} as any,
     logger as any,
@@ -412,10 +415,8 @@ describe('TripService', () => {
   describe('getOrganizerStats', () => {
     it('should return stats with revenue from CAPTURED payments minus refunds', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([
-        { ...mockTrip, status: 'ACTIVE', currentBookings: 5 },
-        { ...mockTrip, id: 'trip-2', status: 'COMPLETED', currentBookings: 3 },
-      ])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(1)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(8)
       // Revenue: ₹50,000 captured payments - ₹5,000 refunds = ₹45,000
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(45000)
       mockTripRepo.countPendingRequests.mockResolvedValue(2)
@@ -426,13 +427,16 @@ describe('TripService', () => {
       expect(result.totalBookings).toBe(8)
       expect(result.revenue).toBe(45000)
       expect(result.pendingRequests).toBe(2)
+      expect(mockTripRepo.countByOrganizerId).toHaveBeenCalledWith('org-1', 'ACTIVE')
+      expect(mockTripRepo.sumBookingsByOrganizerId).toHaveBeenCalledWith('org-1')
       expect(mockTripRepo.calculateOrganizerRevenue).toHaveBeenCalledWith('org-1')
       expect(mockTripRepo.countPendingRequests).toHaveBeenCalledWith('org-1')
     })
 
     it('should return zero revenue when organizer has no payments', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(0)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(0)
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(0)
       mockTripRepo.countPendingRequests.mockResolvedValue(0)
 
@@ -446,9 +450,8 @@ describe('TripService', () => {
 
     it('should return negative revenue when refunds exceed payments', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([
-        { ...mockTrip, status: 'ACTIVE', currentBookings: 1 },
-      ])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(1)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(1)
       // Edge case: more refunds than payments (e.g. price adjustment + refund)
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(-2000)
       mockTripRepo.countPendingRequests.mockResolvedValue(0)
@@ -460,13 +463,8 @@ describe('TripService', () => {
 
     it('should only count ACTIVE trips in activeTrips (exclude DRAFT, COMPLETED, CANCELLED)', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([
-        { ...mockTrip, id: 'trip-1', status: 'ACTIVE', currentBookings: 5 },
-        { ...mockTrip, id: 'trip-2', status: 'DRAFT', currentBookings: 0 },
-        { ...mockTrip, id: 'trip-3', status: 'COMPLETED', currentBookings: 10 },
-        { ...mockTrip, id: 'trip-4', status: 'CANCELLED', currentBookings: 3 },
-        { ...mockTrip, id: 'trip-5', status: 'ACTIVE', currentBookings: 2 },
-      ])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(2)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(20)
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(30000)
       mockTripRepo.countPendingRequests.mockResolvedValue(0)
 
@@ -478,10 +476,8 @@ describe('TripService', () => {
 
     it('should include bookings from all trip statuses in totalBookings', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([
-        { ...mockTrip, id: 'trip-1', status: 'COMPLETED', currentBookings: 15 },
-        { ...mockTrip, id: 'trip-2', status: 'CANCELLED', currentBookings: 8 },
-      ])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(0)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(23)
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(50000)
       mockTripRepo.countPendingRequests.mockResolvedValue(0)
 
@@ -494,9 +490,8 @@ describe('TripService', () => {
 
     it('should handle partial refund (revenue reduced but still positive)', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([
-        { ...mockTrip, status: 'ACTIVE', currentBookings: 10 },
-      ])
+      mockTripRepo.countByOrganizerId.mockResolvedValue(1)
+      mockTripRepo.sumBookingsByOrganizerId.mockResolvedValue(10)
       // ₹45,000 captured - ₹9,000 partial refund (2 of 10 travellers cancelled)
       mockTripRepo.calculateOrganizerRevenue.mockResolvedValue(36000)
       mockTripRepo.countPendingRequests.mockResolvedValue(0)
@@ -506,11 +501,17 @@ describe('TripService', () => {
       expect(result.revenue).toBe(36000)
     })
 
-    it('should call calculateOrganizerRevenue and countPendingRequests in parallel', async () => {
+    it('should call all four stats queries in parallel', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.findByOrganizerId.mockResolvedValue([])
-      // Track call order using timestamps
       const callOrder: string[] = []
+      mockTripRepo.countByOrganizerId.mockImplementation(async () => {
+        callOrder.push('activeTrips')
+        return 0
+      })
+      mockTripRepo.sumBookingsByOrganizerId.mockImplementation(async () => {
+        callOrder.push('totalBookings')
+        return 0
+      })
       mockTripRepo.calculateOrganizerRevenue.mockImplementation(async () => {
         callOrder.push('revenue')
         return 0
@@ -522,9 +523,13 @@ describe('TripService', () => {
 
       await service.getOrganizerStats('user-1')
 
-      // Both should be called (order may vary since they run in parallel)
+      // All four should be called (order may vary since they run in parallel)
+      expect(callOrder).toContain('activeTrips')
+      expect(callOrder).toContain('totalBookings')
       expect(callOrder).toContain('revenue')
       expect(callOrder).toContain('pending')
+      expect(mockTripRepo.countByOrganizerId).toHaveBeenCalledTimes(1)
+      expect(mockTripRepo.sumBookingsByOrganizerId).toHaveBeenCalledTimes(1)
       expect(mockTripRepo.calculateOrganizerRevenue).toHaveBeenCalledTimes(1)
       expect(mockTripRepo.countPendingRequests).toHaveBeenCalledTimes(1)
     })
