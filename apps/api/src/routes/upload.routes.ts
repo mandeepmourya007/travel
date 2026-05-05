@@ -15,7 +15,7 @@ export function createUploadRoutes(
   router.post(
     '/signature',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole('ORGANIZER', 'TRAVELER'),
     validate(uploadSignatureSchema),
     uploadController.getSignature,
   )

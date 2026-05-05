@@ -46,9 +46,13 @@ import { createWebhookRoutes } from '../routes/webhook.routes'
 import { PaymentHistoryService } from '../services/payment-history.service'
 import { PaymentHistoryController } from '../controllers/payment-history.controller'
 import { createPaymentRoutes } from '../routes/payment.routes'
+import { ReviewRepository } from '../repositories/review.repository'
 import { WalletRepository } from '../repositories/wallet.repository'
+import { ReviewService } from '../services/review.service'
 import { WalletService } from '../services/wallet.service'
+import { ReviewController } from '../controllers/review.controller'
 import { WalletController } from '../controllers/wallet.controller'
+import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
 import { razorpayClient } from './razorpay'
 
@@ -67,6 +71,7 @@ const tripRequestRepo = new TripRequestRepository(prisma)
 const paymentTxRepo = new PaymentTransactionRepository(prisma)
 const webhookEventRepo = new WebhookEventRepository(prisma)
 const verifCodeRepo = new VerificationCodeRepository(prisma)
+const reviewRepo = new ReviewRepository(prisma)
 const walletRepo = new WalletRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
@@ -100,6 +105,7 @@ const paymentService = razorpayClient
 
 const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger)
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
+const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger)
 export const walletService = new WalletService(walletRepo, logger)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
@@ -127,6 +133,7 @@ const tripController = new TripController(tripService)
 const uploadController = new UploadController(uploadService)
 const bookingController = new BookingController(bookingService)
 const paymentHistoryController = new PaymentHistoryController(paymentHistoryService)
+const reviewController = new ReviewController(reviewService)
 const walletController = new WalletController(walletService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
@@ -149,6 +156,7 @@ export const tripRoutes = createTripRoutes(tripController, authMiddleware, requi
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
 export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole)
 export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authMiddleware, requireRole)
+export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
