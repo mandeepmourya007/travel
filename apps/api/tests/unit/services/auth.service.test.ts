@@ -350,7 +350,7 @@ describe('AuthService', () => {
   // ── updateProfile ──────────────────────────────
 
   describe('updateProfile', () => {
-    it('should update user name and return updated user', async () => {
+    it('should update user name and return updated user without new token', async () => {
       const updated = { ...testUser, name: 'New Name' }
       userRepo.findById.mockResolvedValue(testUser)
       userRepo.updateProfile.mockResolvedValue(updated)
@@ -359,6 +359,7 @@ describe('AuthService', () => {
 
       expect(userRepo.updateProfile).toHaveBeenCalledWith('user-123', { name: 'New Name' })
       expect(result.name).toBe('New Name')
+      expect(result.accessToken).toBeUndefined()
     })
 
     it('should throw NotFoundError when user does not exist', async () => {
@@ -368,7 +369,7 @@ describe('AuthService', () => {
         .rejects.toThrow(NotFoundError)
     })
 
-    it('should update user name and role together', async () => {
+    it('should update user name and role together and return new access token', async () => {
       userRepo.findById.mockResolvedValue(testUser)
       userRepo.updateProfile.mockResolvedValue({ ...testUser, name: 'New', role: 'ORGANIZER' })
       organizerProfileRepo.create.mockResolvedValue({})
@@ -377,6 +378,8 @@ describe('AuthService', () => {
 
       expect(result.name).toBe('New')
       expect(result.role).toBe('ORGANIZER')
+      expect(result.accessToken).toBeDefined()
+      expect(typeof result.accessToken).toBe('string')
     })
 
     it('should auto-create OrganizerProfile when role changed to ORGANIZER', async () => {
@@ -408,9 +411,10 @@ describe('AuthService', () => {
       userRepo.updateProfile.mockResolvedValue({ ...orgUser, name: 'New' })
       organizerProfileRepo.findByUserId.mockResolvedValue({ id: 'op-1' })
 
-      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
+      const result = await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
 
       expect(organizerProfileRepo.create).not.toHaveBeenCalled()
+      expect(result.accessToken).toBeUndefined()
     })
 
   })
@@ -464,13 +468,33 @@ describe('AuthService', () => {
     it('should link googleId when user found by email but not googleId', async () => {
       userRepo.findByGoogleId.mockResolvedValue(null)
       userRepo.findByEmail.mockResolvedValue({ ...testUser, email: 'google@example.com' })
-      userRepo.updateGoogleId.mockResolvedValue({})
+      userRepo.updateGoogleId.mockResolvedValue({
+        ...testUser, email: 'google@example.com', googleId: 'google-sub-123',
+        avatarUrl: 'https://photo.url/pic.jpg',
+      })
       refreshTokenRepo.create.mockResolvedValue({})
 
       const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
 
-      expect(userRepo.updateGoogleId).toHaveBeenCalledWith('user-123', 'google-sub-123')
+      expect(userRepo.updateGoogleId).toHaveBeenCalledWith(
+        'user-123', 'google-sub-123', 'https://photo.url/pic.jpg',
+      )
+      expect(result.auth.user.avatarUrl).toBe('https://photo.url/pic.jpg')
       expect(result.isNewUser).toBe(false)
+    })
+
+    it('should NOT overwrite existing avatar when linking Google account', async () => {
+      const userWithAvatar = { ...testUser, email: 'google@example.com', avatarUrl: 'https://existing-avatar.jpg' }
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue(userWithAvatar)
+      userRepo.updateGoogleId.mockResolvedValue({ ...userWithAvatar, googleId: 'google-sub-123' })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(userRepo.updateGoogleId).toHaveBeenCalledWith(
+        'user-123', 'google-sub-123', undefined,
+      )
     })
 
     it('should create new user as TRAVELER with Google name and picture', async () => {
