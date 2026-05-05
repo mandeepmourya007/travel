@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Calendar, Users } from 'lucide-react'
+import { MapPin, Calendar, Users, Star, Pencil } from 'lucide-react'
 import type { MyBookingListItem } from '@shared/types/booking.types'
 import { formatCurrency, formatDateRange } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
@@ -11,6 +11,7 @@ import { TravelerDetailsAccordion } from './traveler-details-accordion'
 interface MyBookingCardProps {
   booking: MyBookingListItem
   onCancel?: (booking: MyBookingListItem) => void
+  onReview?: (booking: MyBookingListItem) => void
 }
 
 function getCountdown(startDate: string): string | null {
@@ -25,11 +26,12 @@ function canCancel(booking: MyBookingListItem): boolean {
   return new Date(booking.trip.startDate).getTime() > Date.now()
 }
 
-export function MyBookingCard({ booking, onCancel }: MyBookingCardProps) {
+export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProps) {
   const { trip } = booking
   const countdown = getCountdown(trip.startDate)
   const showCancel = canCancel(booking)
-  const showReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
+  const showLeaveReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
+  const showEditReview = booking.bookingStatus === 'COMPLETED' && booking.hasReview
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md md:flex-row md:gap-4 md:p-4">
@@ -113,18 +115,25 @@ export function MyBookingCard({ booking, onCancel }: MyBookingCardProps) {
                 Cancel Booking
               </button>
             )}
-            {showReview && (
-              <span className="relative group w-full md:w-auto">
-                <button
-                  disabled
-                  className="w-full rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-center text-sm font-medium text-primary-300 cursor-not-allowed transition-colors"
-                >
-                  Leave Review
-                </button>
-                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block whitespace-nowrap rounded-md bg-neutral-800 px-2 py-1 text-xs text-white shadow-lg">
-                  Coming Soon
-                </span>
-              </span>
+            {showLeaveReview && (
+              <button
+                type="button"
+                onClick={() => onReview?.(booking)}
+                className="btn-secondary inline-flex w-full items-center justify-center gap-1.5 py-1.5 px-3 text-sm md:w-auto"
+              >
+                <Star className="h-3.5 w-3.5" />
+                Leave Review
+              </button>
+            )}
+            {showEditReview && (
+              <button
+                type="button"
+                onClick={() => onReview?.(booking)}
+                className="btn-ghost inline-flex w-full items-center justify-center gap-1.5 py-1.5 px-3 text-sm md:w-auto"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit Review
+              </button>
             )}
             <Link
               href={`/trips/${trip.slug}`}

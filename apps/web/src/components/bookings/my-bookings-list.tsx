@@ -13,6 +13,8 @@ import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { MyBookingCard } from './my-booking-card'
 import { PendingPaymentCard } from './pending-payment-card'
 import { CancelBookingModal } from './cancel-booking-modal'
+import { ReviewFormModal } from './review-form-modal'
+import { useMyReviewForBooking } from '@/hooks/use-reviews'
 
 const TAB_EMPTY_MESSAGES: Record<MyBookingTab, string> = {
   all: "You haven't booked any trips yet.",
@@ -27,6 +29,8 @@ export function MyBookingsList() {
   const [activeTab, setActiveTab] = useState<MyBookingTab>('all')
   const [page, setPage] = useState(1)
   const [cancelTarget, setCancelTarget] = useState<MyBookingListItem | null>(null)
+  const [reviewTarget, setReviewTarget] = useState<MyBookingListItem | null>(null)
+  const { data: existingReview } = useMyReviewForBooking(reviewTarget?.id)
 
   const isPendingTab = activeTab === 'payment_pending'
   const filters = { tab: activeTab === 'all' ? undefined : activeTab, page }
@@ -133,6 +137,7 @@ export function MyBookingsList() {
                 key={booking.id}
                 booking={booking}
                 onCancel={setCancelTarget}
+                onReview={setReviewTarget}
               />
             ))}
           </div>
@@ -156,6 +161,17 @@ export function MyBookingsList() {
         <CancelBookingModal
           booking={cancelTarget}
           onClose={() => setCancelTarget(null)}
+        />
+      )}
+
+      {/* Review modal */}
+      {reviewTarget && (
+        <ReviewFormModal
+          bookingId={reviewTarget.id}
+          tripId={reviewTarget.trip.id}
+          tripTitle={reviewTarget.trip.title}
+          onClose={() => setReviewTarget(null)}
+          existingReview={existingReview}
         />
       )}
     </div>
