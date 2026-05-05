@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { TripController } from '../controllers/trip.controller'
 import { validate } from '../middleware/validate.middleware'
 import { createTripSchema, updateTripSchema, tripFiltersSchema } from '@shared/validators/trip.schema'
-import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema } from '@shared/validators/common.schema'
+import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema, organizerIdParamSchema, organizerProfileQuerySchema } from '@shared/validators/common.schema'
 import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema, createTripRequestBodySchema } from '@shared/validators/booking.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
@@ -39,6 +39,12 @@ export function createTripRoutes(
   // Public
   router.get('/', validate(tripFiltersSchema, 'query'), tripController.search)
   router.get('/slug/:slug', validate(slugParamSchema, 'params'), tripController.getBySlug)
+  router.get(
+    '/organizers/:organizerId',
+    validate(organizerIdParamSchema, 'params'),
+    validate(organizerProfileQuerySchema, 'query'),
+    tripController.getOrganizerPublicProfile,
+  )
   router.get('/:id', validate(cuidParamSchema, 'params'), tripController.getById)
   router.post(
     '/',

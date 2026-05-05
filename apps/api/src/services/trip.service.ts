@@ -9,6 +9,7 @@ import { OrganizerProfileRepository } from '../repositories/organizer-profile.re
 import { TripEditHistoryRepository } from '../repositories/trip-edit-history.repository'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
+import { ReviewRepository } from '../repositories/review.repository'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '../utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
@@ -21,6 +22,7 @@ export class TripService {
     private editHistoryRepo: TripEditHistoryRepository,
     private bookingRepo: BookingRepository,
     private tripRequestRepo: TripRequestRepository,
+    private reviewRepo: ReviewRepository,
     private logger: Logger,
   ) {}
 
@@ -60,6 +62,67 @@ export class TripService {
 
     const trips = await this.tripRepo.findByOrganizerId(profile.id, status)
     return trips.map((trip) => this.toSummary(trip))
+  }
+
+  async getOrganizerPublicProfile(
+    organizerId: string,
+    tripsPage = 1,
+    tripsLimit = 12,
+    reviewsPage = 1,
+    reviewsLimit = 10,
+  ) {
+    const profile = await this.organizerProfileRepo.findByIdPublic(organizerId)
+    if (!profile) throw new NotFoundError('Organizer')
+
+    const tripsOffset = (tripsPage - 1) * tripsLimit
+    const reviewsOffset = (reviewsPage - 1) * reviewsLimit
+
+    const [tripsResult, reviewResult, ratingStats, distribution] = await Promise.all([
+      this.tripRepo.findByOrganizerIdPaginated(organizerId, 'ACTIVE', { offset: tripsOffset, limit: tripsLimit }),
+      this.reviewRepo.findByOrganizerId(organizerId, { offset: reviewsOffset, limit: reviewsLimit }),
+      this.reviewRepo.getOrganizerRatingStats(organizerId),
+      this.reviewRepo.getRatingDistributionByOrganizer(organizerId),
+    ])
+
+    const avgRating = ratingStats._avg.overallRating ?? 0
+    const totalReviewCount = ratingStats._count.overallRating ?? 0
+
+    const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    for (const entry of distribution) {
+      dist[entry.overallRating] = entry._count.overallRating
+    }
+
+    return {
+      organizer: {
+        id: profile.id,
+        businessName: profile.businessName,
+        description: profile.description,
+        verified: profile.verificationStatus === 'APPROVED',
+        rating: Math.round(avgRating * 10) / 10,
+        totalReviews: totalReviewCount,
+        totalTripsCompleted: profile.totalTripsCompleted,
+        memberSince: profile.user.createdAt,
+      },
+      trips: tripsResult.data.map((t) => this.toSummary(t)),
+      tripsPagination: {
+        page: tripsPage,
+        limit: tripsLimit,
+        total: tripsResult.total,
+        totalPages: Math.ceil(tripsResult.total / tripsLimit),
+      },
+      reviews: reviewResult.data,
+      reviewsSummary: {
+        averageRating: Math.round(avgRating * 10) / 10,
+        totalReviews: totalReviewCount,
+        distribution: dist as Record<1 | 2 | 3 | 4 | 5, number>,
+      },
+      reviewsPagination: {
+        page: reviewsPage,
+        limit: reviewsLimit,
+        total: reviewResult.total,
+        totalPages: Math.ceil(reviewResult.total / reviewsLimit),
+      },
+    }
   }
 
   async createTrip(userId: string, input: CreateTripDto) {

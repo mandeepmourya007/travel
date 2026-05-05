@@ -93,6 +93,29 @@ export class TripRepository {
     })
   }
 
+  async findByOrganizerIdPaginated(
+    organizerId: string,
+    status: string | undefined,
+    pagination: { offset: number; limit: number },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      organizerId,
+      isDeleted: false,
+      ...(status && { status: status as Prisma.EnumTripStatusFilter }),
+    }
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.trip.findMany({
+        where,
+        include: TRIP_INCLUDE_SUMMARY,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
   async slugExists(slug: string) {
     const count = await this.prisma.trip.count({ where: { slug } })
     return count > 0

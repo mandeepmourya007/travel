@@ -13,6 +13,17 @@ export class TripController {
     res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 
+  /** GET /trips/organizers/:organizerId — Public organizer profile with trips + reviews */
+  getOrganizerPublicProfile = asyncHandler(async (req: Request, res: Response) => {
+    const { tripsPage, tripsLimit, reviewsPage, reviewsLimit } = req.query as unknown as {
+      tripsPage: number; tripsLimit: number; reviewsPage: number; reviewsLimit: number
+    }
+    const data = await this.tripService.getOrganizerPublicProfile(
+      req.params.organizerId, tripsPage, tripsLimit, reviewsPage, reviewsLimit,
+    )
+    res.json({ success: true, data })
+  })
+
   /** GET /trips/slug/:slug — Get trip by slug (public) */
   getBySlug = asyncHandler(async (req: Request, res: Response) => {
     const trip = await this.tripService.getTripBySlug(req.params.slug)

@@ -86,7 +86,7 @@ export const authService = new AuthService(
 )
 
 const destinationService = new DestinationService(destinationRepo, logger)
-const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, logger)
+const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger)
 const uploadService = new UploadService()
 const paymentService = razorpayClient
   ? new PaymentService(

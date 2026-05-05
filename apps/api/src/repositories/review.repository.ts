@@ -161,6 +161,28 @@ export class ReviewRepository {
   }
 
   /**
+   * Fetches paginated reviews across all trips by a given organizer.
+   * Used by: TripService.getOrganizerPublicProfile()
+   */
+  async findByOrganizerId(organizerId: string, pagination: { offset: number; limit: number }) {
+    const where: Prisma.ReviewWhereInput = { trip: { organizerId }, isDeleted: false }
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.review.findMany({
+        where,
+        select: {
+          ...REVIEW_SELECT,
+          trip: { select: { title: true, slug: true } },
+        },
+        skip: pagination.offset,
+        take: pagination.limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.review.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
    * Gets the rating distribution (1-5) for a specific trip.
    * Used by: ReviewService.getReviewsForTrip() for the summary bar.
    */
@@ -168,6 +190,19 @@ export class ReviewRepository {
     const counts = await this.prisma.review.groupBy({
       by: ['overallRating'],
       where: { tripId, isDeleted: false },
+      _count: { overallRating: true },
+    })
+    return counts
+  }
+
+  /**
+   * Gets the rating distribution (1-5) across all trips by an organizer.
+   * Used by: TripService.getOrganizerPublicProfile() for the summary bar.
+   */
+  async getRatingDistributionByOrganizer(organizerId: string) {
+    const counts = await this.prisma.review.groupBy({
+      by: ['overallRating'],
+      where: { trip: { organizerId }, isDeleted: false },
       _count: { overallRating: true },
     })
     return counts

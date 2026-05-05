@@ -27,6 +27,23 @@ export class OrganizerProfileRepository {
     })
   }
 
+  async findByIdPublic(id: string) {
+    return this.prisma.organizerProfile.findFirst({
+      where: { id, isDeleted: false, verificationStatus: 'APPROVED' },
+      select: {
+        id: true,
+        businessName: true,
+        description: true,
+        verificationStatus: true,
+        rating: true,
+        totalReviews: true,
+        totalTripsCompleted: true,
+        createdAt: true,
+        user: { select: { createdAt: true } },
+      },
+    })
+  }
+
   async incrementTripCount(id: string) {
     return this.prisma.organizerProfile.update({
       where: { id },
