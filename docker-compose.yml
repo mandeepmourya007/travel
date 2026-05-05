@@ -165,6 +165,8 @@ services:
     environment:
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
     command: ['/app/node_modules/.bin/prisma', 'migrate', 'deploy']
+    volumes:
+      - ./apps/api/prisma:/app/apps/api/prisma
     profiles: ['migrate']
     deploy:
       resources:
