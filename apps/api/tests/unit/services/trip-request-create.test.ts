@@ -74,6 +74,8 @@ const mockTripRequestRepo = {
   findPendingPaymentForUser: vi.fn(),
   markConverted: vi.fn(),
   countPendingPaymentForUser: vi.fn(),
+  findExpiredOrRejectedForUser: vi.fn(),
+  resetToPending: vi.fn(),
 }
 
 const mockPaymentTxRepo = {
@@ -156,6 +158,8 @@ let bookingService: BookingService
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // Default: no stale request exists (tests that need re-apply override this)
+  mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(null)
   tripService = new TripService(
     mockTripRepo as any,
     mockDestinationRepo as any,
@@ -250,8 +254,9 @@ describe('TripService.createTripRequest', () => {
     ).rejects.toThrow('Not enough seats')
   })
 
-  it('should throw ConflictError when user already has a request', async () => {
+  it('should throw ConflictError when user already has an active request', async () => {
     mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(null)
     mockTripRequestRepo.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
@@ -262,6 +267,45 @@ describe('TripService.createTripRequest', () => {
     await expect(
       tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 2 }),
     ).rejects.toThrow('already have a pending request')
+  })
+
+  it('should allow re-application when previous request was EXPIRED', async () => {
+    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(
+      { id: 'req-old', status: 'EXPIRED' },
+    )
+    mockTripRequestRepo.resetToPending.mockResolvedValue(
+      createMockRequest({ id: 'req-old', status: 'PENDING', message: 'Trying again!' }),
+    )
+
+    const result = await tripService.createTripRequest('user-10', 'trip-1', {
+      numTravelers: 2,
+      message: 'Trying again!',
+    })
+
+    expect(result.status).toBe('PENDING')
+    expect(mockTripRequestRepo.resetToPending).toHaveBeenCalledWith('req-old', expect.objectContaining({
+      numTravelers: 2,
+      message: 'Trying again!',
+    }))
+    expect(mockTripRequestRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should allow re-application when previous request was REJECTED', async () => {
+    mockTripRepo.findById.mockResolvedValue(createMockTrip())
+    mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(
+      { id: 'req-rejected', status: 'REJECTED' },
+    )
+    mockTripRequestRepo.resetToPending.mockResolvedValue(
+      createMockRequest({ id: 'req-rejected', status: 'PENDING' }),
+    )
+
+    const result = await tripService.createTripRequest('user-10', 'trip-1', { numTravelers: 1 })
+
+    expect(result.status).toBe('PENDING')
+    expect(mockTripRequestRepo.resetToPending).toHaveBeenCalledWith('req-rejected', expect.objectContaining({
+      numTravelers: 1,
+    }))
   })
 
   it('should allow request with exactly the remaining seats', async () => {
