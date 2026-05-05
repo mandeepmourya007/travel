@@ -9,23 +9,27 @@ import { NameInputForm } from '../name-input-form'
 const API = 'http://localhost:4000/api/v1'
 
 // Mock zustand store so useUpdateProfile's store selectors work
-const mockSetAuth = vi.fn()
-const mockUpdateUser = vi.fn()
-vi.mock('@/store/auth.store', () => ({
-  useAuthStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      user: { id: 'u1', name: 'User', role: 'TRAVELER' },
-      accessToken: 'test-jwt',
-      isAuthenticated: true,
-      _hasHydrated: true,
-      setAuth: mockSetAuth,
-      updateUser: mockUpdateUser,
-      markOnboardingComplete: vi.fn(),
-      completedOnboarding: true,
-      clearAuth: vi.fn(),
-      setHasHydrated: vi.fn(),
-    }),
-}))
+const { mockState } = vi.hoisted(() => {
+  const mockState = () => ({
+    user: { id: 'u1', name: 'User', role: 'TRAVELER' },
+    accessToken: 'test-jwt',
+    isAuthenticated: true,
+    _hasHydrated: true,
+    setAuth: vi.fn(),
+    updateUser: vi.fn(),
+    markOnboardingComplete: vi.fn(),
+    completedOnboarding: true,
+    clearAuth: vi.fn(),
+    setHasHydrated: vi.fn(),
+  })
+  return { mockState }
+})
+vi.mock('@/store/auth.store', () => {
+  const store = (selector: (state: Record<string, unknown>) => unknown) =>
+    selector(mockState())
+  store.getState = mockState
+  return { useAuthStore: store }
+})
 
 describe('NameInputForm', () => {
   const onComplete = vi.fn()

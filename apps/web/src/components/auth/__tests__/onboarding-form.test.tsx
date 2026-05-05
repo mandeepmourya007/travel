@@ -6,22 +6,28 @@ import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { OnboardingForm } from '../onboarding-form'
 
-const mockUpdateUser = vi.fn()
-vi.mock('@/store/auth.store', () => ({
-  useAuthStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({
-      user: { id: 'u1', name: 'User', role: 'TRAVELER' },
-      accessToken: 'test-jwt',
-      isAuthenticated: true,
-      _hasHydrated: true,
-      setAuth: vi.fn(),
-      updateUser: mockUpdateUser,
-      markOnboardingComplete: vi.fn(),
-      completedOnboarding: false,
-      clearAuth: vi.fn(),
-      setHasHydrated: vi.fn(),
-    }),
-}))
+const { mockUpdateUser, mockState } = vi.hoisted(() => {
+  const mockUpdateUser = vi.fn()
+  const mockState = () => ({
+    user: { id: 'u1', name: 'User', role: 'TRAVELER' },
+    accessToken: 'test-jwt',
+    isAuthenticated: true,
+    _hasHydrated: true,
+    setAuth: vi.fn(),
+    updateUser: mockUpdateUser,
+    markOnboardingComplete: vi.fn(),
+    completedOnboarding: false,
+    clearAuth: vi.fn(),
+    setHasHydrated: vi.fn(),
+  })
+  return { mockUpdateUser, mockState }
+})
+vi.mock('@/store/auth.store', () => {
+  const store = (selector: (state: Record<string, unknown>) => unknown) =>
+    selector(mockState())
+  store.getState = mockState
+  return { useAuthStore: store }
+})
 
 describe('OnboardingForm', () => {
   const onComplete = vi.fn()
