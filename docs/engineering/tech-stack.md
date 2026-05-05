@@ -460,6 +460,61 @@ travel-app/
 | next-seo | latest | SEO meta tags |
 | nuqs | latest | URL search params state (filters) |
 
+### shadcn/ui Primitives — Available Components
+
+All 28 primitives are installed in `components/ui/`, pre-themed to project design tokens (no `oklch`, no `dark:` variants). **Feature components must import from these primitives instead of writing raw HTML elements.**
+
+| Category | Components | Use When |
+|----------|-----------|----------|
+| **Buttons & Actions** | `Button`, `Badge` | CTAs, form submits, status labels |
+| **Forms** | `Input`, `Textarea`, `Select`, `Checkbox`, `Radio Group`, `Switch`, `Slider`, `Label`, `Form` | All form fields — never use raw `<input>` |
+| **Overlays** | `Dialog`, `Alert Dialog`, `Sheet`, `Popover`, `Tooltip` | Modals, confirmations, side panels, hover info |
+| **Navigation** | `Tabs`, `Accordion`, `Dropdown Menu`, `Command` | Tab views, FAQ sections, context menus, command palette |
+| **Data Display** | `Card`, `Table`, `Avatar`, `Badge`, `Separator`, `Progress` | Trip cards, booking tables, user avatars, status indicators |
+| **Layout** | `Scroll Area` | Custom scrollable regions (chat, notification list) |
+| **Feedback** | `Sonner` (toast), `Calendar` | Toast notifications, date pickers |
+
+#### Feature → Primitive Mapping
+
+| Feature Component | shadcn/ui Primitives Used |
+|-------------------|--------------------------|
+| `trip-card.tsx` | `Card`, `Badge`, `Button` |
+| `trip-filters.tsx` | `Select`, `Checkbox`, `Slider`, `Popover`, `Button` |
+| `trip-booking-sidebar.tsx` | `Card`, `Calendar`, `Button`, `Select` |
+| `booking-form.tsx` | `Form`, `Input`, `Select`, `Button`, `Calendar` |
+| `booking-confirmation.tsx` | `Card`, `Badge`, `Separator`, `Button` |
+| `trip-request-form.tsx` | `Form`, `Input`, `Textarea`, `Select`, `Button` |
+| `trip-request-card.tsx` | `Card`, `Badge`, `Button`, `Avatar` |
+| `notification-list.tsx` | `ScrollArea`, `DropdownMenu`, `Badge` |
+| `chat-window.tsx` | `ScrollArea`, `Input`, `Avatar`, `Button` |
+| `image-gallery.tsx` | `Dialog`, `Button` |
+| `price-breakdown.tsx` | `Card`, `Separator`, `Table` |
+| `star-rating.tsx` | — (Lucide icons only) |
+| Confirmations / Destructive | `AlertDialog` |
+| Mobile navigation | `Sheet` |
+| Settings / Filters panel | `Sheet`, `Accordion`, `Switch` |
+| Profile editing | `Form`, `Input`, `Avatar`, `Button`, `Tabs` |
+| Organizer dashboard | `Card`, `Table`, `Tabs`, `Badge`, `Progress` |
+| Toast feedback | `Sonner` (via `toast()` from `sonner`) |
+
+#### Usage Rule
+
+```
+NEVER use raw HTML for elements that have a shadcn/ui primitive:
+  ❌ <input className="..." />           → ✅ <Input className="..." />
+  ❌ <button className="..." />          → ✅ <Button variant="..." />
+  ❌ <div className="modal-overlay">     → ✅ <Dialog> / <Sheet>
+  ❌ <table className="...">             → ✅ <Table> components
+  ❌ Custom toast implementation          → ✅ toast() from sonner
+
+EXCEPTION: The existing globals.css component classes (.btn-primary, .card, .input, .badge)
+remain valid for simple cases. Use shadcn/ui primitives when you need:
+  - Variants (Button variant="destructive")
+  - Compound components (Dialog with overlay + close + title)
+  - Accessibility (Radix handles focus trapping, ARIA, keyboard nav)
+  - Animations (built-in open/close transitions)
+```
+
 ### Component Pattern
 
 Every component follows this structure:
