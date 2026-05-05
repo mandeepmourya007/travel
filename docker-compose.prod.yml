@@ -75,6 +75,8 @@ services:
     image: travel-api:prod
     container_name: travel-api-prod
     restart: unless-stopped
+    ports:
+      - '4001:4000'
     env_file:
       - .env.prod
     environment:
@@ -116,9 +118,16 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-TripCompare}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+        NEXT_PUBLIC_PHONE_AUTH_STRATEGY: ${NEXT_PUBLIC_PHONE_AUTH_STRATEGY:-backend}
     image: travel-web:prod
     container_name: travel-web-prod
     restart: unless-stopped
+    ports:
+      - '3001:${WEB_PORT:-3000}'
     environment:
       NODE_ENV: production
       PORT: ${WEB_PORT:-3000}
