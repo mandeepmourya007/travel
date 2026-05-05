@@ -58,6 +58,14 @@ const config: Config = {
           '20%, 60%': { transform: 'translateX(-4px)' },
           '40%, 80%': { transform: 'translateX(4px)' },
         },
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
@@ -68,6 +76,8 @@ const config: Config = {
         'fade-in': 'fade-in 0.2s ease-out',
         'page-enter': 'page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both',
         shake: 'shake 0.4s ease-in-out',
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
       },
     },
   },
