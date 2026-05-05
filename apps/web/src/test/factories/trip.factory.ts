@@ -18,6 +18,7 @@ export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSumma
     maxGroupSize: 20,
     currentBookings: 8,
     organizer: {
+      id: `clrk${String(counter).padStart(21, '0')}org`,
       businessName: `Organizer ${counter}`,
       rating: 4.2,
       totalReviews: 15,
