@@ -401,6 +401,9 @@ model Review {
   accuracyRating     Int?
   comment            String?
   photos             String[]
+  editedAt           DateTime?
+  organizerReply     String?
+  organizerReplyAt   DateTime?
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
