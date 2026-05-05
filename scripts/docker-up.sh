@@ -95,6 +95,61 @@ echo ""
 echo "🔧 Starting API + Web..."
 docker compose up -d api web
 
+echo "⏳ Regenerating Prisma Client..."
+docker compose exec api npx prisma generate
+
+# ── Health check all services ────────────────────────
+echo ""
+echo "🔍 Checking service health..."
+SERVICES=("postgres" "redis" "api" "web")
+HEALTH_TIMEOUT=60
+FAILED=()
+
+for svc in "${SERVICES[@]}"; do
+  elapsed=0
+  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+    status=$(docker inspect --format='{{.State.Health.Status}}' "travel-${svc}" 2>/dev/null || echo "missing")
+
+    if [ "$status" = "healthy" ]; then
+      echo "  ✅ ${svc} — healthy"
+      break
+    elif [ "$status" = "missing" ]; then
+      echo "  ❌ ${svc} — container not found"
+      FAILED+=("$svc")
+      break
+    elif [ "$status" = "unhealthy" ]; then
+      echo "  ❌ ${svc} — unhealthy"
+      FAILED+=("$svc")
+      break
+    fi
+
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  if [ $elapsed -ge $HEALTH_TIMEOUT ] && [ "$status" != "healthy" ]; then
+    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s (status: ${status})"
+    FAILED+=("$svc")
+  fi
+done
+
+if [ ${#FAILED[@]} -gt 0 ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⚠️  Some services failed to start:"
+  echo ""
+  for svc in "${FAILED[@]}"; do
+    echo "── travel-${svc} ──────────────────────────────"
+    docker inspect --format='State: {{.State.Status}} | Health: {{.State.Health.Status}}' "travel-${svc}" 2>/dev/null || true
+    echo "Last 15 log lines:"
+    docker logs "travel-${svc}" --tail 15 2>&1 || true
+    echo ""
+  done
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Fix the issues above, then re-run: npm run docker:up"
+  exit 1
+fi
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ TravelApp is running!"
