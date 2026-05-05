@@ -684,32 +684,42 @@ async function main() {
   console.log('  ✓ Created 4 payment transactions')
 
   // ── Reviews ─────────────────────────────────────────
-  await prisma.review.createMany({
-    data: [
-      {
-        tripId: trip1.id,
-        bookingId: booking1.id,
-        userId: traveler1.id,
-        overallRating: 5,
-        organizationRating: 5,
-        valueRating: 4,
-        safetyRating: 5,
-        comment: 'Amazing trip! The organizer was super helpful and everything was well planned. Goa beaches were stunning. Highly recommend TripVibes!',
-      },
-      {
-        tripId: trip2.id,
-        bookingId: booking2.id,
-        userId: traveler2.id,
-        overallRating: 4,
-        organizationRating: 4,
-        valueRating: 5,
-        safetyRating: 4,
-        comment: 'Great monsoon trek. The waterfall was breathtaking. Only downside was the early morning pickup, but totally worth it.',
-      },
-    ],
+  await prisma.review.create({
+    data: {
+      tripId: trip1.id,
+      bookingId: booking1.id,
+      userId: traveler1.id,
+      overallRating: 5,
+      organizationRating: 5,
+      valueRating: 4,
+      safetyRating: 5,
+      accuracyRating: 5,
+      comment: 'Amazing trip! The organizer was super helpful and everything was well planned. Goa beaches were stunning. Highly recommend TripVibes!',
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
+      organizerReply: 'Thank you Amit! So glad you and Riya had a great time. The monsoon Goa vibes are unbeatable. See you next season! 🏖️',
+      organizerReplyAt: new Date(now.getTime() - 2 * 86400000),
+      createdAt: new Date(now.getTime() - 5 * 86400000),
+    },
+  })
+  await prisma.review.create({
+    data: {
+      tripId: trip2.id,
+      bookingId: booking2.id,
+      userId: traveler2.id,
+      overallRating: 4,
+      organizationRating: 4,
+      valueRating: 5,
+      safetyRating: 4,
+      accuracyRating: 4,
+      comment: 'Great monsoon trek. The waterfall was breathtaking. Only downside was the early morning pickup, but totally worth it.',
+      photos: ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600'],
+      organizerReply: 'Thanks Sneha! The early pickup is to beat the crowd at the waterfall — worth it, right? 😄 Hope to see you on our next trek!',
+      organizerReplyAt: new Date(now.getTime() - 3 * 86400000),
+      createdAt: new Date(now.getTime() - 6 * 86400000),
+    },
   })
 
-  console.log('  ✓ Created 2 reviews')
+  console.log('  ✓ Created 2 reviews (with photos + organizer replies)')
 
   // ── Trip Requests ───────────────────────────────────
   await prisma.tripRequest.create({
@@ -1285,40 +1295,97 @@ async function main() {
     ],
   })
 
-  // Reviews for Trip D — with photos and organizer replies
-  await prisma.review.create({
-    data: {
-      tripId: demoTripD.id, bookingId: dBookingD1.id, userId: trav4.id,
-      overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5,
-      comment: 'Best winter trip ever! Manali was magical. The snow at Solang Valley was pristine and the bonfire nights were unforgettable.',
-      photos: ['https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=600', 'https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=600', 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600'],
-      organizerReply: 'So glad you loved it, Rohan! The Manali snow season was perfect this year. Hope to see you on our next winter batch!',
-      organizerReplyAt: new Date(now.getTime() - 40 * 86400000),
-      createdAt: new Date(now.getTime() - 42 * 86400000),
-    },
+  // ── Additional completed bookings for Trip D (to support 12+ reviews) ──
+  const dBookingD4 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D040', tripId: demoTripD.id, userId: trav6.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
   })
-  await prisma.review.create({
-    data: {
-      tripId: demoTripD.id, bookingId: dBookingD2.id, userId: trav5.id,
-      overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 4,
-      comment: 'Amazing arrangements. Solang was a blast! Only wish we had one more day for Old Manali cafes.',
-      photos: ['https://images.unsplash.com/photo-1545652985-5edd365b12eb?w=600'],
-      createdAt: new Date(now.getTime() - 41 * 86400000),
-    },
+  const dBookingD5 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D041', tripId: demoTripD.id, userId: trav7.id, numTravelers: 2, totalAmount: 17000, bookingStatus: 'COMPLETED' },
   })
-  await prisma.review.create({
-    data: {
-      tripId: demoTripD.id, bookingId: dBookingD3.id, userId: traveler3.id,
-      overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 4, accuracyRating: 5,
-      comment: 'Well organized, great bonfire nights. The hot chocolate at the campsite was the cherry on top. Already planning to join the next one!',
-      photos: ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600', 'https://images.unsplash.com/photo-1542359649-6066040e1f1f?w=600'],
-      organizerReply: 'Thanks Vikram! That hot chocolate recipe is our secret weapon 😄. Next batch dates dropping soon!',
-      organizerReplyAt: new Date(now.getTime() - 39 * 86400000),
-      createdAt: new Date(now.getTime() - 40 * 86400000),
-    },
+  const dBookingD6 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D042', tripId: demoTripD.id, userId: trav8.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD7 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D043', tripId: demoTripD.id, userId: trav9.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD8 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D044', tripId: demoTripD.id, userId: traveler1.id, numTravelers: 2, totalAmount: 17000, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD9 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D045', tripId: demoTripD.id, userId: traveler2.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD10 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D046', tripId: demoTripD.id, userId: trav4.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD11 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D047', tripId: demoTripD.id, userId: trav5.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingD12 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D048', tripId: demoTripD.id, userId: trav6.id, numTravelers: 1, totalAmount: 8500, bookingStatus: 'COMPLETED' },
   })
 
-  console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 3 joined, 2 rejected, 3 reviews (with photos + replies)')
+  // Manali winter review photos
+  const manaliPhotos = [
+    ['https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=600', 'https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=600', 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600'],
+    ['https://images.unsplash.com/photo-1545652985-5edd365b12eb?w=600'],
+    ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600', 'https://images.unsplash.com/photo-1542359649-6066040e1f1f?w=600'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600'],
+    [],
+    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600'],
+    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600'],
+    [],
+    ['https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600'],
+    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600'],
+    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600', 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600'],
+    ['https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600'],
+  ]
+
+  // Reviews for Trip D — 12 reviews for pagination testing
+  const tripDReviews = [
+    { bookingId: dBookingD1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Best winter trip ever! Manali was magical. The snow at Solang Valley was pristine and the bonfire nights were unforgettable.', daysAgoCreated: 42 },
+    { bookingId: dBookingD2.id, userId: trav5.id, overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 4, comment: 'Amazing arrangements. Solang was a blast! Only wish we had one more day for Old Manali cafes.', daysAgoCreated: 41 },
+    { bookingId: dBookingD3.id, userId: traveler3.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 4, accuracyRating: 5, comment: 'Well organized, great bonfire nights. The hot chocolate at the campsite was the cherry on top. Already planning to join the next one!', daysAgoCreated: 40 },
+    { bookingId: dBookingD4.id, userId: trav6.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Incredible photography opportunities! The snow-capped peaks at sunrise were breathtaking. Got my best portfolio shots here.', daysAgoCreated: 39 },
+    { bookingId: dBookingD5.id, userId: trav7.id, overallRating: 3, organizationRating: 3, valueRating: 3, safetyRating: 4, accuracyRating: 2, comment: 'The Volvo bus was not as comfortable as promised — old seats and no blankets. Manali itself was nice but the hotel was far from Mall Road.', daysAgoCreated: 38 },
+    { bookingId: dBookingD6.id, userId: trav8.id, overallRating: 5, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 5, comment: 'First time seeing snow and it was everything I dreamed of! The skiing instructor was patient and the whole team was supportive.', daysAgoCreated: 37 },
+    { bookingId: dBookingD7.id, userId: trav9.id, overallRating: 4, organizationRating: 4, valueRating: 5, safetyRating: 4, accuracyRating: 4, comment: 'Great value for ₹8,500! All meals, transport, and activities included. The bonfire with live guitar was the highlight of the trip.', daysAgoCreated: 36 },
+    { bookingId: dBookingD8.id, userId: traveler1.id, overallRating: 4, organizationRating: 4, valueRating: 4, safetyRating: 5, accuracyRating: 4, comment: 'Took my wife on this trip and we both loved it. The snowboarding session was thrilling! Just pack extra warm clothes — it gets freezing at night.', daysAgoCreated: 35 },
+    { bookingId: dBookingD9.id, userId: traveler2.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Solo female traveler here — felt 100% safe the entire trip. The group was amazing and the organizer was always available on call. Perfect winter escape!', daysAgoCreated: 34 },
+    { bookingId: dBookingD10.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Came back for the second batch and it was just as good! This time we had fresh snowfall — the whole valley turned white overnight. Magical!', daysAgoCreated: 33 },
+    { bookingId: dBookingD11.id, userId: trav5.id, overallRating: 2, organizationRating: 2, valueRating: 3, safetyRating: 3, accuracyRating: 2, comment: 'Disappointing second experience. Group size was 14 which felt crowded. The hotel room heater was broken and took a day to fix. Not as premium as advertised.', daysAgoCreated: 32 },
+    { bookingId: dBookingD12.id, userId: trav6.id, overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 4, comment: 'The Hadimba Temple visit in the snow was ethereal. Great food at the hotel — especially the garlic naan and rajma. Would definitely come again in December!', daysAgoCreated: 31 },
+  ]
+
+  for (let i = 0; i < tripDReviews.length; i++) {
+    const r = tripDReviews[i]
+    await prisma.review.create({
+      data: {
+        tripId: demoTripD.id,
+        bookingId: r.bookingId,
+        userId: r.userId,
+        overallRating: r.overallRating,
+        organizationRating: r.organizationRating,
+        valueRating: r.valueRating,
+        safetyRating: r.safetyRating,
+        accuracyRating: r.accuracyRating,
+        comment: r.comment,
+        photos: manaliPhotos[i],
+        // Edited reviews
+        ...(i === 4 && { editedAt: new Date(now.getTime() - 37 * 86400000) }),
+        ...(i === 10 && { editedAt: new Date(now.getTime() - 31 * 86400000) }),
+        // Organizer replies
+        ...(i === 0 && { organizerReply: 'So glad you loved it, Rohan! The Manali snow season was perfect this year. Hope to see you on our next winter batch!', organizerReplyAt: new Date(now.getTime() - 40 * 86400000) }),
+        ...(i === 2 && { organizerReply: 'Thanks Vikram! That hot chocolate recipe is our secret weapon 😄. Next batch dates dropping soon!', organizerReplyAt: new Date(now.getTime() - 39 * 86400000) }),
+        ...(i === 4 && { organizerReply: 'We sincerely apologize for the bus and hotel issues, Meera. We have switched to a newer Volvo fleet and a hotel closer to Mall Road for future batches. Hope you give us another chance!', organizerReplyAt: new Date(now.getTime() - 37 * 86400000) }),
+        ...(i === 5 && { organizerReply: 'Your first snow experience makes us so happy, Arjun! Our skiing instructor Raju sends his regards 😊', organizerReplyAt: new Date(now.getTime() - 36 * 86400000) }),
+        ...(i === 8 && { organizerReply: 'Safety first, always! Sneha, you were such a wonderful addition to the group. Come join our Spiti trip next! ❄️', organizerReplyAt: new Date(now.getTime() - 33 * 86400000) }),
+        ...(i === 10 && { organizerReply: 'We are sorry about the heater issue, Ananya. That hotel has since fixed all room heaters. We have also capped the group size at 12 going forward. Your feedback helps us improve!', organizerReplyAt: new Date(now.getTime() - 31 * 86400000) }),
+        createdAt: new Date(now.getTime() - r.daysAgoCreated * 86400000),
+      },
+    })
+  }
+
+  console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 12 joined, 2 rejected, 12 reviews (with photos + replies)')
 
   // ── Trip E: ACTIVE, REQUEST_BASED — only pending requests ──
   const demoTripE = await prisma.trip.create({
