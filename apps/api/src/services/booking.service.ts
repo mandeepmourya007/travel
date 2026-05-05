@@ -1,5 +1,5 @@
 import { Logger } from 'pino'
-import type { MyBookingFilters, MyBookingSummary, CancelBookingResult } from '@shared/types/booking.types'
+import type { MyBookingFilters, MyBookingSummary, CancelBookingResult, MyTripBookingStatus } from '@shared/types/booking.types'
 import type { MyTripRequestItem } from '@shared/types/trip-request.types'
 import type { CreateBookingResponse, VerifyPaymentDto, VerifyPaymentResponse } from '@shared/types/payment.types'
 import { BookingRepository } from '../repositories/booking.repository'
@@ -480,6 +480,24 @@ export class BookingService {
         },
       },
     }))
+  }
+
+  /**
+   * Returns the user's active booking/request status for a specific trip.
+   * Used by trip detail page to show correct CTA button.
+   */
+  async getMyTripStatus(userId: string, tripId: string): Promise<MyTripBookingStatus> {
+    const [booking, request] = await Promise.all([
+      this.bookingRepo.findActiveByUserAndTrip(userId, tripId),
+      this.tripRequestRepo.findActiveByUserAndTrip(tripId, userId),
+    ])
+
+    return {
+      // Safe: findActiveByUserAndTrip only returns PENDING_PAYMENT | CONFIRMED
+      bookingStatus: (booking?.bookingStatus as MyTripBookingStatus['bookingStatus']) ?? null,
+      // Safe: findActiveByUserAndTrip only returns PENDING | non-expired APPROVED
+      requestStatus: (request?.status as MyTripBookingStatus['requestStatus']) ?? null,
+    }
   }
 
   /** Refund % based on cancellation policy and hours until trip */

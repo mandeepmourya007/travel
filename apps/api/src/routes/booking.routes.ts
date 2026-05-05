@@ -4,7 +4,7 @@ import type { UserRole } from '@shared/types/user.types'
 import { BookingController } from '../controllers/booking.controller'
 import { validate } from '../middleware/validate.middleware'
 import { myBookingFiltersSchema, cancelBookingSchema, createBookingSchema, verifyPaymentSchema } from '@shared/validators/booking.schema'
-import { cuidParamSchema } from '@shared/validators/common.schema'
+import { cuidParamSchema, tripIdParamSchema } from '@shared/validators/common.schema'
 
 export function createBookingRoutes(
   bookingController: BookingController,
@@ -38,6 +38,13 @@ export function createBookingRoutes(
     '/my/pending-requests',
     authMiddleware,
     bookingController.getPendingRequests,
+  )
+
+  router.get(
+    '/my/trip-status/:tripId',
+    authMiddleware,
+    validate(tripIdParamSchema, 'params'),
+    bookingController.getMyTripStatus,
   )
 
   router.post(

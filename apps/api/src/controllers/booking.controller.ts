@@ -35,6 +35,12 @@ export class BookingController {
     res.json({ success: true, data })
   })
 
+  /** GET /bookings/my/trip-status/:tripId — Check user's booking/request status for a trip */
+  getMyTripStatus = asyncHandler(async (req: Request, res: Response) => {
+    const data = await this.bookingService.getMyTripStatus(req.user!.userId, req.params.tripId)
+    res.json({ success: true, data })
+  })
+
   /** POST /bookings — Create booking + Razorpay order */
   createBooking = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.bookingService.createBooking(req.user!.userId, req.body as CreateBookingDto)

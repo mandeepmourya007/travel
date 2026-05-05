@@ -266,6 +266,25 @@ export class TripRequestRepository {
   }
 
   /**
+   * Finds an active trip request (PENDING or non-expired APPROVED) for a user on a trip.
+   * Used by: BookingService.getMyTripStatus()
+   */
+  async findActiveByUserAndTrip(tripId: string, userId: string) {
+    return this.prisma.tripRequest.findFirst({
+      where: {
+        tripId,
+        userId,
+        isDeleted: false,
+        OR: [
+          { status: 'PENDING' },
+          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+        ],
+      },
+      select: { id: true, status: true },
+    })
+  }
+
+  /**
    * Finds an existing EXPIRED or REJECTED request for a user on a trip.
    * Used by: TripService.createTripRequest() to allow re-application.
    */
