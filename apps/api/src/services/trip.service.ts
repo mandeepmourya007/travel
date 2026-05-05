@@ -528,6 +528,18 @@ export class TripService {
       )
     }
 
+    // Allow re-application: if user has an EXPIRED or REJECTED request, reset it
+    const existingStale = await this.tripRequestRepo.findExpiredOrRejectedForUser(tripId, userId)
+    if (existingStale) {
+      const reset = await this.tripRequestRepo.resetToPending(existingStale.id, {
+        numTravelers: dto.numTravelers,
+        message: dto.message,
+        travelers: dto.travelers,
+      })
+      this.logger.info({ tripId, userId, requestId: reset.id }, 'Trip request re-submitted (was expired/rejected)')
+      return this.toRequestListItem(reset)
+    }
+
     try {
       const request = await this.tripRequestRepo.create({
         tripId,
@@ -539,7 +551,7 @@ export class TripService {
       this.logger.info({ tripId, userId, requestId: request.id }, 'Trip request created')
       return this.toRequestListItem(request)
     } catch (error: unknown) {
-      // Prisma P2002 = unique constraint violation (user already requested this trip)
+      // Prisma P2002 = unique constraint violation (user already has an active request)
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictError('You already have a pending request for this trip')
       }

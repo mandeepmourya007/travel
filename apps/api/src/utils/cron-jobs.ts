@@ -1,6 +1,13 @@
 import { logger } from './logger'
 import { BookingRepository } from '../repositories/booking.repository'
+import { TripRequestRepository } from '../repositories/trip-request.repository'
+import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
+import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { PaymentService } from '../services/payment.service'
+
+// ── Intervals (ms) ───────────────────────────────────
+const FIVE_MINUTES = 5 * 60 * 1000
+const ONE_HOUR = 60 * 60 * 1000
 
 /**
  * Expires stale PENDING_PAYMENT bookings that have passed their expiresAt.
@@ -8,9 +15,9 @@ import { PaymentService } from '../services/payment.service'
  * Safety net (H3 fix): Before expiring, polls Razorpay to check if payment
  * was actually completed but webhook was missed.
  *
- * Intended to be called via setInterval() or node-cron every 5 minutes.
+ * Intended to be called via setInterval() every 5 minutes.
  */
-export async function expireStaleBookings(
+async function expireStaleBookings(
   bookingRepo: BookingRepository,
   paymentService: PaymentService | null,
 ) {
@@ -52,5 +59,80 @@ export async function expireStaleBookings(
     }
   } catch (error) {
     logger.error({ error }, 'Stale booking expiry job failed')
+  }
+}
+
+/**
+ * Expires APPROVED trip requests whose approval window has passed.
+ * Prevents travelers from paying for long-expired approvals.
+ *
+ * Intended to be called via setInterval() every 5 minutes.
+ */
+async function expireStaleRequests(tripRequestRepo: TripRequestRepository) {
+  try {
+    const result = await tripRequestRepo.expireApprovedRequests()
+    if (result.count > 0) {
+      logger.info({ count: result.count }, 'Expired stale trip requests')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Trip request expiry job failed')
+  }
+}
+
+/**
+ * Deletes verification codes (OTP / email) that expired more than 24h ago.
+ *
+ * Intended to be called via setInterval() every hour.
+ */
+async function cleanupExpiredCodes(verifCodeRepo: VerificationCodeRepository) {
+  try {
+    const result = await verifCodeRepo.deleteExpired()
+    if (result.count > 0) {
+      logger.info({ count: result.count }, 'Cleaned up expired verification codes')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Verification code cleanup job failed')
+  }
+}
+
+/**
+ * Deletes refresh tokens that expired more than 30 days ago.
+ *
+ * Intended to be called via setInterval() every hour.
+ */
+async function cleanupStaleTokens(refreshTokenRepo: RefreshTokenRepository) {
+  try {
+    const result = await refreshTokenRepo.deleteExpired()
+    if (result.count > 0) {
+      logger.info({ count: result.count }, 'Cleaned up stale refresh tokens')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Refresh token cleanup job failed')
+  }
+}
+
+/**
+ * Registers all recurring background jobs. Call once at server startup.
+ * Returns a cleanup function that clears all intervals (for graceful shutdown).
+ */
+export function startCronJobs(deps: {
+  bookingRepo: BookingRepository
+  tripRequestRepo: TripRequestRepository
+  refreshTokenRepo: RefreshTokenRepository
+  verifCodeRepo: VerificationCodeRepository
+  paymentService: PaymentService | null
+}): () => void {
+  logger.info('Starting background cron jobs')
+
+  const intervals = [
+    setInterval(() => expireStaleBookings(deps.bookingRepo, deps.paymentService), FIVE_MINUTES),
+    setInterval(() => expireStaleRequests(deps.tripRequestRepo), FIVE_MINUTES),
+    setInterval(() => cleanupExpiredCodes(deps.verifCodeRepo), ONE_HOUR),
+    setInterval(() => cleanupStaleTokens(deps.refreshTokenRepo), ONE_HOUR),
+  ]
+
+  return () => {
+    intervals.forEach(clearInterval)
+    logger.info('Cron jobs stopped')
   }
 }

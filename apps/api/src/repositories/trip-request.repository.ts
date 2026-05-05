@@ -264,4 +264,82 @@ export class TripRequestRepository {
       }),
     }
   }
+
+  /**
+   * Finds an existing EXPIRED or REJECTED request for a user on a trip.
+   * Used by: TripService.createTripRequest() to allow re-application.
+   */
+  async findExpiredOrRejectedForUser(tripId: string, userId: string) {
+    return this.prisma.tripRequest.findFirst({
+      where: {
+        tripId,
+        userId,
+        status: { in: ['EXPIRED', 'REJECTED'] },
+        isDeleted: false,
+      },
+    })
+  }
+
+  /**
+   * Resets an expired/rejected request back to PENDING so the user can re-apply.
+   * Clears previous response fields and updates traveler details.
+   *
+   * Used by: TripService.createTripRequest()
+   */
+  async resetToPending(
+    id: string,
+    data: {
+      numTravelers: number
+      message?: string
+      travelers?: Array<{
+        name: string; phone: string; age: number; gender: string
+        isPrimary: boolean; emergencyContactName?: string; emergencyContactPhone?: string
+      }>
+    },
+  ) {
+    // Atomic: delete old traveler details + reset request in one transaction
+    const [, updated] = await this.prisma.$transaction([
+      this.prisma.travelerDetail.deleteMany({
+        where: { tripRequestId: id, isDeleted: false },
+      }),
+      this.prisma.tripRequest.update({
+        where: { id },
+        data: {
+          status: 'PENDING',
+          numTravelers: data.numTravelers,
+          message: data.message ?? null,
+          respondedAt: null,
+          responseNote: null,
+          approvalExpiresAt: null,
+          ...(data.travelers?.length && {
+            travelerDetails: {
+              create: data.travelers.map((t) => ({
+                name: t.name,
+                phone: t.phone,
+                age: t.age,
+                gender: t.gender as Gender,
+                isPrimary: t.isPrimary,
+                emergencyContactName: t.emergencyContactName,
+                emergencyContactPhone: t.emergencyContactPhone,
+              })),
+            },
+          }),
+        },
+        include: REQUEST_INCLUDE_LIST,
+      }),
+    ])
+    return updated
+  }
+
+  /** Expires APPROVED requests whose approvalExpiresAt has passed. Used by: cron cleanup job. */
+  async expireApprovedRequests() {
+    return this.prisma.tripRequest.updateMany({
+      where: {
+        status: 'APPROVED',
+        isDeleted: false,
+        approvalExpiresAt: { lt: new Date() },
+      },
+      data: { status: 'EXPIRED' },
+    })
+  }
 }

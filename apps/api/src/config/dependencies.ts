@@ -153,3 +153,13 @@ export const walletRoutes = createWalletRoutes(walletController, authMiddleware,
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null
+
+// ── Cron Job Dependencies ────────────────────────────
+// Scoped export for background jobs — keeps raw repos private to this module
+export const cronDeps = {
+  bookingRepo,
+  tripRequestRepo,
+  refreshTokenRepo,
+  verifCodeRepo,
+  paymentService,
+} as const
