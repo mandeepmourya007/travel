@@ -4,7 +4,7 @@
 
 # ── Upstream definitions ─────────────────────────────
 upstream web_upstream {
-    server web:3000;
+    server web:${WEB_PORT};
 }
 
 upstream api_upstream {
