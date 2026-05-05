@@ -3,6 +3,7 @@ import type { TripBookingFilters, MyBookingFilters } from '@shared/types/booking
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
 import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/payment.types'
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
+import type { ReviewListFilters } from '@shared/types/review.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -48,7 +49,10 @@ export const destinationKeys = {
 
 export const reviewKeys = {
   all: ['reviews'] as const,
-  forTrip: (tripId: string) => [...reviewKeys.all, 'trip', tripId] as const,
+  forTrip: (tripId: string, filters?: ReviewListFilters) =>
+    [...reviewKeys.all, 'trip', tripId, filters] as const,
+  myForBooking: (bookingId: string) =>
+    [...reviewKeys.all, 'my', 'booking', bookingId] as const,
 }
 
 export const notificationKeys = {
