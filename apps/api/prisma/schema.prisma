@@ -384,6 +384,7 @@ model PaymentTransaction {
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
   @@index([status])
+  @@index([status, type])
 }
 
 model Review {
