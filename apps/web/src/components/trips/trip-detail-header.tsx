@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { MapPin, Calendar, Users, CheckCircle, Share2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Autoplay from 'embla-carousel-autoplay'
@@ -174,13 +175,13 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
 
         {/* Organizer row */}
         <div className="mt-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href={`/trips/organizers/${trip.organizer.id}`} className="flex items-center gap-3 group/org">
             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">
               {trip.organizer.businessName.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-neutral-700">
+                <span className="text-sm font-semibold text-neutral-700 group-hover/org:text-primary-600 transition-colors">
                   {trip.organizer.businessName}
                 </span>
                 {trip.organizer.verified && (
@@ -196,7 +197,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
                 />
               )}
             </div>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => {

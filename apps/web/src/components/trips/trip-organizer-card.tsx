@@ -67,7 +67,7 @@ export function TripOrganizerCard({ organizer }: TripOrganizerCardProps) {
         </div>
 
         <Link
-          href={`/organizers/${organizer.id}`}
+          href={`/trips/organizers/${organizer.id}`}
           className="mt-4 block text-center btn-secondary text-sm"
         >
           View All Trips by {organizer.businessName}
