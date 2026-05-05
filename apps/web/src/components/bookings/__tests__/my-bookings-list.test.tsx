@@ -462,11 +462,11 @@ describe('MyBookingsList', () => {
     renderWithQuery(<MyBookingsList />)
 
     await waitFor(() => {
-      expect(screen.getByText(/page 1 of 3/i)).toBeInTheDocument()
+      expect(screen.getByLabelText('Previous page')).toBeInTheDocument()
     })
 
-    expect(screen.getByText('Previous')).toBeDisabled()
-    expect(screen.getByText('Next')).not.toBeDisabled()
+    expect(screen.getByLabelText('Previous page')).toBeDisabled()
+    expect(screen.getByLabelText('Next page')).not.toBeDisabled()
   })
 
   // ── 13. Status Badge Colors ──

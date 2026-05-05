@@ -122,7 +122,8 @@ describe('PaymentTransactionList', () => {
 
       expect(screen.getByLabelText('Previous page')).toBeInTheDocument()
       expect(screen.getByLabelText('Next page')).toBeInTheDocument()
-      expect(screen.getByText('1 / 2')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument()
       expect(screen.getByText('25 total')).toBeInTheDocument()
     })
 
