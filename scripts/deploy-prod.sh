@@ -150,7 +150,7 @@ validate_secret() {
   local KEY="$1"
   local MIN_LEN="${2:-16}"
   local VAL
-  VAL=$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2-)
+  VAL=$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
 
   if [ -z "$VAL" ] || [ "$VAL" = "CHANGE_ME_STRONG_PASSWORD" ] || [ "$VAL" = "CHANGE_ME_MIN_32_CHARS_LONG_SECRET" ]; then
     local NEW_VAL
