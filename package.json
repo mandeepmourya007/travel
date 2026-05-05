@@ -16,7 +16,8 @@
     "docker:up": "./scripts/docker-up.sh",
     "docker:down": "./scripts/docker-down.sh",
     "docker:logs": "docker compose logs -f",
-    "docker:clean": "docker compose down -v --remove-orphans"
+    "docker:clean": "docker compose down -v --remove-orphans",
+    "deploy:prod": "./scripts/deploy-prod.sh"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",

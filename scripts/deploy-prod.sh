@@ -1,156 +1,94 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Travel App — Production Deployment Script
-# Single command deployment modeled on Jebbly's deploy-local.sh
+# Travel App — Production Deployment
+# Mirror of docker-up.sh but for prod (pre-built images, Nginx, migrations)
 # Usage: ./scripts/deploy-prod.sh
-#
-# What it does:
-# 1. Checks Docker is installed
-# 2. Creates swap if low memory (for next build)
-# 3. Auto-detects server IP
-# 4. Generates .env.prod with strong random secrets (first run only)
-# 5. Builds Docker images (API + Web + Nginx)
-# 6. Starts Postgres + Redis, runs migrations
-# 7. Starts API + Web + Nginx, runs health checks
-# 8. Prints service URLs
 
-set -e
-
-# ── Colors ────────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT_DIR"
 
 COMPOSE_FILE="docker-compose.prod.yml"
 ENV_FILE=".env.prod"
-TOTAL_STEPS=8
+API_PORT=4001
+WEB_PORT_HOST=3001
 
-# Navigate to project root (script may be called from anywhere)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_DIR"
-
-echo -e "${CYAN}"
-echo "╔════════════════════════════════════════════╗"
-echo "║   Travel App — Production Deployment       ║"
-echo "╚════════════════════════════════════════════╝"
-echo -e "${NC}"
-
-# ══════════════════════════════════════════════════════
-# Step 1: Check Docker
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[1/$TOTAL_STEPS] Checking Docker...${NC}"
-
-if ! command -v docker &> /dev/null; then
-    echo -e "${RED}Docker is not installed. Install Docker first:${NC}"
-    echo "  curl -fsSL https://get.docker.com | sh"
-    echo "  sudo usermod -aG docker \$USER"
-    exit 1
+# ── Ensure Docker daemon is reachable ─────────────────
+if ! docker info >/dev/null 2>&1; then
+  echo "❌ Docker daemon is not running. Start it with: sudo systemctl start docker"
+  exit 1
 fi
 
-if ! docker compose version &> /dev/null; then
-    echo -e "${RED}Docker Compose V2 is not available.${NC}"
-    exit 1
+if ! docker compose version >/dev/null 2>&1; then
+  echo "❌ Docker Compose V2 is not available."
+  exit 1
 fi
 
-echo -e "${GREEN}  Docker $(docker --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') + Compose $(docker compose version --short)${NC}"
-
-# ══════════════════════════════════════════════════════
-# Step 2: Check/Create Swap (next build needs ~2GB RAM)
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[2/$TOTAL_STEPS] Checking memory...${NC}"
-
+# ── Check/Create Swap (next build needs ~2GB RAM) ────
 if command -v free &> /dev/null; then
-    TOTAL_RAM_MB=$(free -m | awk '/Mem:/ {print $2}')
-    echo -e "  RAM: ${TOTAL_RAM_MB}MB"
-
-    if [ "$TOTAL_RAM_MB" -lt 3000 ]; then
-        if [ ! -f /swapfile ]; then
-            echo -e "${YELLOW}  Low RAM. Creating 2GB swap file...${NC}"
-            sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
-            # Persist across reboots
-            if ! grep -q '/swapfile' /etc/fstab 2>/dev/null; then
-                echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
-            fi
-            echo -e "${GREEN}  Swap created and enabled${NC}"
-        else
-            echo -e "${GREEN}  Swap file already exists${NC}"
-        fi
-    else
-        echo -e "${GREEN}  Sufficient RAM${NC}"
-    fi
-else
-    echo -e "  (skipping memory check — not Linux)"
+  TOTAL_RAM_MB=$(free -m | awk '/Mem:/ {print $2}')
+  if [ "$TOTAL_RAM_MB" -lt 3000 ] && [ ! -f /swapfile ]; then
+    echo "⏳ Low RAM (${TOTAL_RAM_MB}MB). Creating 2GB swap..."
+    sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    grep -q '/swapfile' /etc/fstab 2>/dev/null || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null
+    echo "  ✅ Swap created"
+  fi
 fi
 
-# ══════════════════════════════════════════════════════
-# Step 3: Detect Server IP
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[3/$TOTAL_STEPS] Detecting server IP...${NC}"
-
-SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
-if [ -z "$SERVER_IP" ]; then
-    SERVER_IP=$(curl -s --max-time 5 ifconfig.me 2>/dev/null || echo "localhost")
+# ── Detect host IP ────────────────────────────────────
+if [[ -z "${HOST_IP:-}" ]]; then
+  SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || curl -s --max-time 5 ifconfig.me 2>/dev/null || echo "localhost")
+  echo "🌐 Detected IP: $SERVER_IP"
+  read -rp "   Use this IP? (y/n or enter custom): " INPUT_IP
+  if [[ "$INPUT_IP" == "y" || "$INPUT_IP" == "Y" ]]; then
+    HOST_IP="$SERVER_IP"
+  elif [[ -n "$INPUT_IP" && "$INPUT_IP" != "n" && "$INPUT_IP" != "N" ]]; then
+    HOST_IP="$INPUT_IP"
+  else
+    read -rp "   Enter server IP: " HOST_IP
+  fi
 fi
 
-echo -e "  Detected IP: ${CYAN}$SERVER_IP${NC}"
-read -p "  Use this IP? (y/n or enter custom IP): " USER_INPUT
+echo "   Using: $HOST_IP"
 
-if [ "$USER_INPUT" != "y" ] && [ "$USER_INPUT" != "Y" ]; then
-    if [ -n "$USER_INPUT" ] && [ "$USER_INPUT" != "n" ] && [ "$USER_INPUT" != "N" ]; then
-        SERVER_IP="$USER_INPUT"
-    else
-        read -p "  Enter server IP: " SERVER_IP
-    fi
-fi
-
-echo -e "${GREEN}  Using: $SERVER_IP${NC}"
-
-# ══════════════════════════════════════════════════════
-# Step 4: Generate .env.prod (first run only)
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[4/$TOTAL_STEPS] Configuring environment...${NC}"
-
+# ── Generate .env.prod (first run only) ──────────────
 if [ ! -f "$ENV_FILE" ]; then
-    echo -e "  Generating ${ENV_FILE} with strong secrets..."
+  echo ""
+  echo "📝 Generating ${ENV_FILE} with strong secrets..."
 
-    POSTGRES_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
-    REDIS_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
-    JWT_SECRET=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
-    JWT_REFRESH_SECRET=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
+  PG_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+  RD_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+  JWT_S=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
+  JWT_RS=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
+  BASE_URL="http://$HOST_IP"
 
-    BASE_URL="http://$SERVER_IP"
-    SERVER_NAME="_"
-
-    cat > "$ENV_FILE" << EOF
+  cat > "$ENV_FILE" << EOF
 # ─── Auto-generated by deploy-prod.sh ────────────────
 # Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 # Re-running deploy-prod.sh will NOT overwrite this file.
 
 # ─── Server ──────────────────────────────────────────
-SERVER_IP=$SERVER_IP
-SERVER_NAME=$SERVER_NAME
+SERVER_IP=$HOST_IP
+SERVER_NAME=_
 WEB_PORT=3000
-# Set DOMAIN to enable HTTPS (Phase 2):
+# Set DOMAIN + ACME_EMAIL to enable HTTPS:
 # DOMAIN=tripcompare.in
 # ACME_EMAIL=you@email.com
 
 # ─── Database ────────────────────────────────────────
 POSTGRES_USER=travel_user
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+POSTGRES_PASSWORD=$PG_PASS
 POSTGRES_DB=travel_prod
 
 # ─── Redis ───────────────────────────────────────────
-REDIS_PASSWORD=$REDIS_PASSWORD
+REDIS_PASSWORD=$RD_PASS
 
 # ─── Auth ────────────────────────────────────────────
-JWT_SECRET=$JWT_SECRET
-JWT_REFRESH_SECRET=$JWT_REFRESH_SECRET
+JWT_SECRET=$JWT_S
+JWT_REFRESH_SECRET=$JWT_RS
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
@@ -164,9 +102,26 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
+# ─── SMTP (Email OTP / Notifications) ───────────────
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+
 # ─── MSG91 (OTP SMS) ────────────────────────────────
 MSG91_AUTH_KEY=
 MSG91_TEMPLATE_ID=
+
+# ─── Firebase (Phone Auth — optional) ───────────────
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_PHONE_AUTH_STRATEGY=backend
 
 # ─── Client URLs ────────────────────────────────────
 CLIENT_URL=$BASE_URL
@@ -178,181 +133,186 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 LOG_LEVEL=info
 EOF
 
-    echo -e "${GREEN}  Generated ${ENV_FILE} with strong random secrets${NC}"
-    echo ""
-    echo -e "${YELLOW}  ⚠️  IMPORTANT: Edit ${ENV_FILE} to add your API keys:${NC}"
-    echo -e "     - Razorpay (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET)"
-    echo -e "     - Cloudinary (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)"
-    echo -e "     - Google OAuth (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)"
-    echo -e "     - MSG91 (MSG91_AUTH_KEY, MSG91_TEMPLATE_ID)"
-    echo ""
-    read -p "  Press Enter to continue (or Ctrl+C to edit .env.prod first)..."
+  echo "  ✅ Generated ${ENV_FILE}"
+  echo ""
+  echo "  ⚠️  Edit ${ENV_FILE} to add API keys (Razorpay, Cloudinary, Google, MSG91)"
+  read -rp "  Press Enter to continue (or Ctrl+C to edit first)..."
 else
-    echo -e "${GREEN}  ${ENV_FILE} already exists (preserving secrets)${NC}"
+  echo "  ✅ ${ENV_FILE} already exists (preserving secrets)"
 fi
 
-# Read DOMAIN from env file (for HTTPS support)
-DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
-ACME_EMAIL=$(grep '^ACME_EMAIL=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ')
+# Shorthand for all compose commands
+# Note: --env-file handles variable interpolation; do NOT `source .env.prod`
+# because FIREBASE_PRIVATE_KEY with PEM newlines will break bash sourcing.
+DC="docker compose --env-file $ENV_FILE -f $COMPOSE_FILE"
 
-if [ -n "$DOMAIN" ]; then
-    TOTAL_STEPS=9  # override default
-    echo -e "${GREEN}  HTTPS mode: domain=$DOMAIN${NC}"
-else
-    TOTAL_STEPS=8
-fi
+echo ""
+echo "🚀 Starting TravelApp Production..."
+echo "   HOST: $HOST_IP"
+echo ""
 
-# ══════════════════════════════════════════════════════
-# Step 5: Stop existing containers
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[5/$TOTAL_STEPS] Stopping existing containers...${NC}"
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down 2>/dev/null || true
-echo -e "${GREEN}  Done${NC}"
+# ── Stop existing containers ──────────────────────────
+$DC down --remove-orphans 2>/dev/null || true
 
-# ══════════════════════════════════════════════════════
-# Step 6: Build images
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[6/$TOTAL_STEPS] Building Docker images...${NC}"
-echo -e "  This may take 5-10 minutes on first build..."
-
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build api web
-
-echo -e "${GREEN}  Images built successfully${NC}"
+# ── Build images ──────────────────────────────────────
+echo "📦 Building images (first build may take 5-10 min)..."
+$DC build api web
 
 # Prune dangling images from previous builds
 docker image prune -f 2>/dev/null || true
 
-# ══════════════════════════════════════════════════════
-# Step 7: Start databases + migrate
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[7/$TOTAL_STEPS] Starting databases and running migrations...${NC}"
+# ── Start databases ───────────────────────────────────
+echo ""
+echo "🗄️  Starting Postgres + Redis..."
+$DC up -d postgres redis
 
-# Start Postgres + Redis
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d postgres redis
-
-# Wait for databases to be healthy
-echo -e "  Waiting for databases..."
-for i in $(seq 1 30); do
-    PG_HEALTHY=$(docker inspect --format='{{.State.Health.Status}}' travel-postgres-prod 2>/dev/null || echo "starting")
-    REDIS_HEALTHY=$(docker inspect --format='{{.State.Health.Status}}' travel-redis-prod 2>/dev/null || echo "starting")
-
-    if [ "$PG_HEALTHY" = "healthy" ] && [ "$REDIS_HEALTHY" = "healthy" ]; then
-        echo -e "${GREEN}  PostgreSQL: healthy | Redis: healthy${NC}"
-        break
-    fi
-
-    if [ $i -eq 30 ]; then
-        echo -e "${RED}  Databases failed to start in 60s${NC}"
-        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" logs postgres redis
-        exit 1
+# ── Wait for databases ────────────────────────────────
+echo ""
+echo "🔍 Waiting for databases..."
+HEALTH_TIMEOUT=60
+for svc in postgres redis; do
+  elapsed=0
+  container="travel-${svc}-prod"
+  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
+    if [ "$status" = "healthy" ]; then
+      echo "  ✅ ${svc} — healthy"
+      break
+    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+      echo "  ❌ ${svc} — ${status}"
+      $DC logs "$svc" --tail 15
+      exit 1
     fi
     sleep 2
+    elapsed=$((elapsed + 2))
+  done
+  if [ $elapsed -ge $HEALTH_TIMEOUT ]; then
+    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s"
+    exit 1
+  fi
 done
 
-# Run migrations
-echo -e "  Running Prisma migrations..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile migrate run --rm migrate
-echo -e "${GREEN}  Migrations complete${NC}"
+# ── Run migrations ────────────────────────────────────
+echo ""
+echo "🔧 Running Prisma migrations..."
+$DC --profile migrate run --rm migrate
+echo "  ✅ Migrations complete"
 
-# Seed (optional, skip on failure)
-echo -e "  Seeding database..."
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile seed run --rm seed 2>/dev/null \
-    && echo -e "${GREEN}  Seed complete${NC}" \
-    || echo -e "${YELLOW}  Seed skipped (already applied or no seed data)${NC}"
+# ── Seed (optional) ──────────────────────────────────
+echo "🌱 Seeding database..."
+$DC --profile seed run --rm seed \
+  && echo "  ✅ Seed complete" \
+  || echo "  ⏭️  Seed skipped (already applied or no seed data)"
 
-# ══════════════════════════════════════════════════════
-# Step 8: Start all services
-# ══════════════════════════════════════════════════════
-echo -e "${YELLOW}[8/$TOTAL_STEPS] Starting all services...${NC}"
+# ── Start all services ────────────────────────────────
+echo ""
+echo "🔧 Starting API + Web + Nginx..."
+$DC up -d
 
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+# ── Health check all services ─────────────────────────
+echo ""
+echo "🔍 Checking service health..."
+SERVICES=("api" "web" "nginx")
+FAILED=()
 
-# Wait for health checks
-echo -e "  Waiting for services to be healthy..."
-for i in $(seq 1 40); do
-    NGINX_HEALTHY=$(docker inspect --format='{{.State.Health.Status}}' travel-nginx-prod 2>/dev/null || echo "starting")
+for svc in "${SERVICES[@]}"; do
+  elapsed=0
+  container="travel-${svc}-prod"
+  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
 
-    if [ "$NGINX_HEALTHY" = "healthy" ]; then
-        echo -e "${GREEN}  All services healthy!${NC}"
+    if [ "$status" = "healthy" ]; then
+      echo "  ✅ ${svc} — healthy"
+      break
+    elif [ "$status" = "no-healthcheck" ]; then
+      running=$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "missing")
+      if [ "$running" = "running" ]; then
+        echo "  ✅ ${svc} — running (no healthcheck)"
         break
+      else
+        echo "  ❌ ${svc} — ${running}"
+        FAILED+=("$svc")
+        break
+      fi
+    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+      echo "  ❌ ${svc} — ${status}"
+      FAILED+=("$svc")
+      break
     fi
 
-    if [ $i -eq 40 ]; then
-        echo -e "${YELLOW}  Health check timed out (80s). Services may still be starting.${NC}"
-        break
-    fi
     sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  if [ $elapsed -ge $HEALTH_TIMEOUT ] && [ "$status" != "healthy" ]; then
+    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s (status: ${status})"
+    FAILED+=("$svc")
+  fi
 done
 
-# ══════════════════════════════════════════════════════
-# Step 9: Enable HTTPS (if DOMAIN is set)
-# ══════════════════════════════════════════════════════
-if [ -n "$DOMAIN" ]; then
-    echo -e "${YELLOW}[9/9] Enabling HTTPS for $DOMAIN...${NC}"
-
-    if [ -z "$ACME_EMAIL" ]; then
-        echo -e "${RED}  ACME_EMAIL is required for Let's Encrypt. Set it in $ENV_FILE${NC}"
-    else
-        # Obtain/renew certificate via Certbot webroot (Nginx serves ACME challenge on :80)
-        echo -e "  Requesting certificate from Let's Encrypt..."
-        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" --profile certbot run --rm certbot certonly \
-            --webroot --webroot-path=/var/www/certbot \
-            --email "$ACME_EMAIL" --agree-tos --no-eff-email \
-            -d "$DOMAIN" --keep-until-expiring
-
-        if [ $? -eq 0 ]; then
-            # Swap to SSL Nginx template
-            echo -e "  Activating HTTPS Nginx config..."
-            cp docker/nginx/ssl.conf.template docker/nginx/templates/default.conf.template
-
-            # Restart Nginx to load certs + HTTPS config
-            docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" restart nginx
-            sleep 5
-            echo -e "${GREEN}  HTTPS enabled for $DOMAIN${NC}"
-        else
-            echo -e "${RED}  Certbot failed. Continuing with HTTP only.${NC}"
-            echo -e "  Check DNS: A record for $DOMAIN must point to $SERVER_IP"
-        fi
-    fi
-fi
-
-# ══════════════════════════════════════════════════════
-# Done — Print status
-# ══════════════════════════════════════════════════════
-echo ""
-echo -e "${YELLOW}Service Status:${NC}"
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
-echo ""
-
-echo -e "${CYAN}╔════════════════════════════════════════════╗"
-echo -e "║   Production Deployment Complete!          ║"
-echo -e "╚════════════════════════════════════════════╝${NC}"
-echo ""
-
-if [ -n "$DOMAIN" ]; then
-    echo -e "Services:"
-    echo -e "  ${GREEN}Web:${NC}     https://$DOMAIN"
-    echo -e "  ${GREEN}API:${NC}     https://$DOMAIN/api/v1"
-    echo -e "  ${GREEN}Health:${NC}  https://$DOMAIN/health"
-else
-    echo -e "Services:"
-    echo -e "  ${GREEN}Web:${NC}     http://$SERVER_IP"
-    echo -e "  ${GREEN}API:${NC}     http://$SERVER_IP/api/v1"
-    echo -e "  ${GREEN}Health:${NC}  http://$SERVER_IP/health"
-fi
-echo ""
-echo -e "Commands:"
-echo -e "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs -f           ${CYAN}# All logs${NC}"
-echo -e "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE logs -f api       ${CYAN}# API logs${NC}"
-echo -e "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE restart api web   ${CYAN}# Restart app${NC}"
-echo -e "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE down              ${CYAN}# Stop all${NC}"
-echo -e "  docker compose --env-file $ENV_FILE -f $COMPOSE_FILE down -v           ${CYAN}# Stop + delete data${NC}"
-echo ""
-if [ -z "$DOMAIN" ]; then
-    echo -e "${YELLOW}To enable HTTPS:${NC}"
-    echo -e "  1. Point DNS A record to $SERVER_IP"
-    echo -e "  2. Edit .env.prod: uncomment and set DOMAIN, ACME_EMAIL, SERVER_NAME"
-    echo -e "  3. Update CLIENT_URL=https://yourdomain.com  NEXT_PUBLIC_API_URL=https://yourdomain.com/api/v1"
-    echo -e "  4. Re-run: ./scripts/deploy-prod.sh"
+if [ ${#FAILED[@]} -gt 0 ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "⚠️  Some services failed to start:"
+  echo ""
+  for svc in "${FAILED[@]}"; do
+    echo "── travel-${svc}-prod ──────────────────────────"
+    docker logs "travel-${svc}-prod" --tail 15 2>&1 || true
     echo ""
+  done
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Fix the issues above, then re-run: ./scripts/deploy-prod.sh"
+  exit 1
 fi
+
+# ── Enable HTTPS (if DOMAIN is set) ──────────────────
+DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)
+ACME_EMAIL=$(grep '^ACME_EMAIL=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)
+
+if [ -n "$DOMAIN" ] && [ -n "$ACME_EMAIL" ]; then
+  echo ""
+  echo "🔒 Enabling HTTPS for $DOMAIN..."
+  if $DC --profile certbot run --rm certbot certonly \
+    --webroot --webroot-path=/var/www/certbot \
+    --email "$ACME_EMAIL" --agree-tos --no-eff-email \
+    -d "$DOMAIN" --keep-until-expiring; then
+    cp docker/nginx/ssl.conf.template docker/nginx/templates/default.conf.template
+    $DC restart nginx
+    sleep 5
+    echo "  ✅ HTTPS enabled for $DOMAIN"
+  else
+    echo "  ❌ Certbot failed. Continuing with HTTP."
+  fi
+fi
+
+# ── Done ──────────────────────────────────────────────
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "✅ TravelApp Production is running!"
+echo ""
+if [ -n "${DOMAIN:-}" ]; then
+  echo "  Frontend:   https://$DOMAIN"
+  echo "  API:        https://$DOMAIN/api/v1"
+  echo "  Health:     https://$DOMAIN/health"
+else
+  echo "  Nginx:      http://${HOST_IP}        (port 80)"
+  echo "  Frontend:   http://${HOST_IP}:${WEB_PORT_HOST}"
+  echo "  API:        http://${HOST_IP}:${API_PORT}"
+  echo "  Health:     http://${HOST_IP}:${API_PORT}/health"
+fi
+echo ""
+echo "  Logs:       $DC logs -f"
+echo "  API logs:   $DC logs -f api"
+echo "  Restart:    $DC restart api web nginx"
+echo "  Stop:       $DC down"
+echo "  Stop+data:  $DC down -v"
+echo ""
+if [ -z "${DOMAIN:-}" ]; then
+  echo "To enable HTTPS:"
+  echo "  1. Point DNS A record to $HOST_IP"
+  echo "  2. Edit .env.prod: set DOMAIN, ACME_EMAIL, SERVER_NAME"
+  echo "  3. Update CLIENT_URL + NEXT_PUBLIC_API_URL to https://yourdomain.com"
+  echo "  4. Re-run: ./scripts/deploy-prod.sh"
+  echo ""
+fi
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

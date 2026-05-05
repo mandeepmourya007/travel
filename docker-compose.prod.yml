@@ -76,7 +76,7 @@ services:
     container_name: travel-api-prod
     restart: unless-stopped
     ports:
-      - '4001:4000'
+      - '127.0.0.1:4001:4000'
     env_file:
       - .env.prod
     environment:
@@ -127,7 +127,7 @@ services:
     container_name: travel-web-prod
     restart: unless-stopped
     ports:
-      - '3001:${WEB_PORT:-3000}'
+      - '127.0.0.1:3001:${WEB_PORT:-3000}'
     environment:
       NODE_ENV: production
       PORT: ${WEB_PORT:-3000}
