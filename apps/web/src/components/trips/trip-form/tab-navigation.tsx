@@ -26,6 +26,7 @@ export function TabNavigation({ activeTab, onTabChange, tabErrors }: TabNavigati
         {TRIP_FORM_TABS.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
             onClick={() => onTabChange(tab.id)}
