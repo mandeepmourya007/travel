@@ -26,8 +26,9 @@ export function useCreateTripRequest() {
       const res = await apiClient.post(`/trips/${tripId}/request`, body)
       return res.data.data
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: bookingKeys.mySummary() })
+      queryClient.invalidateQueries({ queryKey: bookingKeys.myTripStatus(variables.tripId) })
       queryClient.invalidateQueries({ queryKey: tripRequestKeys.all })
       toast({ variant: 'success', title: 'Request sent! Check My Bookings for updates.' })
     },

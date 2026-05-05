@@ -29,6 +29,7 @@ export const bookingKeys = {
   myBookings: (filters?: MyBookingFilters) => [...bookingKeys.all, 'my', filters] as const,
   mySummary: () => [...bookingKeys.all, 'my', 'summary'] as const,
   detail: (id: string) => [...bookingKeys.all, 'detail', id] as const,
+  myTripStatus: (tripId: string) => [...bookingKeys.all, 'my', 'trip-status', tripId] as const,
   forTrip: (tripId: string, filters?: TripBookingFilters) => [...bookingKeys.all, 'trip', tripId, filters] as const,
   tripSummary: (tripId: string) => [...bookingKeys.all, 'summary', tripId] as const,
 }

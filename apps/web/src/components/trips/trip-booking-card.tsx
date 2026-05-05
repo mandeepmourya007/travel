@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
+import { Shield, Check, X as XIcon, MapPin, CheckCircle2, Clock, CreditCard } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
+import { useMyTripBookingStatus } from '@/hooks/use-my-trip-booking-status'
 import { RequestToBookModal } from './request-to-book-modal'
 import type { TripDetail, TransferPoint } from '@shared/types/trip.types'
 
@@ -36,6 +37,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
   const [showRequestModal, setShowRequestModal] = useState(false)
+  const { data: tripStatus } = useMyTripBookingStatus(trip.id)
 
   return (
     <div className="card sticky top-24 p-6">
@@ -118,14 +120,36 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
       )}
 
       {/* CTA */}
-      {isFull ? (
+      {tripStatus?.bookingStatus === 'CONFIRMED' ? (
+        <button disabled className="btn-disabled w-full text-center flex items-center justify-center gap-2">
+          <CheckCircle2 className="h-4 w-4" /> Already Booked
+        </button>
+      ) : tripStatus?.bookingStatus === 'PENDING_PAYMENT' ? (
+        <Link
+          href={`/trips/${trip.slug}/book`}
+          className="btn-accent w-full text-center flex items-center justify-center gap-2"
+        >
+          <CreditCard className="h-4 w-4" /> Complete Payment
+        </Link>
+      ) : tripStatus?.requestStatus === 'PENDING' ? (
+        <button disabled className="btn-disabled w-full text-center flex items-center justify-center gap-2">
+          <Clock className="h-4 w-4" /> Request Sent
+        </button>
+      ) : tripStatus?.requestStatus === 'APPROVED' ? (
+        <Link
+          href={`/trips/${trip.slug}/book`}
+          className="btn-accent w-full text-center flex items-center justify-center gap-2"
+        >
+          <CreditCard className="h-4 w-4" /> Pay Now
+        </Link>
+      ) : isFull ? (
         <button disabled className="btn-disabled w-full text-center">
           Fully Booked
         </button>
       ) : trip.bookingMode === 'INSTANT' ? (
         <Link
           href={`/trips/${trip.slug}/book`}
-          className="btn-primary w-full text-center block"
+          className="btn-primary w-full text-center"
         >
           Book Now
         </Link>
