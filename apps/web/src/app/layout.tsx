@@ -35,6 +35,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
       <body>
+        {/* Pre-hydration loader — shows instantly before React/JS loads.
+            Removed by Providers useEffect once the app mounts. */}
+        <div
+          id="__initial-loader"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(250, 250, 250, 0.95)',
+          }}
+        >
+          <style dangerouslySetInnerHTML={{ __html: `
+            @keyframes __spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+            #__initial-spinner {
+              width: 48px;
+              height: 48px;
+              border: 4px solid #e0f2f1;
+              border-top-color: #0fbab5;
+              border-radius: 50%;
+              animation: __spin 0.8s linear infinite;
+            }
+          `}} />
+          <div id="__initial-spinner" />
+        </div>
         <Providers>
           {children}
         </Providers>

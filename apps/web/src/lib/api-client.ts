@@ -1,5 +1,13 @@
 import axios from 'axios'
 import type { ApiError } from '@shared/types/api-response.types'
+import { useLoadingStore } from '@/store/loading.store'
+import { getAppRouter } from '@/lib/app-router'
+
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _showLoader?: boolean
+  }
+}
 
 export interface AppApiError extends Error {
   code?: string
@@ -26,8 +34,31 @@ export const apiClient = axios.create({
   withCredentials: true,
 })
 
+// ── Loading overlay: track in-flight requests ───────
+let activeRequests = 0
+
+function incrementLoader() {
+  activeRequests++
+  if (activeRequests === 1) {
+    useLoadingStore.getState().show()
+  }
+}
+
+function decrementLoader() {
+  activeRequests = Math.max(0, activeRequests - 1)
+  if (activeRequests === 0) {
+    useLoadingStore.getState().hide()
+  }
+}
+
 // ── Request Interceptor ──────────────────────────────
 apiClient.interceptors.request.use((config) => {
+  const method = (config.method ?? '').toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    incrementLoader()
+    config._showLoader = true
+  }
+
   // Read from Zustand-persisted auth store
   const stored = typeof window !== 'undefined' ? localStorage.getItem('travel-auth') : null
   const token = stored ? JSON.parse(stored)?.state?.accessToken : null
@@ -65,12 +96,18 @@ function doRefresh(): Promise<string | null> {
 
 // ── Response Interceptor ─────────────────────────────
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config._showLoader) decrementLoader()
+    return response
+  },
   async (error) => {
+    if (error.config?._showLoader) decrementLoader()
     const originalRequest = error.config
 
     // Token refresh on 401 — use mutex to avoid concurrent refreshes
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip refresh for logout (token is already invalidated)
+    const isLogout = originalRequest?.url?.includes('/auth/logout')
+    if (error.response?.status === 401 && !originalRequest._retry && !isLogout) {
       originalRequest._retry = true
 
       if (!refreshPromise) {
@@ -84,9 +121,10 @@ apiClient.interceptors.response.use(
       }
 
       localStorage.removeItem('travel-auth')
-      if (typeof window !== 'undefined') {
+      const appRouter = getAppRouter()
+      if (appRouter) {
         const returnTo = window.location.pathname + window.location.search
-        window.location.href = `/login?returnTo=${encodeURIComponent(returnTo)}`
+        appRouter.push(`/login?returnTo=${encodeURIComponent(returnTo)}`)
       }
     }
 

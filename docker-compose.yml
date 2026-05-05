@@ -149,9 +149,8 @@ services:
     deploy:
       resources:
         limits:
-          # ~1.67× V8 heap (384MB): covers SWC native compiler + HMR recompilation spikes
-          memory: 640M
-          cpus: '1'
+          memory: 2024M
+          cpus: '2'
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:${WEB_PORT:-3000} || exit 1']
       interval: 10s
