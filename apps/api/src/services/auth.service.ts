@@ -171,7 +171,7 @@ export class AuthService {
   async updateProfile(
     userId: string,
     dto: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' },
-  ): Promise<{ id: string; name: string; role: string }> {
+  ): Promise<{ id: string; name: string; role: string; accessToken?: string }> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
 
@@ -193,7 +193,13 @@ export class AuthService {
       }
     }
 
-    return { id: updated.id, name: updated.name, role: updated.role }
+    // Reissue access token when role changes so the client has the correct role claim
+    const roleChanged = dto.role && dto.role !== user.role
+    const accessToken = roleChanged
+      ? this.generateAccessToken({ userId: updated.id, role: updated.role })
+      : undefined
+
+    return { id: updated.id, name: updated.name, role: updated.role, accessToken }
   }
 
   /**
@@ -272,11 +278,12 @@ export class AuthService {
       return { ...(await this.issueTokens(user, meta)), isNewUser: false }
     }
 
-    // Case B: existing user by email — link googleId
+    // Case B: existing user by email — link googleId + backfill avatar if missing
     user = await this.userRepo.findByEmail(google.email)
     if (user) {
       if (!user.isActive) throw new AuthError('Account is deactivated')
-      await this.userRepo.updateGoogleId(user.id, google.sub)
+      const avatarToSet = !user.avatarUrl ? google.picture : undefined
+      user = await this.userRepo.updateGoogleId(user.id, google.sub, avatarToSet)
       this.logger.info({ userId: user.id }, 'Google login (linked googleId)')
       return { ...(await this.issueTokens(user, meta)), isNewUser: false }
     }

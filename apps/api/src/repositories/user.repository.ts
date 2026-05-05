@@ -50,10 +50,13 @@ export class UserRepository {
 
   /**
    * Links a Google account to an existing user by setting their googleId.
+   * Optionally sets avatarUrl if provided (used when user has no existing avatar).
    * Used by: AuthService.googleAuth (Case B — email match, no googleId yet)
    */
-  async updateGoogleId(userId: string, googleId: string) {
-    return this.prisma.user.update({ where: { id: userId }, data: { googleId } })
+  async updateGoogleId(userId: string, googleId: string, avatarUrl?: string) {
+    const data: { googleId: string; avatarUrl?: string } = { googleId }
+    if (avatarUrl) data.avatarUrl = avatarUrl
+    return this.prisma.user.update({ where: { id: userId }, data })
   }
 
   /**
