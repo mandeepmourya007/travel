@@ -21,7 +21,7 @@ COPY apps/web/ apps/web/
 
 WORKDIR /app/apps/web
 
-ENV NODE_OPTIONS="--max-old-space-size=512" \
+ENV NODE_OPTIONS="--max-old-space-size=384" \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000
 EXPOSE ${PORT}
