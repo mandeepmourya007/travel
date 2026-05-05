@@ -29,6 +29,10 @@ export interface TripDetailReview {
   id: string
   overallRating: number
   comment?: string | null
+  photos: string[]
+  editedAt?: string | null
+  organizerReply?: string | null
+  organizerReplyAt?: string | null
   createdAt: string
   user: { id: string; name: string; avatarUrl?: string | null }
 }

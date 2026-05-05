@@ -1,0 +1,4 @@
+export const REVIEW_MAX_PHOTOS = 5
+export const REVIEW_MAX_COMMENT_LENGTH = 2000
+export const REVIEW_MAX_REPLY_LENGTH = 1000
+export const REVIEW_EDIT_WINDOW_DAYS = 30

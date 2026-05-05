@@ -64,13 +64,6 @@ export const tripRequestFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 })
 
-export const createReviewSchema = z.object({
-  tripId: z.string().cuid(),
-  bookingId: z.string().cuid(),
-  rating: z.number().int().min(1).max(5),
-  comment: z.string().min(10, 'Review must be at least 10 characters').max(1000),
-})
-
 // ─── Traveler "My Bookings" Filters & Actions ───────
 
 export const myBookingFiltersSchema = z.object({

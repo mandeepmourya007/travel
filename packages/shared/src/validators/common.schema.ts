@@ -12,6 +12,10 @@ export const tripIdParamSchema = z.object({
   tripId: z.string().cuid(),
 })
 
+export const bookingIdParamSchema = z.object({
+  bookingId: z.string().cuid(),
+})
+
 export const tripRequestParamSchema = z.object({
   tripId: z.string().cuid(),
   requestId: z.string().cuid(),
