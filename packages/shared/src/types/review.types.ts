@@ -19,6 +19,10 @@ export interface Review {
     name: string
     avatarUrl?: string | null
   }
+  trip?: {
+    title: string
+    slug: string
+  }
 }
 
 export interface CreateReviewDto {

@@ -17,6 +17,7 @@ export interface TripSummary {
   maxGroupSize: number
   currentBookings: number
   organizer: {
+    id: string
     businessName: string
     rating: number
     totalReviews: number

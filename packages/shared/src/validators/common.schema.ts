@@ -20,3 +20,14 @@ export const tripRequestParamSchema = z.object({
   tripId: z.string().cuid(),
   requestId: z.string().cuid(),
 })
+
+export const organizerIdParamSchema = z.object({
+  organizerId: z.string().cuid(),
+})
+
+export const organizerProfileQuerySchema = z.object({
+  tripsPage: z.coerce.number().int().min(1).default(1),
+  tripsLimit: z.coerce.number().int().min(1).max(50).default(12),
+  reviewsPage: z.coerce.number().int().min(1).default(1),
+  reviewsLimit: z.coerce.number().int().min(1).max(50).default(10),
+})
