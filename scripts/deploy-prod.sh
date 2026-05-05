@@ -205,7 +205,7 @@ $DC up -d postgres redis
 # ── Wait for databases ────────────────────────────────
 echo ""
 echo "🔍 Waiting for databases..."
-HEALTH_TIMEOUT=60
+HEALTH_TIMEOUT=180
 for svc in postgres redis; do
   elapsed=0
   container="travel-${svc}-prod"
