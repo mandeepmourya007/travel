@@ -27,7 +27,7 @@ export default function MyPaymentsPage() {
             {[1, 2, 3, 4].map((i) => <StatItemSkeleton key={i} />)}
           </div>
         ) : summary.error ? (
-          <ErrorState message="Failed to load payment summary" onRetry={() => summary.refetch()} />
+          <ErrorState title="Failed to load payment summary" message={summary.error?.message} onRetry={() => summary.refetch()} />
         ) : summary.data ? (
           <TravelerPaymentSummaryCards {...summary.data} />
         ) : null}

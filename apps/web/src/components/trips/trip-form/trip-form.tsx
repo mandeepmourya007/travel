@@ -149,7 +149,15 @@ export function TripForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit, onInvalidSubmit)} noValidate>
+      <form
+        onSubmit={handleSubmit(handleFormSubmit, onInvalidSubmit)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isLastTab && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+            e.preventDefault()
+          }
+        }}
+        noValidate
+      >
         <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} tabErrors={tabErrors} />
 
         <div className="mt-6 min-h-[400px]">

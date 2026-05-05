@@ -28,7 +28,7 @@ export default function WalletPage() {
         {balance.isLoading ? (
           <div className="skeleton h-36 rounded-2xl" />
         ) : balance.error ? (
-          <ErrorState message="Failed to load wallet balance" onRetry={() => balance.refetch()} />
+          <ErrorState title="Failed to load wallet balance" message={balance.error?.message} onRetry={() => balance.refetch()} />
         ) : balance.data ? (
           <div className="rounded-2xl border border-neutral-200 bg-gradient-to-br from-primary-600 to-primary-700 p-6 text-white shadow-lg md:p-8">
             <div className="flex items-center gap-3">

@@ -25,14 +25,22 @@ export function useProfile() {
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient()
-  const updateUser = useAuthStore((s) => s.updateUser)
 
   return useMutation({
     mutationFn: (dto: UpdateUserProfileDto) =>
       apiClient.patch('/auth/profile', dto).then((r) => r.data.data),
-    onSuccess: (data: { id: string; name: string; role: string }) => {
+    onSuccess: (data: { id: string; name: string; role: string; accessToken?: string }) => {
       queryClient.invalidateQueries({ queryKey: profileKeys.me() })
-      updateUser({ name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' })
+      const { user: currentUser, setAuth, updateUser } = useAuthStore.getState()
+      // When the role changes, the backend returns a new access token with the updated role claim
+      if (data.accessToken && currentUser) {
+        setAuth(
+          { ...currentUser, name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' },
+          data.accessToken,
+        )
+      } else {
+        updateUser({ name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' })
+      }
     },
   })
 }

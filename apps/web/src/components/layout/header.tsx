@@ -33,7 +33,7 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false },
+  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: ['ORGANIZER'] },
   { href: '/my-bookings', label: 'My Bookings', icon: BookOpen, hideForRoles: ['ORGANIZER'] },
   { href: '/my-payments', label: 'My Payments', icon: CreditCard, hideForRoles: ['ORGANIZER'] },
   { href: '/wallet', label: 'Wallet', icon: Coins },

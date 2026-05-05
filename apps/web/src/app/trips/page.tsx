@@ -1,7 +1,9 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import { useAuthStore } from '@/store/auth.store'
 import { TripFilters } from '@/components/trips/trip-filters'
 import { TripGrid } from '@/components/trips/trip-grid'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
@@ -51,6 +53,18 @@ function SearchContent() {
 }
 
 export default function TripsPage() {
+  const router = useRouter()
+  const role = useAuthStore((s) => s.user?.role)
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
+
+  useEffect(() => {
+    if (hasHydrated && role === 'ORGANIZER') {
+      router.replace('/dashboard')
+    }
+  }, [hasHydrated, role, router])
+
+  if (hasHydrated && role === 'ORGANIZER') return null
+
   return (
     <Suspense
       fallback={
