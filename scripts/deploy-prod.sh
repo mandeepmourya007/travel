@@ -141,6 +141,42 @@ else
   echo "  ✅ ${ENV_FILE} already exists (preserving secrets)"
 fi
 
+# ── Validate critical secrets ───────────────────────
+echo ""
+echo "🔑 Validating critical secrets in ${ENV_FILE}..."
+PATCHED=0
+
+validate_secret() {
+  local KEY="$1"
+  local MIN_LEN="${2:-16}"
+  local VAL
+  VAL=$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2-)
+
+  if [ -z "$VAL" ] || [ "$VAL" = "CHANGE_ME_STRONG_PASSWORD" ] || [ "$VAL" = "CHANGE_ME_MIN_32_CHARS_LONG_SECRET" ]; then
+    local NEW_VAL
+    NEW_VAL=$(openssl rand -base64 48 | tr -d '/+=' | head -c "$MIN_LEN")
+    if grep -q "^${KEY}=" "$ENV_FILE" 2>/dev/null; then
+      sed -i "s|^${KEY}=.*|${KEY}=${NEW_VAL}|" "$ENV_FILE"
+    else
+      echo "${KEY}=${NEW_VAL}" >> "$ENV_FILE"
+    fi
+    echo "  🔧 ${KEY} — generated (was empty/placeholder)"
+    PATCHED=$((PATCHED + 1))
+  else
+    echo "  ✅ ${KEY} — set"
+  fi
+}
+
+validate_secret "POSTGRES_PASSWORD" 32
+validate_secret "REDIS_PASSWORD" 32
+validate_secret "JWT_SECRET" 48
+validate_secret "JWT_REFRESH_SECRET" 48
+
+if [ "$PATCHED" -gt 0 ]; then
+  echo ""
+  echo "  ⚠️  ${PATCHED} secret(s) were auto-generated. Review ${ENV_FILE} if needed."
+fi
+
 # Shorthand for all compose commands
 # Note: --env-file handles variable interpolation; do NOT `source .env.prod`
 # because FIREBASE_PRIVATE_KEY with PEM newlines will break bash sourcing.
