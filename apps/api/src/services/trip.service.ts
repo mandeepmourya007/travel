@@ -332,11 +332,9 @@ export class TripService {
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new ForbiddenError('Organizer profile not found')
 
-    const trips = await this.tripRepo.findByOrganizerId(profile.id)
-
-    const activeTrips = trips.filter((t) => t.status === 'ACTIVE').length
-    const totalBookings = trips.reduce((sum, t) => sum + t.currentBookings, 0)
-    const [revenue, pendingRequests] = await Promise.all([
+    const [activeTrips, totalBookings, revenue, pendingRequests] = await Promise.all([
+      this.tripRepo.countByOrganizerId(profile.id, 'ACTIVE'),
+      this.tripRepo.sumBookingsByOrganizerId(profile.id),
       this.tripRepo.calculateOrganizerRevenue(profile.id),
       this.tripRepo.countPendingRequests(profile.id),
     ])
@@ -571,7 +569,7 @@ export class TripService {
     tripId: string,
     dto: { numTravelers: number; message?: string; travelers?: TripRequestTraveler[] },
   ) {
-    const trip = await this.tripRepo.findById(tripId)
+    const trip = await this.tripRepo.findByIdLite(tripId)
     if (!trip) throw new NotFoundError('Trip')
 
     if (trip.status !== 'ACTIVE') {
@@ -627,10 +625,12 @@ export class TripService {
    * Returns the trip and organizer profile for further use.
    */
   private async verifyTripOwnership(userId: string, tripId: string) {
-    const trip = await this.tripRepo.findById(tripId)
+    const [trip, profile] = await Promise.all([
+      this.tripRepo.findById(tripId),
+      this.organizerProfileRepo.findByUserId(userId),
+    ])
     if (!trip) throw new NotFoundError('Trip')
 
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile || trip.organizerId !== profile.id) {
       throw new ForbiddenError('You can only manage your own trips')
     }

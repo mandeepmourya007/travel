@@ -151,12 +151,14 @@ export class PaymentHistoryService {
    * @returns the organizer profile (for commission rate access)
    */
   private async verifyTripOrganizer(userId: string, tripId: string) {
-    const trip = await this.tripRepo.findById(tripId)
+    const [trip, profile] = await Promise.all([
+      this.tripRepo.findById(tripId),
+      this.organizerProfileRepo.findByUserId(userId),
+    ])
     if (!trip) {
       throw new NotFoundError('Trip')
     }
 
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) {
       throw new ForbiddenError('Organizer profile not found')
     }

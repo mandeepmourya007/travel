@@ -331,10 +331,13 @@ export class BookingService {
    * @throws ConflictError — seats full
    * @throws PaymentError — capture fails (seats auto-rollback)
    */
-  async confirmBooking(bookingId: string): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+  async confirmBooking(
+    bookingId: string,
+    preloadedBooking?: Awaited<ReturnType<BookingRepository['findWithPaymentDetails']>>,
+  ): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
     this.requirePaymentService()
 
-    const booking = await this.bookingRepo.findWithPaymentDetails(bookingId)
+    const booking = preloadedBooking ?? await this.bookingRepo.findWithPaymentDetails(bookingId)
     if (!booking) throw new NotFoundError('Booking')
 
     // Idempotent
@@ -436,10 +439,12 @@ export class BookingService {
     const paymentTx = booking.paymentTransactions[0]
     if (paymentTx) {
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, dto.razorpayPaymentId)
+      // Update in-memory so the pre-loaded booking reflects the DB change
+      paymentTx.razorpayPaymentId = dto.razorpayPaymentId
     }
 
-    // Confirm booking (capture + seats)
-    return this.confirmBooking(bookingId)
+    // Confirm booking (capture + seats) — pass pre-loaded booking to avoid re-fetching
+    return this.confirmBooking(bookingId, booking)
   }
 
   /**
