@@ -12,6 +12,9 @@ export function generateSlug(text: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/** Alias for generateSlug — used on the frontend. */
+export const slugify = generateSlug
+
 /**
  * Generate a unique trip slug with date suffix.
  * e.g. "Goa Beach Getaway", "2025-12-06" → "goa-beach-getaway-dec-2025"
@@ -24,4 +27,14 @@ export function generateTripSlug(title: string, startDate: string): string {
   const month = MONTHS[date.getMonth()]
   const year = date.getFullYear()
   return `${base}-${month}-${year}`
+}
+
+/**
+ * Convert a slug back to a human-readable title.
+ * e.g. "lonavala-monsoon-hike-completed" → "Lonavala Monsoon Hike Completed"
+ */
+export function deslugify(slug: string): string {
+  return slug
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
