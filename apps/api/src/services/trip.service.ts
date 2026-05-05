@@ -11,7 +11,7 @@ import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { ReviewRepository } from '../repositories/review.repository'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
-import { generateSlug, generateTripSlug } from '../utils/slug'
+import { generateSlug, generateTripSlug } from '@shared/utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
 
 export class TripService {
@@ -698,6 +698,7 @@ export class TripService {
       status: trip.status,
       acceptingBookings: trip.acceptingBookings,
       photos: trip.photos,
+      reviewCount: trip._count?.reviews ?? 0,
       organizer: trip.organizer
         ? {
             id: trip.organizer.id,

@@ -2,7 +2,7 @@ import { Logger } from 'pino'
 import type { CreateDestinationDto, UpdateDestinationDto } from '@shared/types/destination.types'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { NotFoundError, ConflictError, ValidationError } from '../errors/app-error'
-import { generateSlug } from '../utils/slug'
+import { generateSlug } from '@shared/utils/slug'
 
 export class DestinationService {
   constructor(
