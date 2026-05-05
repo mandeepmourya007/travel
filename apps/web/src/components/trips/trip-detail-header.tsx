@@ -1,7 +1,16 @@
 'use client'
 
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { MapPin, Calendar, Users, CheckCircle, Share2 } from 'lucide-react'
+import { MapPin, Calendar, Users, CheckCircle, Share2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import Autoplay from 'embla-carousel-autoplay'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel'
 import { useToast } from '@/components/shared/toast'
 import { StarRating } from '@/components/shared/star-rating'
 import { formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
@@ -14,36 +23,111 @@ interface TripDetailHeaderProps {
 export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
   const { toast } = useToast()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
+  const photos = trip.photos?.length ? trip.photos : []
+  const totalPhotos = photos.length
+
+  const [api, setApi] = useState<CarouselApi>()
+  const [current, setCurrent] = useState(0)
+
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true }),
+  )
+
+  const onSelect = useCallback(() => {
+    if (!api) return
+    setCurrent(api.selectedScrollSnap())
+  }, [api])
+
+  useEffect(() => {
+    if (!api) return
+    onSelect()
+    api.on('select', onSelect)
+    return () => { api.off('select', onSelect) }
+  }, [api, onSelect])
+
+  const scrollTo = useCallback(
+    (index: number) => api?.scrollTo(index),
+    [api],
+  )
 
   return (
     <div>
-      {/* Photo gallery */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl overflow-hidden">
-        <div className="relative md:col-span-2 h-72 md:h-96 bg-neutral-200">
-          {trip.photos[0] && (
-            <Image
-              src={trip.photos[0]}
-              alt={trip.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 66vw"
-              className="object-cover"
-              priority
-            />
+      {/* Photo carousel */}
+      <div className="rounded-xl overflow-hidden">
+        {/* Main image — Embla carousel */}
+        <div className={cn('relative h-72 md:h-96 bg-neutral-200 group overflow-hidden')}>
+          <Carousel
+            setApi={setApi}
+            opts={{ loop: true }}
+            plugins={totalPhotos > 1 ? [autoplayPlugin.current] : []}
+            className="h-full"
+          >
+            <CarouselContent className="-ml-0 h-full">
+              {photos.map((photo, i) => (
+                <CarouselItem key={photo} className="pl-0 relative h-72 md:h-96">
+                  <Image
+                    src={photo}
+                    alt={`${trip.title} ${i + 1}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 66vw"
+                    className="object-cover"
+                    priority={i === 0}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+
+          {/* Prev / Next buttons */}
+          {totalPhotos > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => api?.scrollPrev()}
+                aria-label="Previous photo"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/80 backdrop-blur-sm p-1.5 text-neutral-700 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-white"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => api?.scrollNext()}
+                aria-label="Next photo"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white/80 backdrop-blur-sm p-1.5 text-neutral-700 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-white"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </>
+          )}
+
+          {/* Dot indicators */}
+          {totalPhotos > 1 && (
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
+              {photos.map((_, i) => (
+                <button
+                  key={`dot-${i}`}
+                  type="button"
+                  onClick={() => scrollTo(i)}
+                  aria-label={`Go to photo ${i + 1}`}
+                  className={cn(
+                    'h-2 rounded-full transition-all duration-200',
+                    i === current
+                      ? 'w-5 bg-white'
+                      : 'w-2 bg-white/60 hover:bg-white/80',
+                  )}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Photo counter badge */}
+          {totalPhotos > 1 && (
+            <span className="absolute top-3 right-3 z-10 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+              {current + 1} / {totalPhotos}
+            </span>
           )}
         </div>
-        <div className="hidden md:grid grid-rows-2 gap-2">
-          {trip.photos.slice(1, 3).map((photo, i) => (
-            <div key={i} className="relative bg-neutral-200">
-              <Image
-                src={photo}
-                alt={`${trip.title} ${i + 2}`}
-                fill
-                sizes="33vw"
-                className="object-cover"
-              />
-            </div>
-          ))}
-        </div>
+
       </div>
 
       {/* Title section */}
@@ -114,6 +198,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
             </div>
           </div>
           <button
+            type="button"
             onClick={() => {
               navigator.clipboard.writeText(window.location.href)
               toast({ variant: 'success', title: 'Link copied to clipboard' })
