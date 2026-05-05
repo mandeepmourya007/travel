@@ -1106,17 +1106,103 @@ async function main() {
     ],
   })
 
-  // Reviews for completed Trip C
-  await prisma.review.createMany({
-    data: [
-      { tripId: demoTripC.id, bookingId: dBookingC1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, comment: 'Excellent trek! Great guide and perfect monsoon vibes.' },
-      { tripId: demoTripC.id, bookingId: dBookingC2.id, userId: trav5.id, overallRating: 4, organizationRating: 4, valueRating: 5, safetyRating: 4, comment: 'Lovely experience. Waterfalls were stunning.' },
-      { tripId: demoTripC.id, bookingId: dBookingC3.id, userId: trav6.id, overallRating: 5, organizationRating: 5, valueRating: 4, safetyRating: 5, comment: 'Would go again. Top-notch safety measures.' },
-      { tripId: demoTripC.id, bookingId: dBookingC4.id, userId: traveler1.id, overallRating: 4, organizationRating: 4, valueRating: 4, safetyRating: 4, comment: 'Good value for money. Trek was a bit strenuous though.' },
-    ],
+  // ── Additional completed bookings for Trip C (to support 15+ reviews) ──
+  const dBookingC7 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D030', tripId: demoTripC.id, userId: trav4.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC8 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D031', tripId: demoTripC.id, userId: trav5.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC9 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D032', tripId: demoTripC.id, userId: trav6.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC10 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D033', tripId: demoTripC.id, userId: trav7.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC11 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D034', tripId: demoTripC.id, userId: trav8.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC12 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D035', tripId: demoTripC.id, userId: trav9.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC13 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D036', tripId: demoTripC.id, userId: traveler1.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC14 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D037', tripId: demoTripC.id, userId: traveler2.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
+  })
+  const dBookingC15 = await prisma.booking.create({
+    data: { bookingRef: 'TRV-2025-D038', tripId: demoTripC.id, userId: traveler3.id, numTravelers: 1, totalAmount: 1500, bookingStatus: 'COMPLETED' },
   })
 
-  console.log('  ✓ Demo Trip C: COMPLETED — 6 completed, 2 cancelled, 4 reviews')
+  // Seed photos — real Unsplash travel/nature thumbnails
+  const reviewPhotos = [
+    ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600', 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600'],
+    ['https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600'],
+    ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600', 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=600'],
+    ['https://images.unsplash.com/photo-1465188162913-8fb5709d6d57?w=600', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600'],
+    ['https://images.unsplash.com/photo-1500534314263-c43bff5ab8e4?w=600'],
+    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600', 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600', 'https://images.unsplash.com/photo-1517760444937-f6397edcbbcd?w=600'],
+    ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600'],
+    [],
+    ['https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600'],
+    [],
+    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600'],
+    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600', 'https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600'],
+    [],
+    ['https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600'],
+    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600'],
+  ]
+
+  // Reviews for completed Trip C — 15 reviews for pagination testing
+  const tripCReviews = [
+    { bookingId: dBookingC1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Excellent trek! Great guide and perfect monsoon vibes. The waterfall was breathtaking and the group was super friendly.', daysAgoCreated: 28 },
+    { bookingId: dBookingC2.id, userId: trav5.id, overallRating: 4, organizationRating: 4, valueRating: 5, safetyRating: 4, accuracyRating: 4, comment: 'Lovely experience. Waterfalls were stunning. Only issue was the early 5 AM pickup, but totally worth it for the views.', daysAgoCreated: 27 },
+    { bookingId: dBookingC3.id, userId: trav6.id, overallRating: 5, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 5, comment: 'Would go again in a heartbeat. Top-notch safety measures and the guide knew every trail like the back of his hand.', daysAgoCreated: 26 },
+    { bookingId: dBookingC4.id, userId: traveler1.id, overallRating: 4, organizationRating: 4, valueRating: 4, safetyRating: 4, accuracyRating: 3, comment: 'Good value for money. Trek was a bit strenuous but the chai breaks made up for it. Beautiful misty valleys!', daysAgoCreated: 25 },
+    { bookingId: dBookingC5.id, userId: traveler2.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'As a solo female traveler, I felt completely safe. The organizer handled everything perfectly. Monsoon trekking is now my favourite activity!', daysAgoCreated: 24 },
+    { bookingId: dBookingC6.id, userId: trav9.id, overallRating: 3, organizationRating: 3, valueRating: 4, safetyRating: 3, accuracyRating: 3, comment: 'Decent trip overall. The rain made parts of the trail slippery and the group was larger than expected. Food was good though.', daysAgoCreated: 23 },
+    { bookingId: dBookingC7.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 4, comment: 'Second time doing this trek and it was even better! Different route this time with an amazing hidden waterfall.', daysAgoCreated: 22 },
+    { bookingId: dBookingC8.id, userId: trav5.id, overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 4, accuracyRating: 4, comment: 'Well organized from start to finish. The transport was comfortable and the guide was knowledgeable. Would recommend for beginners.', daysAgoCreated: 21 },
+    { bookingId: dBookingC9.id, userId: trav6.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Photography paradise! Got some of my best landscape shots here. The misty mountain views were unreal.', daysAgoCreated: 20 },
+    { bookingId: dBookingC10.id, userId: trav7.id, overallRating: 2, organizationRating: 2, valueRating: 3, safetyRating: 3, accuracyRating: 2, comment: 'Trip description said easy trek but it was quite challenging. Also, lunch was basic dal-rice, expected better for the price.', daysAgoCreated: 19 },
+    { bookingId: dBookingC11.id, userId: trav8.id, overallRating: 4, organizationRating: 4, valueRating: 5, safetyRating: 4, accuracyRating: 4, comment: 'Great monsoon trek experience. The waterfall rappelling was the highlight! Just bring good rain gear — you will need it.', daysAgoCreated: 18 },
+    { bookingId: dBookingC12.id, userId: trav9.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Absolutely magical! The clouds parting to reveal the valley below was a moment I will never forget. Best ₹1,500 I have spent.', daysAgoCreated: 17 },
+    { bookingId: dBookingC13.id, userId: traveler1.id, overallRating: 4, organizationRating: 3, valueRating: 4, safetyRating: 5, accuracyRating: 4, comment: 'Safety was excellent — first aid kit, trained guide, proper trail marking. Organization could be slightly better with timing.', daysAgoCreated: 16 },
+    { bookingId: dBookingC14.id, userId: traveler2.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5, comment: 'Brought my parents on this trek and they loved it! The pace was perfect and the guide adjusted for older trekkers. Highly recommend!', daysAgoCreated: 15 },
+    { bookingId: dBookingC15.id, userId: traveler3.id, overallRating: 3, organizationRating: 4, valueRating: 3, safetyRating: 4, accuracyRating: 3, comment: 'Good trek but a bit overpriced for a day trip. The waterfall was crowded when we reached. Morning batch might be better.', daysAgoCreated: 14 },
+  ]
+
+  for (let i = 0; i < tripCReviews.length; i++) {
+    const r = tripCReviews[i]
+    await prisma.review.create({
+      data: {
+        tripId: demoTripC.id,
+        bookingId: r.bookingId,
+        userId: r.userId,
+        overallRating: r.overallRating,
+        organizationRating: r.organizationRating,
+        valueRating: r.valueRating,
+        safetyRating: r.safetyRating,
+        accuracyRating: r.accuracyRating,
+        comment: r.comment,
+        photos: reviewPhotos[i],
+        // Some reviews are edited
+        ...(i === 3 && { editedAt: new Date(now.getTime() - (r.daysAgoCreated - 2) * 86400000) }),
+        ...(i === 9 && { editedAt: new Date(now.getTime() - (r.daysAgoCreated - 1) * 86400000) }),
+        // Some have organizer replies
+        ...(i === 0 && { organizerReply: 'Thank you so much, Rohan! We are glad you enjoyed the monsoon trek. See you on the next one! 🙌', organizerReplyAt: new Date(now.getTime() - 27 * 86400000) }),
+        ...(i === 4 && { organizerReply: 'Thanks Sneha! Safety is our top priority, especially for solo travelers. Happy you felt comfortable!', organizerReplyAt: new Date(now.getTime() - 23 * 86400000) }),
+        ...(i === 5 && { organizerReply: 'We appreciate your honest feedback, Pooja. We have reduced the group size for upcoming batches. Hope to see you again!', organizerReplyAt: new Date(now.getTime() - 22 * 86400000) }),
+        ...(i === 8 && { organizerReply: 'Your photos are incredible, Karan! Would love to feature them on our page (with credit). DM us! 📸', organizerReplyAt: new Date(now.getTime() - 19 * 86400000) }),
+        ...(i === 9 && { organizerReply: 'Sorry about the difficulty mismatch, Meera. We have updated the listing to "Moderate" difficulty. The lunch menu has also been upgraded.', organizerReplyAt: new Date(now.getTime() - 18 * 86400000) }),
+        ...(i === 13 && { organizerReply: 'That is so heartwarming! We love when families trek together. Your parents were amazing on the trail! 🥾', organizerReplyAt: new Date(now.getTime() - 14 * 86400000) }),
+        createdAt: new Date(now.getTime() - r.daysAgoCreated * 86400000),
+      },
+    })
+  }
+
+  console.log('  ✓ Demo Trip C: COMPLETED — 15 completed bookings, 2 cancelled, 15 reviews (with photos + replies)')
 
   // ── Trip D: COMPLETED — request-based, some rejected ──
   const demoTripD = await prisma.trip.create({
@@ -1199,16 +1285,40 @@ async function main() {
     ],
   })
 
-  // Reviews for Trip D
-  await prisma.review.createMany({
-    data: [
-      { tripId: demoTripD.id, bookingId: dBookingD1.id, userId: trav4.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, comment: 'Best winter trip ever! Manali was magical.' },
-      { tripId: demoTripD.id, bookingId: dBookingD2.id, userId: trav5.id, overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, comment: 'Amazing arrangements. Solang was a blast!' },
-      { tripId: demoTripD.id, bookingId: dBookingD3.id, userId: traveler3.id, overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 4, comment: 'Well organized, great bonfire nights.' },
-    ],
+  // Reviews for Trip D — with photos and organizer replies
+  await prisma.review.create({
+    data: {
+      tripId: demoTripD.id, bookingId: dBookingD1.id, userId: trav4.id,
+      overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 5, accuracyRating: 5,
+      comment: 'Best winter trip ever! Manali was magical. The snow at Solang Valley was pristine and the bonfire nights were unforgettable.',
+      photos: ['https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=600', 'https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=600', 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600'],
+      organizerReply: 'So glad you loved it, Rohan! The Manali snow season was perfect this year. Hope to see you on our next winter batch!',
+      organizerReplyAt: new Date(now.getTime() - 40 * 86400000),
+      createdAt: new Date(now.getTime() - 42 * 86400000),
+    },
+  })
+  await prisma.review.create({
+    data: {
+      tripId: demoTripD.id, bookingId: dBookingD2.id, userId: trav5.id,
+      overallRating: 4, organizationRating: 5, valueRating: 4, safetyRating: 5, accuracyRating: 4,
+      comment: 'Amazing arrangements. Solang was a blast! Only wish we had one more day for Old Manali cafes.',
+      photos: ['https://images.unsplash.com/photo-1545652985-5edd365b12eb?w=600'],
+      createdAt: new Date(now.getTime() - 41 * 86400000),
+    },
+  })
+  await prisma.review.create({
+    data: {
+      tripId: demoTripD.id, bookingId: dBookingD3.id, userId: traveler3.id,
+      overallRating: 5, organizationRating: 5, valueRating: 5, safetyRating: 4, accuracyRating: 5,
+      comment: 'Well organized, great bonfire nights. The hot chocolate at the campsite was the cherry on top. Already planning to join the next one!',
+      photos: ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600', 'https://images.unsplash.com/photo-1542359649-6066040e1f1f?w=600'],
+      organizerReply: 'Thanks Vikram! That hot chocolate recipe is our secret weapon 😄. Next batch dates dropping soon!',
+      organizerReplyAt: new Date(now.getTime() - 39 * 86400000),
+      createdAt: new Date(now.getTime() - 40 * 86400000),
+    },
   })
 
-  console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 3 joined, 2 rejected, 3 reviews')
+  console.log('  ✓ Demo Trip D: COMPLETED (REQUEST_BASED) — 3 joined, 2 rejected, 3 reviews (with photos + replies)')
 
   // ── Trip E: ACTIVE, REQUEST_BASED — only pending requests ──
   const demoTripE = await prisma.trip.create({
