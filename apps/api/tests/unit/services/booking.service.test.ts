@@ -30,6 +30,7 @@ const mockTripRequestRepo = {
   countPendingPaymentForUser: vi.fn().mockResolvedValue(0),
   findPendingPaymentForUser: vi.fn().mockResolvedValue([]),
   markConverted: vi.fn(),
+  findActiveByUserAndTrip: vi.fn(),
 }
 
 const mockPaymentTxRepo = {
@@ -864,6 +865,95 @@ describe('BookingService', () => {
         expect.any(Array),
         expect.any(Object),
       )
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // getMyTripStatus
+  // ═══════════════════════════════════════════════════
+  describe('getMyTripStatus', () => {
+    it('should return CONFIRMED booking status when user has confirmed booking', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({ bookingStatus: 'CONFIRMED' })
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: 'CONFIRMED', requestStatus: null })
+      expect(mockBookingRepo.findActiveByUserAndTrip).toHaveBeenCalledWith('user-1', 'trip-1')
+      expect(mockTripRequestRepo.findActiveByUserAndTrip).toHaveBeenCalledWith('trip-1', 'user-1')
+    })
+
+    it('should return PENDING_PAYMENT booking status when payment is pending', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({ bookingStatus: 'PENDING_PAYMENT' })
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: 'PENDING_PAYMENT', requestStatus: null })
+    })
+
+    it('should return PENDING request status when user has pending request', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue({ id: 'req-1', status: 'PENDING' })
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: null, requestStatus: 'PENDING' })
+    })
+
+    it('should return APPROVED request status when user has approved request', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue({ id: 'req-1', status: 'APPROVED' })
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: null, requestStatus: 'APPROVED' })
+    })
+
+    it('should return both statuses when user has booking and request', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({ bookingStatus: 'PENDING_PAYMENT' })
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue({ id: 'req-1', status: 'APPROVED' })
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: 'PENDING_PAYMENT', requestStatus: 'APPROVED' })
+    })
+
+    it('should return both null when user has no active booking or request', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+
+      const result = await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(result).toEqual({ bookingStatus: null, requestStatus: null })
+    })
+
+    it('should call both repos concurrently via Promise.all', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+
+      await service.getMyTripStatus('user-1', 'trip-1')
+
+      expect(mockBookingRepo.findActiveByUserAndTrip).toHaveBeenCalledTimes(1)
+      expect(mockTripRequestRepo.findActiveByUserAndTrip).toHaveBeenCalledTimes(1)
+    })
+
+    it('should propagate error when bookingRepo throws', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockRejectedValue(new Error('DB connection lost'))
+      mockTripRequestRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+
+      await expect(
+        service.getMyTripStatus('user-1', 'trip-1'),
+      ).rejects.toThrow('DB connection lost')
+    })
+
+    it('should propagate error when tripRequestRepo throws', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRequestRepo.findActiveByUserAndTrip.mockRejectedValue(new Error('Query timeout'))
+
+      await expect(
+        service.getMyTripStatus('user-1', 'trip-1'),
+      ).rejects.toThrow('Query timeout')
     })
   })
 })
