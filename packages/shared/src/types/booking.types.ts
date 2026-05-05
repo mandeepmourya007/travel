@@ -134,6 +134,14 @@ export interface MyBookingSummary {
   paymentPending: number
 }
 
+/** Response from GET /bookings/my/trip-status/:tripId */
+export interface MyTripBookingStatus {
+  /** Active booking status (PENDING_PAYMENT | CONFIRMED) or null */
+  bookingStatus: BookingStatus | null
+  /** Active request status (PENDING | APPROVED) or null */
+  requestStatus: 'PENDING' | 'APPROVED' | null
+}
+
 /** Request body for POST /bookings/:id/cancel */
 export interface CancelBookingDto {
   reason: string
