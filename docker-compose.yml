@@ -112,7 +112,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 45s
     networks:
       - frontend
       - backend
@@ -158,26 +158,6 @@ services:
     networks:
       - frontend
 
-  # ── Prisma Migrate (run once, then exit) ─────────────
-  migrate:
-    image: travel-api:dev
-    container_name: travel-migrate
-    environment:
-      DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
-    command: ['/app/node_modules/.bin/prisma', 'migrate', 'deploy']
-    volumes:
-      - ./apps/api/prisma:/app/apps/api/prisma
-    profiles: ['migrate']
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - backend
-
   # ── Seed (run once, then exit) ──────────────────────
   seed:
     image: travel-api:dev
@@ -186,6 +166,8 @@ services:
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
     command: ['/app/node_modules/.bin/tsx', 'prisma/seed.ts']
     working_dir: /app/apps/api
+    volumes:
+      - ./apps/api/prisma:/app/apps/api/prisma
     profiles: ['seed']
     deploy:
       resources:

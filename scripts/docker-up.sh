@@ -88,15 +88,10 @@ docker compose build api web
 echo ""
 echo "🗄️  Starting Postgres + Redis..."
 docker compose up -d postgres redis
-echo "⏳ Waiting for healthy databases..."
-docker compose --profile migrate run --rm migrate
 
 echo ""
-echo "🔧 Starting API + Web..."
+echo "🔧 Starting API + Web (API auto-runs migrate + prisma generate)..."
 docker compose up -d api web
-
-echo "⏳ Regenerating Prisma Client..."
-docker compose exec api npx prisma generate
 
 # ── Health check all services ────────────────────────
 echo ""

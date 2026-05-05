@@ -22,10 +22,14 @@ COPY packages/shared/ packages/shared/
 COPY apps/api/ apps/api/
 RUN npx --workspace=@travel/api prisma generate
 
+# ── Entrypoint: migrate + generate before start ──────
+COPY docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN chmod +x /usr/local/bin/api-entrypoint.sh
+
 WORKDIR /app/apps/api
 
 ENV NODE_OPTIONS="--max-old-space-size=256"
 EXPOSE 4000
 
-ENTRYPOINT ["dumb-init", "--"]
+ENTRYPOINT ["dumb-init", "--", "api-entrypoint.sh"]
 CMD ["node", "--env-file=.env", "--import=tsx", "--watch", "src/index.ts"]
