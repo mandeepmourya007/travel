@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { reviewKeys, bookingKeys, tripKeys } from '@/lib/query-keys'
+import { reviewKeys, bookingKeys, tripKeys, organizerKeys } from '@/lib/query-keys'
 import { useToast } from '@/components/shared/toast'
 import type { Review, CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary } from '@shared/types/review.types'
 
@@ -112,6 +112,7 @@ export function useAddOrganizerReply() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: reviewKeys.all })
       queryClient.invalidateQueries({ queryKey: tripKeys.all })
+      queryClient.invalidateQueries({ queryKey: organizerKeys.all })
       toast({ variant: 'success', title: 'Reply posted!' })
     },
     onError: () => {

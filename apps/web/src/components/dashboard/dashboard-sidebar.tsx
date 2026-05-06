@@ -11,8 +11,10 @@ import {
   Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useProfile } from '@/hooks/use-profile'
 
 interface NavItem {
+  id: string
   label: string
   href: string
   icon: typeof LayoutDashboard
@@ -20,22 +22,34 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'My Trips', href: '/dashboard/trips', icon: Map },
-  { label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, disabled: true },
-  { label: 'Reviews', href: '/dashboard/reviews', icon: Star, disabled: true },
-  { label: 'Profile', href: '/profile', icon: UserCircle },
+  { id: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
+  { id: 'messages', label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, disabled: true },
+  { id: 'reviews', label: 'Reviews', href: '/dashboard/reviews', icon: Star },
+  { id: 'profile', label: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const { data: profile } = useProfile()
+  const orgProfileId = profile?.organizerProfile?.id
+
+  const resolvedItems = NAV_ITEMS.map((item) => {
+    if (item.id === 'reviews') {
+      const href = orgProfileId
+        ? `/trips/organizers/${orgProfileId}`
+        : item.href
+      return { ...item, href, disabled: !orgProfileId }
+    }
+    return item
+  })
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-neutral-200 md:bg-white">
         <nav className="flex flex-1 flex-col gap-1 p-4">
-          {NAV_ITEMS.map((item) => {
+          {resolvedItems.map((item) => {
             const isActive = item.href === '/dashboard'
               ? pathname === '/dashboard'
               : pathname.startsWith(item.href)
@@ -43,7 +57,7 @@ export function DashboardSidebar() {
 
             return (
               <Link
-                key={item.href}
+                key={item.id}
                 href={item.disabled ? '#' : item.href}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -76,7 +90,7 @@ export function DashboardSidebar() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-neutral-200 bg-white py-2 md:hidden">
-        {NAV_ITEMS.filter((item) => !item.disabled).map((item) => {
+        {resolvedItems.filter((item) => !item.disabled).map((item) => {
           const isActive = item.href === '/dashboard'
             ? pathname === '/dashboard'
             : pathname.startsWith(item.href)
@@ -84,7 +98,7 @@ export function DashboardSidebar() {
 
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
               className={cn(
                 'flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-3 text-xs',
