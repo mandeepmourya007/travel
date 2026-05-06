@@ -34,11 +34,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
-      <body>
+      <body suppressHydrationWarning>
         {/* Pre-hydration loader — shows instantly before React/JS loads.
             Removed by Providers useEffect once the app mounts. */}
         <div
           id="__initial-loader"
+          suppressHydrationWarning
           style={{
             position: 'fixed',
             inset: 0,

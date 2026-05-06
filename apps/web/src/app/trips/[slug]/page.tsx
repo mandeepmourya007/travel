@@ -9,6 +9,7 @@ import { TripStickyBookBar } from '@/components/trips/trip-sticky-book-bar'
 import { TripReviews } from '@/components/trips/trip-reviews'
 import { TransferPointsTable } from '@/components/trips/transfer-points-table'
 import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
+import { ChatWithOrganizerButton } from '@/components/chat'
 import { ArrowLeft } from 'lucide-react'
 import TripDetailLoading from './loading'
 
@@ -65,8 +66,9 @@ export default function TripDetailPage({
           <TripDetailHeader trip={trip} />
           <TripItinerary itinerary={trip.itinerary} />
           <TransferPointsTable pickupPoints={trip.pickupPoints} dropPoints={trip.dropPoints} />
-          <TripReviews reviews={trip.reviews} />
           <TripOrganizerCard organizer={trip.organizer} />
+          <ChatWithOrganizerButton tripId={trip.id} />
+          <TripReviews reviews={trip.reviews} />
         </div>
 
         {/* Sidebar — hidden on mobile, sticky sidebar on desktop */}

@@ -16,10 +16,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   useEffect(() => { setAppRouter(router) }, [router])
 
-  // Remove the pre-hydration inline loader once React mounts
+  // Hide the pre-hydration inline loader once React mounts
+  // Note: use display:none instead of el.remove() to avoid React removeChild crash
   useEffect(() => {
     const el = document.getElementById('__initial-loader')
-    if (el) el.remove()
+    if (el) {
+      el.style.display = 'none'
+      el.setAttribute('aria-hidden', 'true')
+    }
   }, [])
 
   const [queryClient] = useState(
