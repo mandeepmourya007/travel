@@ -126,6 +126,7 @@ NEXT_PUBLIC_PHONE_AUTH_STRATEGY=backend
 # ─── Client URLs ────────────────────────────────────
 CLIENT_URL=$BASE_URL
 NEXT_PUBLIC_API_URL=$BASE_URL/api/v1
+NEXT_PUBLIC_SOCKET_URL=$BASE_URL
 NEXT_PUBLIC_APP_NAME=TripCompare
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 
@@ -347,7 +348,7 @@ if [ -z "${DOMAIN:-}" ]; then
   echo "To enable HTTPS:"
   echo "  1. Point DNS A record to $HOST_IP"
   echo "  2. Edit .env.prod: set DOMAIN, ACME_EMAIL, SERVER_NAME"
-  echo "  3. Update CLIENT_URL + NEXT_PUBLIC_API_URL to https://yourdomain.com"
+  echo "  3. Update CLIENT_URL, NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SOCKET_URL to https://yourdomain.com"
   echo "  4. Re-run: ./scripts/deploy-prod.sh"
   echo ""
 fi
