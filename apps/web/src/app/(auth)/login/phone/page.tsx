@@ -72,7 +72,7 @@ export default function PhoneLoginPage() {
   const currentError = PHONE_STRATEGY === 'firebase' ? firebase.error : verifyOtp.error
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
+    <div className="flex flex-1 items-center justify-center bg-neutral-50 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="font-display text-3xl font-extrabold text-primary-600">

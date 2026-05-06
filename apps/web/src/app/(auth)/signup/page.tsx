@@ -66,7 +66,7 @@ export default function SignupPage() {
   const getFieldError = (field: string) => fieldErrors[field]
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-12">
+    <div className="flex flex-1 items-center justify-center bg-neutral-50 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="font-display text-3xl font-extrabold text-primary-600">
