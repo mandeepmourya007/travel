@@ -271,14 +271,14 @@ for svc in "${SERVICES[@]}"; do
         FAILED+=("$svc")
         break
       fi
-    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+    elif [ "$status" = "missing" ]; then
       echo "  ❌ ${svc} — ${status}"
       FAILED+=("$svc")
       break
     fi
-
-    sleep 2
-    elapsed=$((elapsed + 2))
+    # "starting" or "unhealthy" → keep waiting until timeout
+    sleep 3
+    elapsed=$((elapsed + 3))
   done
 
   if [ $elapsed -ge $HEALTH_TIMEOUT ] && [ "$status" != "healthy" ]; then

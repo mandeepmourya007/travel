@@ -1,0 +1,73 @@
+# ── HTTP-Only Nginx Config (pre-SSL bootstrap) ─────
+# Use this TEMPORARILY to get certbot certs, then switch back to default.conf.template
+
+# ── Upstream definitions ─────────────────────────────
+upstream web_upstream {
+    server web:${WEB_PORT};
+}
+
+upstream api_upstream {
+    server api:4000;
+}
+
+# ── WebSocket upgrade map (for Socket.IO) ────────────
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# ── HTTP Server (no SSL) ─────────────────────────────
+server {
+    listen 80;
+    server_name ${SERVER_NAME};
+
+    # Health check (nginx-only, no upstream dependency)
+    location /health {
+        access_log off;
+        return 200 'ok';
+    }
+
+    # ACME challenge for Certbot
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # ── Security headers ─────────────────────────────
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # ── API proxy ────────────────────────────────────
+    location /api/ {
+        proxy_pass http://api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Request-Id $request_id;
+
+        # WebSocket support (Socket.IO)
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # ── Next.js static assets (immutable, long cache) ─
+    location /_next/static/ {
+        proxy_pass http://web_upstream;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    # ── Default: Next.js app ─────────────────────────
+    location / {
+        proxy_pass http://web_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
