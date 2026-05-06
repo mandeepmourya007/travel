@@ -4,6 +4,7 @@ import type { TripRequestFilters } from '@shared/types/trip-request.types'
 import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/payment.types'
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters } from '@shared/types/review.types'
+import type { ConversationListFilters } from '@shared/types/chat.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -87,4 +88,16 @@ export const paymentKeys = {
   adminPayments: (filters?: AdminPaymentFilters) =>
     [...paymentKeys.all, 'admin', filters] as const,
   adminSummary: () => [...paymentKeys.all, 'admin', 'summary'] as const,
+}
+
+export const chatKeys = {
+  all: ['chat'] as const,
+  conversations: () => [...chatKeys.all, 'conversations'] as const,
+  conversationList: (filters?: ConversationListFilters) =>
+    [...chatKeys.conversations(), filters] as const,
+  messages: (conversationId: string) =>
+    [...chatKeys.all, 'messages', conversationId] as const,
+  messageSearch: (conversationId: string, query: string) =>
+    [...chatKeys.all, 'messages', conversationId, 'search', query] as const,
+  unreadCount: () => [...chatKeys.all, 'unread-count'] as const,
 }
