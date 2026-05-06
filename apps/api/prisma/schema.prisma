@@ -123,6 +123,24 @@ enum TransferPointType {
   DROP
 }
 
+enum ConversationType {
+  TRIP_CHAT
+  ADMIN_SUPPORT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
 enum WalletTransactionType {
   REFUND
   CASHBACK
@@ -418,14 +436,20 @@ model Review {
 }
 
 model Conversation {
-  id                 String           @id @default(cuid())
-  tripId             String
-  trip               Trip             @relation(fields: [tripId], references: [id])
+  id                 String             @id @default(cuid())
+  type               ConversationType   @default(TRIP_CHAT)
+  status             ConversationStatus @default(ACTIVE)
+  tripId             String?
+  trip               Trip?              @relation(fields: [tripId], references: [id])
   travelerId         String
-  traveler           User             @relation("traveler", fields: [travelerId], references: [id])
-  organizerProfileId String
-  organizerProfile   OrganizerProfile @relation("organizer", fields: [organizerProfileId], references: [id])
+  traveler           User               @relation("traveler", fields: [travelerId], references: [id])
+  organizerProfileId String?
+  organizerProfile   OrganizerProfile?  @relation("organizer", fields: [organizerProfileId], references: [id])
+  adminId            String?
   lastMessageAt      DateTime?
+  lastMessagePreview String?
+  unreadCountTraveler  Int             @default(0)
+  unreadCountOrganizer Int             @default(0)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -435,9 +459,11 @@ model Conversation {
 
   messages Message[]
 
-  @@unique([tripId, travelerId])
-  @@index([travelerId])
+  @@unique([type, tripId, travelerId])
+  @@index([travelerId, type])
   @@index([organizerProfileId])
+  @@index([adminId])
+  @@index([type, status])
   @@index([isDeleted])
 }
 
@@ -447,9 +473,18 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   senderId       String
   sender         User         @relation("sender", fields: [senderId], references: [id])
+  type           MessageType  @default(TEXT)
   content        String
+  originalContent String?
   isFlagged      Boolean      @default(false)
   readAt         DateTime?
+  fileUrl        String?
+  fileName       String?
+  fileSize       Int?
+  reactions      Json         @default("[]")
+  replyToId      String?
+  replyTo        Message?     @relation("replies", fields: [replyToId], references: [id])
+  replies        Message[]    @relation("replies")
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -459,6 +494,7 @@ model Message {
 
   @@index([conversationId, createdAt])
   @@index([conversationId, readAt])
+  @@index([isFlagged])
   @@index([isDeleted])
 }
 
