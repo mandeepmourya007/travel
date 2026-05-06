@@ -185,6 +185,27 @@ services:
     networks:
       - backend
 
+  # ── Seed Prod (run once, then exit) ────────────────
+  seed-prod:
+    image: travel-api:dev
+    container_name: travel-seed-prod
+    environment:
+      DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
+    command: ['/app/node_modules/.bin/tsx', 'prisma/seed.prod.ts']
+    working_dir: /app/apps/api
+    volumes:
+      - ./apps/api/prisma:/app/apps/api/prisma
+    profiles: ['seed-prod']
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+
 volumes:
   pgdata:
   nextcache:
