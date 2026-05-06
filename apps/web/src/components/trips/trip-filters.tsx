@@ -33,6 +33,8 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   const debouncedMin = useDebounce(localMinPrice, 500)
   const debouncedMax = useDebounce(localMaxPrice, 500)
   const isInitialMount = useRef(true)
+  const searchParamsRef = useRef(searchParams)
+  searchParamsRef.current = searchParams
 
   const updateFilters = useCallback(
     (key: string, value: string | undefined) => {
@@ -62,14 +64,16 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
       isInitialMount.current = false
       return
     }
-    const params = new URLSearchParams(searchParams.toString())
+    const params = new URLSearchParams(searchParamsRef.current.toString())
     debouncedMin ? params.set('minPrice', debouncedMin) : params.delete('minPrice')
     debouncedMax ? params.set('maxPrice', debouncedMax) : params.delete('maxPrice')
     params.delete('page')
     router.push(`${pathname}?${params.toString()}`)
-  }, [debouncedMin, debouncedMax, router, pathname, searchParams])
+  }, [debouncedMin, debouncedMax, router, pathname])
 
   const clearFilters = useCallback(() => {
+    setLocalMinPrice('')
+    setLocalMaxPrice('')
     router.push(pathname)
   }, [router, pathname])
 
