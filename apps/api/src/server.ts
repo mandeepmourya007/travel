@@ -9,7 +9,7 @@ import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, webhookRoutes } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, webhookRoutes } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -63,10 +63,7 @@ export function createServer() {
   app.use('/api/v1/payments', paymentRoutes)
   app.use('/api/v1/wallet', walletRoutes)
   app.use('/api/v1/reviews', reviewRoutes)
-
-  // TODO: Mount feature routes here as they are built
-  // app.use('/api/v1/trip-requests', tripRequestRoutes)
-  // app.use('/api/v1/notifications', notificationRoutes)
+  app.use('/api/v1/chat', chatRoutes)
 
   // ── Error Handler (must be last) ──────────────────
   app.use(errorHandler)

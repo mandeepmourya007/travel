@@ -48,12 +48,17 @@ import { PaymentHistoryController } from '../controllers/payment-history.control
 import { createPaymentRoutes } from '../routes/payment.routes'
 import { ReviewRepository } from '../repositories/review.repository'
 import { WalletRepository } from '../repositories/wallet.repository'
+import { ConversationRepository } from '../repositories/conversation.repository'
+import { MessageRepository } from '../repositories/message.repository'
 import { ReviewService } from '../services/review.service'
 import { WalletService } from '../services/wallet.service'
+import { ChatService } from '../services/chat.service'
 import { ReviewController } from '../controllers/review.controller'
 import { WalletController } from '../controllers/wallet.controller'
+import { ChatController } from '../controllers/chat.controller'
 import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
+import { createChatRoutes } from '../routes/chat.routes'
 import { razorpayClient } from './razorpay'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
@@ -73,6 +78,8 @@ const webhookEventRepo = new WebhookEventRepository(prisma)
 const verifCodeRepo = new VerificationCodeRepository(prisma)
 const reviewRepo = new ReviewRepository(prisma)
 const walletRepo = new WalletRepository(prisma)
+const conversationRepo = new ConversationRepository(prisma)
+const messageRepo = new MessageRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -107,6 +114,7 @@ const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger)
 export const walletService = new WalletService(walletRepo, logger)
+export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
@@ -135,6 +143,7 @@ const bookingController = new BookingController(bookingService)
 const paymentHistoryController = new PaymentHistoryController(paymentHistoryService)
 const reviewController = new ReviewController(reviewService)
 const walletController = new WalletController(walletService)
+const chatController = new ChatController(chatService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
   : (null as unknown as WebhookController)
@@ -158,6 +167,7 @@ export const bookingRoutes = createBookingRoutes(bookingController, authMiddlewa
 export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authMiddleware, requireRole)
 export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
+export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null

@@ -1,15 +1,26 @@
+import { createServer as createHttpServer } from 'http'
 import { createServer } from './server'
 import { logger } from './utils/logger'
 import { redis } from './config/redis'
 import { basePrisma } from './lib/prisma'
 import { startCronJobs } from './utils/cron-jobs'
-import { cronDeps } from './config/dependencies'
+import { cronDeps, authService, chatService } from './config/dependencies'
+import { createSocketServer } from './socket'
+import { env } from './config/env'
 
 const PORT = process.env.PORT || 4000
 
 const app = createServer()
+const httpServer = createHttpServer(app)
 
-const server = app.listen(PORT, () => {
+// ── Socket.IO ─────────────────────────────────────────
+const corsOrigins = [env.CLIENT_URL]
+if (env.NODE_ENV === 'development') {
+  corsOrigins.push('http://localhost:3000')
+}
+createSocketServer(httpServer, authService, chatService, corsOrigins)
+
+const server = httpServer.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`)
   logger.info(`Health check: http://localhost:${PORT}/health`)
 })
