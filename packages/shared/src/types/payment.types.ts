@@ -8,18 +8,6 @@ export interface CreateBookingResponse {
   expiresAt: string
 }
 
-export interface VerifyPaymentDto {
-  razorpayOrderId: string
-  razorpayPaymentId: string
-  razorpaySignature: string
-}
-
-export interface VerifyPaymentResponse {
-  bookingId: string
-  bookingStatus: string
-  paymentStatus: string
-}
-
 // ─── Payment History Types ───────────────────────────
 
 /** Single payment transaction row — used in all 3 views (traveler/organizer/admin) */
@@ -95,4 +83,16 @@ export interface AdminPaymentSummary {
   totalCommission: number
   transactionCount: number
   failedCount: number
+}
+
+export interface VerifyPaymentDto {
+  razorpayOrderId: string
+  razorpayPaymentId: string
+  razorpaySignature: string
+}
+
+export interface VerifyPaymentResponse {
+  bookingId: string
+  bookingStatus: string
+  paymentStatus: string
 }
