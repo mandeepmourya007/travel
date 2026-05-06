@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import { StarRating } from '@/components/shared/star-rating'
 import { EmptyState } from '@/components/shared/data-states'
@@ -13,6 +14,7 @@ interface TripReviewsProps {
 }
 
 export function TripReviews({ reviews }: TripReviewsProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const lightbox = useLightbox()
 
   if (reviews.length === 0) {
@@ -33,6 +35,7 @@ export function TripReviews({ reviews }: TripReviewsProps) {
         Reviews ({reviews.length})
       </h2>
 
+      {!isExpanded ? null : (
       <div className="space-y-4">
         {reviews.map((review) => (
           <div
@@ -114,6 +117,15 @@ export function TripReviews({ reviews }: TripReviewsProps) {
           </div>
         ))}
       </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="mt-4 w-full rounded-xl border border-primary-200 bg-primary-50 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
+      >
+        {isExpanded ? 'Hide Reviews' : `See All Reviews & Comments (${reviews.length})`}
+      </button>
 
       {lightbox.lightboxProps && <ImageLightbox {...lightbox.lightboxProps} />}
     </section>

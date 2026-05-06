@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { StarRating } from '@/components/shared/star-rating'
 import { EmptyState } from '@/components/shared/data-states'
@@ -50,6 +50,7 @@ export function OrganizerReviewsSection({
   onPageChange,
   isOwner = false,
 }: OrganizerReviewsSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const tripGroups = useMemo(() => groupReviewsByTrip(reviews), [reviews])
 
   return (
@@ -93,43 +94,55 @@ export function OrganizerReviewsSection({
         </div>
       )}
 
-      {/* Reviews grouped by trip */}
+      {/* Reviews grouped by trip — collapsed by default */}
       {reviews.length === 0 ? (
         <EmptyState
           message="No reviews yet for this organizer."
           icon={<MessageSquare className="h-12 w-12 text-neutral-300" />}
         />
       ) : (
-        <div className="space-y-8">
-          {tripGroups.map((group) => (
-            <div key={group.tripId}>
-              {/* Trip header */}
-              <div className="flex items-center gap-2 mb-3">
-                <MapPin className="h-4 w-4 text-primary-500" />
-                <Link
-                  href={`/trips/${group.slug}`}
-                  className="font-display text-base font-semibold text-neutral-800 hover:text-primary-600 transition-colors"
-                >
-                  {group.title}
-                </Link>
-                <span className="text-xs text-neutral-400">
-                  ({group.reviews.length} review{group.reviews.length !== 1 ? 's' : ''})
-                </span>
-              </div>
+        <>
+          {isExpanded && (
+            <div className="space-y-8">
+              {tripGroups.map((group) => (
+                <div key={group.tripId}>
+                  {/* Trip header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="h-4 w-4 text-primary-500" />
+                    <Link
+                      href={`/trips/${group.slug}`}
+                      className="font-display text-base font-semibold text-neutral-800 hover:text-primary-600 transition-colors"
+                    >
+                      {group.title}
+                    </Link>
+                    <span className="text-xs text-neutral-400">
+                      ({group.reviews.length} review{group.reviews.length !== 1 ? 's' : ''})
+                    </span>
+                  </div>
 
-              {/* Reviews for this trip */}
-              <div className="space-y-3 pl-4 border-l-2 border-primary-300">
-                {group.reviews.map((review) =>
-                  isOwner ? (
-                    <OrganizerReviewCard key={review.id} review={review} />
-                  ) : (
-                    <ReviewCard key={review.id} review={review} />
-                  )
-                )}
-              </div>
+                  {/* Reviews for this trip */}
+                  <div className="space-y-3 pl-4 border-l-2 border-primary-300">
+                    {group.reviews.map((review) =>
+                      isOwner ? (
+                        <OrganizerReviewCard key={review.id} review={review} />
+                      ) : (
+                        <ReviewCard key={review.id} review={review} />
+                      )
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-4 w-full rounded-xl border border-primary-200 bg-primary-50 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
+          >
+            {isExpanded ? 'Hide Reviews' : `See All Reviews & Comments (${summary.totalReviews})`}
+          </button>
+        </>
       )}
 
       {/* Pagination */}
