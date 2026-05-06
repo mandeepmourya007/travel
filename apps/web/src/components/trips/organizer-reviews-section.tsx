@@ -1,21 +1,46 @@
 'use client'
 
-import Image from 'next/image'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { StarRating } from '@/components/shared/star-rating'
 import { EmptyState } from '@/components/shared/data-states'
 import { Pagination } from '@/components/shared/pagination'
-import { ImageLightbox, useLightbox } from '@/components/shared/image-lightbox'
-import { formatDateFull } from '@/lib/format'
-import { MessageSquare, Pencil, CornerDownRight } from 'lucide-react'
+import { MessageSquare, MapPin } from 'lucide-react'
+import { OrganizerReviewCard } from '@/components/dashboard/organizer-review-card'
+import { ReviewCard } from '@/components/trips/review-card'
 import type { Review, ReviewSummary } from '@shared/types/review.types'
 import type { PaginationMeta } from '@shared/types/api-response.types'
+
+interface TripGroup {
+  tripId: string
+  title: string
+  slug: string
+  reviews: Review[]
+}
+
+function groupReviewsByTrip(reviews: Review[]): TripGroup[] {
+  const map = new Map<string, TripGroup>()
+  for (const review of reviews) {
+    const key = review.tripId
+    if (!map.has(key)) {
+      map.set(key, {
+        tripId: key,
+        title: review.trip?.title ?? 'Unknown Trip',
+        slug: review.trip?.slug ?? '',
+        reviews: [],
+      })
+    }
+    map.get(key)!.reviews.push(review)
+  }
+  return Array.from(map.values())
+}
 
 interface OrganizerReviewsSectionProps {
   reviews: Review[]
   summary: ReviewSummary
   pagination: PaginationMeta
   onPageChange: (page: number) => void
+  isOwner?: boolean
 }
 
 export function OrganizerReviewsSection({
@@ -23,8 +48,9 @@ export function OrganizerReviewsSection({
   summary,
   pagination,
   onPageChange,
+  isOwner = false,
 }: OrganizerReviewsSectionProps) {
-  const lightbox = useLightbox()
+  const tripGroups = useMemo(() => groupReviewsByTrip(reviews), [reviews])
 
   return (
     <section>
@@ -67,101 +93,40 @@ export function OrganizerReviewsSection({
         </div>
       )}
 
-      {/* Review list */}
+      {/* Reviews grouped by trip */}
       {reviews.length === 0 ? (
         <EmptyState
           message="No reviews yet for this organizer."
           icon={<MessageSquare className="h-12 w-12 text-neutral-300" />}
         />
       ) : (
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div
-              key={review.id}
-              className="rounded-lg border border-neutral-100 p-4"
-            >
-              {/* Header */}
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-sm font-bold text-primary-700">
-                  {review.user.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-neutral-700">
-                    {review.user.name}
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-xs text-neutral-400">
-                      {formatDateFull(review.createdAt)}
-                    </p>
-                    {review.editedAt && (
-                      <span className="inline-flex items-center gap-0.5 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
-                        <Pencil className="h-2.5 w-2.5" />
-                        Edited
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="ml-auto">
-                  <StarRating rating={review.overallRating} size="sm" />
-                </div>
+        <div className="space-y-8">
+          {tripGroups.map((group) => (
+            <div key={group.tripId}>
+              {/* Trip header */}
+              <div className="flex items-center gap-2 mb-3">
+                <MapPin className="h-4 w-4 text-primary-500" />
+                <Link
+                  href={`/trips/${group.slug}`}
+                  className="font-display text-base font-semibold text-neutral-800 hover:text-primary-600 transition-colors"
+                >
+                  {group.title}
+                </Link>
+                <span className="text-xs text-neutral-400">
+                  ({group.reviews.length} review{group.reviews.length !== 1 ? 's' : ''})
+                </span>
               </div>
 
-              {/* Trip attribution */}
-              {review.trip && (
-                <Link
-                  href={`/trips/${review.trip.slug}`}
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
-                >
-                  {review.trip.title}
-                </Link>
-              )}
-
-              {/* Comment */}
-              {review.comment && (
-                <p className="mt-2 text-sm text-neutral-600 leading-relaxed">
-                  {review.comment}
-                </p>
-              )}
-
-              {/* Photos */}
-              {review.photos.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {review.photos.map((url, i) => (
-                    <button
-                      type="button"
-                      key={url}
-                      onClick={() => lightbox.open(review.photos, i)}
-                      className="relative h-16 w-16 overflow-hidden rounded-lg border border-neutral-200 cursor-pointer transition-opacity hover:opacity-80"
-                    >
-                      <Image
-                        src={url}
-                        alt={`Review photo ${i + 1}`}
-                        fill
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Organizer reply */}
-              {review.organizerReply && (
-                <div className="mt-3 ml-4 rounded-lg border-l-2 border-primary-200 bg-primary-50/50 px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <CornerDownRight className="h-3 w-3 text-primary-500" />
-                    <span className="text-xs font-semibold text-primary-700">Organizer replied</span>
-                    {review.organizerReplyAt && (
-                      <span className="text-xs text-neutral-400">
-                        · {formatDateFull(review.organizerReplyAt)}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-neutral-600 leading-relaxed">
-                    {review.organizerReply}
-                  </p>
-                </div>
-              )}
+              {/* Reviews for this trip */}
+              <div className="space-y-3 pl-4 border-l-2 border-primary-300">
+                {group.reviews.map((review) =>
+                  isOwner ? (
+                    <OrganizerReviewCard key={review.id} review={review} />
+                  ) : (
+                    <ReviewCard key={review.id} review={review} />
+                  )
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -178,8 +143,6 @@ export function OrganizerReviewsSection({
           />
         </div>
       )}
-
-      {lightbox.lightboxProps && <ImageLightbox {...lightbox.lightboxProps} />}
     </section>
   )
 }

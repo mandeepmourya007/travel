@@ -7,6 +7,7 @@ import { useOrganizerPublicProfile } from '@/hooks/use-organizer-public-profile'
 import { useCompareQueue } from '@/hooks/use-compare-queue'
 import { OrganizerProfileHeader } from '@/components/trips/organizer-profile-header'
 import { OrganizerReviewsSection } from '@/components/trips/organizer-reviews-section'
+import { useProfile } from '@/hooks/use-profile'
 import { TripCard } from '@/components/trips/trip-card'
 import { Pagination } from '@/components/shared/pagination'
 import { EmptyState } from '@/components/shared/data-states'
@@ -21,6 +22,8 @@ export default function OrganizerPublicProfilePage({
   const [tripsPage, setTripsPage] = useState(1)
   const [reviewsPage, setReviewsPage] = useState(1)
   const { selectedIds, toggle } = useCompareQueue()
+  const { data: profile } = useProfile()
+  const isOwner = profile?.organizerProfile?.id === organizerId
 
   const { data, isLoading, error, refetch } = useOrganizerPublicProfile({
     organizerId,
@@ -127,6 +130,7 @@ export default function OrganizerPublicProfilePage({
           summary={reviewsSummary}
           pagination={reviewsPagination}
           onPageChange={setReviewsPage}
+          isOwner={isOwner}
         />
       </section>
     </div>
