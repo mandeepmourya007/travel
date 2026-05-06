@@ -24,7 +24,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
-  { id: 'messages', label: 'Messages', href: '/dashboard/messages', icon: MessageSquare, disabled: true },
+  { id: 'messages', label: 'Messages', href: '/messages', icon: MessageSquare },
   { id: 'reviews', label: 'Reviews', href: '/dashboard/reviews', icon: Star },
   { id: 'profile', label: 'Profile', href: '/profile', icon: UserCircle },
 ]
