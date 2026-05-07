@@ -8,7 +8,7 @@ import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { PaymentService } from './payment.service'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS } from '../utils/constants'
 import { env } from '../config/env'
 
 export class BookingService {
@@ -141,7 +141,37 @@ export class BookingService {
 
     this.logger.info({ bookingId, userId, refundPercent, refundAmount }, 'Cancelling booking')
 
-    await this.bookingRepo.cancel(bookingId, userId, reason)
+    if (booking.bookingStatus === 'CONFIRMED') {
+      // Cancel + decrement seats atomically in a transaction
+      await this.tripRepo.withTransaction(async (tx) => {
+        await tx.booking.update({
+          where: { id: bookingId },
+          data: {
+            bookingStatus: 'CANCELLED',
+            cancellationReason: reason,
+            cancelledAt: new Date(),
+            cancelledById: userId,
+          },
+        })
+        await tx.$executeRaw`
+          UPDATE "Trip"
+          SET "currentBookings" = GREATEST("currentBookings" - ${booking.numTravelers}, 0),
+              "version" = "version" + 1,
+              "updatedAt" = NOW()
+          WHERE id = ${booking.trip.id}
+            AND "isDeleted" = false
+        `
+      })
+
+      // Revert FULL → ACTIVE if under capacity (idempotent, outside tx is safe)
+      const revertedRows = await this.tripRepo.revertFullIfUnderCapacity(booking.trip.id)
+      if (revertedRows > 0) {
+        this.logger.info({ tripId: booking.trip.id }, 'Trip reverted from FULL to ACTIVE after cancellation')
+      }
+    } else {
+      // PENDING_PAYMENT — never incremented seats, just cancel the booking
+      await this.bookingRepo.cancel(bookingId, userId, reason)
+    }
 
     return {
       bookingId: booking.id,
@@ -265,7 +295,9 @@ export class BookingService {
           amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
           currency: 'INR',
           on_hold: 1,
-          on_hold_until: Math.floor(new Date(trip.startDate).getTime() / 1000),
+          on_hold_until: Math.floor(
+            new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
+          ),
           notes: { tripId: input.tripId },
         }]
       : []
@@ -385,6 +417,12 @@ export class BookingService {
     // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow (C1 fix)
     if (booking.tripRequest && booking.tripRequest.status === 'APPROVED') {
       await this.tripRequestRepo.markConverted(booking.tripRequest.id, bookingId)
+    }
+
+    // Auto-transition ACTIVE → FULL if trip is at capacity (atomic, no TOCTOU)
+    const fullRows = await this.tripRepo.markFullIfAtCapacity(booking.trip.id)
+    if (fullRows > 0) {
+      this.logger.info({ tripId: booking.trip.id }, 'Trip auto-transitioned to FULL')
     }
 
     this.logger.info({ bookingId }, 'Booking confirmed')
