@@ -59,6 +59,7 @@ import { ChatController } from '../controllers/chat.controller'
 import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
 import { createChatRoutes } from '../routes/chat.routes'
+import { TripLifecycleService } from '../services/trip-lifecycle.service'
 import { razorpayClient } from './razorpay'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
@@ -115,6 +116,7 @@ const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo,
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger)
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
+const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
@@ -188,4 +190,5 @@ export const cronDeps = {
   refreshTokenRepo,
   verifCodeRepo,
   paymentService,
+  tripLifecycleService,
 } as const
