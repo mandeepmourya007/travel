@@ -297,6 +297,94 @@ export class PaymentTransactionRepository {
     return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
   }
 
+  // ─── Escrow Release Queries ────────────────────────
+
+  /**
+   * Finds CAPTURED PAYMENT transactions for a trip.
+   * Used by: TripLifecycleService.releaseEscrowForTrip()
+   *
+   * Includes payments with AND without razorpayTransferId —
+   * the service lazy-fetches missing transfer IDs from Razorpay.
+   */
+  async findCapturedTransfersForTrip(tripId: string) {
+    return this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'PAYMENT',
+        status: 'CAPTURED',
+        booking: { tripId, isDeleted: false },
+      },
+      select: {
+        id: true,
+        bookingId: true,
+        amount: true,
+        razorpayTransferId: true,
+        razorpayPaymentId: true,
+        booking: {
+          select: {
+            totalAmount: true,
+            trip: {
+              select: {
+                organizer: {
+                  select: { commissionRate: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+  }
+
+  /**
+   * Finds CAPTURED payments with transfer IDs on COMPLETED trips
+   * that do NOT yet have a corresponding ESCROW_RELEASE record.
+   * Used by: TripLifecycleService.releaseUnreleasedEscrows() — crash recovery.
+   *
+   * Groups by tripId for batch processing.
+   */
+  async findUnreleasedEscrows() {
+    // Subquery: booking IDs that already have an ESCROW_RELEASE
+    const releasedBookingIds = await this.prisma.paymentTransaction.findMany({
+      where: { type: 'ESCROW_RELEASE' },
+      select: { bookingId: true },
+      distinct: ['bookingId'],
+    })
+    const releasedSet = new Set(releasedBookingIds.map((r) => r.bookingId))
+
+    const unreleased = await this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'PAYMENT',
+        status: 'CAPTURED',
+        booking: {
+          isDeleted: false,
+          trip: { status: 'COMPLETED', isDeleted: false },
+        },
+      },
+      select: {
+        id: true,
+        bookingId: true,
+        amount: true,
+        razorpayTransferId: true,
+        razorpayPaymentId: true,
+        booking: {
+          select: {
+            tripId: true,
+            totalAmount: true,
+            trip: {
+              select: {
+                organizer: {
+                  select: { commissionRate: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    return unreleased.filter((tx) => !releasedSet.has(tx.bookingId))
+  }
+
   // ─── Private helpers ────────────────────────────────
 
   /**

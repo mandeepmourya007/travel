@@ -197,7 +197,7 @@ export class BookingRepository {
       include: {
         trip: {
           select: {
-            id: true, title: true, startDate: true,
+            id: true, title: true, startDate: true, status: true,
             cancellationPolicy: true, currentBookings: true, version: true,
           },
         },

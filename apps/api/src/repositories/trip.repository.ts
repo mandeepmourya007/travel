@@ -343,6 +343,69 @@ export class TripRepository {
     `
   }
 
+  // ─── Trip Lifecycle Operations ─────────────────────────
+
+  /**
+   * Atomically transitions trip ACTIVE → FULL when currentBookings >= maxGroupSize.
+   * Single SQL — no TOCTOU race. Returns 1 if transitioned, 0 if not full or already FULL.
+   * Does NOT touch acceptingBookings — status alone gates new bookings.
+   * Used by: BookingService.confirmBooking()
+   */
+  async markFullIfAtCapacity(tripId: string): Promise<number> {
+    return this.prisma.$executeRaw`
+      UPDATE "Trip"
+      SET status = 'FULL',
+          "updatedAt" = NOW()
+      WHERE id = ${tripId}
+        AND "currentBookings" >= "maxGroupSize"
+        AND status = 'ACTIVE'
+        AND "isDeleted" = false
+    `
+  }
+
+  /**
+   * Atomically transitions trip FULL → ACTIVE when currentBookings < maxGroupSize.
+   * Counterpart of markFullIfAtCapacity — triggered after booking cancellation.
+   * Does NOT touch acceptingBookings — preserves organizer's manual toggle.
+   * Used by: BookingService.cancelBooking()
+   */
+  async revertFullIfUnderCapacity(tripId: string): Promise<number> {
+    return this.prisma.$executeRaw`
+      UPDATE "Trip"
+      SET status = 'ACTIVE',
+          "updatedAt" = NOW()
+      WHERE id = ${tripId}
+        AND "currentBookings" < "maxGroupSize"
+        AND status = 'FULL'
+        AND "isDeleted" = false
+    `
+  }
+
+  /**
+   * Finds ACTIVE/FULL trips past their endDate, ordered oldest-first, with a batch limit.
+   * Used by: TripLifecycleService.completeEndedTrips() cron job.
+   *
+   * Includes organizerId and destinationId for post-completion updates
+   * (organizer stats increment, destination tripCount decrement).
+   */
+  async findTripsToComplete(limit: number) {
+    return this.prisma.trip.findMany({
+      where: {
+        status: { in: ['ACTIVE', 'FULL'] },
+        endDate: { lt: new Date() },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        organizerId: true,
+        destinationId: true,
+        status: true,
+      },
+      orderBy: { endDate: 'asc' },
+      take: limit,
+    })
+  }
+
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {
     switch (sort) {
       case 'price_asc':
