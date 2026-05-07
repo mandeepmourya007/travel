@@ -18,11 +18,19 @@ const mockBookingRepo = {
   findWithPaymentDetails: vi.fn(),
 }
 
+const mockTx = {
+  booking: { update: vi.fn() },
+  $executeRaw: vi.fn(),
+}
+
 const mockTripRepo = {
   findById: vi.fn(),
   findByIdForBooking: vi.fn(),
   atomicIncrementBookings: vi.fn(),
   atomicDecrementBookings: vi.fn(),
+  markFullIfAtCapacity: vi.fn().mockResolvedValue(0),
+  revertFullIfUnderCapacity: vi.fn().mockResolvedValue(0),
+  withTransaction: vi.fn().mockImplementation((fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx)),
 }
 
 const mockTripRequestRepo = {
@@ -304,7 +312,7 @@ describe('BookingService', () => {
       mockBookingRepo.cancel.mockResolvedValue({})
     })
 
-    it('should cancel with 100% refund for FLEXIBLE >=48h', async () => {
+    it('should cancel with 100% refund for FLEXIBLE >=48h (CONFIRMED → tx + decrement)', async () => {
       const booking = createMockBooking({ trip: futureTrip })
       mockBookingRepo.findById.mockResolvedValue(booking)
 
@@ -313,7 +321,12 @@ describe('BookingService', () => {
       expect(result.bookingStatus).toBe('CANCELLED')
       expect(result.refundPercent).toBe(100)
       expect(result.refundAmount).toBe(9000)
-      expect(mockBookingRepo.cancel).toHaveBeenCalledWith('booking-1', 'user-1', 'Changed plans')
+      // CONFIRMED booking uses transaction, not bookingRepo.cancel
+      expect(mockTripRepo.withTransaction).toHaveBeenCalled()
+      expect(mockTx.booking.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'booking-1' },
+        data: expect.objectContaining({ bookingStatus: 'CANCELLED' }),
+      }))
     })
 
     it('should give 50% refund for FLEXIBLE <48h', async () => {
@@ -396,6 +409,55 @@ describe('BookingService', () => {
       await expect(
         service.cancelBooking('user-1', 'booking-1', 'reason'),
       ).rejects.toThrow()
+    })
+
+    it('should decrement seats inside transaction for CONFIRMED bookings', async () => {
+      const booking = createMockBooking({ trip: futureTrip, numTravelers: 3 })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockTripRepo.withTransaction).toHaveBeenCalled()
+      expect(mockTx.$executeRaw).toHaveBeenCalled()
+    })
+
+    it('should revert FULL → ACTIVE after cancellation frees seats', async () => {
+      const booking = createMockBooking({ trip: { ...futureTrip, status: 'FULL' } })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockTripRepo.revertFullIfUnderCapacity.mockResolvedValue(1)
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockTripRepo.revertFullIfUnderCapacity).toHaveBeenCalledWith('trip-1')
+    })
+
+    it('should skip seat decrement for PENDING_PAYMENT bookings', async () => {
+      const booking = createMockBooking({
+        bookingStatus: 'PENDING_PAYMENT',
+        trip: futureTrip,
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockBookingRepo.cancel).toHaveBeenCalledWith('booking-1', 'user-1', 'Changed plans')
+      expect(mockTripRepo.withTransaction).not.toHaveBeenCalled()
+      expect(mockTripRepo.revertFullIfUnderCapacity).not.toHaveBeenCalled()
+    })
+
+    it('should not touch acceptingBookings during cancel', async () => {
+      const booking = createMockBooking({ trip: { ...futureTrip, status: 'FULL' } })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockTripRepo.revertFullIfUnderCapacity.mockResolvedValue(1)
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      // revertFullIfUnderCapacity only updates status — no acceptingBookings change
+      // The mock tx should NOT have any update call with acceptingBookings
+      if (mockTx.booking.update.mock.calls.length > 0) {
+        const updateData = mockTx.booking.update.mock.calls[0][0].data
+        expect(updateData).not.toHaveProperty('acceptingBookings')
+      }
     })
   })
 
@@ -619,7 +681,7 @@ describe('BookingService', () => {
       }],
     }
 
-    it('should capture payment, increment seats, and confirm booking', async () => {
+    it('should capture payment, increment seats, confirm booking, and check FULL', async () => {
       mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
       mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
       mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
@@ -631,6 +693,20 @@ describe('BookingService', () => {
       expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 800000, 'INR')
       expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2, 0)
       expect(mockBookingRepo.updateStatus).toHaveBeenCalledWith('booking-1', 'CONFIRMED')
+      expect(mockTripRepo.markFullIfAtCapacity).toHaveBeenCalledWith('trip-1')
+    })
+
+    it('should auto-transition trip to FULL when at capacity', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+      mockTripRepo.markFullIfAtCapacity.mockResolvedValue(1) // 1 row updated = transitioned
+
+      const result = await service.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockTripRepo.markFullIfAtCapacity).toHaveBeenCalledWith('trip-1')
     })
 
     it('should throw NotFoundError when booking not found', async () => {

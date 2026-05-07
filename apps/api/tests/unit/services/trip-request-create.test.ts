@@ -34,6 +34,8 @@ const mockTripRepo = {
   countPendingRequests: vi.fn(),
   atomicIncrementBookings: vi.fn(),
   atomicDecrementBookings: vi.fn(),
+  markFullIfAtCapacity: vi.fn().mockResolvedValue(0),
+  revertFullIfUnderCapacity: vi.fn().mockResolvedValue(0),
 }
 
 const mockDestinationRepo = {

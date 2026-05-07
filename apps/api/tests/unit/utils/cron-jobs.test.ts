@@ -28,6 +28,11 @@ const mockPaymentService = {
   checkOrderStatus: vi.fn(),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
+const mockTripLifecycleService = {
+  completeEndedTrips: vi.fn().mockResolvedValue({ completed: 0, escrowReleased: 0, escrowFailed: 0 }),
+  releaseUnreleasedEscrows: vi.fn().mockResolvedValue({ released: 0, failed: 0 }),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
 const FIVE_MINUTES = 5 * 60 * 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +43,7 @@ function createDeps(paymentService = mockPaymentService as any) {
     refreshTokenRepo: mockRefreshTokenRepo,
     verifCodeRepo: mockVerifCodeRepo,
     paymentService,
+    tripLifecycleService: mockTripLifecycleService,
   }
 }
 
@@ -159,5 +165,18 @@ describe('startCronJobs', () => {
     await vi.advanceTimersByTimeAsync(55 * 60 * 1000)
     expect(mockVerifCodeRepo.deleteExpired).toHaveBeenCalledTimes(1)
     expect(mockRefreshTokenRepo.deleteExpired).toHaveBeenCalledTimes(1)
+  })
+
+  it('should fire trip completion cron after 30 minutes', async () => {
+    stopCrons = startCronJobs(createDeps(null))
+
+    // 5 min — trip completion not yet called
+    await vi.advanceTimersByTimeAsync(FIVE_MINUTES)
+    expect(mockTripLifecycleService.completeEndedTrips).not.toHaveBeenCalled()
+
+    // 30 min — trip completion fires
+    await vi.advanceTimersByTimeAsync(25 * 60 * 1000)
+    expect(mockTripLifecycleService.completeEndedTrips).toHaveBeenCalledTimes(1)
+    expect(mockTripLifecycleService.releaseUnreleasedEscrows).toHaveBeenCalledTimes(1)
   })
 })
