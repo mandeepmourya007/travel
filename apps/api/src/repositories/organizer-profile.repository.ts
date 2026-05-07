@@ -44,6 +44,14 @@ export class OrganizerProfileRepository {
     })
   }
 
+  async findIdsForSitemap(): Promise<{ id: string; updatedAt: Date }[]> {
+    return this.prisma.organizerProfile.findMany({
+      where: { isDeleted: false, verificationStatus: 'APPROVED' },
+      select: { id: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    })
+  }
+
   async incrementTripCount(id: string) {
     return this.prisma.organizerProfile.update({
       where: { id },

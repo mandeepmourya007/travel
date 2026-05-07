@@ -146,6 +146,14 @@ export class TripRepository {
     })
   }
 
+  async findSlugsForSitemap(): Promise<{ slug: string; updatedAt: Date }[]> {
+    return this.prisma.trip.findMany({
+      where: { isDeleted: false, status: { in: ['ACTIVE', 'FULL'] } },
+      select: { slug: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    })
+  }
+
   private buildWhere(filters: TripFilters): Prisma.TripWhereInput {
     return {
       isDeleted: false,

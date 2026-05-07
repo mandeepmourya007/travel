@@ -172,6 +172,14 @@ export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null
 
+// ── Sitemap Dependencies ─────────────────────────────
+// Lightweight export for the inline /sitemap-data route — no service layer needed
+export const sitemapDeps = {
+  tripRepo,
+  destinationRepo,
+  organizerProfileRepo,
+} as const
+
 // ── Cron Job Dependencies ────────────────────────────
 // Scoped export for background jobs — keeps raw repos private to this module
 export const cronDeps = {

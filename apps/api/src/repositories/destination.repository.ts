@@ -51,6 +51,14 @@ export class DestinationRepository {
     })
   }
 
+  async findSlugsForSitemap(): Promise<{ slug: string; updatedAt: Date }[]> {
+    return this.prisma.destination.findMany({
+      where: { isDeleted: false, isActive: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+    })
+  }
+
   async incrementTripCount(id: string) {
     return this.prisma.destination.update({
       where: { id },
