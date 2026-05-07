@@ -1,84 +1,82 @@
-'use client'
+import { cache } from 'react'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { fetchApi } from '@/lib/api-server'
+import { APP_NAME, SITE_URL } from '@/lib/constants'
+import { buildTripJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
+import { TripDetailClient } from '@/components/trips/trip-detail-client'
+import type { TripDetail } from '@shared/types/trip.types'
 
-import Link from 'next/link'
-import { useTripDetail } from '@/hooks/use-trip-detail'
-import { TripDetailHeader } from '@/components/trips/trip-detail-header'
-import { TripItinerary } from '@/components/trips/trip-itinerary'
-import { TripBookingCard } from '@/components/trips/trip-booking-card'
-import { TripStickyBookBar } from '@/components/trips/trip-sticky-book-bar'
-import { TripReviews } from '@/components/trips/trip-reviews'
-import { TransferPointsTable } from '@/components/trips/transfer-points-table'
-import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
-import { ChatWithOrganizerButton } from '@/components/chat'
-import { ArrowLeft } from 'lucide-react'
-import TripDetailLoading from './loading'
-
-export default function TripDetailPage({
-  params,
-}: {
+interface TripDetailPageProps {
   params: { slug: string }
-}) {
-  const { slug } = params
-  const { data: trip, isLoading, error, refetch } = useTripDetail(slug)
+}
 
-  if (isLoading) {
-    return <TripDetailLoading />
+const getTrip = cache(async (slug: string): Promise<TripDetail | null> => {
+  try {
+    return await fetchApi<TripDetail>(`/trips/slug/${slug}`, { revalidate: 300 })
+  } catch {
+    return null
+  }
+})
+
+export async function generateMetadata({ params }: TripDetailPageProps): Promise<Metadata> {
+  const trip = await getTrip(params.slug)
+  if (!trip) {
+    return { title: 'Trip Not Found' }
   }
 
-  if (error || !trip) {
-    const message =
-      (error as Error)?.message ||
-      'Could not load this trip. It may have been removed.'
+  const title = `${trip.title} — ${trip.destination.name} | ${APP_NAME}`
+  const raw = trip.description
+    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${trip.maxGroupSize - trip.currentBookings} seats left. Book safely with escrow protection.`
+  const description = raw.length > 160
+    ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
+    : raw
 
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 flex justify-center">
-        <div className="max-w-md w-full rounded-xl bg-error-50 border border-red-200 p-8 text-center">
-          <p className="text-4xl mb-2">😕</p>
-          <h2 className="text-base font-semibold text-neutral-800">
-            Trip not found
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">{message}</p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <Link
-              href="/trips"
-              className="btn-secondary inline-flex items-center gap-2 text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All Trips
-            </Link>
-            <button
-              onClick={() => refetch()}
-              className="btn-outline"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    )
+  const ogImage = trip.photos[0]
+    ? trip.photos[0].replace('/upload/', '/upload/w_1200,h_630,c_fill,g_auto/')
+    : undefined
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/trips/${trip.slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `/trips/${trip.slug}`,
+      ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630, alt: trip.title }] }),
+    },
   }
+}
+
+export default async function TripDetailPage({ params }: TripDetailPageProps) {
+  const trip = await getTrip(params.slug)
+
+  if (!trip) {
+    notFound()
+  }
+
+  const tripJsonLd = buildTripJsonLd(trip, SITE_URL)
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Trips', url: `${SITE_URL}/trips` },
+    { name: trip.title, url: `${SITE_URL}/trips/${trip.slug}` },
+  ])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 pb-24 lg:pb-8 sm:px-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-10">
-          <TripDetailHeader trip={trip} />
-          <TripItinerary itinerary={trip.itinerary} />
-          <TransferPointsTable pickupPoints={trip.pickupPoints} dropPoints={trip.dropPoints} />
-          <TripOrganizerCard organizer={trip.organizer} />
-          <ChatWithOrganizerButton tripId={trip.id} />
-          <TripReviews reviews={trip.reviews} />
-        </div>
-
-        {/* Sidebar — hidden on mobile, sticky sidebar on desktop */}
-        <div className="hidden lg:block lg:col-span-1">
-          <TripBookingCard trip={trip} />
-        </div>
-      </div>
-
-      {/* Mobile sticky bottom bar */}
-      <TripStickyBookBar trip={trip} />
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(tripJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <TripDetailClient trip={trip} slug={params.slug} />
+    </>
   )
 }

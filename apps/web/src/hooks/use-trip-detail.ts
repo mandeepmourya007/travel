@@ -10,10 +10,12 @@ export async function fetchTripDetail(slug: string): Promise<TripDetail> {
   return res.data.data
 }
 
-export function useTripDetail(slug: string) {
+export function useTripDetail(slug: string, initialData?: TripDetail) {
   return useQuery({
     queryKey: tripKeys.detail(slug),
     queryFn: () => fetchTripDetail(slug),
     enabled: !!slug,
+    initialData,
+    staleTime: initialData ? 5 * 60 * 1000 : 0,
   })
 }
