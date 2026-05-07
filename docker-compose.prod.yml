@@ -243,7 +243,7 @@ services:
     container_name: travel-seed-prod
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-travel_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-travel_prod}?schema=public
-    command: ['node', '--import=tsx', 'prisma/seed.ts']
+    command: ['node', '--import=tsx', 'prisma/seed.prod.ts']
     working_dir: /app/apps/api
     profiles: ['seed']
     deploy:
