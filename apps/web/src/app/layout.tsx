@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, SITE_URL } from '@/lib/constants'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,6 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: `${APP_NAME} — Group Travel Aggregator`,
     template: `%s | ${APP_NAME}`,

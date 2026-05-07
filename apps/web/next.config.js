@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  trailingSlash: false,
   transpilePackages: ['@travel/shared'],
   images: {
     remotePatterns: [
