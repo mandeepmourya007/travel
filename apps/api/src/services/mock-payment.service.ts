@@ -93,4 +93,12 @@ export class MockPaymentService extends PaymentService {
       status: 'processed',
     } as any
   }
+
+  override async releaseTransferHold(transferId: string): Promise<void> {
+    this.mockLogger.warn({ transferId }, '[MOCK] Transfer hold released — NOT a real release')
+  }
+
+  override async fetchTransferId(_razorpayPaymentId: string): Promise<string | null> {
+    return `trf_mock_${crypto.randomBytes(8).toString('hex')}`
+  }
 }
