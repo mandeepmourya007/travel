@@ -841,7 +841,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
 | **Week 7-8** | Razorpay integration, booking flow, escrow | ✅ Done |
 | **Week 9-10** | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done |
-| **Week 11-12** | Admin panel, chat system, review system, deploy | 🟡 In progress |
+| **Week 11-12** | Admin panel, chat system, review system, deploy | 🟡 In progress (chat ✅, reviews ✅, admin partial ✅) |
 
 **Total: ~12 weeks for a solo developer / 6-8 weeks with 2 developers**
 
@@ -1154,10 +1154,49 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 #### ✅ Admin Panel (Partial)
 - [x] Admin payments page (`/admin/payments`) — view all platform payments
 
+#### ✅ Backend — Review Module
+- [x] `ReviewRepository` — CRUD, paginated queries
+- [x] `ReviewService` — post-trip review logic, authorization
+- [x] `ReviewController` — endpoints for creating/listing reviews
+- [x] Review routes mounted
+- [x] Review service tests (`review.service.test.ts`)
+- [x] Prisma migration for review reply & edited fields
+
+#### ✅ Frontend — Review System
+- [x] `ReviewFormModal` component (post-trip review form)
+- [x] `ReviewCard` component (review listing)
+- [x] `TripReviews` component (review section on trip detail)
+- [x] `OrganizerReviewCard` + `OrganizerReviewsSection` components
+- [x] Organizer reviews dashboard page (`/dashboard/trips/[id]/reviews`)
+- [x] `useReviews` hook
+
+#### ✅ Backend — Chat Module
+- [x] `ConversationRepository` + `MessageRepository`
+- [x] `ChatService` — full business logic + authorization + anti-leakage filter
+- [x] `ChatController` + chat routes mounted at `/api/v1/chat`
+- [x] Anti-leakage filter (`chat-filter.ts` — regex for phone, UPI, Instagram, WhatsApp, email, URLs)
+- [x] Socket.IO integration (`socket/index.ts`, `chat.handler.ts`, `presence.handler.ts`, `socket-auth.middleware.ts`)
+- [x] HTTP server created explicitly in `index.ts` for Socket.IO attachment
+- [x] Chat service tests (26 tests) + filter tests (18 tests)
+- [x] Prisma migration for chat enums and fields
+
+#### ✅ Frontend — Chat System
+- [x] Socket client (`lib/socket.ts`)
+- [x] Zustand chat store (`store/chat.store.ts` — typing, presence, unread, optimistic messages)
+- [x] `chatKeys` query key factory
+- [x] `use-chat.ts` hook (conversations, messages, send, typing, read, presence, reactions)
+- [x] `use-admin-chat.ts` hook (flagged messages)
+- [x] Chat components: ChatLayout, ChatWindow, ChatHeader, ConversationSidebar, ConversationItem, MessageBubble, MessageInput, TypingIndicator, OnlineIndicator, SupportChatButton, ChatWithOrganizerButton
+- [x] Messages page (`/messages`)
+- [x] Admin flagged messages page (`/admin/chat`)
+
+#### ✅ Admin Panel (Partial)
+- [x] Admin payments page (`/admin/payments`)
+- [x] Admin flagged chat messages page (`/admin/chat`)
+- [x] Admin layout (`/admin/layout.tsx`)
+
 #### ⬜ Not Started — Remaining Features
-- [ ] **Review system** — post-trip review form, review listing
-- [ ] **Chat system** — Socket.IO, conversations, message anti-leakage filters
-- [ ] **Admin panel** — organizer approvals, dispute handling, platform stats (payments page done)
+- [ ] **Admin panel (remaining)** — organizer approvals queue, dispute handling, platform stats dashboard
 - [ ] **Email notifications** — booking confirmation, trip updates (providers built, templates pending)
 - [ ] **SEO** — Schema.org markup, sitemap generation
 - [ ] **Trip status auto-transitions** — ACTIVE → FULL when seats filled, ACTIVE/FULL → COMPLETED after endDate, escrow release on completion
