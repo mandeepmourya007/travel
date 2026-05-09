@@ -75,6 +75,16 @@ export class BookingService {
           },
         },
         hasReview: b.review !== null,
+        review: b.review
+          ? {
+              id: b.review.id,
+              overallRating: b.review.overallRating,
+              comment: b.review.comment,
+              photos: b.review.photos,
+              createdAt: b.review.createdAt,
+              editedAt: b.review.editedAt,
+            }
+          : null,
         travelerDetails: b.travelerDetails ?? [],
         pickupPoint: b.pickupPoint ?? undefined,
         dropPoint: b.dropPoint ?? undefined,

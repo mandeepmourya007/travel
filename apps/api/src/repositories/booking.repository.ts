@@ -35,7 +35,12 @@ const MY_BOOKING_INCLUDE = {
       organizer: { select: { id: true, businessName: true, rating: true, verificationStatus: true } },
     },
   },
-  review: { select: { id: true } },
+  review: {
+    select: {
+      id: true, overallRating: true, comment: true,
+      photos: true, createdAt: true, editedAt: true,
+    },
+  },
   travelerDetails: {
     where: { isDeleted: false },
     select: {
