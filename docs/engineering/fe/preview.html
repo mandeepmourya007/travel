@@ -1174,6 +1174,131 @@
     .escrow-desc { font-size: 13px; color: var(--neutral-600); }
 
     /* ============================================
+       TOAST WITH CIRCULAR TIMER
+       ============================================ */
+    .toast-demo-container {
+      position: relative;
+      min-height: 280px;
+      background: var(--neutral-100);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .toast-stack {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      left: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      z-index: 9999;
+    }
+
+    .toast-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid;
+      font-size: 14px;
+      line-height: 1.5;
+      box-shadow: var(--shadow-lg);
+      animation: toast-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast-success { background: var(--success-50); color: var(--success-500); border-color: #A7F3D0; }
+    .toast-error   { background: var(--error-50);   color: var(--error-500);   border-color: #FECACA; }
+    .toast-warning { background: var(--warning-50); color: var(--warning-500); border-color: #FDE68A; }
+    .toast-info    { background: var(--info-50);    color: var(--info-500);    border-color: #BFDBFE; }
+
+    .toast-timer {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .toast-timer svg {
+      display: block;
+    }
+
+    .toast-timer-track {
+      opacity: 0.3;
+    }
+
+    .toast-timer-progress {
+      transition: stroke-dashoffset 100ms linear;
+      stroke-linecap: round;
+    }
+
+    .toast-timer-seconds {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toast-title {
+      font-weight: 600;
+    }
+
+    .toast-desc {
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .toast-close {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+      opacity: 0.6;
+      transition: opacity 0.15s;
+      font-size: 16px;
+      line-height: 1;
+      color: inherit;
+    }
+
+    .toast-close:hover { opacity: 1; }
+
+    @keyframes toast-slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    @keyframes toast-fade-out {
+      from { transform: translateX(0);   opacity: 1; }
+      to   { transform: translateX(30px); opacity: 0; }
+    }
+
+    .toast-removing {
+      animation: toast-fade-out 0.2s ease-in forwards;
+    }
+
+    @media (max-width: 768px) {
+      .toast-stack { width: auto; max-width: none; left: 16px; right: 16px; bottom: 16px; }
+      .toast-demo-container { min-height: 200px; }
+    }
+
+    @media (max-width: 480px) {
+      .toast-stack { left: 12px; right: 12px; bottom: 12px; }
+      .toast-item { padding: 12px; gap: 10px; font-size: 13px; }
+    }
+
+    /* ============================================
        UTILITY
        ============================================ */
     .flex { display: flex; }
@@ -1908,6 +2033,110 @@
     </div>
   </div>
 
+  <!-- ======================== TOAST WITH CIRCULAR TIMER ======================== -->
+  <div class="section">
+    <h2 class="section-title">Toast — Circular Timer</h2>
+    <p class="section-desc">Jebbly-style toast with countdown ring. Ring depletes over duration, center shows remaining seconds. Auto-dismisses at 0.</p>
+
+    <div class="component-group">
+      <div class="component-label">Trigger Toasts</div>
+      <div class="component-row" style="gap: 12px; margin-bottom: 16px;">
+        <button class="btn btn-sm btn-primary" onclick="showDemoToast('success')">Success Toast</button>
+        <button class="btn btn-sm btn-danger" onclick="showDemoToast('error')">Error Toast</button>
+        <button class="btn btn-sm" style="background:var(--warning-500);color:white;" onclick="showDemoToast('warning')">Warning Toast</button>
+        <button class="btn btn-sm" style="background:var(--info-500);color:white;" onclick="showDemoToast('info')">Info Toast</button>
+      </div>
+    </div>
+
+    <div class="toast-demo-container" id="toast-demo-area">
+      <!-- Background content to show toasts over -->
+      <div style="padding: 24px; opacity: 0.5;">
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--neutral-400);margin-bottom:12px;">Your App Content</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+          <div style="height:60px;background:var(--neutral-200);border-radius:var(--radius-lg);"></div>
+          <div style="height:60px;background:var(--neutral-200);border-radius:var(--radius-lg);"></div>
+          <div style="height:60px;background:var(--neutral-200);border-radius:var(--radius-lg);"></div>
+        </div>
+        <div style="height:80px;background:var(--neutral-200);border-radius:var(--radius-lg);margin-top:12px;"></div>
+      </div>
+
+    </div>
+
+    <div class="component-group" style="margin-top: 24px;">
+      <div class="component-label">All 4 Variants (Static Preview)</div>
+      <div class="flex flex-col gap-3" style="max-width: 420px; width: 100%;">
+
+        <!-- Success -->
+        <div class="toast-item toast-success" style="animation:none;">
+          <div class="toast-timer">
+            <svg width="32" height="32" viewBox="0 0 32 32" style="transform:rotate(-90deg);">
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" class="toast-timer-track"/>
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-dasharray="87.96" stroke-dashoffset="22" class="toast-timer-progress"/>
+            </svg>
+            <div class="toast-timer-seconds">3</div>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">Booking confirmed!</div>
+            <div class="toast-desc">₹4,649 held in escrow</div>
+          </div>
+          <button class="toast-close">✕</button>
+        </div>
+
+        <!-- Error -->
+        <div class="toast-item toast-error" style="animation:none;">
+          <div class="toast-timer">
+            <svg width="32" height="32" viewBox="0 0 32 32" style="transform:rotate(-90deg);">
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" class="toast-timer-track"/>
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-dasharray="87.96" stroke-dashoffset="44" class="toast-timer-progress"/>
+            </svg>
+            <div class="toast-timer-seconds">2</div>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">Payment failed</div>
+            <div class="toast-desc">Please try again</div>
+          </div>
+          <button class="toast-close">✕</button>
+        </div>
+
+        <!-- Warning -->
+        <div class="toast-item toast-warning" style="animation:none;">
+          <div class="toast-timer">
+            <svg width="32" height="32" viewBox="0 0 32 32" style="transform:rotate(-90deg);">
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" class="toast-timer-track"/>
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-dasharray="87.96" stroke-dashoffset="66" class="toast-timer-progress"/>
+            </svg>
+            <div class="toast-timer-seconds">1</div>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">Only 3 seats left!</div>
+          </div>
+          <button class="toast-close">✕</button>
+        </div>
+
+        <!-- Info -->
+        <div class="toast-item toast-info" style="animation:none;">
+          <div class="toast-timer">
+            <svg width="32" height="32" viewBox="0 0 32 32" style="transform:rotate(-90deg);">
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" class="toast-timer-track"/>
+              <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3"
+                stroke-dasharray="87.96" stroke-dashoffset="0" class="toast-timer-progress"/>
+            </svg>
+            <div class="toast-timer-seconds">4</div>
+          </div>
+          <div class="toast-content">
+            <div class="toast-title">Trip updated</div>
+            <div class="toast-desc">Changes saved successfully</div>
+          </div>
+          <button class="toast-close">✕</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== ESCROW STATUS ======================== -->
   <div class="section">
     <h2 class="section-title">Escrow Payment Status</h2>
@@ -2420,6 +2649,9 @@
   </div>
 </div>
 
+<!-- Toast Stack (fixed viewport bottom-right) -->
+<div class="toast-stack" id="toast-stack"></div>
+
 <!-- Global Route Progress Bar (for Demo 1) -->
 <div class="route-progress-track" id="global-progress-track">
   <div class="route-progress-bar" id="global-progress-bar"></div>
@@ -2629,6 +2861,87 @@ function startFullDemo() {
     urlBar.textContent = 'tripcompare.in/trips'
     statusText.textContent = 'Click the Goa trip card or "View Details" to start'
   })
+})()
+
+// ============================================
+// Toast with Circular Timer Demo
+// ============================================
+;(function () {
+  var TOAST_DURATION = 4000 // 4 seconds (our project default)
+  var CIRCUMFERENCE = 2 * Math.PI * 14 // ~87.96 for r=14
+  var toastId = 0
+
+  var TOAST_DATA = {
+    success: { title: 'Booking confirmed!', desc: '₹4,649 held in escrow' },
+    error:   { title: 'Payment failed', desc: 'Please try again' },
+    warning: { title: 'Only 3 seats left!', desc: '' },
+    info:    { title: 'Trip updated', desc: 'Changes saved successfully' },
+  }
+
+  window.showDemoToast = function (variant) {
+    var stack = document.getElementById('toast-stack')
+    var data = TOAST_DATA[variant]
+    var id = ++toastId
+
+    // Build toast HTML
+    var el = document.createElement('div')
+    el.className = 'toast-item toast-' + variant
+    el.setAttribute('data-toast-id', id)
+    el.innerHTML =
+      '<div class="toast-timer">' +
+        '<svg width="32" height="32" viewBox="0 0 32 32" style="transform:rotate(-90deg);">' +
+          '<circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3" class="toast-timer-track"/>' +
+          '<circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="3"' +
+            ' stroke-dasharray="' + CIRCUMFERENCE + '" stroke-dashoffset="0" class="toast-timer-progress" data-progress/>' +
+        '</svg>' +
+        '<div class="toast-timer-seconds" data-seconds>' + Math.ceil(TOAST_DURATION / 1000) + '</div>' +
+      '</div>' +
+      '<div class="toast-content">' +
+        '<div class="toast-title">' + data.title + '</div>' +
+        (data.desc ? '<div class="toast-desc">' + data.desc + '</div>' : '') +
+      '</div>' +
+      '<button class="toast-close" data-dismiss>✕</button>'
+
+    stack.appendChild(el)
+
+    // Get references
+    var progressCircle = el.querySelector('[data-progress]')
+    var secondsEl = el.querySelector('[data-seconds]')
+    var dismissBtn = el.querySelector('[data-dismiss]')
+
+    // Start countdown interval (every 50ms like Jebbly)
+    var startTime = Date.now()
+    var interval = setInterval(function () {
+      var elapsed = Date.now() - startTime
+      var remaining = Math.max(0, 100 - (elapsed / TOAST_DURATION) * 100)
+
+      // Update ring
+      var offset = CIRCUMFERENCE * (1 - remaining / 100)
+      progressCircle.setAttribute('stroke-dashoffset', offset)
+
+      // Update seconds
+      secondsEl.textContent = Math.ceil((remaining / 100) * (TOAST_DURATION / 1000))
+
+      // Auto-dismiss at 0
+      if (remaining === 0) {
+        clearInterval(interval)
+        dismissToast(el)
+      }
+    }, 50)
+
+    // Manual dismiss
+    dismissBtn.addEventListener('click', function () {
+      clearInterval(interval)
+      dismissToast(el)
+    })
+  }
+
+  function dismissToast(el) {
+    el.classList.add('toast-removing')
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el)
+    }, 200)
+  }
 })()
 </script>
 
