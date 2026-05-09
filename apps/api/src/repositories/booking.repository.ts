@@ -429,6 +429,134 @@ export class BookingRepository {
     }
   }
 
+  // ─── Admin Panel Methods ─────────────────────────────────
+
+  /** Bookings grouped by status. Used by: AdminService.getPlatformStats() */
+  async countByStatusAdmin(): Promise<Array<{ status: string; count: number }>> {
+    const groups = await this.prisma.booking.groupBy({
+      by: ['bookingStatus'],
+      _count: { id: true },
+      where: { isDeleted: false },
+    })
+    return groups.map((g) => ({ status: g.bookingStatus, count: g._count.id }))
+  }
+
+  /**
+   * Monthly revenue trend for the admin dashboard.
+   * Uses raw SQL for DATE_TRUNC grouping (Prisma doesn't support this natively).
+   * SAFETY: `months` uses Prisma.raw() (non-parameterizable INTERVAL) — must only
+   * receive hardcoded values from the service layer, never user input.
+   * Used by: AdminService.getPlatformStats()
+   */
+  async getRevenueTrend(months: number): Promise<Array<{ month: string; revenue: number }>> {
+    const rows = await this.prisma.$queryRaw<Array<{ month: Date; revenue: bigint }>>`
+      SELECT DATE_TRUNC('month', "createdAt") AS month,
+             COALESCE(SUM("amount"), 0) AS revenue
+      FROM "PaymentTransaction"
+      WHERE "type" = 'PAYMENT'
+        AND "status" = 'CAPTURED'
+        AND "createdAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '${Prisma.raw(String(months - 1))} months'
+      GROUP BY month
+      ORDER BY month ASC
+    `
+    return rows.map((r) => ({
+      month: r.month.toISOString().slice(0, 7),
+      revenue: Number(r.revenue),
+    }))
+  }
+
+  /**
+   * Paginated list of all bookings for admin view.
+   * Includes trip (title, slug, dates) and user (name, email).
+   * Supports optional bookingStatus filter and search on bookingRef/user.email.
+   * Used by: AdminService.getBookings()
+   */
+  async findAllAdmin(
+    filters: { status?: string; search?: string },
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.BookingWhereInput = {
+      isDeleted: false,
+      ...(filters.status && { bookingStatus: filters.status as BookingStatus }),
+      ...(filters.search && {
+        OR: [
+          { bookingRef: { contains: filters.search, mode: 'insensitive' as const } },
+          { user: { email: { contains: filters.search, mode: 'insensitive' as const } } },
+        ],
+      }),
+    }
+
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.booking.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          bookingRef: true,
+          totalAmount: true,
+          bookingStatus: true,
+          numTravelers: true,
+          createdAt: true,
+          trip: {
+            select: {
+              id: true, title: true, slug: true, startDate: true, endDate: true,
+            },
+          },
+          user: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      }),
+      this.prisma.booking.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
+   * Single booking with full detail for admin dispute review.
+   * Includes traveler details, payment transactions, trip, and user info.
+   * Used by: AdminService.getBookingDetail()
+   */
+  async findByIdAdmin(id: string) {
+    return this.prisma.booking.findFirst({
+      where: { id, isDeleted: false },
+      select: {
+        id: true,
+        bookingRef: true,
+        totalAmount: true,
+        bookingStatus: true,
+        numTravelers: true,
+        walletAmount: true,
+        cancellationReason: true,
+        cancelledAt: true,
+        createdAt: true,
+        trip: {
+          select: {
+            id: true, title: true, slug: true, startDate: true, endDate: true,
+          },
+        },
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        travelerDetails: {
+          where: { isDeleted: false },
+          select: {
+            id: true, name: true, phone: true, age: true, gender: true, isPrimary: true,
+          },
+        },
+        paymentTransactions: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true, type: true, status: true, amount: true, createdAt: true,
+            razorpayPaymentId: true, razorpayRefundId: true,
+          },
+        },
+      },
+    })
+  }
+
   // Maps sort filter to Prisma orderBy
   private buildOrderBy(sort?: string): Prisma.BookingOrderByWithRelationInput {
     switch (sort) {

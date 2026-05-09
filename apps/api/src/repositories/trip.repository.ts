@@ -406,6 +406,26 @@ export class TripRepository {
     })
   }
 
+  /** Trips grouped by status. Used by: AdminService.getPlatformStats() */
+  async countByStatus(): Promise<Array<{ status: string; count: number }>> {
+    const groups = await this.prisma.trip.groupBy({
+      by: ['status'],
+      _count: { id: true },
+      where: { isDeleted: false },
+    })
+    return groups.map((g) => ({ status: g.status, count: g._count.id }))
+  }
+
+  /** Trips grouped by tripType. Used by: AdminService.getPlatformStats() */
+  async countByType(): Promise<Array<{ type: string; count: number }>> {
+    const groups = await this.prisma.trip.groupBy({
+      by: ['tripType'],
+      _count: { id: true },
+      where: { isDeleted: false, status: { in: ['ACTIVE', 'FULL', 'COMPLETED'] } },
+    })
+    return groups.map((g) => ({ type: g.tripType, count: g._count.id }))
+  }
+
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {
     switch (sort) {
       case 'price_asc':

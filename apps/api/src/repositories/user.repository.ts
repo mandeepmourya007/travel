@@ -1,3 +1,4 @@
+import type { UserRole } from '@shared/constants/roles'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class UserRepository {
@@ -92,5 +93,15 @@ export class UserRepository {
       select: { id: true },
     })
     return !!user
+  }
+
+  /** Count all non-deleted users. Used by: AdminService.getPlatformStats() */
+  async countAll(): Promise<number> {
+    return this.prisma.user.count({ where: { isDeleted: false } })
+  }
+
+  /** Count users by role. Used by: AdminService.getPlatformStats() */
+  async countByRole(role: UserRole): Promise<number> {
+    return this.prisma.user.count({ where: { role, isDeleted: false } })
   }
 }

@@ -242,4 +242,9 @@ export class MessageRepository {
 
     return { data, total }
   }
+
+  /** Count flagged messages. Used by: AdminService.getPlatformStats() */
+  async countFlagged(): Promise<number> {
+    return this.prisma.message.count({ where: { isFlagged: true, isDeleted: false } })
+  }
 }

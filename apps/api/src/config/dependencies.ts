@@ -60,6 +60,10 @@ import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
 import { createChatRoutes } from '../routes/chat.routes'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
+import { NotificationRepository } from '../repositories/notification.repository'
+import { AdminService } from '../services/admin.service'
+import { AdminController } from '../controllers/admin.controller'
+import { createAdminRoutes } from '../routes/admin.routes'
 import { razorpayClient } from './razorpay'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
@@ -81,6 +85,7 @@ const reviewRepo = new ReviewRepository(prisma)
 const walletRepo = new WalletRepository(prisma)
 const conversationRepo = new ConversationRepository(prisma)
 const messageRepo = new MessageRepository(prisma)
+const notificationRepo = new NotificationRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -117,6 +122,10 @@ const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
+const adminService = new AdminService(
+  organizerProfileRepo, userRepo, bookingRepo, tripRepo,
+  paymentTxRepo, messageRepo, notificationRepo, logger,
+)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
@@ -146,6 +155,7 @@ const paymentHistoryController = new PaymentHistoryController(paymentHistoryServ
 const reviewController = new ReviewController(reviewService)
 const walletController = new WalletController(walletService)
 const chatController = new ChatController(chatService)
+const adminController = new AdminController(adminService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
   : (null as unknown as WebhookController)
@@ -170,6 +180,7 @@ export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authM
 export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
 export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
+export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null
