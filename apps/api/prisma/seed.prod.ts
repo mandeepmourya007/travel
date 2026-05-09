@@ -38,7 +38,10 @@ async function main() {
   // ══════════════════════════════════════════════════════
 
   const admin = await prisma.user.create({
-    data: { name: 'Mandeep Mourya', email: 'admin@safarnama.in', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000001', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MM' },
+    data: { name: 'Mandeep Mourya', email: 'mandeep@safarnama.in', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000001', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MM' },
+  })
+  await prisma.user.create({
+    data: { name: 'Admin', email: 'admin@safarnama.in', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000002', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AD' },
   })
 
   const org1User = await prisma.user.create({
@@ -73,7 +76,7 @@ async function main() {
   const t10 = await prisma.user.create({ data: { name: 'Pooja Agarwal', email: 'pooja.agarwal@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543219', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PA' } })
   const t11 = await prisma.user.create({ data: { name: 'Rahul Tiwari', email: 'rahul.tiwari@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543220', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RT' } })
   const t12 = await prisma.user.create({ data: { name: 'Divya Menon', email: 'divya.menon@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543221', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DM' } })
-  console.log('  ✓ Created 19 users (1 admin, 6 organizers, 12 travelers)')
+  console.log('  ✓ Created 20 users (2 admins, 6 organizers, 12 travelers)')
 
   // ══════════════════════════════════════════════════════
   // ── ORGANIZER PROFILES ────────────────────────────────
