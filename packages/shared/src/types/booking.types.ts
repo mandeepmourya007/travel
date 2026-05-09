@@ -115,6 +115,14 @@ export interface MyBookingListItem {
     organizer: { id: string; businessName: string; rating: number; verified: boolean }
   }
   hasReview: boolean
+  review: {
+    id: string
+    overallRating: number
+    comment?: string | null
+    photos: string[]
+    createdAt: string
+    editedAt?: string | null
+  } | null
   travelerDetails: TravelerDetailItem[]
   pickupPoint?: { id: string; label: string; time?: string | null }
   dropPoint?: { id: string; label: string; time?: string | null }
