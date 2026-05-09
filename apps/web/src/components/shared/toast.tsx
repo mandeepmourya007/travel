@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { CheckCircle, AlertTriangle, XCircle, Info, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 type ToastVariant = 'success' | 'warning' | 'error' | 'info'
 
@@ -28,42 +28,107 @@ const VARIANT_STYLES: Record<ToastVariant, string> = {
   info: 'bg-info-50 text-info-500 border-info-200',
 }
 
-const VARIANT_ICONS: Record<ToastVariant, React.ElementType> = {
-  success: CheckCircle,
-  warning: AlertTriangle,
-  error: XCircle,
-  info: Info,
+const DEFAULT_DURATION = 4000
+const TIMER_RADIUS = 14
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * TIMER_RADIUS
+
+interface ToastItemProps {
+  toast: Toast
+  onDismiss: (id: string) => void
 }
 
-const DEFAULT_DURATION = 4000
-
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
-  const Icon = VARIANT_ICONS[toast.variant]
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+function ToastItem({ toast, onDismiss }: ToastItemProps) {
+  const duration = toast.duration ?? DEFAULT_DURATION
+  const [progress, setProgress] = useState(100)
+  const [exiting, setExiting] = useState(false)
+  const intervalRef = useRef<ReturnType<typeof setInterval>>()
 
   useEffect(() => {
-    const duration = toast.duration ?? DEFAULT_DURATION
-    timerRef.current = setTimeout(() => onDismiss(toast.id), duration)
-    return () => clearTimeout(timerRef.current)
-  }, [toast.id, toast.duration, onDismiss])
+    const startTime = Date.now()
+
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100)
+      setProgress(remaining)
+
+      if (remaining === 0) {
+        clearInterval(intervalRef.current)
+        dismissWithAnimation()
+      }
+    }, 50)
+
+    return () => clearInterval(intervalRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toast.id, duration])
+
+  function dismissWithAnimation() {
+    setExiting(true)
+    setTimeout(() => onDismiss(toast.id), 200)
+  }
+
+  function handleManualDismiss() {
+    clearInterval(intervalRef.current)
+    dismissWithAnimation()
+  }
+
+  const dashOffset = TIMER_CIRCUMFERENCE * (1 - progress / 100)
+  const remainingSeconds = Math.ceil((progress / 100) * (duration / 1000))
 
   return (
     <div
       role="alert"
       className={cn(
-        'pointer-events-auto flex items-start gap-3 rounded-lg border p-4 text-sm leading-relaxed shadow-lg animate-slide-up',
+        'pointer-events-auto flex items-start gap-3 rounded-lg border p-4 text-sm leading-relaxed shadow-lg will-change-transform',
+        exiting ? 'animate-toast-exit' : 'animate-slide-up',
         VARIANT_STYLES[toast.variant],
       )}
     >
-      <Icon className="h-5 w-5 flex-shrink-0 mt-0.5" />
+      {/* Circular timer */}
+      <div className="relative flex-shrink-0">
+        <svg
+          className="-rotate-90"
+          width="32"
+          height="32"
+          viewBox="0 0 32 32"
+        >
+          <circle
+            cx="16"
+            cy="16"
+            r={TIMER_RADIUS}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            className="opacity-30"
+          />
+          <circle
+            cx="16"
+            cy="16"
+            r={TIMER_RADIUS}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeDasharray={TIMER_CIRCUMFERENCE}
+            strokeDashoffset={dashOffset}
+            strokeLinecap="round"
+            className="transition-[stroke-dashoffset] duration-100 ease-linear"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xs font-bold">{remainingSeconds}</span>
+        </div>
+      </div>
+
+      {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="font-semibold">{toast.title}</p>
         {toast.description && (
           <p className="mt-0.5 opacity-80">{toast.description}</p>
         )}
       </div>
+
+      {/* Dismiss */}
       <button
-        onClick={() => onDismiss(toast.id)}
+        onClick={handleManualDismiss}
         className="flex-shrink-0 rounded-md p-1 opacity-60 hover:opacity-100 transition-opacity"
         aria-label="Dismiss"
       >
@@ -88,11 +153,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast: addToast, dismiss }}>
       {children}
-      {/* Toast container — fixed bottom-right */}
+      {/* Toast container — fixed, mobile-first responsive */}
       <div
         aria-live="polite"
         aria-label="Notifications"
-        className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-3 w-full max-w-sm"
+        className="pointer-events-none fixed bottom-3 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 z-50 flex flex-col gap-3 sm:w-[380px] sm:max-w-sm"
       >
         {toasts.map((t) => (
           <ToastItem key={t.id} toast={t} onDismiss={dismiss} />

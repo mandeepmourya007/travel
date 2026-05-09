@@ -192,6 +192,11 @@
   }
 }
 
+@keyframes toast-exit {
+  from { transform: translateX(0);   opacity: 1; }
+  to   { transform: translateX(30px); opacity: 0; }
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-4px); }
@@ -221,6 +226,10 @@
 
 .animate-page-enter {
   animation: page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-toast-exit {
+  animation: toast-exit 0.2s ease-in forwards;
 }
 
 .animate-shake {

@@ -66,6 +66,10 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'toast-exit': {
+          from: { transform: 'translateX(0)', opacity: '1' },
+          to: { transform: 'translateX(30px)', opacity: '0' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.5s ease-in-out infinite',
@@ -78,6 +82,7 @@ const config: Config = {
         shake: 'shake 0.4s ease-in-out',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'toast-exit': 'toast-exit 0.2s ease-in forwards',
       },
     },
   },
