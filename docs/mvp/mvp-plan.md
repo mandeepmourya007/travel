@@ -1310,13 +1310,10 @@ TODO
 10. ~~Please have cron job for expiry trip request + removing tokens~~ ✅ Done (4 cron jobs: bookings, requests, codes, tokens)
 11. ~~Nav bar is not consistent in all pages~~ ✅ Fixed (header role-based nav links)
 12. ~~Show proper error message if we are showing error in UI~~ ✅ Done (ErrorState with title + message props)
-13. **Admin Manual Cashback (Post-Trip Completion)**
-    - After trip auto-completes (cron `completeEndedTrips`), admin can manually issue cashback to travelers
-    - Admin panel: `/admin/cashback` — select completed trip → view travelers → set cashback amount per traveler → issue
-    - Cashback credited to traveler's **wallet** (`WalletTransaction` type: `CASHBACK`)
-    - Cashback usable on next trip bookings (wallet balance applied at checkout)
-    - **Withdraw: OFF by default** — cashback is platform credit only, not withdrawable to bank
-    - Future toggle: admin can enable withdraw per-user or globally (Phase 2)
-    - BE: `AdminService.issueCashback(tripId, userId, amount)` → `WalletService.credit()` with `CASHBACK` type
-    - FE: Admin cashback page + traveler wallet shows cashback transactions
+13. ~~Admin Manual Cashback (Post-Trip Completion)~~ ✅ Done
+    - BE: 6 admin cashback methods + 1 wallet cashback endpoint, 15 new tests (602 total)
+    - FE: `/admin/cashback` (3 tabs: Issue, By User, By Trip), `/admin/cashback/[tripId]` (issue page), `/admin/cashback/user/[userId]` (drill-down)
+    - Traveler wallet shows `tripName` on CASHBACK transactions
+    - Duplicate prevention via `@@unique([type, referenceModel, referenceId])` on WalletTransaction
+    - Cashback capped at booking `totalAmount`, withdraw OFF by default (Phase 2)
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
