@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Gender } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
@@ -76,7 +76,35 @@ async function main() {
   const t10 = await prisma.user.create({ data: { name: 'Pooja Agarwal', email: 'pooja.agarwal@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543219', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PA' } })
   const t11 = await prisma.user.create({ data: { name: 'Rahul Tiwari', email: 'rahul.tiwari@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543220', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RT' } })
   const t12 = await prisma.user.create({ data: { name: 'Divya Menon', email: 'divya.menon@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543221', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DM' } })
-  console.log('  ✓ Created 20 users (2 admins, 6 organizers, 12 travelers)')
+
+  // 38 additional travelers for realistic variety (total 50)
+  const EXTRA_TRAVELER_NAMES = [
+    'Vikram Rathore', 'Shreya Kapoor', 'Arjun Nair', 'Priyanka Desai', 'Aakash Malhotra',
+    'Neha Joshi', 'Sahil Khanna', 'Tanisha Rao', 'Kunal Bhatt', 'Aditi Singh',
+    'Manish Tiwari', 'Roshni Pillai', 'Yash Chauhan', 'Megha Shetty', 'Deepak Rawat',
+    'Simran Kaur', 'Varun Saxena', 'Nikita Mishra', 'Gaurav Pandey', 'Swati Deshpande',
+    'Harsh Vyas', 'Anjali Krishnan', 'Tarun Oberoi', 'Pallavi Hegde', 'Siddharth Mehra',
+    'Bhavna Chawla', 'Rajat Arora', 'Isha Banerjee', 'Mohit Gambhir', 'Sonali Sinha',
+    'Akshay Thakur', 'Ritika Mahajan', 'Pranav Goyal', 'Karishma Bajaj', 'Dhruv Sethi',
+    'Nisha Rastogi', 'Kartik Bhandari', 'Aparna Sundaram',
+  ]
+  const extraTravelers: { id: string }[] = []
+  for (let i = 0; i < EXTRA_TRAVELER_NAMES.length; i++) {
+    const name = EXTRA_TRAVELER_NAMES[i]
+    const slug = name.toLowerCase().replace(' ', '.')
+    const initials = name.split(' ').map(n => n[0]).join('')
+    const t = await prisma.user.create({
+      data: {
+        name, email: `${slug}@gmail.com`, passwordHash, role: 'TRAVELER',
+        phone: `+9198765${String(43222 + i).padStart(5, '0')}`,
+        emailVerified: true, phoneVerified: i % 3 === 0,
+        avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${initials}`,
+      },
+    })
+    extraTravelers.push(t)
+  }
+  const allTravelers = [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, ...extraTravelers]
+  console.log(`  ✓ Created ${8 + allTravelers.length} users (2 admins, 6 organizers, ${allTravelers.length} travelers)`)
 
   // ══════════════════════════════════════════════════════
   // ── ORGANIZER PROFILES ────────────────────────────────
@@ -132,11 +160,11 @@ async function main() {
   // ── BULK TRIPS (for realistic platform look) ──────────
   // ══════════════════════════════════════════════════════
 
-  await seedBulkTrips({ org1, org2, org3, org4, goa, manali, ladakh, rishikesh, jaipur, kasol, lonavala, udaipur, meghalaya, hampi, spiti, coorg, varanasi, andaman })
+  await seedBulkTrips({ org1, org2, org3, org4, goa, manali, ladakh, rishikesh, jaipur, kasol, lonavala, udaipur, meghalaya, hampi, spiti, coorg, varanasi, andaman }, allTravelers)
 
-  await seedBulkReviews([t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12])
+  await seedBulkReviews(allTravelers)
 
-  await seedBulkBookingsAndPayments([t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12])
+  await seedBulkBookingsAndPayments(allTravelers)
 
   // ── Recalculate destination tripCount from actual ACTIVE/FULL trips ──
   await prisma.$executeRaw`
@@ -1107,6 +1135,54 @@ const DEST_PHOTOS: Record<string, string[]> = {
 
 function bulkD(y: number, m: number, day: number) { return new Date(y, m - 1, day) }
 
+// ── Traveler names pool for bulk booking TravelerDetail generation ──
+const BULK_FIRST_NAMES = ['Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Reyansh', 'Ayaan', 'Krishna', 'Ishaan', 'Ananya', 'Diya', 'Saanvi', 'Aanya', 'Aadhya', 'Isha', 'Myra', 'Pari', 'Riya', 'Tanvi']
+const BULK_LAST_NAMES = ['Sharma', 'Patel', 'Gupta', 'Singh', 'Kumar', 'Reddy', 'Joshi', 'Nair', 'Mehta', 'Bhat', 'Rao', 'Iyer', 'Kulkarni', 'Deshmukh', 'Verma', 'Patil', 'Agarwal', 'Tiwari', 'Menon', 'Kaur']
+const BULK_GENDERS: Gender[] = ['MALE', 'FEMALE', 'MALE', 'FEMALE', 'MALE', 'MALE', 'FEMALE', 'MALE', 'FEMALE', 'FEMALE']
+
+function generateTravelerDetails(bookingId: string, numTravelers: number, seed: number) {
+  const details: { bookingId: string; name: string; phone: string | null; age: number; gender: Gender; isPrimary: boolean; emergencyContactName: string | null; emergencyContactPhone: string | null }[] = []
+  for (let i = 0; i < numTravelers; i++) {
+    const idx = (seed + i * 7) % BULK_FIRST_NAMES.length
+    const lIdx = (seed + i * 3) % BULK_LAST_NAMES.length
+    details.push({
+      bookingId,
+      name: `${BULK_FIRST_NAMES[idx]} ${BULK_LAST_NAMES[lIdx]}`,
+      phone: i === 0 ? `+91${9800000000 + seed * 13 + i}` : null,
+      age: 22 + ((seed + i) % 20),
+      gender: BULK_GENDERS[(seed + i) % BULK_GENDERS.length],
+      isPrimary: i === 0,
+      emergencyContactName: i === 0 ? `${BULK_FIRST_NAMES[(idx + 5) % BULK_FIRST_NAMES.length]} ${BULK_LAST_NAMES[lIdx]}` : null,
+      emergencyContactPhone: i === 0 ? `+91${9800000000 + seed * 13 + 100}` : null,
+    })
+  }
+  return details
+}
+
+// ── Constants for booking variety ──
+const CANCEL_REASONS = [
+  'Work emergency came up', 'Family medical situation', 'Travel plans changed',
+  'Leave not approved by manager', 'Financial constraints', 'Found another trip',
+  'Health issue — doctor advised rest', 'Weather forecast looks bad',
+]
+const REQUEST_MSGS = [
+  'Would love to join! First solo trip ever — very excited!',
+  'Group of 2 friends looking for an adventure this season.',
+  'Experienced trekker, done Everest Base Camp. This looks perfect!',
+  'Celebrating my birthday month — this trip seems ideal!',
+  'Photography enthusiast — will bring my DSLR for group shots.',
+  'Solo female traveler, looking for a safe and fun group.',
+  'College friends reunion trip — we are 3 people total.',
+  'Referred by a friend who went on your last batch. Loved it!',
+  'Couple looking for our first adventure trip together.',
+  'Weekend warrior here — been eyeing this route for months!',
+]
+const REJECT_NOTES = [
+  'Sorry, this batch is already gender-balanced. Try our next date!',
+  'This expedition requires prior trekking experience. Try our beginner trips!',
+  'Age requirement not met for this particular expedition.',
+]
+
 interface BulkOpts {
   dest: string; orgIdx: number; title: string; slug: string; type: string; mode: string
   desc: string; days: number; price: number; early?: number; min: number; max: number
@@ -1114,13 +1190,17 @@ interface BulkOpts {
   incl: string[]; excl: string[]; itin: string[]
 }
 
-async function seedBulkTrips(deps: Record<string, { id: string }>) {
+async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { id: string }[]) {
   const { org1, org2, org3, org4 } = deps
   const orgs = [org1, org2, org3, org4]
 
+  // Counters for booking refs & payment refs (scoped to mk closure)
+  let bulkBRef = 9000
+  let bulkPayN = 600
+
   async function mk(o: BulkOpts) {
     const photos = DEST_PHOTOS[o.dest] ?? DEST_PHOTOS.goa
-    return prisma.trip.create({ data: {
+    const trip = await prisma.trip.create({ data: {
       organizerId: orgs[o.orgIdx].id, destinationId: deps[o.dest].id,
       title: o.title, slug: o.slug, description: o.desc,
       tripType: o.type as 'BEACH' | 'TREKKING' | 'ADVENTURE' | 'CULTURAL' | 'WEEKEND' | 'ROAD_TRIP',
@@ -1140,6 +1220,153 @@ async function seedBulkTrips(deps: Record<string, { id: string }>) {
         { type: 'DROP', label: 'Pune — Hinjewadi IT Park', address: 'Phase 1 Gate, Hinjewadi, Pune 411057', time: '09:00 PM', extraCharge: 200, sortOrder: 1 },
       ] },
     } })
+
+    const isCompleted = o.status === 'COMPLETED'
+    const isFull = o.status === 'FULL'
+    const isRequest = o.mode === 'REQUEST_BASED'
+    const bStatus: 'CONFIRMED' | 'COMPLETED' = isCompleted ? 'COMPLETED' : 'CONFIRMED'
+
+    // Track userIds with TripRequests for this trip — @@unique([tripId, userId])
+    const usedRequestUserIds = new Set<string>()
+    // Pick a traveler that hasn't been used for a TripRequest on this trip
+    const pickUnique = (startIdx: number): { id: string } | null => {
+      for (let attempt = 0; attempt < travelers.length; attempt++) {
+        const t = travelers[(startIdx + attempt) % travelers.length]
+        if (!usedRequestUserIds.has(t.id)) return t
+      }
+      return null // all 50 used (shouldn't happen with 50 travelers and <30 requests)
+    }
+
+    // ── 1. Core bookings (CONFIRMED/COMPLETED) summing to o.booked ──
+    // First ~30% of bookings use earlyBirdPrice when available
+    const earlyBirdCap = o.early ? Math.ceil(o.booked * 0.3) : 0
+    let earlyBirdUsed = 0
+    let remaining = o.booked
+    let idx = 0
+    while (remaining > 0) {
+      const numT = Math.min(remaining, 1 + (idx % 3)) // cycles 1, 2, 3
+      const trav = travelers[idx % travelers.length]
+      const unitPrice = (o.early && earlyBirdUsed < earlyBirdCap) ? o.early : o.price
+      const amount = unitPrice * numT
+      if (o.early && earlyBirdUsed < earlyBirdCap) earlyBirdUsed += numT
+      const b = await prisma.booking.create({ data: {
+        bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
+        tripId: trip.id, userId: trav.id,
+        numTravelers: numT, totalAmount: amount, bookingStatus: bStatus,
+      }})
+      await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + idx) })
+      await prisma.paymentTransaction.create({ data: {
+        bookingId: b.id, type: 'PAYMENT', amount, status: 'CAPTURED',
+        razorpayOrderId: `order_mk_${++bulkPayN}`, razorpayPaymentId: `pay_mk_${bulkPayN}`,
+      }})
+      // For REQUEST_BASED: link an APPROVED TripRequest
+      if (isRequest) {
+        usedRequestUserIds.add(trav.id)
+        await prisma.tripRequest.create({ data: {
+          tripId: trip.id, userId: trav.id, numTravelers: numT,
+          message: REQUEST_MSGS[idx % REQUEST_MSGS.length],
+          status: 'APPROVED', respondedAt: new Date(Date.now() - (20 + idx) * 86400000),
+          responseNote: 'Welcome aboard! Payment link sent.', bookingId: b.id,
+        }})
+      }
+      remaining -= numT
+      idx++
+    }
+
+    // ── 2. PENDING_PAYMENT bookings (don't count in currentBookings) ──
+    if (!isCompleted && !isFull) {
+      const ppCount = isRequest ? 2 + (bulkBRef % 3) : 1 + (bulkBRef % 2) // 2-4 for request, 1-2 for instant
+      for (let p = 0; p < ppCount; p++) {
+        const trav = travelers[(idx + p + 20) % travelers.length]
+        const numT = 1 + (p % 2)
+        const amount = o.price * numT
+        const b = await prisma.booking.create({ data: {
+          bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
+          tripId: trip.id, userId: trav.id,
+          numTravelers: numT, totalAmount: amount,
+          bookingStatus: 'PENDING_PAYMENT',
+          expiresAt: new Date(Date.now() + (1 + p) * 86400000),
+        }})
+        await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + p + 300) })
+        // Initiated (not yet captured) payment for PENDING_PAYMENT
+        await prisma.paymentTransaction.create({ data: {
+          bookingId: b.id, type: 'PAYMENT', amount, status: 'INITIATED',
+          razorpayOrderId: `order_pp_${bulkPayN++}`,
+        }})
+        if (isRequest) {
+          usedRequestUserIds.add(trav.id)
+          await prisma.tripRequest.create({ data: {
+            tripId: trip.id, userId: trav.id, numTravelers: numT,
+            message: REQUEST_MSGS[(idx + p + 3) % REQUEST_MSGS.length],
+            status: 'APPROVED', respondedAt: new Date(Date.now() - (5 + p) * 86400000),
+            responseNote: 'Approved! Please complete payment within 48 hours.', bookingId: b.id,
+          }})
+        }
+      }
+    }
+
+    // ── 3. CANCELLED bookings (paid → cancelled → refunded) ──
+    if (!isFull) {
+      const cancelCount = isCompleted ? (idx % 2) : 1 + (idx % 2) // 0-1 for completed, 1-2 for active
+      for (let c = 0; c < cancelCount; c++) {
+        const trav = travelers[(idx + c + 30) % travelers.length]
+        const amount = o.price
+        const cancelDate = new Date(Date.now() - (25 + c * 5) * 86400000)
+        const b = await prisma.booking.create({ data: {
+          bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
+          tripId: trip.id, userId: trav.id,
+          numTravelers: 1, totalAmount: amount,
+          bookingStatus: 'CANCELLED',
+          cancellationReason: CANCEL_REASONS[(idx + c) % CANCEL_REASONS.length],
+          cancelledAt: cancelDate,
+          cancelledById: trav.id,
+        }})
+        // Original CAPTURED payment (paid before cancellation)
+        const payDate = new Date(cancelDate.getTime() - 5 * 86400000)
+        await prisma.paymentTransaction.create({ data: {
+          bookingId: b.id, type: 'PAYMENT', amount, status: 'CAPTURED',
+          razorpayOrderId: `order_cx_${++bulkPayN}`, razorpayPaymentId: `pay_cx_${bulkPayN}`,
+          createdAt: payDate,
+        }})
+        // REFUND issued after cancellation (net revenue impact = 0)
+        await prisma.paymentTransaction.create({ data: {
+          bookingId: b.id, type: 'REFUND', amount, status: 'CAPTURED',
+          razorpayOrderId: `order_cx_${bulkPayN}`, razorpayPaymentId: `rfnd_cx_${bulkPayN}`,
+          createdAt: new Date(cancelDate.getTime() + 1 * 86400000),
+        }})
+      }
+    }
+
+    // ── 4. Pending TripRequests (REQUEST_BASED, non-completed only) ──
+    if (isRequest && !isCompleted) {
+      const pendingCount = 3 + (bulkBRef % 3) // 3-5
+      for (let pr = 0; pr < pendingCount; pr++) {
+        const trav = pickUnique(idx + pr + 35)
+        if (!trav) break
+        usedRequestUserIds.add(trav.id)
+        const numT = 1 + (pr % 3)
+        await prisma.tripRequest.create({ data: {
+          tripId: trip.id, userId: trav.id, numTravelers: numT,
+          message: REQUEST_MSGS[(idx + pr) % REQUEST_MSGS.length],
+          status: 'PENDING', approvalExpiresAt: new Date(Date.now() + 7 * 86400000),
+        }})
+      }
+      // 1-2 rejected requests
+      const rejCount = 1 + (idx % 2)
+      for (let rj = 0; rj < rejCount; rj++) {
+        const trav = pickUnique(idx + rj + 42)
+        if (!trav) break
+        usedRequestUserIds.add(trav.id)
+        await prisma.tripRequest.create({ data: {
+          tripId: trip.id, userId: trav.id, numTravelers: 1,
+          message: REQUEST_MSGS[(idx + rj + 5) % REQUEST_MSGS.length],
+          status: 'REJECTED', respondedAt: new Date(Date.now() - (10 + rj * 3) * 86400000),
+          responseNote: REJECT_NOTES[rj % REJECT_NOTES.length],
+        }})
+      }
+    }
+
+    return trip
   }
 
   // ── GOA (6) ────────────────────────────────────────────
@@ -1296,57 +1523,51 @@ const ORG_REPLY_TEMPLATES = [
   'It was wonderful having you on this trip! Your energy added so much to the group. See you on the next one!',
 ]
 
-async function seedBulkReviews(travelers: { id: string }[]) {
-  // Find all COMPLETED trips that do NOT already have reviews
+async function seedBulkReviews(_travelers: { id: string }[]) {
+  // Find all COMPLETED trips that do NOT already have reviews — use existing bookings
   const completedTrips = await prisma.trip.findMany({
     where: { status: 'COMPLETED', isDeleted: false, reviews: { none: {} } },
-    include: { destination: { select: { slug: true } } },
+    include: {
+      destination: { select: { slug: true } },
+      bookings: {
+        where: { bookingStatus: 'COMPLETED', isDeleted: false },
+        select: { id: true, userId: true },
+        take: 5,
+      },
+    },
   })
 
   if (completedTrips.length === 0) {
-    console.log('  ⚠ No unreviewd completed bulk trips found — skipping bulk reviews')
+    console.log('  ⚠ No unreviewed completed bulk trips found — skipping bulk reviews')
     return
   }
 
-  let bulkRefNum = 5000
-  const bulkRef = () => `SFN-2026-${String(++bulkRefNum).padStart(4, '0')}`
+  let seedIdx = 5000
   let totalReviews = 0
 
   for (const trip of completedTrips) {
-    // 3 to 5 reviews per trip
-    const reviewCount = 3 + (bulkRefNum % 3) // deterministic 3-5
+    if (trip.bookings.length === 0) continue
+
+    // 3-5 reviews per trip, capped by available bookings
+    const reviewCount = Math.min(3 + (seedIdx % 3), trip.bookings.length)
     const destSlug = trip.destination.slug.toLowerCase()
     const destPhotos = REVIEW_PHOTOS[destSlug] ?? REVIEW_PHOTOS.goa
 
     for (let r = 0; r < reviewCount; r++) {
-      const traveler = travelers[(bulkRefNum + r) % travelers.length]
-      const template = REVIEW_TEMPLATES[(bulkRefNum + r) % REVIEW_TEMPLATES.length]
+      const booking = trip.bookings[r]
+      const template = REVIEW_TEMPLATES[(seedIdx + r) % REVIEW_TEMPLATES.length]
 
-      // Create booking for this review
-      const booking = await prisma.booking.create({
-        data: {
-          bookingRef: bulkRef(),
-          tripId: trip.id,
-          userId: traveler.id,
-          numTravelers: 1 + (r % 3),
-          totalAmount: trip.pricePerPerson * (1 + (r % 3)),
-          bookingStatus: 'COMPLETED',
-        },
-      })
-
-      // Pick 0-2 photos for this review
-      const photoCount = r % 3 // 0, 1, or 2 photos
+      const photoCount = r % 3
       const photos = destPhotos.slice(0, photoCount)
 
-      // Add organizer reply to ~40% of reviews
       const hasReply = r % 5 < 2
-      const replyTemplate = ORG_REPLY_TEMPLATES[(bulkRefNum + r) % ORG_REPLY_TEMPLATES.length]
+      const replyTemplate = ORG_REPLY_TEMPLATES[(seedIdx + r) % ORG_REPLY_TEMPLATES.length]
 
       await prisma.review.create({
         data: {
           tripId: trip.id,
           bookingId: booking.id,
-          userId: traveler.id,
+          userId: booking.userId,
           overallRating: template.overall,
           organizationRating: template.org,
           valueRating: template.val,
@@ -1360,6 +1581,7 @@ async function seedBulkReviews(travelers: { id: string }[]) {
       })
       totalReviews++
     }
+    seedIdx++
   }
 
   console.log(`  ✓ Created ${totalReviews} bulk reviews across ${completedTrips.length} completed trips (with photos & organizer replies)`)
@@ -1377,11 +1599,18 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
   const payRef = () => ({ razorpayOrderId: `order_bulk_${++payN}`, razorpayPaymentId: `pay_bulk_${payN}` })
 
   // ── Fetch bulk ACTIVE + FULL trips (only those without bookings = bulk-seeded) ──
+  // NOTE: mk() now creates bookings for all bulk trips, so this typically finds 0.
   const activeTrips = await prisma.trip.findMany({
     where: { status: { in: ['ACTIVE', 'FULL'] }, isDeleted: false, bookings: { none: {} }, tripRequests: { none: {} } },
     include: { destination: { select: { slug: true } }, transferPoints: true },
     take: 30,
   })
+
+  if (activeTrips.length === 0) {
+    console.log('  ⚠ No trips without bookings found — mk() already seeded all bookings. Skipping.')
+    return
+  }
+
   const requestTrips = activeTrips.filter(t => t.bookingMode === 'REQUEST_BASED')
   const instantTrips = activeTrips.filter(t => t.bookingMode === 'INSTANT')
 
@@ -1425,6 +1654,7 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const numT = 1 + (i % 2)
     const amount = trip.pricePerPerson * numT + tp.extraCharge * numT
     const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i) })
     instantConfirmed.push(b)
   }
 
@@ -1438,6 +1668,7 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const numT = 1 + (i % 2)
     const price = trip.earlyBirdPrice! * numT + tp.extraCharge * numT
     const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: price, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 100) })
     earlyConfirmed.push(b)
   }
 
@@ -1472,6 +1703,7 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const numT = 1 + (i % 2)
     const amount = trip.pricePerPerson * numT + tp.extraCharge * numT
     const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 200) })
     await prisma.tripRequest.create({ data: { tripId: trip.id, userId: trav.id, numTravelers: numT, message: 'I have relevant experience and would love to join this trip!', status: 'APPROVED', respondedAt: new Date(Date.now() - (15 + i) * 86400000), responseNote: 'Welcome! Payment link sent.', bookingId: b.id } })
     requestConfirmed.push(b)
 
