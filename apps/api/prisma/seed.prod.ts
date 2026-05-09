@@ -94,7 +94,7 @@ async function main() {
   const goa = await prisma.destination.create({ data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800' } })
   const manali = await prisma.destination.create({ data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800' } })
   const ladakh = await prisma.destination.create({ data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800' } })
-  const rishikesh = await prisma.destination.create({ data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800' } })
+  const rishikesh = await prisma.destination.create({ data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800' } })
   const jaipur = await prisma.destination.create({ data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800' } })
   const kasol = await prisma.destination.create({ data: { name: 'Kasol', slug: 'kasol', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800' } })
   const udaipur = await prisma.destination.create({ data: { name: 'Udaipur', slug: 'udaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800' } })
@@ -234,7 +234,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Rishikesh-Delhi AC bus', '16 km rafting', 'Riverside camping (1N)', 'All meals', 'Bonfire', 'Yoga session', 'Safety gear'],
       exclusions: ['Bungee jumping', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
+      photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
       transferPoints: { create: [
         { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '5:30 AM', sortOrder: 0 },
@@ -663,7 +663,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Rishikesh-Delhi AC bus', '16 km rafting + safety gear', 'Bungee jump at Jumpin Heights', 'Riverside camping (1N)', 'All meals (2 breakfast, 1 lunch, 1 dinner)', 'Bonfire + music', 'Yoga session', 'Ganga Aarti visit'],
       exclusions: ['Giant swing / flying fox (₹3,500 combo)', 'Personal snacks', 'Travel insurance'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
+      photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
       transferPoints: { create: [
         { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM', sortOrder: 0 },
@@ -859,12 +859,12 @@ async function seedBookingsAndReviews(deps: {
     [],
     ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600', 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600'],
     ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600'],
-    ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
-    ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600'],
     [],
-    ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
     [],
-    ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600'],
     ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600', 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600'],
     ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'],
     ['https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600', 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'],
@@ -1089,7 +1089,7 @@ const DEST_PHOTOS: Record<string, string[]> = {
   goa: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800'],
   manali: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=800', 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800'],
   ladakh: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800'],
-  rishikesh: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'],
+  rishikesh: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=800'],
   jaipur: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800', 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800', 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=800'],
   kasol: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=800'],
   lonavala: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800'],
@@ -1258,7 +1258,7 @@ const REVIEW_PHOTOS: Record<string, string[]> = {
   goa: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600', 'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600'],
   manali: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600', 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600'],
   ladakh: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=600', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600', 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600'],
-  rishikesh: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600'],
+  rishikesh: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600'],
   jaipur: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600', 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600', 'https://images.unsplash.com/photo-1599661046289-e31897846e41?w=600'],
   kasol: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=600', 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600'],
   lonavala: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
