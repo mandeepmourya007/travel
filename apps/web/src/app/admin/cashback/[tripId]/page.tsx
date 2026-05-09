@@ -20,6 +20,7 @@ import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { Spinner } from '@/components/shared/spinner'
 import { useCashbackTripDetail, useIssueCashback } from '@/hooks/use-admin-cashback'
 import { toast } from 'sonner'
+import type { AppApiError } from '@/lib/api-client'
 
 interface CashbackInput {
   bookingId: string
@@ -88,7 +89,9 @@ export default function CashbackIssuePage() {
           setFlatAmount('')
         },
         onError: (err) => {
-          toast.error(err.message || 'Failed to issue cashback')
+          const apiErr = err as AppApiError
+          const details = apiErr.details?.map((d) => `${d.field}: ${d.message}`).join(', ')
+          toast.error(details || apiErr.message || 'Failed to issue cashback')
         },
       },
     )
@@ -271,12 +274,24 @@ export default function CashbackIssuePage() {
             )}
           </div>
 
-          {mutation.isError && (
-            <div className="flex items-center gap-2 rounded-lg bg-error-50 p-3 text-sm text-error-500">
-              <AlertCircle className="h-4 w-4" />
-              {mutation.error.message}
-            </div>
-          )}
+          {mutation.isError && (() => {
+            const apiErr = mutation.error as AppApiError
+            return (
+              <div className="rounded-lg bg-error-50 p-3 text-sm text-error-500">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{apiErr.message}</span>
+                </div>
+                {apiErr.details && apiErr.details.length > 0 && (
+                  <ul className="mt-2 ml-6 list-disc space-y-0.5 text-error-600">
+                    {apiErr.details.map((d, i) => (
+                      <li key={i}><span className="font-medium">{d.field}</span>: {d.message}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })()}
         </>
       )}
     </div>

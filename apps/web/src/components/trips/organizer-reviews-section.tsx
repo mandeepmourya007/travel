@@ -145,8 +145,8 @@ export function OrganizerReviewsSection({
         </>
       )}
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {/* Pagination — only when reviews are visible */}
+      {isExpanded && pagination.totalPages > 1 && (
         <div className="mt-8">
           <Pagination
             currentPage={pagination.page}

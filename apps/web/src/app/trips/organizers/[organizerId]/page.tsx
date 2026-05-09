@@ -4,13 +4,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { useOrganizerPublicProfile } from '@/hooks/use-organizer-public-profile'
-import { useCompareQueue } from '@/hooks/use-compare-queue'
 import { OrganizerProfileHeader } from '@/components/trips/organizer-profile-header'
 import { OrganizerReviewsSection } from '@/components/trips/organizer-reviews-section'
 import { useProfile } from '@/hooks/use-profile'
-import { TripCard } from '@/components/trips/trip-card'
-import { Pagination } from '@/components/shared/pagination'
-import { EmptyState } from '@/components/shared/data-states'
 import OrganizerProfileLoading from './loading'
 
 export default function OrganizerPublicProfilePage({
@@ -19,16 +15,12 @@ export default function OrganizerPublicProfilePage({
   params: { organizerId: string }
 }) {
   const { organizerId } = params
-  const [tripsPage, setTripsPage] = useState(1)
   const [reviewsPage, setReviewsPage] = useState(1)
-  const { selectedIds, toggle } = useCompareQueue()
   const { data: profile } = useProfile()
   const isOwner = profile?.organizerProfile?.id === organizerId
 
   const { data, isLoading, error, refetch } = useOrganizerPublicProfile({
     organizerId,
-    tripsPage,
-    tripsLimit: 12,
     reviewsPage,
     reviewsLimit: 10,
   })
@@ -67,7 +59,7 @@ export default function OrganizerPublicProfilePage({
     )
   }
 
-  const { organizer, trips, tripsPagination, reviews, reviewsSummary, reviewsPagination } = data
+  const { organizer, reviews, reviewsSummary, reviewsPagination } = data
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -82,46 +74,6 @@ export default function OrganizerPublicProfilePage({
 
       {/* Organizer header */}
       <OrganizerProfileHeader organizer={organizer} />
-
-      {/* Trips section */}
-      <section className="mt-10">
-        <h2 className="font-display text-xl font-bold text-neutral-800 mb-4">
-          Trips by {organizer.businessName}
-          {tripsPagination.total > 0 && (
-            <span className="ml-2 text-base font-normal text-neutral-500">
-              ({tripsPagination.total})
-            </span>
-          )}
-        </h2>
-
-        {trips.length === 0 ? (
-          <EmptyState message="This organizer doesn't have any active trips right now." />
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {trips.map((trip) => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  onCompare={toggle}
-                  isSelected={selectedIds.includes(trip.id)}
-                />
-              ))}
-            </div>
-
-            {tripsPagination.totalPages > 1 && (
-              <div className="mt-8">
-                <Pagination
-                  currentPage={tripsPagination.page}
-                  totalPages={tripsPagination.totalPages}
-                  total={tripsPagination.total}
-                  onPageChange={setTripsPage}
-                />
-              </div>
-            )}
-          </>
-        )}
-      </section>
 
       {/* Reviews section */}
       <section className="mt-10">

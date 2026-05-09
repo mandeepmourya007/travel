@@ -14,12 +14,12 @@ interface OrganizerProfileParams {
 export function useOrganizerPublicProfile({
   organizerId,
   tripsPage = 1,
-  tripsLimit = 12,
+  tripsLimit = 0,
   reviewsPage = 1,
   reviewsLimit = 10,
 }: OrganizerProfileParams) {
   return useQuery({
-    queryKey: organizerKeys.publicProfile(organizerId, { tripsPage, reviewsPage }),
+    queryKey: organizerKeys.publicProfile(organizerId, { reviewsPage }),
     queryFn: async () => {
       const res = await apiClient.get<{
         success: true

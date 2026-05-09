@@ -107,10 +107,10 @@ export default function TripUsersPage() {
 
   // ── Tab items with badge counts ─────────────────────
   const pendingCount = summary.data?.pendingRequestsCount ?? 0
-  const confirmedCount = summary.data?.confirmedCount ?? 0
+  const totalTravelers = summary.data?.totalTravelers ?? 0
   const tabItems = [
     { label: `Pending Requests${pendingCount > 0 ? ` (${pendingCount})` : ''}`, value: 'requests' },
-    { label: `Paid & Booked${confirmedCount > 0 ? ` (${confirmedCount})` : ''}`, value: 'confirmed' },
+    { label: `Paid & Booked${totalTravelers > 0 ? ` (${totalTravelers})` : ''}`, value: 'confirmed' },
     { label: 'All Bookings', value: 'all' },
   ]
 
