@@ -29,37 +29,58 @@ interface BookingCardProps {
 }
 
 export function BookingCard({ booking, onViewDetails }: BookingCardProps) {
+  const travelers = booking.travelerDetails
+
   return (
     <div
       onClick={() => onViewDetails(booking)}
-      className="card flex cursor-pointer items-center gap-4 p-4 transition-shadow hover:shadow-card-hover"
+      className="card cursor-pointer p-4 transition-shadow hover:shadow-card-hover"
     >
-      <Avatar name={booking.user.name} size="md" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="truncate font-semibold text-neutral-800">{booking.user.name}</p>
-          <span className={STATUS_COLORS[booking.bookingStatus] ?? 'badge'}>
-            {booking.bookingStatus.replace('_', ' ')}
-          </span>
+      <div className="flex items-center gap-4">
+        <Avatar name={booking.user.name} size="md" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate font-semibold text-neutral-800">{booking.user.name}</p>
+            <span className={STATUS_COLORS[booking.bookingStatus] ?? 'badge'}>
+              {booking.bookingStatus.replace('_', ' ')}
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            {booking.user.email}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" /> {booking.numTravelers} traveler{booking.numTravelers !== 1 ? 's' : ''}
+            </span>
+            <span className="font-mono text-neutral-700">{formatCurrency(booking.totalAmount)}</span>
+            <span className="text-xs">{timeAgo(booking.createdAt)}</span>
+          </div>
         </div>
-        <p className="mt-0.5 text-sm text-neutral-500">
-          {booking.user.email}
-        </p>
-        <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-          <span className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" /> {booking.numTravelers} traveler{booking.numTravelers !== 1 ? 's' : ''}
-          </span>
-          <span className="font-mono text-neutral-700">{formatCurrency(booking.totalAmount)}</span>
-          <span className="text-xs">{timeAgo(booking.createdAt)}</span>
-        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onViewDetails(booking) }}
+          className="btn-ghost shrink-0 p-2"
+          aria-label="View booking details"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onViewDetails(booking) }}
-        className="btn-ghost shrink-0 p-2"
-        aria-label="View booking details"
-      >
-        <Eye className="h-4 w-4" />
-      </button>
+
+      {/* Inline traveler details — always visible */}
+      {travelers && travelers.length > 0 && (
+        <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1.5">
+          {travelers.map((t) => (
+            <div key={t.id} className="flex items-center justify-between rounded-md bg-neutral-50 px-3 py-1.5 text-sm">
+              <span className="font-medium text-neutral-700">
+                {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(Primary)</span>}
+              </span>
+              <span className="flex items-center gap-2 text-xs text-neutral-500">
+                <span>{t.age}y {t.gender ? <>&middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()}</> : null}</span>
+                {t.phone && <span className="inline-flex items-center gap-0.5"><Phone className="h-3 w-3" />{t.phone}</span>}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

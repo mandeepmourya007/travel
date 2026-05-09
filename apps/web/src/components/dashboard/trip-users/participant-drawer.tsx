@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
-import { X, Users, Phone, Mail } from 'lucide-react'
+import { X, Users, Mail } from 'lucide-react'
+import { TravelerDetailsTable } from './traveler-details-table'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/shared/avatar'
 import { formatCurrency, timeAgo } from '@/lib/format'
@@ -134,53 +135,14 @@ export function ParticipantDrawer({ item, onClose }: ParticipantDrawerProps) {
             </div>
           )}
 
-          {/* Traveler details table */}
+          {/* Traveler details table — request */}
+          {item.type === 'request' && (item.data as TripRequestListItem).travelerDetails && (item.data as TripRequestListItem).travelerDetails!.length > 0 && (
+            <TravelerDetailsTable travelers={(item.data as TripRequestListItem).travelerDetails!} />
+          )}
+
+          {/* Traveler details table — booking */}
           {item.type === 'booking' && (item.data as TripBookingListItem).travelerDetails.length > 0 && (
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">Travelers</p>
-              <div className="overflow-x-auto rounded-lg border border-neutral-200">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-                      <th className="px-4 py-2">Name</th>
-                      <th className="px-4 py-2">Age</th>
-                      <th className="px-4 py-2">Gender</th>
-                      <th className="px-4 py-2">Phone</th>
-                      <th className="px-4 py-2">Emergency</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(item.data as TripBookingListItem).travelerDetails.map((td) => (
-                      <tr key={td.id} className="border-b border-neutral-50 last:border-0">
-                        <td className="px-4 py-2.5 font-medium text-neutral-800">
-                          {td.name}
-                          {td.isPrimary && (
-                            <span className="ml-1.5 text-[10px] badge badge-primary">Primary</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-neutral-600">{td.age ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-neutral-600">{td.gender ?? '—'}</td>
-                        <td className="px-4 py-2.5 text-neutral-600">
-                          {td.phone ? (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" /> {td.phone}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="px-4 py-2.5 text-neutral-600">
-                          {td.emergencyContactName ? (
-                            <span>
-                              {td.emergencyContactName}
-                              {td.emergencyContactPhone ? ` · ${td.emergencyContactPhone}` : ''}
-                            </span>
-                          ) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <TravelerDetailsTable travelers={(item.data as TripBookingListItem).travelerDetails} />
           )}
         </div>
       </div>
