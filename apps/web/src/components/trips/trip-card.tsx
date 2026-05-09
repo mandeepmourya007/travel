@@ -162,7 +162,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
           </div>
           <Link
             href={`/trips/${trip.slug}`}
-            className="rounded-lg bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition-all hover:bg-primary-100"
+            className="whitespace-nowrap rounded-lg bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition-all hover:bg-primary-100"
             onMouseEnter={prefetchTripDetail}
           >
             View Details
