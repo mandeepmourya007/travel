@@ -4,13 +4,13 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/use-debounce'
 import { formatCurrency } from '@/lib/format'
 import { BOOKING_STATUS_VARIANT } from '@/lib/admin-utils'
 import {
   Table,
+  TableContainer,
   TableBody,
   TableCell,
   TableHead,
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminBookings } from '@/hooks/use-admin-bookings'
+import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import type { AdminBookingFilters } from '@shared/types/admin.types'
 
@@ -93,7 +94,7 @@ export default function AdminBookingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="card-static overflow-hidden">
+        <TableContainer>
           <div className="space-y-0">
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4 border-b border-neutral-100 px-4 py-3.5">
@@ -104,14 +105,14 @@ export default function AdminBookingsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </TableContainer>
       ) : !data?.data.length ? (
         <EmptyState message="No bookings match your filters." />
       ) : (
         <>
           {/* Desktop table */}
           <div className="hidden md:block">
-            <div className="card-static overflow-hidden">
+            <TableContainer>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -155,7 +156,7 @@ export default function AdminBookingsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </TableContainer>
           </div>
 
           {/* Mobile cards */}
@@ -184,26 +185,13 @@ export default function AdminBookingsPage() {
           </div>
 
           {data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                ← Previous
-              </Button>
-              <span className="text-sm text-neutral-500">
-                Page {data.pagination.page} of {data.pagination.totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-                disabled={page === data.pagination.totalPages}
-              >
-                Next →
-              </Button>
+            <div className="pt-4">
+              <Pagination
+                currentPage={data.pagination.page}
+                totalPages={data.pagination.totalPages}
+                total={data.pagination.total}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </>

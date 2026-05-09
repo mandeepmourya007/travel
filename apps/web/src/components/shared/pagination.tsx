@@ -113,7 +113,7 @@ export function Pagination({ currentPage, totalPages, total, onPageChange, build
   const nextContent = <ChevronRight className="h-4 w-4" />
 
   return (
-    <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
       {total != null && (
         <p className="text-sm text-neutral-500">{total} total</p>
       )}

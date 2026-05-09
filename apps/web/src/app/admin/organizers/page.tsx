@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
 import { useOrganizerApprovals, useApproveRejectOrganizer } from '@/hooks/use-admin-organizers'
 import { OrganizerApprovalCard } from '@/components/admin/organizer-approval-card'
+import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import type { VerificationStatusFilter } from '@shared/types/admin.types'
 
@@ -96,26 +96,13 @@ export default function OrganizerApprovalsPage() {
           </div>
 
           {data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                ← Previous
-              </Button>
-              <span className="text-sm text-neutral-500">
-                Page {data.pagination.page} of {data.pagination.totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-                disabled={page === data.pagination.totalPages}
-              >
-                Next →
-              </Button>
+            <div className="pt-4">
+              <Pagination
+                currentPage={data.pagination.page}
+                totalPages={data.pagination.totalPages}
+                total={data.pagination.total}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </>

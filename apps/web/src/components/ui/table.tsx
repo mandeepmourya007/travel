@@ -2,6 +2,21 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+const TableContainer = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+TableContainer.displayName = "TableContainer"
+
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
@@ -20,7 +35,7 @@ const TableHeader = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >(({ className, ...props }, ref) => (
-  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+  <thead ref={ref} className={cn("border-b-2 border-neutral-200 bg-neutral-50 [&_tr]:border-b-0", className)} {...props} />
 ))
 TableHeader.displayName = "TableHeader"
 
@@ -58,7 +73,7 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-neutral-100/50 data-[state=selected]:bg-neutral-100",
+      "border-b border-neutral-100 transition-colors hover:bg-neutral-50 data-[state=selected]:bg-neutral-100",
       className
     )}
     {...props}
@@ -73,7 +88,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-10 px-2 text-left align-middle font-medium text-neutral-500 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wider text-neutral-500 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
       className
     )}
     {...props}
@@ -88,7 +103,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+      "px-4 py-3.5 align-middle text-neutral-700 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
       className
     )}
     {...props}
@@ -110,6 +125,7 @@ TableCaption.displayName = "TableCaption"
 
 export {
   Table,
+  TableContainer,
   TableHeader,
   TableBody,
   TableFooter,

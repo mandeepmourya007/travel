@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { useFlaggedMessages } from '@/hooks/use-admin-chat'
+import { Pagination } from '@/components/shared/pagination'
 
 export default function AdminFlaggedMessagesPage() {
   const [page, setPage] = useState(1)
@@ -100,26 +101,13 @@ export default function AdminFlaggedMessagesPage() {
       )}
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="mt-6 flex items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="flex h-8 w-8 items-center justify-center rounded border text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-sm text-neutral-600">
-            Page {page} of {pagination.totalPages}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-            disabled={page === pagination.totalPages}
-            className="flex h-8 w-8 items-center justify-center rounded border text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        <div className="mt-6">
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>
