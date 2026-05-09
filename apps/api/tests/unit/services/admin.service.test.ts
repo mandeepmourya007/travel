@@ -21,11 +21,14 @@ const mockBookingRepo = {
   getRevenueTrend: vi.fn(),
   findAllAdmin: vi.fn(),
   findByIdAdmin: vi.fn(),
+  findConfirmedByTripForCashback: vi.fn(),
 }
 
 const mockTripRepo = {
   countByStatus: vi.fn(),
   countByType: vi.fn(),
+  findById: vi.fn(),
+  findCompletedTripsForCashback: vi.fn(),
 }
 
 const mockPaymentTxRepo = {
@@ -40,6 +43,16 @@ const mockNotificationRepo = {
   create: vi.fn(),
 }
 
+const mockWalletRepo = {
+  getCashbackByUser: vi.fn(),
+  getCashbackByTrip: vi.fn(),
+  getCashbackForUserDetail: vi.fn(),
+}
+
+const mockWalletService = {
+  credit: vi.fn(),
+}
+
 let service: AdminService
 
 beforeEach(() => {
@@ -52,6 +65,8 @@ beforeEach(() => {
     mockPaymentTxRepo as any,
     mockMessageRepo as any,
     mockNotificationRepo as any,
+    mockWalletRepo as any,
+    mockWalletService as any,
     logger as any,
   )
 })
@@ -413,5 +428,417 @@ describe('AdminService — Admin Bookings', () => {
     mockBookingRepo.findByIdAdmin.mockResolvedValue(null)
 
     await expect(service.getBookingDetail('nonexistent')).rejects.toThrow('Booking not found')
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// CASHBACK
+// ═══════════════════════════════════════════════════════
+
+function makeTravelerItem(overrides: Record<string, unknown> = {}) {
+  return {
+    bookingId: 'bk_1',
+    userId: 'user_1',
+    userName: 'Priya Sharma',
+    email: 'priya@test.com',
+    totalAmount: 4500,
+    numTravelers: 1,
+    cashbackIssued: null,
+    issuedAt: null,
+    ...overrides,
+  }
+}
+
+describe('AdminService — getCompletedTripsForCashback', () => {
+  it('returns paginated completed trips with cashback stats', async () => {
+    const trips = [
+      { id: 'trip_1', title: 'Goa Beach', slug: 'goa', startDate: '2026-12-06', endDate: '2026-12-08', currentBookings: 18, cashbackStats: { issuedCount: 10, totalAmount: 2000 } },
+    ]
+    mockTripRepo.findCompletedTripsForCashback.mockResolvedValue({ data: trips, total: 1 })
+
+    const result = await service.getCompletedTripsForCashback({ page: 1, limit: 20 })
+
+    expect(mockTripRepo.findCompletedTripsForCashback).toHaveBeenCalledWith({ search: undefined }, { skip: 0, take: 20 })
+    expect(result.data).toHaveLength(1)
+    expect(result.pagination.total).toBe(1)
+  })
+
+  it('passes search filter through', async () => {
+    mockTripRepo.findCompletedTripsForCashback.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getCompletedTripsForCashback({ search: 'goa', page: 1, limit: 10 })
+
+    expect(mockTripRepo.findCompletedTripsForCashback).toHaveBeenCalledWith({ search: 'goa' }, { skip: 0, take: 10 })
+  })
+})
+
+describe('AdminService — getTripCashbackDetail', () => {
+  it('returns travelers with cashback status for a completed trip', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa Beach' })
+    const travelers = [makeTravelerItem(), makeTravelerItem({ bookingId: 'bk_2', userId: 'user_2', userName: 'Rahul' })]
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue(travelers)
+
+    const result = await service.getTripCashbackDetail('trip_1')
+
+    expect(result).toHaveLength(2)
+    expect(mockBookingRepo.findConfirmedByTripForCashback).toHaveBeenCalledWith('trip_1')
+  })
+
+  it('throws NotFoundError for non-existent trip', async () => {
+    mockTripRepo.findById.mockResolvedValue(null)
+
+    await expect(service.getTripCashbackDetail('nonexistent')).rejects.toThrow('Trip not found')
+  })
+
+  it('throws ValidationError if trip is not COMPLETED', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'ACTIVE' })
+
+    await expect(service.getTripCashbackDetail('trip_1')).rejects.toThrow('Cashback can only be issued for completed trips')
+  })
+})
+
+describe('AdminService — issueCashback', () => {
+  const adminUserId = 'admin_1'
+
+  it('issues cashback to selected travelers', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa Beach' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1' }),
+      makeTravelerItem({ bookingId: 'bk_2', userId: 'user_2' }),
+    ])
+    mockWalletService.credit.mockResolvedValue({})
+
+    const result = await service.issueCashback(adminUserId, {
+      tripId: 'trip_1',
+      items: [
+        { bookingId: 'bk_1', userId: 'user_1', amount: 200 },
+        { bookingId: 'bk_2', userId: 'user_2', amount: 300 },
+      ],
+    })
+
+    expect(result).toEqual({ issued: 2, totalAmount: 500 })
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(2)
+    expect(mockWalletService.credit).toHaveBeenCalledWith({
+      userId: 'user_1',
+      amount: 200,
+      type: 'CASHBACK',
+      referenceModel: 'Booking',
+      referenceId: 'bk_1',
+      description: 'Cashback for trip: Goa Beach',
+    })
+  })
+
+  it('throws NotFoundError if trip does not exist', async () => {
+    mockTripRepo.findById.mockResolvedValue(null)
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'bad', items: [{ bookingId: 'bk_1', userId: 'u1', amount: 100 }] })).rejects.toThrow('Trip not found')
+  })
+
+  it('throws ValidationError if trip is not COMPLETED', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'ACTIVE' })
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'trip_1', items: [{ bookingId: 'bk_1', userId: 'u1', amount: 100 }] })).rejects.toThrow('completed trips')
+  })
+
+  it('throws ValidationError if booking not found in trip', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([])
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'trip_1', items: [{ bookingId: 'bk_bad', userId: 'u1', amount: 100 }] })).rejects.toThrow('not found in trip')
+  })
+
+  it('throws ValidationError if userId does not match booking', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1' }),
+    ])
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'trip_1', items: [{ bookingId: 'bk_1', userId: 'wrong_user', amount: 100 }] })).rejects.toThrow('User mismatch')
+  })
+
+  it('throws ValidationError if amount exceeds booking total', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1', totalAmount: 4500 }),
+    ])
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'trip_1', items: [{ bookingId: 'bk_1', userId: 'user_1', amount: 9999 }] })).rejects.toThrow('exceeds booking amount')
+  })
+
+  it('throws ValidationError if cashback already issued for booking', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1', cashbackIssued: 200, issuedAt: '2026-01-05' }),
+    ])
+
+    await expect(service.issueCashback(adminUserId, { tripId: 'trip_1', items: [{ bookingId: 'bk_1', userId: 'user_1', amount: 100 }] })).rejects.toThrow('already issued')
+  })
+})
+
+describe('AdminService — getCashbackHistoryByUser', () => {
+  it('returns paginated cashback grouped by user', async () => {
+    const data = [{ userId: 'u1', userName: 'Priya', email: 'p@t.com', totalCashback: 1200, count: 3, latestIssuedAt: '2026-01-05' }]
+    mockWalletRepo.getCashbackByUser.mockResolvedValue({ data, total: 1 })
+
+    const result = await service.getCashbackHistoryByUser({ page: 1, limit: 20 })
+
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].totalCashback).toBe(1200)
+  })
+})
+
+describe('AdminService — getCashbackHistoryByTrip', () => {
+  it('returns paginated cashback grouped by trip', async () => {
+    const data = [{ tripId: 't1', tripTitle: 'Goa', startDate: '2026-12-06', endDate: '2026-12-08', totalCashback: 3600, travelerCount: 18 }]
+    mockWalletRepo.getCashbackByTrip.mockResolvedValue({ data, total: 1 })
+
+    const result = await service.getCashbackHistoryByTrip({ page: 1, limit: 20 })
+
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].travelerCount).toBe(18)
+  })
+})
+
+describe('AdminService — getCashbackUserDetail', () => {
+  it('returns per-user cashback breakdown', async () => {
+    const data = [{ bookingId: 'bk_1', tripTitle: 'Goa Beach', bookingAmount: 4500, amount: 200, issuedAt: '2026-01-05' }]
+    mockWalletRepo.getCashbackForUserDetail.mockResolvedValue({ data, total: 1 })
+
+    const result = await service.getCashbackUserDetail('user_1', { page: 1, limit: 20 })
+
+    expect(mockWalletRepo.getCashbackForUserDetail).toHaveBeenCalledWith('user_1', { skip: 0, take: 20 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].amount).toBe(200)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// CASHBACK — SENIOR EDGE CASES
+// ═══════════════════════════════════════════════════════
+
+describe('AdminService — getCompletedTripsForCashback (edge cases)', () => {
+  it('uses default page=1, limit=20 when filters omitted', async () => {
+    mockTripRepo.findCompletedTripsForCashback.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getCompletedTripsForCashback({})
+
+    expect(mockTripRepo.findCompletedTripsForCashback).toHaveBeenCalledWith(
+      { search: undefined },
+      { skip: 0, take: 20 },
+    )
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('computes correct skip for page 3', async () => {
+    mockTripRepo.findCompletedTripsForCashback.mockResolvedValue({ data: [], total: 55 })
+
+    const result = await service.getCompletedTripsForCashback({ page: 3, limit: 10 })
+
+    expect(mockTripRepo.findCompletedTripsForCashback).toHaveBeenCalledWith(
+      { search: undefined },
+      { skip: 20, take: 10 },
+    )
+    expect(result.pagination.totalPages).toBe(6)
+  })
+
+  it('returns totalPages=1 when total equals limit', async () => {
+    mockTripRepo.findCompletedTripsForCashback.mockResolvedValue({ data: [{}], total: 20 })
+
+    const result = await service.getCompletedTripsForCashback({ page: 1, limit: 20 })
+
+    expect(result.pagination.totalPages).toBe(1)
+  })
+})
+
+describe('AdminService — issueCashback (edge cases)', () => {
+  const adminUserId = 'admin_1'
+
+  it('issues cashback with amount exactly equal to booking total (boundary)', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1', totalAmount: 4500 }),
+    ])
+    mockWalletService.credit.mockResolvedValue({})
+
+    const result = await service.issueCashback(adminUserId, {
+      tripId: 'trip_1',
+      items: [{ bookingId: 'bk_1', userId: 'user_1', amount: 4500 }],
+    })
+
+    expect(result).toEqual({ issued: 1, totalAmount: 4500 })
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(1)
+  })
+
+  it('issues single-item cashback and verifies correct walletService.credit args', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Kerala Backwaters' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_5', userId: 'user_5', totalAmount: 8000 }),
+    ])
+    mockWalletService.credit.mockResolvedValue({})
+
+    await service.issueCashback(adminUserId, {
+      tripId: 'trip_1',
+      items: [{ bookingId: 'bk_5', userId: 'user_5', amount: 500 }],
+    })
+
+    expect(mockWalletService.credit).toHaveBeenCalledWith({
+      userId: 'user_5',
+      amount: 500,
+      type: 'CASHBACK',
+      referenceModel: 'Booking',
+      referenceId: 'bk_5',
+      description: 'Cashback for trip: Kerala Backwaters',
+    })
+  })
+
+  it('does not call walletService.credit when first item fails validation', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1', cashbackIssued: 200 }),
+      makeTravelerItem({ bookingId: 'bk_2', userId: 'user_2' }),
+    ])
+
+    await expect(
+      service.issueCashback(adminUserId, {
+        tripId: 'trip_1',
+        items: [
+          { bookingId: 'bk_1', userId: 'user_1', amount: 100 },
+          { bookingId: 'bk_2', userId: 'user_2', amount: 200 },
+        ],
+      }),
+    ).rejects.toThrow('already issued')
+
+    expect(mockWalletService.credit).not.toHaveBeenCalled()
+  })
+
+  it('second item fails → first was already credited (no rollback)', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1', totalAmount: 4500 }),
+      makeTravelerItem({ bookingId: 'bk_2', userId: 'user_2', totalAmount: 3000, cashbackIssued: 100 }),
+    ])
+    mockWalletService.credit.mockResolvedValue({})
+
+    await expect(
+      service.issueCashback(adminUserId, {
+        tripId: 'trip_1',
+        items: [
+          { bookingId: 'bk_1', userId: 'user_1', amount: 200 },
+          { bookingId: 'bk_2', userId: 'user_2', amount: 100 },
+        ],
+      }),
+    ).rejects.toThrow('already issued')
+
+    // First credit went through before second item validation failed
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs issuance with correct admin userId and totals', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1' }),
+    ])
+    mockWalletService.credit.mockResolvedValue({})
+    const logSpy = vi.spyOn(logger, 'info')
+
+    await service.issueCashback(adminUserId, {
+      tripId: 'trip_1',
+      items: [{ bookingId: 'bk_1', userId: 'user_1', amount: 200 }],
+    })
+
+    expect(logSpy).toHaveBeenCalledWith(
+      { adminUserId: 'admin_1', tripId: 'trip_1', issued: 1, totalAmount: 200 },
+      'Cashback issued',
+    )
+  })
+
+  it('propagates error when walletService.credit throws', async () => {
+    mockTripRepo.findById.mockResolvedValue({ id: 'trip_1', status: 'COMPLETED', title: 'Goa' })
+    mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+      makeTravelerItem({ bookingId: 'bk_1', userId: 'user_1' }),
+    ])
+    mockWalletService.credit.mockRejectedValue(new Error('Wallet not found'))
+
+    await expect(
+      service.issueCashback(adminUserId, {
+        tripId: 'trip_1',
+        items: [{ bookingId: 'bk_1', userId: 'user_1', amount: 200 }],
+      }),
+    ).rejects.toThrow('Wallet not found')
+  })
+})
+
+describe('AdminService — getCashbackHistoryByUser (edge cases)', () => {
+  it('returns empty data with correct pagination when no cashback exists', async () => {
+    mockWalletRepo.getCashbackByUser.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getCashbackHistoryByUser({ page: 1, limit: 20 })
+
+    expect(result.data).toEqual([])
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('uses default page=1, limit=20 when not provided', async () => {
+    mockWalletRepo.getCashbackByUser.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getCashbackHistoryByUser({})
+
+    expect(mockWalletRepo.getCashbackByUser).toHaveBeenCalledWith({ skip: 0, take: 20 })
+  })
+
+  it('computes correct skip for page 2 with limit 5', async () => {
+    mockWalletRepo.getCashbackByUser.mockResolvedValue({ data: [], total: 12 })
+
+    const result = await service.getCashbackHistoryByUser({ page: 2, limit: 5 })
+
+    expect(mockWalletRepo.getCashbackByUser).toHaveBeenCalledWith({ skip: 5, take: 5 })
+    expect(result.pagination.totalPages).toBe(3)
+  })
+})
+
+describe('AdminService — getCashbackHistoryByTrip (edge cases)', () => {
+  it('returns empty data when no trips have cashback', async () => {
+    mockWalletRepo.getCashbackByTrip.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getCashbackHistoryByTrip({ page: 1, limit: 20 })
+
+    expect(result.data).toEqual([])
+    expect(result.pagination.totalPages).toBe(0)
+  })
+
+  it('defaults page and limit when filter is empty', async () => {
+    mockWalletRepo.getCashbackByTrip.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getCashbackHistoryByTrip({})
+
+    expect(mockWalletRepo.getCashbackByTrip).toHaveBeenCalledWith({ skip: 0, take: 20 })
+  })
+})
+
+describe('AdminService — getCashbackUserDetail (edge cases)', () => {
+  it('returns empty when user has no cashback', async () => {
+    mockWalletRepo.getCashbackForUserDetail.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getCashbackUserDetail('user_99', { page: 1, limit: 20 })
+
+    expect(result.data).toEqual([])
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('computes correct skip and totalPages for large dataset', async () => {
+    mockWalletRepo.getCashbackForUserDetail.mockResolvedValue({ data: [], total: 47 })
+
+    const result = await service.getCashbackUserDetail('user_1', { page: 3, limit: 10 })
+
+    expect(mockWalletRepo.getCashbackForUserDetail).toHaveBeenCalledWith('user_1', { skip: 20, take: 10 })
+    expect(result.pagination.totalPages).toBe(5)
+  })
+
+  it('defaults to page=1, limit=20 when filters empty', async () => {
+    mockWalletRepo.getCashbackForUserDetail.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getCashbackUserDetail('user_1', {})
+
+    expect(mockWalletRepo.getCashbackForUserDetail).toHaveBeenCalledWith('user_1', { skip: 0, take: 20 })
   })
 })

@@ -35,6 +35,7 @@ const mockWalletRepo = {
   countTransactions: vi.fn(),
   findAll: vi.fn(),
   sumByDirection: vi.fn(),
+  findCashbackTransactionsEnriched: vi.fn(),
 }
 
 let service: WalletService
@@ -501,6 +502,80 @@ describe('WalletService', () => {
       await expect(
         service.adminDebit('admin_1', 'user_1', 100000, 'Too much'),
       ).rejects.toThrow()
+    })
+  })
+
+  // ═════════════════════════════════════════════════
+  // getCashbackHistory()
+  // ═════════════════════════════════════════════════
+  describe('getCashbackHistory', () => {
+    it('returns paginated cashback transactions with trip names', async () => {
+      const wallet = makeWallet()
+      const cashbackTxns = [
+        makeWalletTxn({ type: 'CASHBACK', amount: 200, tripName: 'Goa Beach' }),
+        makeWalletTxn({ id: 'wtx_2', type: 'CASHBACK', amount: 300, tripName: 'Manali Trek' }),
+      ]
+      mockWalletRepo.findOrCreate.mockResolvedValue(wallet)
+      mockWalletRepo.findCashbackTransactionsEnriched.mockResolvedValue({ data: cashbackTxns, total: 2 })
+
+      const result = await service.getCashbackHistory('user_1', { page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0].tripName).toBe('Goa Beach')
+      expect(result.pagination.total).toBe(2)
+      expect(result.pagination.page).toBe(1)
+      expect(result.pagination.limit).toBe(10)
+      expect(mockWalletRepo.findCashbackTransactionsEnriched).toHaveBeenCalledWith(
+        'wallet_1',
+        { skip: 0, take: 10 },
+      )
+    })
+
+    it('uses PAGINATION_DEFAULTS when no filters provided', async () => {
+      mockWalletRepo.findOrCreate.mockResolvedValue(makeWallet())
+      mockWalletRepo.findCashbackTransactionsEnriched.mockResolvedValue({ data: [], total: 0 })
+
+      const result = await service.getCashbackHistory('user_1', {})
+
+      expect(result.pagination.page).toBe(1)
+      expect(result.pagination.limit).toBe(20)
+      expect(mockWalletRepo.findCashbackTransactionsEnriched).toHaveBeenCalledWith(
+        'wallet_1',
+        { skip: 0, take: 20 },
+      )
+    })
+
+    it('auto-creates wallet for new user and returns empty', async () => {
+      mockWalletRepo.findOrCreate.mockResolvedValue(makeWallet({ balance: 0 }))
+      mockWalletRepo.findCashbackTransactionsEnriched.mockResolvedValue({ data: [], total: 0 })
+
+      const result = await service.getCashbackHistory('new_user', { page: 1 })
+
+      expect(result.data).toEqual([])
+      expect(result.pagination.total).toBe(0)
+      expect(mockWalletRepo.findOrCreate).toHaveBeenCalledWith('new_user')
+    })
+
+    it('computes correct offset for page 3', async () => {
+      mockWalletRepo.findOrCreate.mockResolvedValue(makeWallet())
+      mockWalletRepo.findCashbackTransactionsEnriched.mockResolvedValue({ data: [], total: 55 })
+
+      const result = await service.getCashbackHistory('user_1', { page: 3, limit: 10 })
+
+      expect(mockWalletRepo.findCashbackTransactionsEnriched).toHaveBeenCalledWith(
+        'wallet_1',
+        { skip: 20, take: 10 },
+      )
+      expect(result.pagination.totalPages).toBe(6)
+    })
+
+    it('returns correct totalPages for exact division', async () => {
+      mockWalletRepo.findOrCreate.mockResolvedValue(makeWallet())
+      mockWalletRepo.findCashbackTransactionsEnriched.mockResolvedValue({ data: [], total: 40 })
+
+      const result = await service.getCashbackHistory('user_1', { page: 1, limit: 20 })
+
+      expect(result.pagination.totalPages).toBe(2)
     })
   })
 
