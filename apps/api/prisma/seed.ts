@@ -184,31 +184,31 @@ async function main() {
 
   // ── Destinations ────────────────────────────────────
   const goa = await prisma.destination.create({
-    data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 3, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800' },
+    data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800' },
   })
   const lonavala = await prisma.destination.create({
-    data: { name: 'Lonavala', slug: 'lonavala', state: 'Maharashtra', isPopular: true, tripCount: 2, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800' },
+    data: { name: 'Lonavala', slug: 'lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800' },
   })
   const ladakh = await prisma.destination.create({
-    data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800' },
+    data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800' },
   })
   const manali = await prisma.destination.create({
-    data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800' },
+    data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800' },
   })
   const rishikesh = await prisma.destination.create({
-    data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800' },
+    data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800' },
   })
   const alibaug = await prisma.destination.create({
-    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' },
+    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' },
   })
   const hampi = await prisma.destination.create({
-    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800' },
+    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800' },
   })
   const jaipur = await prisma.destination.create({
-    data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800' },
+    data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800' },
   })
   const mumbai = await prisma.destination.create({
-    data: { name: 'Mumbai to Goa', slug: 'mumbai-goa-highway', state: 'Maharashtra', isPopular: false, tripCount: 1, photoUrl: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800' },
+    data: { name: 'Mumbai to Goa', slug: 'mumbai-goa-highway', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800' },
   })
 
   console.log('  ✓ Created 9 destinations')
@@ -1878,6 +1878,19 @@ async function main() {
   console.log('     rohan@gmail.com: ₹850   (REFUND + CASHBACK)')
   console.log('     pooja@gmail.com: ₹250   (PROMOTIONAL_CREDIT + EXPIRY)')
   console.log('     meera@gmail.com: ₹600   (ADMIN_CREDIT + ADMIN_DEBIT)')
+
+  // ── Recalculate destination tripCount from actual ACTIVE/FULL trips ──
+  await prisma.$executeRaw`
+    UPDATE "Destination" d
+    SET "tripCount" = (
+      SELECT COUNT(*)::int
+      FROM "Trip" t
+      WHERE t."destinationId" = d.id
+        AND t."isDeleted" = false
+        AND t.status IN ('ACTIVE', 'FULL')
+    )
+  `
+  console.log('  ✓ Recalculated destination tripCount from actual ACTIVE/FULL trips')
 
   console.log('\n✅ Seed complete!\n')
   console.log('  📊 Revenue Summary (Demo Organizer):')

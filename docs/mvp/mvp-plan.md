@@ -834,14 +834,14 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ## 10. Timeline & Progress
 
-| Week | Milestone | Status |
-|------|-----------|--------|
-| **Week 1-2** | Project setup, auth, DB schema, basic UI shell | ✅ Done |
-| **Week 3-4** | Trip CRUD (organizer), trip listing/search (traveler) | ✅ Done |
-| **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
-| **Week 7-8** | Razorpay integration, booking flow, escrow | ✅ Done |
-| **Week 9-10** | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done |
-| **Week 11-12** | Admin panel, chat system, review system, deploy | ✅ Done (chat ✅, reviews ✅, SEO ✅, lifecycle ✅, admin ✅, constants refactor ✅) |
+| Week           | Milestone                                                  | Status                                                                        |
+| ----------------| ------------------------------------------------------------| -------------------------------------------------------------------------------|
+| **Week 1-2**   | Project setup, auth, DB schema, basic UI shell             | ✅ Done                                                                        |
+| **Week 3-4**   | Trip CRUD (organizer), trip listing/search (traveler)      | ✅ Done                                                                        |
+| **Week 5-6**   | Trip detail page, comparison feature, SEO setup            | ✅ Done                                                                        |
+| **Week 7-8**   | Razorpay integration, booking flow, escrow                 | ✅ Done                                                                        |
+| **Week 9-10**  | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done                                                                        |
+| **Week 11-12** | Admin panel, chat system, review system, deploy            | ✅ Done (chat ✅, reviews ✅, SEO ✅, lifecycle ✅, admin ✅, constants refactor ✅) |
 
 **Total: ~12 weeks for a solo developer / 6-8 weeks with 2 developers**
 
@@ -1310,4 +1310,13 @@ TODO
 10. ~~Please have cron job for expiry trip request + removing tokens~~ ✅ Done (4 cron jobs: bookings, requests, codes, tokens)
 11. ~~Nav bar is not consistent in all pages~~ ✅ Fixed (header role-based nav links)
 12. ~~Show proper error message if we are showing error in UI~~ ✅ Done (ErrorState with title + message props)
+13. **Admin Manual Cashback (Post-Trip Completion)**
+    - After trip auto-completes (cron `completeEndedTrips`), admin can manually issue cashback to travelers
+    - Admin panel: `/admin/cashback` — select completed trip → view travelers → set cashback amount per traveler → issue
+    - Cashback credited to traveler's **wallet** (`WalletTransaction` type: `CASHBACK`)
+    - Cashback usable on next trip bookings (wallet balance applied at checkout)
+    - **Withdraw: OFF by default** — cashback is platform credit only, not withdrawable to bank
+    - Future toggle: admin can enable withdraw per-user or globally (Phase 2)
+    - BE: `AdminService.issueCashback(tripId, userId, amount)` → `WalletService.credit()` with `CASHBACK` type
+    - FE: Admin cashback page + traveler wallet shows cashback transactions
 *This MVP plan aligns with the aggregator model and anti-leakage strategy defined in the [R&D document](../rnd/group-travel-market-research.md).*
