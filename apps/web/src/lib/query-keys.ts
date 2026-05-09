@@ -5,6 +5,7 @@ import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/p
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
+import type { OrganizerApprovalFilters, AdminBookingFilters } from '@shared/types/admin.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -100,4 +101,25 @@ export const chatKeys = {
   messageSearch: (conversationId: string, query: string) =>
     [...chatKeys.all, 'messages', conversationId, 'search', query] as const,
   unreadCount: () => [...chatKeys.all, 'unread-count'] as const,
+  flagged: (page?: number, limit?: number) =>
+    [...chatKeys.all, 'flagged', page, limit] as const,
+}
+
+export const adminKeys = {
+  all: ['admin'] as const,
+  stats: () => [...adminKeys.all, 'stats'] as const,
+  organizersBase: () => [...adminKeys.all, 'organizers'] as const,
+  organizers: (filters?: OrganizerApprovalFilters) =>
+    filters
+      ? [...adminKeys.organizersBase(), filters] as const
+      : adminKeys.organizersBase(),
+  organizerDetail: (id: string) =>
+    [...adminKeys.organizersBase(), 'detail', id] as const,
+  bookingsBase: () => [...adminKeys.all, 'bookings'] as const,
+  bookings: (filters?: AdminBookingFilters) =>
+    filters
+      ? [...adminKeys.bookingsBase(), filters] as const
+      : adminKeys.bookingsBase(),
+  bookingDetail: (id: string) =>
+    [...adminKeys.bookingsBase(), 'detail', id] as const,
 }

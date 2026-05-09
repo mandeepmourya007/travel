@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { chatKeys } from '@/lib/query-keys'
 import type { Message } from '@shared/types/chat.types'
 
 export function useFlaggedMessages(page = 1, limit = 20) {
   return useQuery({
-    queryKey: ['chat', 'flagged', page, limit],
+    queryKey: chatKeys.flagged(page, limit),
     queryFn: async () => {
       const res = await apiClient.get<{
         success: true
