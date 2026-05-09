@@ -39,7 +39,7 @@ const NAV_LINKS: NavLink[] = [
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ORGANIZER'], variant: 'primary' },
-  { href: '/admin/payments', label: 'Admin', icon: Shield, roles: ['ADMIN'], variant: 'primary' },
+  { href: '/admin', label: 'Admin', icon: Shield, roles: ['ADMIN'], variant: 'primary' },
 ]
 
 function isLinkVisible(link: NavLink, role: string | undefined, isAuthenticated: boolean): boolean {
