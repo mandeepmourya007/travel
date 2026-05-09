@@ -7,6 +7,7 @@ import {
   Users,
   Package,
   CreditCard,
+  Gift,
   MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -23,6 +24,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'organizers', label: 'Organizers', href: '/admin/organizers', icon: Users },
   { id: 'bookings', label: 'Bookings', href: '/admin/bookings', icon: Package },
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
+  { id: 'cashback', label: 'Cashback', href: '/admin/cashback', icon: Gift },
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
 ]
 

@@ -5,7 +5,7 @@ import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/p
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
-import type { OrganizerApprovalFilters, AdminBookingFilters } from '@shared/types/admin.types'
+import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters } from '@shared/types/admin.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -75,6 +75,8 @@ export const walletKeys = {
   balance: () => [...walletKeys.all, 'balance'] as const,
   transactions: (filters?: WalletTransactionFilters) =>
     [...walletKeys.all, 'transactions', filters] as const,
+  cashback: (page?: number) =>
+    [...walletKeys.all, 'cashback', page] as const,
 }
 
 export const paymentKeys = {
@@ -122,4 +124,17 @@ export const adminKeys = {
       : adminKeys.bookingsBase(),
   bookingDetail: (id: string) =>
     [...adminKeys.bookingsBase(), 'detail', id] as const,
+  cashbackTripsBase: () => [...adminKeys.all, 'cashback', 'trips'] as const,
+  cashbackTrips: (filters?: CashbackTripFilters) =>
+    [...adminKeys.cashbackTripsBase(), filters] as const,
+  cashbackTripDetail: (tripId: string) =>
+    [...adminKeys.cashbackTripsBase(), 'detail', tripId] as const,
+  cashbackByUserBase: () => [...adminKeys.all, 'cashback', 'by-user'] as const,
+  cashbackByUser: (filters?: CashbackHistoryFilters) =>
+    [...adminKeys.cashbackByUserBase(), filters] as const,
+  cashbackByTripBase: () => [...adminKeys.all, 'cashback', 'by-trip'] as const,
+  cashbackByTrip: (filters?: CashbackHistoryFilters) =>
+    [...adminKeys.cashbackByTripBase(), filters] as const,
+  cashbackUserDetail: (userId: string, filters?: CashbackHistoryFilters) =>
+    [...adminKeys.cashbackByUserBase(), 'detail', userId, filters] as const,
 }
