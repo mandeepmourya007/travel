@@ -7,6 +7,9 @@ import {
   organizerApprovalFiltersSchema,
   approveRejectSchema,
   adminBookingFiltersSchema,
+  cashbackTripFiltersSchema,
+  issueCashbackSchema,
+  cashbackHistoryFiltersSchema,
 } from '@shared/validators/admin.schema'
 
 export function createAdminRoutes(
@@ -50,6 +53,42 @@ export function createAdminRoutes(
   router.get(
     '/bookings/:id',
     adminController.getBookingDetail,
+  )
+
+  // ─── Cashback ───────────────────────────────────────
+  router.get(
+    '/cashback/trips',
+    validate(cashbackTripFiltersSchema, 'query'),
+    adminController.getCompletedTripsForCashback,
+  )
+
+  router.get(
+    '/cashback/trips/:tripId',
+    adminController.getTripCashbackDetail,
+  )
+
+  router.post(
+    '/cashback/issue',
+    validate(issueCashbackSchema, 'body'),
+    adminController.issueCashback,
+  )
+
+  router.get(
+    '/cashback/by-user',
+    validate(cashbackHistoryFiltersSchema, 'query'),
+    adminController.getCashbackHistoryByUser,
+  )
+
+  router.get(
+    '/cashback/by-user/:userId',
+    validate(cashbackHistoryFiltersSchema, 'query'),
+    adminController.getCashbackUserDetail,
+  )
+
+  router.get(
+    '/cashback/by-trip',
+    validate(cashbackHistoryFiltersSchema, 'query'),
+    adminController.getCashbackHistoryByTrip,
   )
 
   return router

@@ -44,6 +44,23 @@ export const WALLET_SIGNUP_BONUS = 0
 export const WALLET_MAX_ADMIN_CREDIT = 50000
 export const WALLET_MAX_ADMIN_DEBIT = 50000
 
+/** Parse page/limit filters and return skip/take + a builder for the response pagination object. */
+export function paginate(filters: { page?: number; limit?: number }) {
+  const page = filters.page ?? PAGINATION_DEFAULTS.page
+  const limit = filters.limit ?? PAGINATION_DEFAULTS.limit
+  const skip = (page - 1) * limit
+  return {
+    skip,
+    take: limit,
+    meta: (total: number) => ({
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    }),
+  }
+}
+
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',

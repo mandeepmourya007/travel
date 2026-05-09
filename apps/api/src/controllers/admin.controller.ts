@@ -1,7 +1,10 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/async-handler'
 import type { AdminService } from '../services/admin.service'
-import type { OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters } from '@shared/types/admin.types'
+import type {
+  OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
+  CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
+} from '@shared/types/admin.types'
 
 export class AdminController {
   constructor(private adminService: AdminService) {}
@@ -47,5 +50,55 @@ export class AdminController {
   getBookingDetail = asyncHandler(async (req: Request, res: Response) => {
     const detail = await this.adminService.getBookingDetail(req.params.id)
     res.json({ success: true, data: detail })
+  })
+
+  // ─── Cashback ───────────────────────────────────────
+
+  /** GET /admin/cashback/trips — Completed trips for cashback */
+  getCompletedTripsForCashback = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getCompletedTripsForCashback(
+      req.query as CashbackTripFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/cashback/trips/:tripId — Trip cashback detail */
+  getTripCashbackDetail = asyncHandler(async (req: Request, res: Response) => {
+    const data = await this.adminService.getTripCashbackDetail(req.params.tripId)
+    res.json({ success: true, data })
+  })
+
+  /** POST /admin/cashback/issue — Issue cashback */
+  issueCashback = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.issueCashback(
+      req.user!.userId,
+      req.body as IssueCashbackDto,
+    )
+    res.status(201).json({ success: true, data: result })
+  })
+
+  /** GET /admin/cashback/by-user — Cashback grouped by user */
+  getCashbackHistoryByUser = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getCashbackHistoryByUser(
+      req.query as CashbackHistoryFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/cashback/by-trip — Cashback grouped by trip */
+  getCashbackHistoryByTrip = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getCashbackHistoryByTrip(
+      req.query as CashbackHistoryFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/cashback/by-user/:userId — Per-user cashback detail */
+  getCashbackUserDetail = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getCashbackUserDetail(
+      req.params.userId,
+      req.query as CashbackHistoryFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 }

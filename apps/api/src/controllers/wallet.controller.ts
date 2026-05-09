@@ -19,6 +19,15 @@ export class WalletController {
     res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 
+  /** GET /wallet/cashback — traveler's cashback history with trip names */
+  getCashbackHistory = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.walletService.getCashbackHistory(
+      req.user!.userId,
+      req.query as { page?: number; limit?: number },
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
   /** POST /admin/wallets/:userId/credit — admin manual credit */
   adminCredit = asyncHandler(async (req: Request, res: Response) => {
     const { userId } = req.params

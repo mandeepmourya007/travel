@@ -6,8 +6,16 @@ import type { TripRepository } from '../repositories/trip.repository'
 import type { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import type { MessageRepository } from '../repositories/message.repository'
 import type { NotificationRepository } from '../repositories/notification.repository'
-import type { OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters } from '@shared/types/admin.types'
+import type { WalletRepository } from '../repositories/wallet.repository'
+import type { WalletService } from './wallet.service'
+import type {
+  OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
+  CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
+} from '@shared/types/admin.types'
 import { NotFoundError, ValidationError } from '../errors/app-error'
+import { TRIP_STATUS } from '@shared/constants/trip-types'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { paginate } from '../utils/constants'
 
 export class AdminService {
   constructor(
@@ -18,6 +26,8 @@ export class AdminService {
     private paymentTxRepo: PaymentTransactionRepository,
     private messageRepo: MessageRepository,
     private notificationRepo: NotificationRepository,
+    private walletRepo: WalletRepository,
+    private walletService: WalletService,
     private logger: Logger,
   ) {}
 
@@ -179,5 +189,116 @@ export class AdminService {
     const booking = await this.bookingRepo.findByIdAdmin(bookingId)
     if (!booking) throw new NotFoundError('Booking')
     return booking
+  }
+
+  // ─── Cashback ───────────────────────────────────────
+
+  /** Paginated COMPLETED trips with cashback stats. */
+  async getCompletedTripsForCashback(filters: CashbackTripFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.tripRepo.findCompletedTripsForCashback(
+      { search: filters.search },
+      { skip: pg.skip, take: pg.take },
+    )
+    return { data, pagination: pg.meta(total) }
+  }
+
+  /** Travelers for a completed trip with cashback status. */
+  async getTripCashbackDetail(tripId: string) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+    if (trip.status !== TRIP_STATUS.COMPLETED) {
+      throw new ValidationError('Cashback can only be issued for completed trips')
+    }
+
+    return this.bookingRepo.findConfirmedByTripForCashback(tripId)
+  }
+
+  /**
+   * Issues cashback to selected travelers for a completed trip.
+   * Validates: trip COMPLETED, booking belongs to trip, amount ≤ totalAmount, no duplicate.
+   */
+  async issueCashback(adminUserId: string, dto: IssueCashbackDto) {
+    const trip = await this.tripRepo.findById(dto.tripId)
+    if (!trip) throw new NotFoundError('Trip')
+    if (trip.status !== TRIP_STATUS.COMPLETED) {
+      throw new ValidationError('Cashback can only be issued for completed trips')
+    }
+
+    const travelers = await this.bookingRepo.findConfirmedByTripForCashback(dto.tripId)
+    const travelerMap = new Map(travelers.map((t) => [t.bookingId, t]))
+
+    let issued = 0
+    let totalAmount = 0
+
+    for (const item of dto.items) {
+      this.validateCashbackItem(item, travelerMap)
+
+      await this.walletService.credit({
+        userId: item.userId,
+        amount: item.amount,
+        type: WALLET_TX.CASHBACK,
+        referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+        referenceId: item.bookingId,
+        description: `Cashback for trip: ${trip.title}`,
+      })
+
+      issued++
+      totalAmount += item.amount
+    }
+
+    this.logger.info(
+      { adminUserId, tripId: dto.tripId, issued, totalAmount },
+      'Cashback issued',
+    )
+
+    return { issued, totalAmount }
+  }
+
+  /** All cashback grouped by user (admin). */
+  async getCashbackHistoryByUser(filters: CashbackHistoryFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.walletRepo.getCashbackByUser({ skip: pg.skip, take: pg.take })
+    return { data, pagination: pg.meta(total) }
+  }
+
+  /** All cashback grouped by trip (admin). */
+  async getCashbackHistoryByTrip(filters: CashbackHistoryFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.walletRepo.getCashbackByTrip({ skip: pg.skip, take: pg.take })
+    return { data, pagination: pg.meta(total) }
+  }
+
+  /** Per-user cashback drill-down (admin). */
+  async getCashbackUserDetail(userId: string, filters: CashbackHistoryFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.walletRepo.getCashbackForUserDetail(
+      userId,
+      { skip: pg.skip, take: pg.take },
+    )
+    return { data, pagination: pg.meta(total) }
+  }
+
+  // ─── Private Helpers ────────────────────────────────
+
+  private validateCashbackItem(
+    item: { bookingId: string; userId: string; amount: number },
+    travelerMap: Map<string, CashbackTravelerItem>,
+  ) {
+    const traveler = travelerMap.get(item.bookingId)
+    if (!traveler) {
+      throw new ValidationError(`Booking ${item.bookingId} not found in trip`)
+    }
+    if (traveler.userId !== item.userId) {
+      throw new ValidationError(`User mismatch for booking ${item.bookingId}`)
+    }
+    if (item.amount > traveler.totalAmount) {
+      throw new ValidationError(
+        `Cashback ₹${item.amount} exceeds booking amount ₹${traveler.totalAmount} for ${traveler.userName}`,
+      )
+    }
+    if (traveler.cashbackIssued !== null) {
+      throw new ValidationError(`Cashback already issued for booking ${item.bookingId} (${traveler.userName})`)
+    }
   }
 }

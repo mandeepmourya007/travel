@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
+import { TRIP_STATUS } from '@shared/constants/trip-types'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
 export const TRIP_INCLUDE_SUMMARY = {
   destination: {
@@ -421,9 +423,101 @@ export class TripRepository {
     const groups = await this.prisma.trip.groupBy({
       by: ['tripType'],
       _count: { id: true },
-      where: { isDeleted: false, status: { in: ['ACTIVE', 'FULL', 'COMPLETED'] } },
+      where: { isDeleted: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED] } },
     })
     return groups.map((g) => ({ type: g.tripType, count: g._count.id }))
+  }
+
+  /**
+   * Paginated COMPLETED trips with booking count and cashback stats.
+   * Supports search on trip title.
+   * Used by: AdminService.getCompletedTripsForCashback()
+   */
+  async findCompletedTripsForCashback(
+    filters: { search?: string },
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      status: TRIP_STATUS.COMPLETED,
+      isDeleted: false,
+      ...(filters.search && {
+        title: { contains: filters.search, mode: 'insensitive' as const },
+      }),
+    }
+
+    const [trips, total] = await this.prisma.$transaction([
+      this.prisma.trip.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: { endDate: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          startDate: true,
+          endDate: true,
+          currentBookings: true,
+        },
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+
+    // Batch-fetch cashback stats for all trips in one query
+    const tripIds = trips.map((t) => t.id)
+    const cashbackStats = tripIds.length
+      ? await this.prisma.walletTransaction.groupBy({
+          by: ['referenceId'],
+          where: {
+            type: WALLET_TX.CASHBACK,
+            referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+            referenceId: {
+              in: await this.prisma.booking
+                .findMany({
+                  where: { tripId: { in: tripIds }, isDeleted: false },
+                  select: { id: true },
+                })
+                .then((bs) => bs.map((b) => b.id)),
+            },
+          },
+          _count: { id: true },
+          _sum: { amount: true },
+        })
+      : []
+
+    // Group cashback by tripId via booking lookup
+    const bookingToTrip = tripIds.length
+      ? new Map(
+          await this.prisma.booking
+            .findMany({
+              where: { tripId: { in: tripIds }, isDeleted: false },
+              select: { id: true, tripId: true },
+            })
+            .then((bs) => bs.map((b) => [b.id, b.tripId] as const)),
+        )
+      : new Map<string, string>()
+
+    const tripCashback = new Map<string, { issuedCount: number; totalAmount: number }>()
+    for (const stat of cashbackStats) {
+      const tid = bookingToTrip.get(stat.referenceId!)
+      if (!tid) continue
+      const existing = tripCashback.get(tid) ?? { issuedCount: 0, totalAmount: 0 }
+      existing.issuedCount += stat._count.id
+      existing.totalAmount += stat._sum.amount ?? 0
+      tripCashback.set(tid, existing)
+    }
+
+    const data = trips.map((t) => ({
+      id: t.id,
+      title: t.title,
+      slug: t.slug,
+      startDate: t.startDate.toISOString(),
+      endDate: t.endDate.toISOString(),
+      currentBookings: t.currentBookings,
+      cashbackStats: tripCashback.get(t.id) ?? { issuedCount: 0, totalAmount: 0 },
+    }))
+
+    return { data, total }
   }
 
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {

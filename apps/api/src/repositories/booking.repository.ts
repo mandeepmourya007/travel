@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { Prisma, type BookingStatus, type Gender } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
 const BOOKING_INCLUDE_LIST = {
   user: {
@@ -450,14 +451,19 @@ export class BookingRepository {
    */
   async getRevenueTrend(months: number): Promise<Array<{ month: string; revenue: number }>> {
     const rows = await this.prisma.$queryRaw<Array<{ month: Date; revenue: bigint }>>`
-      SELECT DATE_TRUNC('month', "createdAt") AS month,
-             COALESCE(SUM("amount"), 0) AS revenue
-      FROM "PaymentTransaction"
-      WHERE "type" = 'PAYMENT'
-        AND "status" = 'CAPTURED'
-        AND "createdAt" >= DATE_TRUNC('month', NOW()) - INTERVAL '${Prisma.raw(String(months - 1))} months'
-      GROUP BY month
-      ORDER BY month ASC
+      SELECT m.month,
+             COALESCE(SUM(pt."amount"), 0) AS revenue
+      FROM generate_series(
+             DATE_TRUNC('month', NOW()) - INTERVAL '${Prisma.raw(String(months - 1))} months',
+             DATE_TRUNC('month', NOW()),
+             '1 month'::interval
+           ) AS m(month)
+      LEFT JOIN "PaymentTransaction" pt
+        ON DATE_TRUNC('month', pt."createdAt") = m.month
+        AND pt."type" = 'PAYMENT'
+        AND pt."status" = 'CAPTURED'
+      GROUP BY m.month
+      ORDER BY m.month ASC
     `
     return rows.map((r) => ({
       month: r.month.toISOString().slice(0, 7),
@@ -554,6 +560,66 @@ export class BookingRepository {
           },
         },
       },
+    })
+  }
+
+  /**
+   * Returns CONFIRMED/COMPLETED bookings for a trip, with user info and
+   * any existing CASHBACK wallet transactions for duplicate detection.
+   * Used by: AdminService.getTripCashbackDetail()
+   */
+  async findConfirmedByTripForCashback(tripId: string) {
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        tripId,
+        bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] },
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        userId: true,
+        totalAmount: true,
+        numTravelers: true,
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    // Fetch existing CASHBACK transactions for these bookings in one query
+    const bookingIds = bookings.map((b) => b.id)
+    const cashbackTxns = bookingIds.length
+      ? await this.prisma.walletTransaction.findMany({
+          where: {
+            type: WALLET_TX.CASHBACK,
+            referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+            referenceId: { in: bookingIds },
+          },
+          select: {
+            referenceId: true,
+            amount: true,
+            createdAt: true,
+          },
+        })
+      : []
+
+    const cashbackMap = new Map(
+      cashbackTxns.map((tx) => [tx.referenceId, { amount: tx.amount, issuedAt: tx.createdAt }]),
+    )
+
+    return bookings.map((b) => {
+      const cb = cashbackMap.get(b.id)
+      return {
+        bookingId: b.id,
+        userId: b.user.id,
+        userName: b.user.name,
+        email: b.user.email,
+        totalAmount: b.totalAmount,
+        numTravelers: b.numTravelers,
+        cashbackIssued: cb?.amount ?? null,
+        issuedAt: cb?.issuedAt?.toISOString() ?? null,
+      }
     })
   }
 

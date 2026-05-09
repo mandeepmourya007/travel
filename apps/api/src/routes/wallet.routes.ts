@@ -4,6 +4,7 @@ import type { UserRole } from '@shared/types/user.types'
 import { WalletController } from '../controllers/wallet.controller'
 import { validate } from '../middleware/validate.middleware'
 import { walletTransactionFiltersSchema, adminWalletActionSchema } from '@shared/validators/wallet.schema'
+import { paginationSchema } from '@shared/validators/common.schema'
 
 export function createWalletRoutes(
   walletController: WalletController,
@@ -24,6 +25,13 @@ export function createWalletRoutes(
     authMiddleware,
     validate(walletTransactionFiltersSchema, 'query'),
     walletController.getTransactions,
+  )
+
+  router.get(
+    '/cashback',
+    authMiddleware,
+    validate(paginationSchema, 'query'),
+    walletController.getCashbackHistory,
   )
 
   // ─── Admin routes ──────────────────────────────────

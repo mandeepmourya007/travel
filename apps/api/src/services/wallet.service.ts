@@ -3,7 +3,8 @@ import type { WalletRepository } from '../repositories/wallet.repository'
 import type { WalletTransactionDto, WalletTransactionFilters, WalletTransactionItem, WalletSummary, WalletTransactionType } from '@shared/types/wallet.types'
 import { CREDIT_TYPES, DEBIT_TYPES } from '@shared/types/wallet.types'
 import { NotFoundError, ValidationError } from '../errors/app-error'
-import { WALLET_MAX_ADMIN_CREDIT, WALLET_MAX_ADMIN_DEBIT, PAGINATION_DEFAULTS } from '../utils/constants'
+import { WALLET_MAX_ADMIN_CREDIT, WALLET_MAX_ADMIN_DEBIT, PAGINATION_DEFAULTS, paginate } from '../utils/constants'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
 export class WalletService {
   constructor(
@@ -142,8 +143,8 @@ export class WalletService {
     const result = await this.credit({
       userId: targetUserId,
       amount,
-      type: 'ADMIN_CREDIT',
-      referenceModel: 'AdminAction',
+      type: WALLET_TX.ADMIN_CREDIT,
+      referenceModel: WALLET_REFERENCE_MODELS.ADMIN_ACTION,
       referenceId: adminUserId,
       description,
     })
@@ -175,8 +176,8 @@ export class WalletService {
     const result = await this.debit({
       userId: targetUserId,
       amount,
-      type: 'ADMIN_DEBIT',
-      referenceModel: 'AdminAction',
+      type: WALLET_TX.ADMIN_DEBIT,
+      referenceModel: WALLET_REFERENCE_MODELS.ADMIN_ACTION,
       referenceId: adminUserId,
       description,
     })
@@ -187,6 +188,22 @@ export class WalletService {
     )
 
     return result
+  }
+
+  /**
+   * Returns paginated CASHBACK transactions with trip names for the traveler.
+   * Calls walletRepo.findCashbackTransactionsEnriched() which joins booking→trip.
+   */
+  async getCashbackHistory(userId: string, filters: { page?: number; limit?: number }) {
+    const wallet = await this.walletRepo.findOrCreate(userId)
+    const pg = paginate(filters)
+
+    const { data, total } = await this.walletRepo.findCashbackTransactionsEnriched(
+      wallet.id,
+      { skip: pg.skip, take: pg.take },
+    )
+
+    return { data, pagination: pg.meta(total) }
   }
 
   /**

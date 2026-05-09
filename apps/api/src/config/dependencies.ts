@@ -124,7 +124,8 @@ export const chatService = new ChatService(conversationRepo, messageRepo, tripRe
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
-  paymentTxRepo, messageRepo, notificationRepo, logger,
+  paymentTxRepo, messageRepo, notificationRepo,
+  walletRepo, walletService, logger,
 )
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
