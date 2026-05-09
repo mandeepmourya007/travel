@@ -5,11 +5,13 @@ export const BOOKING_STATUSES = [
   'COMPLETED',
   'REFUNDED',
 ] as const
+export type BookingStatusConst = (typeof BOOKING_STATUSES)[number]
 
 export const TRIP_REQUEST_STATUSES = [
   'PENDING',
   'APPROVED',
   'REJECTED',
   'EXPIRED',
-  'CANCELLED',
+  'CONVERTED',
 ] as const
+export type TripRequestStatusConst = (typeof TRIP_REQUEST_STATUSES)[number]

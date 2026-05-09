@@ -1,7 +1,9 @@
 import { z } from 'zod'
 import { travelerDetailSchema } from '../validators/booking.schema'
+import type { TripRequestStatusConst } from '../constants/booking-status'
+import type { ApproveRejectAction } from '../constants/verification-status'
 
-export type TripRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
+export type TripRequestStatus = TripRequestStatusConst
 
 /** Traveler detail — derived from shared Zod schema (1NF via TravelerDetail table) */
 export type TripRequestTraveler = z.infer<typeof travelerDetailSchema>
@@ -42,7 +44,7 @@ export interface CreateTripRequestDto {
 }
 
 export interface RespondTripRequestDto {
-  status: 'APPROVED' | 'REJECTED'
+  status: ApproveRejectAction
   rejectionReason?: string
 }
 

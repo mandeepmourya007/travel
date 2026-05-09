@@ -1,4 +1,7 @@
-export type UserRole = 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
+import type { UserRole, SignupRole } from '../constants/roles'
+import type { VerificationStatus } from '../constants/verification-status'
+
+export type { UserRole, SignupRole }
 
 export interface UserProfile {
   id: string
@@ -41,7 +44,7 @@ export interface OrganizerProfileResponse {
   id: string
   businessName: string
   description: string | null
-  verificationStatus: 'PENDING' | 'APPROVED' | 'REJECTED'
+  verificationStatus: VerificationStatus
   rating: number
   totalReviews: number
   totalTripsCompleted: number
@@ -51,7 +54,7 @@ export interface OrganizerProfileResponse {
 /** DTO for PATCH /auth/profile */
 export interface UpdateUserProfileDto {
   name?: string
-  role?: 'TRAVELER' | 'ORGANIZER'
+  role?: SignupRole
 }
 
 /** DTO for PATCH /auth/profile/organizer */

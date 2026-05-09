@@ -1,9 +1,11 @@
+import type { UserRole, SignupRole } from '../constants/roles'
+
 export interface SignupDto {
   email: string
   password: string
   name?: string
   phone?: string
-  role?: 'TRAVELER' | 'ORGANIZER'
+  role?: SignupRole
 }
 
 export interface LoginDto {
@@ -21,7 +23,7 @@ export interface AuthResponse {
     id: string
     name: string
     email?: string
-    role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
+    role: UserRole
     avatarUrl?: string
   }
   tokens: AuthTokens
@@ -43,7 +45,7 @@ export interface OtpSendResponse {
 
 export interface UpdateProfileDto {
   name: string
-  role?: 'TRAVELER' | 'ORGANIZER'
+  role?: SignupRole
 }
 
 export interface GoogleAuthDto {
@@ -67,7 +69,7 @@ export interface VerifyEmailOtpDto {
 
 export interface JwtPayload {
   userId: string
-  role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
+  role: UserRole
   iat?: number
   exp?: number
 }

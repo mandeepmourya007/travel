@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
+import { TRIP_REQUEST_STATUSES } from '../constants/booking-status'
 
 /** Reusable traveler detail schema — shared between booking and trip request */
 export const travelerDetailSchema = z.object({
@@ -33,7 +35,7 @@ export const createTripRequestBodySchema = z.object({
 })
 
 export const respondTripRequestSchema = z.object({
-  status: z.enum(['APPROVED', 'REJECTED']),
+  status: z.enum(APPROVE_REJECT_ACTIONS),
   responseNote: z.string().max(500).optional(),
 })
 
@@ -57,7 +59,7 @@ export const tripBookingFiltersSchema = z.object({
 
 export const tripRequestFiltersSchema = z.object({
   status: z
-    .enum(['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED', 'CONVERTED'])
+    .enum(TRIP_REQUEST_STATUSES)
     .optional(),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),

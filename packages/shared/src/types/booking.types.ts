@@ -1,3 +1,5 @@
+import type { TripRequestStatus } from './trip-request.types'
+
 export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'REFUNDED' | 'EXPIRED'
 
 export interface Booking {
@@ -139,7 +141,7 @@ export interface MyTripBookingStatus {
   /** Active booking status (PENDING_PAYMENT | CONFIRMED) or null */
   bookingStatus: BookingStatus | null
   /** Active request status (PENDING | APPROVED) or null */
-  requestStatus: 'PENDING' | 'APPROVED' | null
+  requestStatus: Extract<TripRequestStatus, 'PENDING' | 'APPROVED'> | null
 }
 
 /** Request body for POST /bookings/:id/cancel */

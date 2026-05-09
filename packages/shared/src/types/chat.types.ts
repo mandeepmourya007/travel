@@ -1,3 +1,5 @@
+import type { UserRole } from '../constants/roles'
+
 // ─── Enums (const objects — usable at runtime in both BE & FE) ────
 
 export const CONVERSATION_TYPE = {
@@ -28,7 +30,7 @@ export interface ChatUser {
   id: string
   name: string
   avatarUrl?: string | null
-  role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
+  role: UserRole
 }
 
 export interface Conversation {

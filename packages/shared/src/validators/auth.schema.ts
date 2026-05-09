@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SIGNUP_ROLES } from '../constants/roles'
 
 /** 10-digit Indian phone number starting with 6-9. Shared across FE + BE. */
 export const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/
@@ -19,7 +20,7 @@ export const signupSchema = z.object({
     .string()
     .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number')
     .optional(),
-  role: z.enum(['TRAVELER', 'ORGANIZER']).optional(),
+  role: z.enum(SIGNUP_ROLES).optional(),
 })
 
 export const loginSchema = z.object({
@@ -65,7 +66,7 @@ export const verifyEmailOtpSchema = z.object({
 
 export const updateProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim().optional(),
-  role: z.enum(['TRAVELER', 'ORGANIZER']).optional(),
+  role: z.enum(SIGNUP_ROLES).optional(),
 })
 
 export const googleAuthSchema = z.object({
