@@ -100,6 +100,71 @@ export interface TripFilters {
 
 ---
 
+## Step 2b: Use Shared Constants (No Magic Strings)
+
+**NEVER** hardcode status strings, role names, or domain enums in service/repository code. Always import from `packages/shared/src/constants/`.
+
+**Location:** `packages/shared/src/constants/`
+**Barrel export:** `packages/shared/src/constants/index.ts`
+
+### Existing Constant Files
+
+| File | Constants | Example Usage |
+|------|-----------|---------------|
+| `trip-types.ts` | `TRIP_TYPES`, `BOOKING_MODES`, `CANCELLATION_POLICIES`, `TRIP_STATUSES` (array), `TRIP_STATUS` (object) | `TRIP_STATUS.COMPLETED` |
+| `booking-status.ts` | `BOOKING_STATUSES`, `TRIP_REQUEST_STATUSES` | `BOOKING_STATUSES` in Zod enums |
+| `roles.ts` | `USER_ROLES`, `SIGNUP_ROLES`, `DEFAULT_USER_NAME` | `USER_ROLES` in Zod enums |
+| `verification-status.ts` | `VERIFICATION_STATUSES`, `APPROVE_REJECT_ACTIONS` | `APPROVE_REJECT_ACTIONS` in admin schema |
+| `wallet.ts` | `WALLET_REFERENCE_MODELS`, `WALLET_TX`, re-exports `TRIP_STATUS` | `WALLET_TX.CASHBACK`, `WALLET_REFERENCE_MODELS.BOOKING` |
+| `review.ts` | `REVIEW_MAX_PHOTOS`, `REVIEW_MAX_COMMENT_LENGTH`, etc. | Validation limits |
+
+### Two Constant Patterns
+
+**1. Array form** — for Zod `.enum()` and type derivation:
+```typescript
+export const TRIP_STATUSES = ['DRAFT', 'ACTIVE', 'FULL', 'COMPLETED', 'CANCELLED'] as const
+export type TripStatusConst = (typeof TRIP_STATUSES)[number]
+```
+
+**2. Object form** — for dot-access in business logic:
+```typescript
+export const TRIP_STATUS = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  FULL: 'FULL',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const
+```
+
+### Adding New Constants
+
+1. Check if a relevant file already exists in `packages/shared/src/constants/`
+2. If yes → add to that file
+3. If no → create `<domain>.ts`, export from `index.ts`
+4. Use `as const` for type-narrowing
+5. Derive TypeScript types from the constant: `type X = (typeof ARRAY)[number]`
+
+### BE-Only Constants
+
+API-specific constants (JWT expiry, pagination defaults, salt rounds, cron intervals) live in `apps/api/src/utils/constants.ts`. These are NOT shared with FE.
+
+Key helpers in that file:
+- `PAGINATION_DEFAULTS` — `{ page: 1, limit: 20, maxLimit: 50 }`
+- `paginate(filters)` — returns `{ skip, take, meta(total) }` to eliminate pagination boilerplate in services
+
+### Rules
+
+```
+- NEVER use raw strings like 'COMPLETED', 'CASHBACK', 'Booking' in services/repositories
+- Import from @shared/constants/<file> or @shared/constants (barrel)
+- Raw SQL queries: use ${CONSTANT} parameterization, not hardcoded strings
+- Zod schemas: use the array constant for .enum() — z.enum(TRIP_STATUSES)
+- One source of truth: if TRIP_STATUS exists in trip-types.ts, don't redefine in wallet.ts — re-export
+```
+
+---
+
 ## Step 3: Write Zod Validation Schema
 
 Create request validation schemas BEFORE writing any route or controller.

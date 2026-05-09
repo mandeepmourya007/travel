@@ -223,6 +223,18 @@ export type TripFiltersInput = z.infer<typeof tripFiltersSchema>
 - FE uses it in `React Hook Form` with `zodResolver` to validate forms before submit.
 - Types are inferred from schemas — ONE source of truth, zero drift.
 
+### 3c. Shared Constants
+
+If your feature introduces new status strings, enum values, or domain constants, add them to `packages/shared/src/constants/`.
+
+**See `/build-backend` Step 2b** for the full constants reference (existing files, patterns, rules).
+
+Quick rules:
+- **Array form** (`as const` array) for Zod `.enum()` and type derivation
+- **Object form** (`as const` object) for dot-access in service code: `TRIP_STATUS.COMPLETED`
+- Never hardcode strings like `'COMPLETED'`, `'CASHBACK'`, `'Booking'` — always import constants
+- One source of truth per concept — re-export if needed, never duplicate
+
 ---
 
 # PHASE 2: BACKEND (TDD)
