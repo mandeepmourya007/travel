@@ -116,7 +116,12 @@ function WalletTxRow({ transaction }: { transaction: WalletTransactionItem }) {
       <td className="px-4 py-3">
         <WalletTxTypeBadge type={transaction.type} />
       </td>
-      <td className="px-4 py-3 text-neutral-700">{transaction.description}</td>
+      <td className="px-4 py-3 text-neutral-700">
+        {transaction.description}
+        {transaction.tripName && (
+          <p className="mt-0.5 text-xs text-neutral-500">Trip: {transaction.tripName}</p>
+        )}
+      </td>
       <td className={cn('whitespace-nowrap px-4 py-3 text-right font-mono font-bold', amountColor)}>
         {prefix}{formatCurrency(transaction.amount)}
       </td>
@@ -153,6 +158,9 @@ function WalletTxCard({ transaction }: { transaction: WalletTransactionItem }) {
             <WalletTxTypeBadge type={transaction.type} />
           </div>
           <p className="mt-1 truncate text-sm text-neutral-600">{transaction.description}</p>
+          {transaction.tripName && (
+            <p className="mt-0.5 truncate text-xs text-neutral-500">Trip: {transaction.tripName}</p>
+          )}
         </div>
         <div className="shrink-0 text-right">
           <p className={cn('whitespace-nowrap font-mono text-sm font-bold', amountColor)}>
