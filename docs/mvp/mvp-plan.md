@@ -841,7 +841,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 5-6** | Trip detail page, comparison feature, SEO setup | ✅ Done |
 | **Week 7-8** | Razorpay integration, booking flow, escrow | ✅ Done |
 | **Week 9-10** | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done |
-| **Week 11-12** | Admin panel, chat system, review system, deploy | 🟡 In progress (chat ✅, reviews ✅, admin partial ✅) |
+| **Week 11-12** | Admin panel, chat system, review system, deploy | ✅ Done (chat ✅, reviews ✅, SEO ✅, lifecycle ✅, admin ✅, constants refactor ✅) |
 
 **Total: ~12 weeks for a solo developer / 6-8 weeks with 2 developers**
 
@@ -1023,7 +1023,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] `useOrganizerStats` hook
 - [x] `StatCard` component (clickable with `href` prop, non-clickable variant)
 
-#### ✅ Backend Tests (429 tests passing)
+#### ✅ Backend Tests (587+ tests passing, 28 test files)
 - [x] Auth service unit tests (`auth.service.test.ts` — 48 tests: signup, login, refresh, logout, getMe, updateProfile)
 - [x] Firebase auth service tests (`firebase-auth.service.test.ts` — 6 tests)
 - [x] OTP service unit tests (`otp.service.test.ts` — 29 tests)
@@ -1042,6 +1042,9 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Utility tests (email: 10, phone: 6, rate-limiter: 6)
 - [x] Validator tests (auth schema: 37 tests)
 - [x] Redis config tests (8 tests)
+- [x] Booking lifecycle tests (`booking-lifecycle.test.ts` — 35 tests)
+- [x] Trip lifecycle service tests (`trip-lifecycle.service.test.ts` — 16 tests)
+- [x] Admin service tests (`admin.service.test.ts` — 24 tests: approval queue, organizer detail, approve/reject, platform stats, admin bookings)
 - [ ] Repository unit tests (remaining repos)
 - [ ] Route integration tests (remaining routes)
 
@@ -1102,6 +1105,15 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] **Approval expiry** — 48h payment window for approved requests, cron job for cleanup
 - [x] **Idempotency** — Returns existing PENDING_PAYMENT order on duplicate request, returns success for already CONFIRMED
 
+#### ✅ Trip Lifecycle Auto-Transitions
+- [x] **ACTIVE → FULL** — `trip.repository.ts:markFullIfAtCapacity()` atomic SQL, called after seat increment in `confirmBooking()`
+- [x] **FULL → ACTIVE revert** — `trip.repository.ts:revertFullIfUnderCapacity()` atomic SQL, called after cancellation
+- [x] **ACTIVE/FULL → COMPLETED** — `trip-lifecycle.service.ts:completeEndedTrips()` cron (every 30min, batch 50)
+- [x] **Escrow release** — `trip-lifecycle.service.ts:releaseUnreleasedEscrows()` cron, `on_hold_until` = endDate + 90 days
+- [x] **Razorpay transfer hold release** — SDK `transfers.edit` with raw HTTP fallback, lazy-fetch for missing transfer IDs
+- [x] **Fire-and-forget webhook** — `handlePaymentCaptured` marks CAPTURED immediately, fetches transfer ID non-blocking
+- [x] **Zero `any` types** — `types/razorpay.types.ts` with proper Razorpay entity types
+
 #### ✅ Razorpay Integration
 - [x] **Razorpay checkout** — Create order, render checkout modal, handle success/failure/dismiss
 - [x] **Payment verification** — HMAC-SHA256 signature verification (FE callback + webhook backup)
@@ -1151,9 +1163,6 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] `FirebaseAuthController` — POST /auth/firebase
 - [x] Frontend Google sign-in button on login/signup pages
 
-#### ✅ Admin Panel (Partial)
-- [x] Admin payments page (`/admin/payments`) — view all platform payments
-
 #### ✅ Backend — Review Module
 - [x] `ReviewRepository` — CRUD, paginated queries
 - [x] `ReviewService` — post-trip review logic, authorization
@@ -1190,16 +1199,88 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Messages page (`/messages`)
 - [x] Admin flagged messages page (`/admin/chat`)
 
-#### ✅ Admin Panel (Partial)
-- [x] Admin payments page (`/admin/payments`)
-- [x] Admin flagged chat messages page (`/admin/chat`)
-- [x] Admin layout (`/admin/layout.tsx`)
+#### ✅ SEO (Full Implementation)
+- [x] `NEXT_PUBLIC_SITE_URL` env var across all configs (`.env.example`, docker-compose, Dockerfile)
+- [x] `SITE_URL` constant in `lib/constants.ts`, `metadataBase` in root `layout.tsx`
+- [x] `trailingSlash: false` in `next.config.js`
+- [x] `lib/api-server.ts` — server-side fetch using `API_URL_INTERNAL` (Docker) with ISR `revalidate`
+- [x] BE sitemap endpoint (`GET /api/v1/sitemap-data`) — trips, destinations, organizers
+- [x] SSR trip detail page (`/trips/[slug]/page.tsx`) — `generateMetadata()`, OG image, canonical URL, `revalidate: 300`
+- [x] `trip-detail-client.tsx` — extracted client component receiving `trip` prop
+- [x] `useTripDetail(slug, initialData)` — SSR hydration support
+- [x] Schema.org JSON-LD (`lib/structured-data.ts`) — `buildTripJsonLd`, `buildBreadcrumbJsonLd`, `buildWebsiteJsonLd`, `buildOrganizationJsonLd`
+- [x] Dynamic sitemap (`app/sitemap.ts`) — calls `/api/v1/sitemap-data` with `revalidate: 3600`
+- [x] Robots (`app/robots.ts`) — blocks dashboard/admin/private pages
+- [x] Enhanced metadata — Home page OG + JSON-LD + canonical, trips layout SEO title/desc, auth layout noindex
+
+#### ✅ Shared Constants Refactor
+- [x] `constants/roles.ts` — `USER_ROLES`, `SIGNUP_ROLES` as const tuples, derived `UserRole` / `SignupRole` types
+- [x] `constants/booking-status.ts` — `BOOKING_STATUSES`, `TRIP_REQUEST_STATUSES` as const tuples, derived types
+- [x] `constants/verification-status.ts` — `VERIFICATION_STATUSES`, `APPROVE_REJECT_ACTIONS` as const tuples, derived types
+- [x] All shared types (`auth.types.ts`, `user.types.ts`, `booking.types.ts`, `chat.types.ts`, `trip-request.types.ts`, `admin.types.ts`) use imported types from constants
+- [x] All Zod validators (`auth.schema.ts`, `booking.schema.ts`, `admin.schema.ts`) use `z.enum()` with constant tuples
+- [x] BE repos use shared types (`UserRole`, `VerificationStatus`, `BookingStatusConst`) instead of inline strings
+
+#### ✅ Admin Panel (Full Implementation)
+
+**Backend:**
+- [x] `NotificationRepository` — create() for in-app notifications (uses `Prisma.InputJsonValue`)
+- [x] `OrganizerProfileRepository` — findAllAdmin (paginated, status filter), findByIdAdmin, countPending
+- [x] `UserRepository` — countAll, countByRole (uses `UserRole` type)
+- [x] `TripRepository` — countByStatus, countByType
+- [x] `BookingRepository` — countByStatusAdmin, getRevenueTrend (raw SQL), findAllAdmin, findByIdAdmin
+- [x] `MessageRepository` — countFlagged (filters `isDeleted: false`)
+- [x] `AdminService` — getApprovalQueue, getOrganizerDetail, approveOrReject (with notifications), getPlatformStats (`Promise.all` batched), getBookings (typed `AdminBookingFilters`), getBookingDetail
+- [x] `AdminController` — thin controller with asyncHandler
+- [x] `admin.routes.ts` — all behind `authMiddleware` + `requireRole('ADMIN')` + Zod validation
+- [x] Wired in `dependencies.ts`, mounted at `/api/v1/admin` in `server.ts`
+- [x] Admin service tests (24 tests — approval queue, organizer detail, approve/reject, platform stats, admin bookings)
+
+**Frontend:**
+- [x] `adminKeys` query key factory with `organizersBase()` / `bookingsBase()` (no trailing `undefined`), `'detail'` segment for collision prevention
+- [x] `lib/admin-utils.ts` — shared `BOOKING_STATUS_VARIANT`, `PAYMENT_STATUS_VARIANT`, `BOOKING_STATUS_COLORS` (from design tokens)
+- [x] `use-admin-stats.ts` — platform stats hook
+- [x] `use-admin-organizers.ts` — list + detail + approve/reject mutation (invalidates `organizersBase()`)
+- [x] `use-admin-bookings.ts` — list + detail hooks (with `staleTime: 30_000`)
+- [x] `use-admin-chat.ts` — flagged messages (refactored to `chatKeys.flagged()`)
+- [x] `admin-sidebar.tsx` — desktop sidebar + mobile bottom nav
+- [x] `revenue-chart.tsx` — Recharts LineChart (design token colors, whole ₹ display)
+- [x] `bookings-chart.tsx` — Recharts BarChart (shared `BOOKING_STATUS_COLORS`)
+- [x] `trip-type-chart.tsx` — Recharts PieChart (design token colors)
+- [x] `organizer-approval-card.tsx` — card with approve/reject buttons
+- [x] `approval-action-dialog.tsx` — AlertDialog with `ApproveRejectAction` type
+- [x] Admin layout (`AuthGuard ADMIN` + Header + AdminSidebar + mobile padding)
+- [x] Admin overview page — StatCards + 3 Recharts charts + quick actions + `EmptyState`
+- [x] Organizer approvals page — tabs (PENDING/APPROVED/REJECTED) + `Button` pagination
+- [x] Bookings list page — table + mobile cards + debounced search + status filter (incl. REFUNDED)
+- [x] Booking detail page — traveler details (nullable fields) + payment transactions + `EmptyState`
+- [x] `error.tsx` on all 4 admin routes
+- [x] Header admin link (`/admin`)
+
+**API Endpoints:**
+- `GET /api/v1/admin/organizers` — paginated approval queue
+- `GET /api/v1/admin/organizers/:id` — organizer detail
+- `PATCH /api/v1/admin/organizers/:id/status` — approve/reject + notification
+- `GET /api/v1/admin/stats` — platform overview + charts
+- `GET /api/v1/admin/bookings` — admin booking list
+- `GET /api/v1/admin/bookings/:id` — booking detail with travelers + payments
+
+**Bug Fixes Applied During Review:**
+1. Currency display — removed `/100` division (DB stores whole ₹), uses `formatCurrency` from `lib/format.ts`
+2. Inline role/status strings in repos → shared constant types
+3. Query key invalidation — no trailing `undefined`, `organizersBase()`/`bookingsBase()` for broad invalidation
+4. Search debounce — `useDebounce(search, 300)` on admin bookings
+5. Hardcoded hex colors → `tokens.json` design tokens
+6. Duplicate `STATUS_VARIANT` → shared `lib/admin-utils.ts`
+7. `ApprovalActionDialog` inline string → `ApproveRejectAction` type
+8. `notification.repository` `as never` → `Prisma.InputJsonValue`
+9. Admin empty states → `EmptyState` component
+10. Missing REFUNDED in booking status filter
+11. `adminKeys.bookingDetail` key collision → `'detail'` segment
+12. Missing `staleTime` on `useAdminBookingDetail`
 
 #### ⬜ Not Started — Remaining Features
-- [ ] **Admin panel (remaining)** — organizer approvals queue, dispute handling, platform stats dashboard
-- [ ] **Email notifications** — booking confirmation, trip updates (providers built, templates pending)
-- [ ] **SEO** — Schema.org markup, sitemap generation
-- [ ] **Trip status auto-transitions** — ACTIVE → FULL when seats filled, ACTIVE/FULL → COMPLETED after endDate, escrow release on completion
+- [ ] **Email notifications** — booking confirmation, trip updates, organizer approval/rejection (providers built, templates pending)
 
 ---
 
@@ -1220,12 +1301,12 @@ TODO
 1. ~~Login/signup page OTP verification for number and gmail~~ ✅ Done (phone OTP, email OTP, Google sign-in)
 2. ~~Traveler is redirected to dashboard — please fix~~ ✅ Done (organizer redirect to /dashboard, traveler stays on /trips)
 3. ~~Don't allow Organizer to go to trips list page, only dashboard~~ ✅ Done (header hides Explore Trips for ORGANIZER, /trips redirects organizers)
-4. ~~Compare UI visible in all pages — show in trips list page only~~ (needs verification)
-5. ~~When clicking signin button, no loader shown~~ (needs verification)
+4. ~~Compare UI visible in all pages — show in trips list page only~~ ✅ Done (GlobalCompareBar scoped to `/trips` via pathname check)
+5. ~~When clicking signin button, no loader shown~~ (needs verification — low priority)
 6. ~~Please check pagination~~ ✅ Done (shared Pagination component with ellipsis: < 1 ... 4 5 6 ... 20 >)
-7. ~~Modals are in viewport — fix it~~ (needs verification)
+7. ~~Modals are in viewport — fix it~~ (needs verification — low priority)
 8. ~~Trip is getting created even without clicking create trip~~ ✅ Fixed (Enter key prevention on form)
-9. ~~Uploaded image of trip is not visible~~ (needs verification)
+9. ~~Uploaded image of trip is not visible~~ (needs verification — low priority)
 10. ~~Please have cron job for expiry trip request + removing tokens~~ ✅ Done (4 cron jobs: bookings, requests, codes, tokens)
 11. ~~Nav bar is not consistent in all pages~~ ✅ Fixed (header role-based nav links)
 12. ~~Show proper error message if we are showing error in UI~~ ✅ Done (ErrorState with title + message props)
