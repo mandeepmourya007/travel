@@ -130,3 +130,80 @@ export interface OrganizerApprovalListResponse {
   data: OrganizerApprovalItem[]
   pagination: PaginationMeta
 }
+
+// ─── Admin Cashback ─────────────────────────────────────
+
+export interface CompletedTripForCashback {
+  id: string
+  title: string
+  slug: string
+  startDate: string
+  endDate: string
+  currentBookings: number
+  cashbackStats: {
+    issuedCount: number
+    totalAmount: number
+  }
+}
+
+export interface CashbackTravelerItem {
+  bookingId: string
+  userId: string
+  userName: string
+  email: string | null
+  totalAmount: number
+  numTravelers: number
+  cashbackIssued: number | null
+  issuedAt: string | null
+}
+
+export interface IssueCashbackDto {
+  tripId: string
+  items: Array<{
+    bookingId: string
+    userId: string
+    amount: number
+  }>
+}
+
+export interface IssueCashbackResponse {
+  issued: number
+  totalAmount: number
+}
+
+export interface CashbackHistoryByUser {
+  userId: string
+  userName: string
+  email: string | null
+  totalCashback: number
+  count: number
+  latestIssuedAt: string
+}
+
+export interface CashbackHistoryByTrip {
+  tripId: string
+  tripTitle: string
+  startDate: string
+  endDate: string
+  totalCashback: number
+  travelerCount: number
+}
+
+export interface CashbackUserTripDetail {
+  bookingId: string
+  tripTitle: string
+  bookingAmount: number
+  amount: number
+  issuedAt: string
+}
+
+export interface CashbackTripFilters {
+  search?: string
+  page?: number
+  limit?: number
+}
+
+export interface CashbackHistoryFilters {
+  page?: number
+  limit?: number
+}

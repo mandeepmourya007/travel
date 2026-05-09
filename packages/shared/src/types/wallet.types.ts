@@ -50,6 +50,7 @@ export interface WalletTransactionItem {
   balanceBefore: number
   balanceAfter: number
   createdAt: string
+  tripName?: string
 }
 
 /** GET /wallet/transactions query filters */
