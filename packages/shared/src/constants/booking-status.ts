@@ -1,9 +1,10 @@
 export const BOOKING_STATUSES = [
-  'PENDING',
+  'PENDING_PAYMENT',
   'CONFIRMED',
   'CANCELLED',
   'COMPLETED',
   'REFUNDED',
+  'EXPIRED',
 ] as const
 export type BookingStatusConst = (typeof BOOKING_STATUSES)[number]
 
