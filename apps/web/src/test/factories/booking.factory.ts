@@ -27,6 +27,7 @@ export function makeMyBooking(overrides: Partial<MyBookingListItem> = {}): MyBoo
       organizer: { id: `org-${counter}`, businessName: `TripVibes ${counter}`, rating: 4.5, verified: true },
     },
     hasReview: false,
+    review: null,
     travelerDetails: [
       { id: `td-${counter}-1`, name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
       { id: `td-${counter}-2`, name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },

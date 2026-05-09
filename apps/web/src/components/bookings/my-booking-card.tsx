@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Calendar, Users, Star, Pencil } from 'lucide-react'
+import { StarRating } from '@/components/shared/star-rating'
 import type { MyBookingListItem } from '@shared/types/booking.types'
-import { formatCurrency, formatDateRange } from '@/lib/format'
+import { formatCurrency, formatDateRange, formatDateFull } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
 import { TravelerDetailsAccordion } from './traveler-details-accordion'
 
@@ -95,6 +96,53 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
           <TravelerDetailsAccordion travelers={booking.travelerDetails} />
         )}
 
+        {/* Inline review — shown when user has reviewed this trip */}
+        {showEditReview && booking.review && (
+          <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <StarRating rating={booking.review.overallRating} size="sm" />
+                <span className="text-xs text-neutral-400">
+                  {formatDateFull(booking.review.createdAt)}
+                </span>
+                {booking.review.editedAt && (
+                  <span className="inline-flex items-center gap-0.5 rounded bg-neutral-100 px-1.5 py-0.5 text-xs font-medium text-neutral-500">
+                    <Pencil className="h-2.5 w-2.5" />
+                    Edited
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => onReview?.(booking)}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary-700 hover:bg-primary-50 transition-colors"
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
+              </button>
+            </div>
+            {booking.review.comment && (
+              <p className="mt-1.5 text-sm text-neutral-600 line-clamp-2">
+                {booking.review.comment}
+              </p>
+            )}
+            {booking.review.photos.length > 0 && (
+              <div className="mt-2 flex gap-1.5">
+                {booking.review.photos.slice(0, 4).map((url) => (
+                  <div key={url} className="relative h-10 w-10 overflow-hidden rounded border border-neutral-200">
+                    <Image src={url} alt="Review photo" fill sizes="40px" className="object-cover" />
+                  </div>
+                ))}
+                {booking.review.photos.length > 4 && (
+                  <div className="flex h-10 w-10 items-center justify-center rounded border border-neutral-200 bg-neutral-100 text-xs text-neutral-500">
+                    +{booking.review.photos.length - 4}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Bottom: amount + actions — mobile: stacked, desktop: row */}
         <div className="flex flex-col gap-2 border-t border-neutral-100 pt-2 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -123,16 +171,6 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
               >
                 <Star className="h-3.5 w-3.5" />
                 Leave Review
-              </button>
-            )}
-            {showEditReview && (
-              <button
-                type="button"
-                onClick={() => onReview?.(booking)}
-                className="btn-ghost inline-flex w-full items-center justify-center gap-1.5 py-1.5 px-3 text-sm md:w-auto"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit Review
               </button>
             )}
             <Link

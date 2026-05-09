@@ -30,7 +30,10 @@ export function MyBookingsList() {
   const [page, setPage] = useState(1)
   const [cancelTarget, setCancelTarget] = useState<MyBookingListItem | null>(null)
   const [reviewTarget, setReviewTarget] = useState<MyBookingListItem | null>(null)
-  const { data: existingReview } = useMyReviewForBooking(reviewTarget?.id)
+  const {
+    data: existingReview,
+    isLoading: isLoadingReview,
+  } = useMyReviewForBooking(reviewTarget?.hasReview ? reviewTarget.id : undefined)
 
   const isPendingTab = activeTab === 'payment_pending'
   const filters = { tab: activeTab === 'all' ? undefined : activeTab, page }
@@ -164,14 +167,22 @@ export function MyBookingsList() {
         />
       )}
 
-      {/* Review modal */}
-      {reviewTarget && (
+      {/* Review modal — wait for existing review to load when editing */}
+      {reviewTarget && reviewTarget.hasReview && isLoadingReview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+          onClick={() => setReviewTarget(null)}
+        >
+          <div className="spinner h-8 w-8" />
+        </div>
+      )}
+      {reviewTarget && (!reviewTarget.hasReview || !isLoadingReview) && (
         <ReviewFormModal
           bookingId={reviewTarget.id}
           tripId={reviewTarget.trip.id}
           tripTitle={reviewTarget.trip.title}
           onClose={() => setReviewTarget(null)}
-          existingReview={existingReview}
+          existingReview={reviewTarget.hasReview ? existingReview : null}
         />
       )}
     </div>
