@@ -27,12 +27,12 @@ export const cashbackTripFiltersSchema = paginationSchema.extend({
 
 /** Validates body for POST /admin/cashback/issue */
 export const issueCashbackSchema = z.object({
-  tripId: z.string().uuid(),
+  tripId: z.string().cuid(),
   items: z
     .array(
       z.object({
-        bookingId: z.string().uuid(),
-        userId: z.string().uuid(),
+        bookingId: z.string().cuid(),
+        userId: z.string().cuid(),
         amount: z.number().int().positive(),
       }),
     )
