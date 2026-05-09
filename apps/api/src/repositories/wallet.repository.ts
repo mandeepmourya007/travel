@@ -3,6 +3,7 @@ import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import { CREDIT_TYPES, DEBIT_TYPES } from '@shared/types/wallet.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { NotFoundError } from '../errors/app-error'
 
 interface TransactionMeta {
   type: WalletTransactionType
@@ -43,8 +44,13 @@ export class WalletRepository {
     try {
       return await this.create(userId)
     } catch (err: unknown) {
+      const prismaCode = err instanceof Error && 'code' in err ? (err as { code: string }).code : null
+      // P2003 = FK constraint violation (userId doesn't exist in User table)
+      if (prismaCode === 'P2003') {
+        throw new NotFoundError('User')
+      }
       // P2002 = unique constraint violation (concurrent creation race)
-      if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+      if (prismaCode === 'P2002') {
         const wallet = await this.findByUserId(userId)
         if (wallet) return wallet
       }
