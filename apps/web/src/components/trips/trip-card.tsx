@@ -14,7 +14,7 @@ import type { TripSummary } from '@shared/types/trip.types'
 
 interface TripCardProps {
   trip: TripSummary
-  onCompare: (trip: TripSummary) => void
+  onCompare?: (trip: TripSummary) => void
   isSelected?: boolean
 }
 
@@ -25,8 +25,9 @@ interface TripCardProps {
  * draw attention, then switches to a pop animation when selected.
  * Animation only plays on first render — not when toggling back from selected.
  *
- * @note `onCompare` is required and receives the full `TripSummary` (not just id)
+ * @note `onCompare` receives the full `TripSummary` (not just id)
  *       so the compare queue can store a lightweight snapshot without re-fetching.
+ *       When omitted, the compare button is hidden.
  */
 export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
   const queryClient = useQueryClient()
@@ -44,25 +45,27 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
   return (
     <div className={cn('card group relative', isSelected && 'ring-2 ring-primary-500 border-primary-200')}>
       {/* Compare button */}
-      <button
-        onClick={(e) => {
-          e.preventDefault()
-          hasInteracted.current = true
-          onCompare(trip)
-        }}
-        className={cn(
-          'absolute top-3 left-3 z-10 flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold shadow-sm',
-          'transition-all duration-200 active:scale-90 will-change-transform',
-          isSelected
-            ? 'bg-primary-500 text-white hover:bg-primary-600 animate-pop'
-            : 'bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-white',
-          !isSelected && !hasInteracted.current && 'animate-pulse-zoom',
-        )}
-        aria-label={isSelected ? 'Remove from comparison' : 'Add to comparison'}
-      >
-        <GitCompareArrows className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-        {isSelected ? 'Added' : 'Compare'}
-      </button>
+      {onCompare && (
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            hasInteracted.current = true
+            onCompare(trip)
+          }}
+          className={cn(
+            'absolute top-3 left-3 z-10 flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold shadow-sm',
+            'transition-all duration-200 active:scale-90 will-change-transform',
+            isSelected
+              ? 'bg-primary-500 text-white hover:bg-primary-600 animate-pop'
+              : 'bg-white/90 backdrop-blur-sm text-neutral-600 hover:bg-white',
+            !isSelected && !hasInteracted.current && 'animate-pulse-zoom',
+          )}
+          aria-label={isSelected ? 'Remove from comparison' : 'Add to comparison'}
+        >
+          <GitCompareArrows className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+          {isSelected ? 'Added' : 'Compare'}
+        </button>
+      )}
 
       {/* Image */}
       <Link href={`/trips/${trip.slug}`} className="block">
