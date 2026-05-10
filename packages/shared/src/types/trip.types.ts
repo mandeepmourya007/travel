@@ -24,6 +24,7 @@ export interface TripSummary {
     verified: boolean
   }
   photos: string[]
+  seatSelectionEnabled?: boolean
 }
 
 export interface TripDetailReview {

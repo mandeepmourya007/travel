@@ -19,6 +19,7 @@ export const createBookingSchema = z.object({
   dropPointId: z.string().cuid('Invalid drop point').optional(),
   numTravelers: z.number().int().min(1).max(10),
   travelers: z.array(travelerDetailSchema).min(1),
+  seatIds: z.array(z.string().min(1)).min(1).max(10).optional(),
 })
 
 export const createTripRequestSchema = z.object({
