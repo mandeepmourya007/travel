@@ -4,20 +4,14 @@ import { AppError, ValidationError } from '../errors/app-error'
 import { logger } from '../utils/logger'
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
+  // Use request-scoped logger (pino-http child) — includes requestId + userId.
+  // Falls back to base logger if pino-http didn't run (e.g. webhook raw body routes).
+  const log = req.log ?? logger
+
   if (err instanceof AppError && err.isOperational) {
-    logger.warn({
-      code: err.code,
-      message: err.message,
-      path: req.path,
-      method: req.method,
-    }, 'Operational error')
+    log.warn({ err, path: req.path, method: req.method }, 'Operational error')
   } else {
-    logger.error({
-      message: err.message,
-      stack: err.stack,
-      path: req.path,
-      method: req.method,
-    }, 'Unexpected error')
+    log.error({ err, path: req.path, method: req.method }, 'Unexpected error')
   }
 
   if (err instanceof AppError) {

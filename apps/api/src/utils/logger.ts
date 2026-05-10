@@ -1,5 +1,7 @@
 import pino from 'pino'
+import { getRequestLogger } from './request-context'
 
+// ── Base logger (Singleton — unchanged) ──────────────
 export const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   transport:
@@ -10,4 +12,20 @@ export const logger = pino({
     service: 'travel-api',
     env: process.env.NODE_ENV,
   },
+  serializers: {
+    err: (err: Record<string, unknown>) => ({
+      type: (err.constructor as { name?: string })?.name ?? 'Error',
+      message: err.message,
+      code: err.code,
+      statusCode: err.statusCode,
+      stack: err.stack,
+    }),
+  },
 })
+
+// ── Request-aware logger ─────────────────────────────
+// Returns ALS child logger if in request context, base logger otherwise.
+// Cron jobs / socket handlers get the base logger (graceful fallback).
+export function getLogger(): pino.Logger {
+  return getRequestLogger() ?? logger
+}

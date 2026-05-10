@@ -4,8 +4,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import { corsOptions } from './config/cors'
-import { requestIdMiddleware } from './middleware/request-id.middleware'
-import { requestLoggerMiddleware } from './middleware/request-logger.middleware'
+import { pinoHttpMiddleware } from './middleware/pino-http.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
@@ -38,14 +37,11 @@ export function createServer() {
   // ── Compression ───────────────────────────────────
   app.use(compression())
 
-  // ── Request ID (distributed tracing) ──────────────
-  app.use(requestIdMiddleware)
+  // ── Request Logging + ID (pino-http + AsyncLocalStorage) ──
+  app.use(pinoHttpMiddleware)
 
   // ── Rate Limiting (Redis-backed) ──────────────────
   app.use(generalRateLimit)
-
-  // ── Request Logging ───────────────────────────────
-  app.use(requestLoggerMiddleware)
 
   // ── Health Check (no auth) ────────────────────────
   app.use(healthRoutes)
