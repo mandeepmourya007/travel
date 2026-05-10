@@ -10,6 +10,7 @@ import { GlobalCompareBar } from '@/components/trips/global-compare-bar'
 import { ToastProvider } from '@/components/shared/toast'
 import { RouteProgress } from '@/components/shared/route-progress'
 import { FullScreenLoader } from '@/components/shared/full-screen-loader'
+import { DismissLoader } from '@/components/shared/dismiss-loader'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { SocketConnector } from '@/components/shared/socket-connector'
 
@@ -51,6 +52,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <SocketConnector />
       <FullScreenLoader />
+      <DismissLoader />
       <Suspense fallback={null}>
         <RouteProgress />
       </Suspense>

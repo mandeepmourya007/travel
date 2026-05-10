@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { ApiError } from '@shared/types/api-response.types'
 import { useLoadingStore } from '@/store/loading.store'
+import { useAuthStore } from '@/store/auth.store'
 import { getAppRouter } from '@/lib/app-router'
 
 declare module 'axios' {
@@ -120,11 +121,12 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest)
       }
 
-      localStorage.removeItem('travel-auth')
+      useLoadingStore.getState().show('Session expired...')
+      useAuthStore.getState().clearAuth()
       const appRouter = getAppRouter()
       if (appRouter) {
         const returnTo = window.location.pathname + window.location.search
-        appRouter.push(`/login?returnTo=${encodeURIComponent(returnTo)}`)
+        appRouter.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`)
       }
     }
 
