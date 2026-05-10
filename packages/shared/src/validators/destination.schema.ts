@@ -10,7 +10,13 @@ export const createDestinationSchema = z.object({
     .optional(),
   state: z.string().min(2, 'State is required').max(100).trim(),
   photoUrl: z.string().url().optional(),
+  description: z.string().max(2000).optional(),
   isPopular: z.boolean().default(false),
 })
 
 export const updateDestinationSchema = createDestinationSchema.partial()
+
+export const destinationDetailQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12),
+})
