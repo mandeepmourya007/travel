@@ -65,6 +65,13 @@ import { AdminService } from '../services/admin.service'
 import { AdminController } from '../controllers/admin.controller'
 import { createAdminRoutes } from '../routes/admin.routes'
 import { razorpayClient } from './razorpay'
+import { NotificationService } from '../services/notification.service'
+import { InAppNotificationProvider } from '../providers/in-app-notification.provider'
+import { EmailNotificationProvider } from '../providers/email-notification.provider'
+import { SmsNotificationProvider } from '../providers/sms-notification.provider'
+import { PushNotificationProvider } from '../providers/push-notification.provider'
+import { NotificationController } from '../controllers/notification.controller'
+import { createNotificationRoutes } from '../routes/notification.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -99,7 +106,6 @@ export const authService = new AuthService(
 )
 
 const destinationService = new DestinationService(destinationRepo, logger)
-const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger)
 const uploadService = new UploadService()
 const paymentService = razorpayClient
   ? new PaymentService(
@@ -116,17 +122,11 @@ const paymentService = razorpayClient
       })()
     : (null as unknown as PaymentService)
 
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger)
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger)
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
-const adminService = new AdminService(
-  organizerProfileRepo, userRepo, bookingRepo, tripRepo,
-  paymentTxRepo, messageRepo, notificationRepo,
-  walletRepo, walletService, logger,
-)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
@@ -139,6 +139,31 @@ const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMT
       logger,
     )
   : new MockEmailProvider(logger)
+
+// ── Notification Channel Providers ──────────────────
+// Socket.IO instance is set later via setIoInstance() after server starts
+let ioInstance: import('socket.io').Server | null = null
+export function setIoInstance(io: import('socket.io').Server) { ioInstance = io }
+
+const inAppProvider = new InAppNotificationProvider(notificationRepo, () => ioInstance, logger)
+const emailNotifProvider = new EmailNotificationProvider(emailProvider, logger)
+const smsProvider = new SmsNotificationProvider(logger)
+const pushProvider = new PushNotificationProvider(logger)
+
+export const notificationService = new NotificationService(
+  notificationRepo, userRepo,
+  [inAppProvider, emailNotifProvider, smsProvider, pushProvider],
+  logger,
+)
+
+// Services that depend on notificationService (must be after it)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService)
+const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService)
+const adminService = new AdminService(
+  organizerProfileRepo, userRepo, bookingRepo, tripRepo,
+  paymentTxRepo, messageRepo,
+  walletRepo, walletService, logger, notificationService,
+)
 
 const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
 
@@ -156,6 +181,7 @@ const paymentHistoryController = new PaymentHistoryController(paymentHistoryServ
 const reviewController = new ReviewController(reviewService)
 const walletController = new WalletController(walletService)
 const chatController = new ChatController(chatService)
+const notificationController = new NotificationController(notificationService)
 const adminController = new AdminController(adminService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
@@ -181,6 +207,7 @@ export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authM
 export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
 export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
+export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
 export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')

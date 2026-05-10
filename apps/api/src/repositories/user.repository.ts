@@ -104,4 +104,12 @@ export class UserRepository {
   async countByRole(role: UserRole): Promise<number> {
     return this.prisma.user.count({ where: { role, isDeleted: false } })
   }
+
+  /** Find user IDs + emails by role. Used by: NotificationService (admin notifications) */
+  async findByRole(role: UserRole): Promise<Array<{ id: string; email: string | null }>> {
+    return this.prisma.user.findMany({
+      where: { role, isDeleted: false },
+      select: { id: true, email: true },
+    })
+  }
 }

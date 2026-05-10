@@ -3,6 +3,7 @@ import type { Logger } from 'pino'
 import type { NotificationRepository } from '../repositories/notification.repository'
 import type { UserRepository } from '../repositories/user.repository'
 import type { INotificationChannelProvider, NotificationPayload, NotificationSendResult } from '../providers/notification-channel.interface'
+import type { NotificationFilters } from '@shared/types/notification.types'
 import { NOTIFICATION_CHANNEL } from '@shared/constants'
 
 /** Default channels per notification type */
@@ -127,8 +128,11 @@ export class NotificationService {
 
   // ── Read operations (delegate to repo) ─────────────────
 
-  async getNotifications(userId: string, filters: { page: number; limit: number; unreadOnly: boolean }) {
-    const { items, total } = await this.notificationRepo.findByUserId(userId, filters)
+  async getNotifications(userId: string, filters: NotificationFilters) {
+    const page = filters.page ?? 1
+    const limit = filters.limit ?? 20
+    const unreadOnly = filters.unreadOnly ?? false
+    const { items, total } = await this.notificationRepo.findByUserId(userId, { page, limit, unreadOnly })
     return {
       items: items.map((n) => ({
         ...n,
@@ -137,10 +141,10 @@ export class NotificationService {
         createdAt: n.createdAt.toISOString(),
       })),
       pagination: {
-        page: filters.page,
-        limit: filters.limit,
+        page,
+        limit,
         total,
-        totalPages: Math.ceil(total / filters.limit),
+        totalPages: Math.ceil(total / limit),
       },
     }
   }

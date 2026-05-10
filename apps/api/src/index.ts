@@ -4,7 +4,7 @@ import { logger } from './utils/logger'
 import { redis } from './config/redis'
 import { basePrisma } from './lib/prisma'
 import { startCronJobs } from './utils/cron-jobs'
-import { cronDeps, authService, chatService } from './config/dependencies'
+import { cronDeps, authService, chatService, setIoInstance } from './config/dependencies'
 import { createSocketServer } from './socket'
 import { env } from './config/env'
 
@@ -18,7 +18,8 @@ const corsOrigins = [env.CLIENT_URL]
 if (env.NODE_ENV === 'development') {
   corsOrigins.push('http://localhost:3000')
 }
-createSocketServer(httpServer, authService, chatService, corsOrigins)
+const io = createSocketServer(httpServer, authService, chatService, corsOrigins)
+setIoInstance(io)
 
 const server = httpServer.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`)
