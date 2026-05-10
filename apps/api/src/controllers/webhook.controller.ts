@@ -19,6 +19,11 @@ export class WebhookController {
 
   /** POST /api/v1/webhooks/razorpay — raw body, verified by middleware */
   handleRazorpay = async (req: Request, res: Response) => {
+    // Capture request-scoped logger before setImmediate — ALS context does NOT
+    // survive setImmediate boundaries reliably. Fallback to base logger for
+    // webhook routes where pino-http may not have run (raw body pipeline).
+    const log = req.log ?? logger
+
     // Respond 200 immediately to avoid Razorpay timeout
     res.status(200).json({ received: true })
 
@@ -30,7 +35,7 @@ export class WebhookController {
       const webhookEventId = await this.paymentService.handleWebhook(rawBody, headers)
 
       if (!webhookEventId) {
-        logger.info('Duplicate webhook event, skipping processing')
+        log.info('Duplicate webhook event, skipping processing')
         return
       }
 
@@ -55,20 +60,20 @@ export class WebhookController {
                 if (webhookEvent) {
                   // confirmBooking is idempotent — safe to call from both FE and webhook
                   await this.bookingService.confirmBooking(webhookEvent)
-                  logger.info({ orderId, bookingId: webhookEvent }, 'Booking confirmed via webhook')
+                  log.info({ orderId, bookingId: webhookEvent }, 'Booking confirmed via webhook')
                 }
               } catch (confirmError) {
-                logger.error({ confirmError, orderId }, 'Booking confirmation from webhook failed')
+                log.error({ confirmError, orderId }, 'Booking confirmation from webhook failed')
               }
             }
           }
         } catch (error) {
-          logger.error({ webhookEventId, error }, 'Async webhook processing failed')
+          log.error({ webhookEventId, error }, 'Async webhook processing failed')
         }
       })
     } catch (error) {
       // Log but don't throw — 200 already sent
-      logger.error({ error }, 'Webhook handling error (200 already sent)')
+      log.error({ error }, 'Webhook handling error (200 already sent)')
     }
   }
 }

@@ -27,7 +27,8 @@ export function createSocketServer(
 
   io.on('connection', (socket) => {
     const authedSocket = socket as AuthenticatedSocket
-    logger.info({ userId: authedSocket.userId, socketId: socket.id }, 'Socket connected')
+    const log = logger.child({ module: 'socket', userId: authedSocket.userId, socketId: socket.id })
+    log.info('Socket connected')
 
     authedSocket.join(`user:${authedSocket.userId}`)
 
@@ -35,7 +36,7 @@ export function createSocketServer(
     registerPresenceHandlers(io, authedSocket)
 
     socket.on('disconnect', (reason) => {
-      logger.debug({ userId: authedSocket.userId, socketId: socket.id, reason }, 'Socket disconnected')
+      log.debug({ reason }, 'Socket disconnected')
     })
   })
 

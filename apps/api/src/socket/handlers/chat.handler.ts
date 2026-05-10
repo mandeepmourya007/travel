@@ -6,6 +6,7 @@ import type { SendMessageDto } from '@shared/types/chat.types'
 
 export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, chatService: ChatService) {
   const userId = socket.userId
+  const log = logger.child({ module: 'socket:chat', userId, socketId: socket.id })
 
   /** Join a conversation room — verify participant before allowing */
   socket.on('chat:join', async ({ conversationId }: { conversationId: string }) => {
@@ -16,16 +17,16 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
         return
       }
       socket.join(`conversation:${conversationId}`)
-      logger.debug({ userId, conversationId }, 'User joined conversation room')
+      log.debug({ conversationId }, 'User joined conversation room')
     } catch (error) {
-      logger.error({ userId, conversationId, error }, 'Failed to join conversation room')
+      log.error({ conversationId, error }, 'Failed to join conversation room')
     }
   })
 
   /** Leave a conversation room */
   socket.on('chat:leave', ({ conversationId }: { conversationId: string }) => {
     socket.leave(`conversation:${conversationId}`)
-    logger.debug({ userId, conversationId }, 'User left conversation room')
+    log.debug({ conversationId }, 'User left conversation room')
   })
 
   /** Send a message */
@@ -46,7 +47,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
       socket.emit('chat:send:error', { error: errorMessage })
-      logger.error({ userId, error }, 'Socket message send failed')
+      log.error({ error }, 'Socket message send failed')
     }
   })
 
@@ -79,7 +80,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
         readAt: readAt.toISOString(),
       })
     } catch (error) {
-      logger.error({ userId, conversationId, error }, 'Failed to mark as read')
+      log.error({ conversationId, error }, 'Failed to mark as read')
     }
   })
 
@@ -94,7 +95,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
         reactions: message.reactions,
       })
     } catch (error) {
-      logger.error({ userId, messageId, error }, 'Failed to add reaction')
+      log.error({ messageId, error }, 'Failed to add reaction')
     }
   })
 
@@ -109,7 +110,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
         reactions: message.reactions,
       })
     } catch (error) {
-      logger.error({ userId, messageId, error }, 'Failed to remove reaction')
+      log.error({ messageId, error }, 'Failed to remove reaction')
     }
   })
 }

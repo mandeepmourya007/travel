@@ -7,6 +7,7 @@ const ONLINE_SET_KEY = 'chat:online_users'
 
 export function registerPresenceHandlers(io: Server, socket: AuthenticatedSocket) {
   const userId = socket.userId
+  const log = logger.child({ module: 'socket:presence', userId, socketId: socket.id })
 
   /** Mark user as online on connect */
   async function markOnline() {
@@ -14,7 +15,7 @@ export function registerPresenceHandlers(io: Server, socket: AuthenticatedSocket
       await redis.sadd(ONLINE_SET_KEY, userId)
     }
     socket.broadcast.emit('presence:online', { userId })
-    logger.debug({ userId }, 'User online')
+    log.debug('User online')
   }
 
   /** Mark user as offline on disconnect */
@@ -29,7 +30,7 @@ export function registerPresenceHandlers(io: Server, socket: AuthenticatedSocket
         await redis.srem(ONLINE_SET_KEY, userId)
       }
       socket.broadcast.emit('presence:offline', { userId })
-      logger.debug({ userId }, 'User offline')
+      log.debug('User offline')
     }
   }
 
@@ -55,7 +56,7 @@ export function registerPresenceHandlers(io: Server, socket: AuthenticatedSocket
 
       socket.emit('presence:status', { online })
     } catch (error) {
-      logger.error({ userId, error }, 'Failed to check presence')
+      log.error({ error }, 'Failed to check presence')
     }
   })
 
