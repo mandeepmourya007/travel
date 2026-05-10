@@ -92,8 +92,8 @@ function createMockBooking(overrides: Record<string, unknown> = {}) {
     },
     review: null,
     travelerDetails: [
-      { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
-      { id: 'td-2', name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
+      { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888', assignedSeat: null },
+      { id: 'td-2', name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null, assignedSeat: null },
     ],
     ...overrides,
   }
@@ -218,6 +218,7 @@ describe('BookingService', () => {
         isPrimary: true,
         emergencyContactName: 'Bob',
         emergencyContactPhone: '8888888888',
+        assignedSeat: null,
       })
     })
 
@@ -1031,6 +1032,190 @@ describe('BookingService', () => {
       await expect(
         service.getMyTripStatus('user-1', 'trip-1'),
       ).rejects.toThrow('Query timeout')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // createBooking — seat integration
+  // ═══════════════════════════════════════════════════
+  describe('createBooking — seat integration', () => {
+    const mockVehicleService = {
+      checkSeatsAvailable: vi.fn(),
+      holdSeats: vi.fn(),
+      confirmSeats: vi.fn(),
+      releaseSeats: vi.fn(),
+      getBookingSeats: vi.fn(),
+      assignTravelerToSeat: vi.fn(),
+    }
+
+    let seatService: BookingService
+
+    const validInput = {
+      tripId: 'trip-1',
+      numTravelers: 2,
+      travelers: [
+        { name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'Bob', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+      seatIds: ['seat-1', 'seat-2'],
+    }
+
+    const mockTrip = {
+      id: 'trip-1',
+      title: 'Goa Beach',
+      status: 'ACTIVE',
+      bookingMode: 'INSTANT',
+      acceptingBookings: true,
+      pricePerPerson: 5000,
+      earlyBirdPrice: null,
+      earlyBirdDeadline: null,
+      startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      endDate: new Date(Date.now() + 33 * 24 * 60 * 60 * 1000),
+      bookingDeadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+      maxGroupSize: 20,
+      currentBookings: 5,
+      version: 0,
+      isDeleted: false,
+      organizer: {
+        id: 'org-1',
+        razorpayAccountId: 'acc_org123',
+        commissionRate: 10,
+        businessName: 'TripVibes',
+      },
+      transferPoints: [],
+    }
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      seatService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        mockVehicleService as any,
+      )
+    })
+
+    it('should validate seatIds.length matches numTravelers', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+
+      await expect(
+        seatService.createBooking('user-1', { ...validInput, seatIds: ['seat-1'] }),
+      ).rejects.toThrow('seats must match')
+    })
+
+    it('should pre-check seat availability and throw ConflictError when unavailable', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockVehicleService.checkSeatsAvailable.mockResolvedValue(false)
+
+      await expect(
+        seatService.createBooking('user-1', validInput),
+      ).rejects.toThrow('no longer available')
+
+      expect(mockVehicleService.checkSeatsAvailable).toHaveBeenCalledWith(['seat-1', 'seat-2'])
+      expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+    })
+
+    it('should hold seats after booking creation and link them', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_seat', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-seat',
+        bookingRef: 'TRP-2025-SEAT',
+        totalAmount: 10000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-seat' })
+      mockVehicleService.holdSeats.mockResolvedValue(undefined)
+
+      const result = await seatService.createBooking('user-1', validInput)
+
+      expect(result.bookingId).toBe('booking-seat')
+      expect(mockVehicleService.checkSeatsAvailable).toHaveBeenCalledWith(['seat-1', 'seat-2'])
+      expect(mockVehicleService.holdSeats).toHaveBeenCalledWith(['seat-1', 'seat-2'], 'user-1', 'booking-seat')
+    })
+
+    it('should expire booking when holdSeats fails and rethrow error', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fail', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-fail',
+        bookingRef: 'TRP-2025-FAIL',
+        totalAmount: 10000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-fail' })
+      mockVehicleService.holdSeats.mockRejectedValue(new Error('Seats already taken'))
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+
+      await expect(
+        seatService.createBooking('user-1', validInput),
+      ).rejects.toThrow('Seats already taken')
+
+      expect(mockBookingRepo.updateStatus).toHaveBeenCalledWith('booking-fail', 'EXPIRED')
+    })
+
+    it('should skip seat operations when seatIds is not provided', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_noseat', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-noseat',
+        bookingRef: 'TRP-2025-NOSEAT',
+        totalAmount: 10000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-noseat' })
+
+      const result = await seatService.createBooking('user-1', {
+        ...validInput,
+        seatIds: undefined,
+      })
+
+      expect(result.bookingId).toBe('booking-noseat')
+      expect(mockVehicleService.checkSeatsAvailable).not.toHaveBeenCalled()
+      expect(mockVehicleService.holdSeats).not.toHaveBeenCalled()
+    })
+
+    it('should skip seat operations when vehicleService is null', async () => {
+      const serviceWithoutVehicle = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        null,
+      )
+
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_null', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-null',
+        bookingRef: 'TRP-2025-NULL',
+        totalAmount: 10000,
+        expiresAt: new Date(),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-null' })
+
+      const result = await serviceWithoutVehicle.createBooking('user-1', {
+        ...validInput,
+        seatIds: ['seat-1', 'seat-2'],
+      })
+
+      expect(result.bookingId).toBe('booking-null')
+      expect(mockVehicleService.checkSeatsAvailable).not.toHaveBeenCalled()
     })
   })
 })
