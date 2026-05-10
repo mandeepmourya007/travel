@@ -49,6 +49,9 @@ export const tripRequestKeys = {
 export const destinationKeys = {
   all: ['destinations'] as const,
   list: () => [...destinationKeys.all, 'list'] as const,
+  details: () => [...destinationKeys.all, 'detail'] as const,
+  detail: (slug: string, params?: { page?: number }) =>
+    [...destinationKeys.details(), slug, params] as const,
 }
 
 export const reviewKeys = {

@@ -106,6 +106,53 @@ export function buildWebsiteJsonLd(siteUrl: string, appName: string) {
   }
 }
 
+export function buildDestinationJsonLd(destination: {
+  name: string
+  state: string
+  description?: string | null
+  photoUrl?: string | null
+}, siteUrl: string, slug: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TouristDestination',
+    name: destination.name,
+    description: destination.description || `Group trips to ${destination.name}, ${destination.state}`,
+    ...(destination.photoUrl && { image: destination.photoUrl }),
+    url: `${siteUrl}/destinations/${slug}`,
+    containedInPlace: {
+      '@type': 'AdministrativeArea',
+      name: destination.state,
+    },
+  }
+}
+
+export function buildOrganizerProfileJsonLd(organizer: {
+  businessName: string
+  description?: string | null
+  rating: number
+  totalReviews: number
+}, siteUrl: string, organizerId: string) {
+  const jsonLd: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: organizer.businessName,
+    description: organizer.description || `Verified trip organizer on TripCompare`,
+    url: `${siteUrl}/trips/organizers/${organizerId}`,
+  }
+
+  if (organizer.totalReviews > 0) {
+    jsonLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: organizer.rating.toFixed(1),
+      reviewCount: organizer.totalReviews,
+      bestRating: 5,
+      worstRating: 1,
+    }
+  }
+
+  return jsonLd
+}
+
 export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
   return {
     '@context': 'https://schema.org',
