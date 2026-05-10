@@ -2,7 +2,8 @@ import type { Logger } from 'pino'
 import type { TripRepository } from '../repositories/trip.repository'
 import type { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import type { PaymentService } from './payment.service'
-import { TRIP_COMPLETION_BATCH_SIZE, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
+import { TRIP_COMPLETION_BATCH_SIZE, PLATFORM_COMMISSION_PERCENT, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
+import { TRIP_STATUS, BOOKING_STATUS } from '@shared/constants'
 
 export class TripLifecycleService {
   constructor(
@@ -39,15 +40,15 @@ export class TripLifecycleService {
         await this.tripRepo.withTransaction(async (tx) => {
           await tx.trip.update({
             where: { id: trip.id },
-            data: { status: 'COMPLETED', updatedAt: new Date() },
+            data: { status: TRIP_STATUS.COMPLETED, updatedAt: new Date() },
           })
           await tx.booking.updateMany({
             where: {
               tripId: trip.id,
-              bookingStatus: 'CONFIRMED',
+              bookingStatus: BOOKING_STATUS.CONFIRMED,
               isDeleted: false,
             },
-            data: { bookingStatus: 'COMPLETED' },
+            data: { bookingStatus: BOOKING_STATUS.COMPLETED },
           })
           await tx.organizerProfile.update({
             where: { id: trip.organizerId },
@@ -103,7 +104,7 @@ export class TripLifecycleService {
     const releasedBookingIds = new Set<string>()
     for (const payment of capturedPayments) {
       const existing = await this.paymentTxRepo.findByBookingId(payment.bookingId)
-      if (existing.some((tx) => tx.type === 'ESCROW_RELEASE')) {
+      if (existing.some((tx) => tx.type === PAYMENT_TX_TYPE.ESCROW_RELEASE)) {
         releasedBookingIds.add(payment.bookingId)
       }
     }
@@ -191,7 +192,7 @@ export class TripLifecycleService {
       if (!transferId && payment.razorpayPaymentId) {
         transferId = await this.paymentService!.fetchTransferId(payment.razorpayPaymentId)
         if (transferId) {
-          await this.paymentTxRepo.updateStatus(payment.id, 'CAPTURED', { razorpayTransferId: transferId })
+          await this.paymentTxRepo.updateStatus(payment.id, PAYMENT_TX_STATUS.CAPTURED, { razorpayTransferId: transferId })
         }
       }
 
@@ -213,9 +214,9 @@ export class TripLifecycleService {
       // Record ESCROW_RELEASE for audit trail
       await this.paymentTxRepo.create({
         bookingId: payment.bookingId,
-        type: 'ESCROW_RELEASE',
+        type: PAYMENT_TX_TYPE.ESCROW_RELEASE,
         amount: transferAmount,
-        status: 'CAPTURED',
+        status: PAYMENT_TX_STATUS.CAPTURED,
         razorpayTransferId: transferId,
         metadata: {
           releasedAt: new Date().toISOString(),

@@ -5,6 +5,7 @@ import { UserRepository } from '../repositories/user.repository'
 import { AuthService } from './auth.service'
 import { AuthError } from '../errors/app-error'
 import { normalizePhone } from '../utils/phone'
+import { USER_ROLE, DEFAULT_USER_NAME } from '@shared/constants'
 
 export class FirebaseAuthService {
   constructor(
@@ -49,9 +50,9 @@ export class FirebaseAuthService {
 
     if (!user) {
       user = await this.userRepo.create({
-        name: 'User',
+        name: DEFAULT_USER_NAME,
         phone,
-        role: 'TRAVELER',
+        role: USER_ROLE.TRAVELER,
         phoneVerified: true,
       })
       isNewUser = true

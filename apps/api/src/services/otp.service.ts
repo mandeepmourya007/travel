@@ -16,9 +16,11 @@ import {
   OTP_RATE_LIMIT_WINDOW_MINUTES,
   OTP_RATE_LIMIT_MAX_SENDS,
   DEV_OTP,
+  OTP_TYPE,
 } from '../utils/constants'
+import { USER_ROLE, DEFAULT_USER_NAME } from '@shared/constants'
 
-type OtpType = 'PHONE_OTP' | 'EMAIL_OTP'
+type OtpType = typeof OTP_TYPE[keyof typeof OTP_TYPE]
 
 export class OtpService {
   constructor(
@@ -101,15 +103,15 @@ export class OtpService {
     const phone = normalizePhone(rawPhone)
     if (!phone) throw new ValidationError('Invalid phone number')
 
-    await this.checkCooldown(phone, 'PHONE_OTP')
-    await this.checkRateLimit(phone, 'PHONE_OTP')
-    await this.verifCodeRepo.invalidateExisting(phone, 'PHONE_OTP')
+    await this.checkCooldown(phone, OTP_TYPE.PHONE_OTP)
+    await this.checkRateLimit(phone, OTP_TYPE.PHONE_OTP)
+    await this.verifCodeRepo.invalidateExisting(phone, OTP_TYPE.PHONE_OTP)
 
     const otp = this.generateOtp()
     const codeHash = this.hashOtp(otp)
 
     await this.verifCodeRepo.create({
-      type: 'PHONE_OTP',
+      type: OTP_TYPE.PHONE_OTP,
       identifier: phone,
       codeHash,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
@@ -141,7 +143,7 @@ export class OtpService {
     const phone = normalizePhone(rawPhone)
     if (!phone) throw new ValidationError('Invalid phone number')
 
-    await this.verifyCode(phone, 'PHONE_OTP', otp)
+    await this.verifyCode(phone, OTP_TYPE.PHONE_OTP, otp)
 
     let user = await this.userRepo.findByPhone(phone)
     let isNewUser = false
@@ -152,9 +154,9 @@ export class OtpService {
 
     if (!user) {
       user = await this.userRepo.create({
-        name: 'User',
+        name: DEFAULT_USER_NAME,
         phone,
-        role: 'TRAVELER',
+        role: USER_ROLE.TRAVELER,
         phoneVerified: true,
       })
       isNewUser = true
@@ -180,15 +182,15 @@ export class OtpService {
     const email = normalizeEmail(rawEmail)
     if (!email) throw new ValidationError('Invalid email address')
 
-    await this.checkCooldown(email, 'EMAIL_OTP')
-    await this.checkRateLimit(email, 'EMAIL_OTP')
-    await this.verifCodeRepo.invalidateExisting(email, 'EMAIL_OTP')
+    await this.checkCooldown(email, OTP_TYPE.EMAIL_OTP)
+    await this.checkRateLimit(email, OTP_TYPE.EMAIL_OTP)
+    await this.verifCodeRepo.invalidateExisting(email, OTP_TYPE.EMAIL_OTP)
 
     const otp = this.generateOtp()
     const codeHash = this.hashOtp(otp)
 
     await this.verifCodeRepo.create({
-      type: 'EMAIL_OTP',
+      type: OTP_TYPE.EMAIL_OTP,
       identifier: email,
       codeHash,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
@@ -220,7 +222,7 @@ export class OtpService {
     const email = normalizeEmail(rawEmail)
     if (!email) throw new ValidationError('Invalid email address')
 
-    await this.verifyCode(email, 'EMAIL_OTP', otp)
+    await this.verifyCode(email, OTP_TYPE.EMAIL_OTP, otp)
 
     let user = await this.userRepo.findByEmail(email)
     let isNewUser = false
@@ -231,9 +233,9 @@ export class OtpService {
 
     if (!user) {
       user = await this.userRepo.create({
-        name: 'User',
+        name: DEFAULT_USER_NAME,
         email,
-        role: 'TRAVELER',
+        role: USER_ROLE.TRAVELER,
         emailVerified: true,
       })
       isNewUser = true

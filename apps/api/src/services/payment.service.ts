@@ -4,6 +4,7 @@ import { Logger } from 'pino'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentError, ValidationError } from '../errors/app-error'
+import { CURRENCY, PAYMENT_TX_STATUS, WEBHOOK_SOURCE, WEBHOOK_STATUS, REFERENCE_MODEL } from '../utils/constants'
 import type { RazorpayWebhookPayload, StoredWebhookEvent } from '../types/razorpay.types'
 
 export class PaymentService {
@@ -39,7 +40,7 @@ export class PaymentService {
     try {
       return await this.razorpay.orders.create({
         amount,
-        currency: 'INR',
+        currency: CURRENCY,
         receipt,
         payment_capture: 0,
         ...(transfers.length > 0 ? { transfers } : {}),
@@ -59,7 +60,7 @@ export class PaymentService {
    *
    * @throws PaymentError — capture failure (non-idempotent)
    */
-  async capturePayment(paymentId: string, amount: number, currency = 'INR') {
+  async capturePayment(paymentId: string, amount: number, currency = CURRENCY) {
     try {
       return await this.razorpay.payments.capture(paymentId, amount, currency)
     } catch (error: unknown) {
@@ -159,7 +160,7 @@ export class PaymentService {
     }
 
     // Idempotency check
-    const existing = await this.webhookEventRepo.findBySourceAndEventId('RAZORPAY', eventId)
+    const existing = await this.webhookEventRepo.findBySourceAndEventId(WEBHOOK_SOURCE.RAZORPAY, eventId)
     if (existing) {
       await this.webhookEventRepo.incrementAttempts(existing.id)
       this.logger.info({ eventId, attempts: existing.attempts + 1 }, 'Duplicate webhook, skipping')
@@ -177,11 +178,11 @@ export class PaymentService {
       : null
 
     const webhookEvent = await this.webhookEventRepo.create({
-      source: 'RAZORPAY',
+      source: WEBHOOK_SOURCE.RAZORPAY,
       externalEventId: eventId,
       eventType: body.event,
       externalId: paymentEntity?.id || null,
-      referenceModel: paymentTx ? 'Booking' : null,
+      referenceModel: paymentTx ? REFERENCE_MODEL.BOOKING : null,
       referenceId: paymentTx?.bookingId || null,
       headers: {
         'x-razorpay-signature': signature,
@@ -189,7 +190,7 @@ export class PaymentService {
       },
       payload: body,
       mode: body.account_id?.startsWith('rzp_test') ? 'test' : 'live',
-      status: 'RECEIVED',
+      status: WEBHOOK_STATUS.RECEIVED,
     })
 
     return webhookEvent.id
@@ -203,7 +204,7 @@ export class PaymentService {
    */
   async processWebhookEvent(webhookEvent: StoredWebhookEvent) {
     try {
-      await this.webhookEventRepo.updateStatus(webhookEvent.id, 'PROCESSING', undefined)
+      await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.PROCESSING, undefined)
 
       // DB stores full event body — inner .payload is the actual webhook payload
       const payload: RazorpayWebhookPayload = webhookEvent.payload?.payload ?? (webhookEvent.payload as RazorpayWebhookPayload)
@@ -225,18 +226,18 @@ export class PaymentService {
           await this.handleRefundProcessed(payload)
           break
         default:
-          await this.webhookEventRepo.updateStatus(webhookEvent.id, 'SKIPPED', {
+          await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.SKIPPED, {
             failureReason: `Unhandled event type: ${webhookEvent.eventType}`,
           })
           return
       }
 
-      await this.webhookEventRepo.updateStatus(webhookEvent.id, 'COMPLETED', {
+      await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.COMPLETED, {
         processedAt: new Date(),
       })
     } catch (error: unknown) {
       this.logger.error({ webhookEventId: webhookEvent.id, error }, 'Webhook processing failed')
-      await this.webhookEventRepo.updateStatus(webhookEvent.id, 'FAILED', {
+      await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.FAILED, {
         failureReason: error instanceof Error ? error.message : String(error),
       })
     }
@@ -262,7 +263,7 @@ export class PaymentService {
     }
 
     await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
-    await this.paymentTxRepo.updateStatus(paymentTx.id, 'AUTHORIZED')
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.AUTHORIZED)
   }
 
   /**
@@ -282,7 +283,7 @@ export class PaymentService {
     }
 
     await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
-    await this.paymentTxRepo.updateStatus(paymentTx.id, 'CAPTURED')
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
 
     // Fire-and-forget: fetch transfer ID async — don't block webhook response
     this.storeTransferIdAsync(paymentTx.id, payment.id)
@@ -296,7 +297,7 @@ export class PaymentService {
     this.fetchTransferId(razorpayPaymentId)
       .then((transferId) => {
         if (transferId) {
-          return this.paymentTxRepo.updateStatus(paymentTxId, 'CAPTURED', { razorpayTransferId: transferId })
+          return this.paymentTxRepo.updateStatus(paymentTxId, PAYMENT_TX_STATUS.CAPTURED, { razorpayTransferId: transferId })
         }
         this.logger.info({ paymentTxId, razorpayPaymentId }, 'No transfer found — lifecycle cron will lazy-fetch')
       })
@@ -324,7 +325,7 @@ export class PaymentService {
     if (payment?.id) {
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
     }
-    await this.paymentTxRepo.updateStatus(paymentTx.id, 'CAPTURED')
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
   }
 
   /**
@@ -344,7 +345,7 @@ export class PaymentService {
 
     const failureReason = payment.error_description || payment.error_code || 'Payment failed'
 
-    await this.paymentTxRepo.updateStatus(paymentTx.id, 'FAILED', { failureReason })
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.FAILED, { failureReason })
     this.logger.info(
       { paymentTxId: paymentTx.id, bookingId: paymentTx.bookingId, failureReason },
       'Payment failed — booking stays PENDING_PAYMENT for possible retry',
@@ -472,7 +473,7 @@ export class PaymentService {
       return
     }
 
-    await this.paymentTxRepo.updateStatus(paymentTx.id, 'REFUNDED', {
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.REFUNDED, {
       razorpayRefundId: refund.id,
     })
   }

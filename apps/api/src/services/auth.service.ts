@@ -5,12 +5,14 @@ import type { Logger } from 'pino'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
 import type { UserProfileResponse } from '@shared/types/user.types'
 import { DEFAULT_USER_NAME } from '@shared/constants/roles'
+import type { SignupRole } from '@shared/constants/roles'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { WalletRepository } from '../repositories/wallet.repository'
 import { AuthError, ConflictError, NotFoundError } from '../errors/app-error'
-import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS } from '../utils/constants'
+import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
+import { USER_ROLE } from '@shared/constants'
 
 export class AuthService {
   constructor(
@@ -40,11 +42,11 @@ export class AuthService {
       email: dto.email,
       phone: dto.phone,
       passwordHash,
-      role: dto.role || 'TRAVELER',
+      role: dto.role || USER_ROLE.TRAVELER,
     })
 
     // Auto-create OrganizerProfile for ORGANIZER signups (same transaction prevents orphans)
-    if (user.role === 'ORGANIZER') {
+    if (user.role === USER_ROLE.ORGANIZER) {
       try {
         await this.organizerProfileRepo.create({
           user: { connect: { id: user.id } },
@@ -106,7 +108,7 @@ export class AuthService {
 
     const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
 
-    return { accessToken, expiresIn: 900 }
+    return { accessToken, expiresIn: JWT_ACCESS_EXPIRY_SECONDS }
   }
 
   async logout(rawRefreshToken: string): Promise<void> {
@@ -143,7 +145,7 @@ export class AuthService {
           role: user.role as AuthResponse['user']['role'],
           avatarUrl: user.avatarUrl ?? undefined,
         },
-        tokens: { accessToken, expiresIn: 900 },
+        tokens: { accessToken, expiresIn: JWT_ACCESS_EXPIRY_SECONDS },
       },
       refreshToken,
     }
@@ -170,19 +172,19 @@ export class AuthService {
    */
   async updateProfile(
     userId: string,
-    dto: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' },
+    dto: { name?: string; role?: SignupRole },
   ): Promise<{ id: string; name: string; role: string; accessToken?: string }> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
 
-    const updateData: { name?: string; role?: 'TRAVELER' | 'ORGANIZER' } = {}
+    const updateData: { name?: string; role?: SignupRole } = {}
     if (dto.name) updateData.name = dto.name
     if (dto.role) updateData.role = dto.role
 
     const updated = await this.userRepo.updateProfile(userId, updateData)
 
     // Auto-create OrganizerProfile when switching to ORGANIZER (if not already exists)
-    if (dto.role === 'ORGANIZER' && user.role !== 'ORGANIZER') {
+    if (dto.role === USER_ROLE.ORGANIZER && user.role !== USER_ROLE.ORGANIZER) {
       const existing = await this.organizerProfileRepo.findByUserId(userId)
       if (!existing) {
         await this.organizerProfileRepo.create({
@@ -294,7 +296,7 @@ export class AuthService {
         name: google.name,
         email: google.email,
         googleId: google.sub,
-        role: 'TRAVELER',
+        role: USER_ROLE.TRAVELER,
         avatarUrl: google.picture,
       })
     } catch (err: unknown) {

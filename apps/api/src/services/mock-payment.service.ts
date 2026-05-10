@@ -4,6 +4,7 @@ import { Logger } from 'pino'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentService } from './payment.service'
+import { CURRENCY } from '../utils/constants'
 
 const MOCK_KEY_SECRET = 'mock_dev_secret_do_not_use_in_production'
 
@@ -56,14 +57,14 @@ export class MockPaymentService extends PaymentService {
       amount,
       amount_paid: 0,
       amount_due: amount,
-      currency: 'INR',
+      currency: CURRENCY,
       receipt,
       status: 'created',
       notes,
     } as any
   }
 
-  override async capturePayment(paymentId: string, amount: number, currency = 'INR') {
+  override async capturePayment(paymentId: string, amount: number, currency = CURRENCY) {
     this.mockLogger.warn({ paymentId, amount }, '[MOCK] Payment captured — NOT a real capture')
     return {
       id: paymentId,

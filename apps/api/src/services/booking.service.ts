@@ -7,8 +7,10 @@ import { TripRepository } from '../repositories/trip.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { PaymentService } from './payment.service'
+import type { NotificationService } from './notification.service'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
+import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, CANCELLATION_POLICY } from '@shared/constants'
 import { env } from '../config/env'
 
 export class BookingService {
@@ -19,6 +21,7 @@ export class BookingService {
     private paymentTxRepo: PaymentTransactionRepository,
     private paymentService: PaymentService,
     private logger: Logger,
+    private notificationService?: NotificationService,
   ) {}
 
   /** Guards against calling payment methods when Razorpay is not configured */
@@ -71,7 +74,7 @@ export class BookingService {
             id: b.trip.organizer.id,
             businessName: b.trip.organizer.businessName,
             rating: b.trip.organizer.rating,
-            verified: b.trip.organizer.verificationStatus === 'APPROVED',
+            verified: b.trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
           },
         },
         hasReview: b.review !== null,
@@ -110,13 +113,13 @@ export class BookingService {
       const count = g._count.id
       all += count
       switch (g.bookingStatus) {
-        case 'CONFIRMED':
-        case 'PENDING_PAYMENT':
+        case BOOKING_STATUS.CONFIRMED:
+        case BOOKING_STATUS.PENDING_PAYMENT:
           upcoming += count; break
-        case 'COMPLETED':
+        case BOOKING_STATUS.COMPLETED:
           completed += count; break
-        case 'CANCELLED':
-        case 'EXPIRED':
+        case BOOKING_STATUS.CANCELLED:
+        case BOOKING_STATUS.EXPIRED:
           cancelled += count; break
       }
     }
@@ -141,7 +144,7 @@ export class BookingService {
     if (!booking) throw new NotFoundError('Booking')
     if (booking.userId !== userId) throw new ForbiddenError('You can only cancel your own bookings')
 
-    if (!['CONFIRMED', 'PENDING_PAYMENT'].includes(booking.bookingStatus)) {
+    if (booking.bookingStatus !== BOOKING_STATUS.CONFIRMED && booking.bookingStatus !== BOOKING_STATUS.PENDING_PAYMENT) {
       throw new ValidationError(`Cannot cancel a booking with status ${booking.bookingStatus}`)
     }
 
@@ -151,13 +154,13 @@ export class BookingService {
 
     this.logger.info({ bookingId, userId, refundPercent, refundAmount }, 'Cancelling booking')
 
-    if (booking.bookingStatus === 'CONFIRMED') {
+    if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
       // Cancel + decrement seats atomically in a transaction
       await this.tripRepo.withTransaction(async (tx) => {
         await tx.booking.update({
           where: { id: bookingId },
           data: {
-            bookingStatus: 'CANCELLED',
+            bookingStatus: BOOKING_STATUS.CANCELLED,
             cancellationReason: reason,
             cancelledAt: new Date(),
             cancelledById: userId,
@@ -183,9 +186,18 @@ export class BookingService {
       await this.bookingRepo.cancel(bookingId, userId, reason)
     }
 
+    // Fire-and-forget: notify traveler of cancellation
+    this.notificationService?.send({
+      userId: booking.userId,
+      type: NOTIFICATION_TYPE.BOOKING_CANCELLED,
+      title: 'Booking Cancelled',
+      body: `Your booking for ${booking.trip.title} has been cancelled. Refund: ₹${refundAmount} (${refundPercent}%).`,
+      data: { bookingId: booking.id, tripId: booking.trip.id, tripName: booking.trip.title, refundAmount, refundPercent },
+    }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking cancellation notification'))
+
     return {
       bookingId: booking.id,
-      bookingStatus: 'CANCELLED',
+      bookingStatus: BOOKING_STATUS.CANCELLED,
       refundAmount,
       refundPercent,
       cancellationPolicy: booking.trip.cancellationPolicy,
@@ -223,7 +235,7 @@ export class BookingService {
     // 1. Idempotency check
     const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
     if (existing) {
-      if (existing.bookingStatus === 'CONFIRMED') {
+      if (existing.bookingStatus === BOOKING_STATUS.CONFIRMED) {
         throw new ConflictError('You already have a confirmed booking for this trip')
       }
       // PENDING_PAYMENT — return same order
@@ -232,9 +244,9 @@ export class BookingService {
         bookingId: existing.id,
         bookingRef: existing.bookingRef,
         razorpayOrderId: paymentTx?.razorpayOrderId || '',
-        razorpayKeyId: env.RAZORPAY_KEY_ID || 'rzp_mock_dev_key',
+        razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
         amountInRupees: existing.totalAmount,
-        currency: 'INR',
+        currency: CURRENCY,
         expiresAt: existing.expiresAt!.toISOString(),
       }
     }
@@ -246,7 +258,7 @@ export class BookingService {
 
     const trip = await this.tripRepo.findByIdForBooking(input.tripId)
     if (!trip) throw new NotFoundError('Trip')
-    if (trip.status !== 'ACTIVE' || !trip.acceptingBookings) {
+    if (trip.status !== TRIP_STATUS.ACTIVE || !trip.acceptingBookings) {
       throw new ValidationError('This trip is not accepting bookings')
     }
     if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
@@ -263,7 +275,7 @@ export class BookingService {
     }
 
     // REQUEST_BASED mode check
-    if (trip.bookingMode === 'REQUEST_BASED') {
+    if (trip.bookingMode === BOOKING_MODE.REQUEST_BASED) {
       const approvedRequest = await this.tripRequestRepo.findApprovedForUser(input.tripId, userId)
       if (!approvedRequest) {
         throw new ValidationError('You need an approved request to book this trip')
@@ -276,13 +288,13 @@ export class BookingService {
     if (input.pickupPointId) {
       const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.pickupPointId)
       if (!point) throw new ValidationError('Selected pickup point does not belong to this trip')
-      if (point.type !== 'PICKUP') throw new ValidationError('Selected pickup point is not a PICKUP type')
+      if (point.type !== TRANSFER_POINT_TYPE.PICKUP) throw new ValidationError('Selected pickup point is not a PICKUP type')
       pickupExtraCharge = point.extraCharge ?? 0
     }
     if (input.dropPointId) {
       const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.dropPointId)
       if (!point) throw new ValidationError('Selected drop point does not belong to this trip')
-      if (point.type !== 'DROP') throw new ValidationError('Selected drop point is not a DROP type')
+      if (point.type !== TRANSFER_POINT_TYPE.DROP) throw new ValidationError('Selected drop point is not a DROP type')
       dropExtraCharge = point.extraCharge ?? 0
     }
 
@@ -303,7 +315,7 @@ export class BookingService {
       ? [{
           account: trip.organizer.razorpayAccountId,
           amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
-          currency: 'INR',
+          currency: CURRENCY,
           on_hold: 1,
           on_hold_until: Math.floor(
             new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
@@ -336,10 +348,10 @@ export class BookingService {
     // H2 fix: Persist PaymentTransaction so confirmBooking can find it
     await this.paymentTxRepo.create({
       bookingId: booking.id,
-      type: 'PAYMENT',
+      type: PAYMENT_TX_TYPE.PAYMENT,
       amount: totalAmount,
       razorpayOrderId: order.id,
-      status: 'INITIATED',
+      status: PAYMENT_TX_STATUS.INITIATED,
     })
 
     this.logger.info(
@@ -351,9 +363,9 @@ export class BookingService {
       bookingId: booking.id,
       bookingRef: booking.bookingRef,
       razorpayOrderId: order.id,
-      razorpayKeyId: env.RAZORPAY_KEY_ID || 'rzp_mock_dev_key',
+      razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
       amountInRupees: totalAmount,
-      currency: 'INR',
+      currency: CURRENCY,
       expiresAt: expiresAt.toISOString(),
     }
   }
@@ -412,7 +424,7 @@ export class BookingService {
       await this.paymentService.capturePayment(
         paymentTx.razorpayPaymentId!,
         amountInPaise,
-        'INR',
+        CURRENCY,
       )
     } catch (error) {
       // Rollback seats on capture failure
@@ -422,10 +434,10 @@ export class BookingService {
     }
 
     // Update booking to CONFIRMED
-    await this.bookingRepo.updateStatus(bookingId, 'CONFIRMED')
+    await this.bookingRepo.updateStatus(bookingId, BOOKING_STATUS.CONFIRMED)
 
     // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow (C1 fix)
-    if (booking.tripRequest && booking.tripRequest.status === 'APPROVED') {
+    if (booking.tripRequest && booking.tripRequest.status === TRIP_REQUEST_STATUS.APPROVED) {
       await this.tripRequestRepo.markConverted(booking.tripRequest.id, bookingId)
     }
 
@@ -437,10 +449,19 @@ export class BookingService {
 
     this.logger.info({ bookingId }, 'Booking confirmed')
 
+    // Fire-and-forget: notify traveler of booking confirmation
+    this.notificationService?.send({
+      userId: booking.userId,
+      type: NOTIFICATION_TYPE.BOOKING_CONFIRMED,
+      title: 'Booking Confirmed!',
+      body: `Your booking for ${booking.trip.title} has been confirmed.`,
+      data: { bookingId: booking.id, tripId: booking.trip.id, tripName: booking.trip.title },
+    }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking confirmation notification'))
+
     return {
       bookingId: booking.id,
-      bookingStatus: 'CONFIRMED',
-      paymentStatus: 'CAPTURED',
+      bookingStatus: BOOKING_STATUS.CONFIRMED,
+      paymentStatus: PAYMENT_TX_STATUS.CAPTURED,
     }
   }
 
@@ -465,11 +486,11 @@ export class BookingService {
     }
 
     // Already confirmed — idempotent return
-    if (booking.bookingStatus === 'CONFIRMED') {
+    if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
       return {
         bookingId: booking.id,
-        bookingStatus: 'CONFIRMED',
-        paymentStatus: booking.paymentTransactions[0]?.status || 'CAPTURED',
+        bookingStatus: BOOKING_STATUS.CONFIRMED,
+        paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
       }
     }
 
@@ -515,7 +536,7 @@ export class BookingService {
       status: r.status,
       approvalExpiresAt: r.approvalExpiresAt?.toISOString() ?? null,
       createdAt: r.createdAt.toISOString(),
-      canPay: r.status === 'APPROVED',
+      canPay: r.status === TRIP_REQUEST_STATUS.APPROVED,
       travelerDetails: r.travelerDetails?.length ? r.travelerDetails : null,
       trip: {
         id: r.trip.id,
@@ -529,7 +550,7 @@ export class BookingService {
         organizer: {
           id: r.trip.organizer.id,
           businessName: r.trip.organizer.businessName,
-          verified: r.trip.organizer.verificationStatus === 'APPROVED',
+          verified: r.trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
         },
       },
     }))
@@ -556,9 +577,9 @@ export class BookingService {
   /** Refund % based on cancellation policy and hours until trip */
   private calculateRefundPercent(policy: string, hoursUntilTrip: number): number {
     switch (policy) {
-      case 'FLEXIBLE': return hoursUntilTrip >= 48 ? 100 : 50
-      case 'MODERATE': return hoursUntilTrip >= 48 ? 50 : 0
-      case 'STRICT': return 0
+      case CANCELLATION_POLICY.FLEXIBLE: return hoursUntilTrip >= 48 ? 100 : 50
+      case CANCELLATION_POLICY.MODERATE: return hoursUntilTrip >= 48 ? 50 : 0
+      case CANCELLATION_POLICY.STRICT: return 0
       default: return 0
     }
   }

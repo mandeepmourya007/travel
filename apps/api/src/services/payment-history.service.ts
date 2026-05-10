@@ -3,6 +3,7 @@ import { PaymentTransactionRepository } from '../repositories/payment-transactio
 import { TripRepository } from '../repositories/trip.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError } from '../errors/app-error'
+import { PAGINATION_DEFAULTS, DEFAULT_COMMISSION_RATE } from '../utils/constants'
 import type {
   PaymentHistoryFilters,
   AdminPaymentFilters,
@@ -10,9 +11,6 @@ import type {
   TripPaymentSummary,
   AdminPaymentSummary,
 } from '@shared/types/payment.types'
-
-/** Default platform commission rate (10%) — matches OrganizerProfile.commissionRate default */
-const DEFAULT_COMMISSION_RATE = 10.0
 
 export class PaymentHistoryService {
   constructor(
@@ -26,8 +24,8 @@ export class PaymentHistoryService {
 
   /** GET /payments/my — Traveler's paginated payment history */
   async getMyPayments(userId: string, filters: PaymentHistoryFilters = {}) {
-    const page = filters.page || 1
-    const limit = filters.limit || 20
+    const page = filters.page || PAGINATION_DEFAULTS.page
+    const limit = filters.limit || PAGINATION_DEFAULTS.limit
     const skip = (page - 1) * limit
 
     const { data, total } = await this.paymentTxRepo.findByUserId(
@@ -59,8 +57,8 @@ export class PaymentHistoryService {
   ) {
     await this.verifyTripOrganizer(userId, tripId)
 
-    const page = filters.page || 1
-    const limit = filters.limit || 20
+    const page = filters.page || PAGINATION_DEFAULTS.page
+    const limit = filters.limit || PAGINATION_DEFAULTS.limit
     const skip = (page - 1) * limit
 
     const { data, total } = await this.paymentTxRepo.findByTripId(
@@ -100,8 +98,8 @@ export class PaymentHistoryService {
 
   /** GET /payments/admin — Admin global view */
   async getAllPayments(filters: AdminPaymentFilters = {}) {
-    const page = filters.page || 1
-    const limit = filters.limit || 20
+    const page = filters.page || PAGINATION_DEFAULTS.page
+    const limit = filters.limit || PAGINATION_DEFAULTS.limit
     const skip = (page - 1) * limit
 
     const { data, total } = await this.paymentTxRepo.findAll(

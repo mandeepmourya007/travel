@@ -4,6 +4,7 @@ import { ReviewRepository } from '../repositories/review.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
 import { REVIEW_EDIT_WINDOW_DAYS } from '@shared/constants/review'
+import { BOOKING_STATUS } from '@shared/constants'
 import { PAGINATION_DEFAULTS } from '../utils/constants'
 
 export class ReviewService {
@@ -33,7 +34,7 @@ export class ReviewService {
     const booking = await this.reviewRepo.findBookingForReview(dto.bookingId)
     if (!booking) throw new NotFoundError('Booking')
     if (booking.userId !== userId) throw new ForbiddenError('You can only review your own bookings')
-    if (booking.bookingStatus !== 'COMPLETED') {
+    if (booking.bookingStatus !== BOOKING_STATUS.COMPLETED) {
       throw new ValidationError('You can only review completed trips')
     }
 

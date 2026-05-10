@@ -5,9 +5,9 @@ import type { BookingRepository } from '../repositories/booking.repository'
 import type { TripRepository } from '../repositories/trip.repository'
 import type { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import type { MessageRepository } from '../repositories/message.repository'
-import type { NotificationRepository } from '../repositories/notification.repository'
 import type { WalletRepository } from '../repositories/wallet.repository'
 import type { WalletService } from './wallet.service'
+import type { NotificationService } from './notification.service'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
@@ -15,6 +15,7 @@ import type {
 import { NotFoundError, ValidationError } from '../errors/app-error'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { paginate } from '../utils/constants'
 
 export class AdminService {
@@ -25,10 +26,10 @@ export class AdminService {
     private tripRepo: TripRepository,
     private paymentTxRepo: PaymentTransactionRepository,
     private messageRepo: MessageRepository,
-    private notificationRepo: NotificationRepository,
     private walletRepo: WalletRepository,
     private walletService: WalletService,
     private logger: Logger,
+    private notificationService?: NotificationService,
   ) {}
 
   // ─── Organizer Approvals ──────────────────────────────
@@ -82,7 +83,7 @@ export class AdminService {
     })
 
     // Create notification for the organizer
-    const isApproved = dto.action === 'APPROVED'
+    const isApproved = dto.action === VERIFICATION_STATUS.APPROVED
     const title = isApproved
       ? 'Your organizer profile has been approved!'
       : 'Your organizer profile has been rejected'
@@ -92,14 +93,13 @@ export class AdminService {
         ? `Your organizer application was rejected. Reason: ${dto.reason}`
         : 'Your organizer application was rejected. Please contact support for details.'
 
-    await this.notificationRepo.create({
+    this.notificationService?.send({
       userId: profile.userId,
-      type: isApproved ? 'ORGANIZER_APPROVED' : 'ORGANIZER_REJECTED',
-      channel: 'IN_APP',
+      type: isApproved ? NOTIFICATION_TYPE.ORGANIZER_APPROVED : NOTIFICATION_TYPE.ORGANIZER_REJECTED,
       title,
       body,
       data: { profileId, reason: dto.reason },
-    })
+    }).catch((err) => this.logger.error({ err, profileId }, 'Failed to send organizer status notification'))
 
     this.logger.info(
       { profileId, action: dto.action, reason: dto.reason },

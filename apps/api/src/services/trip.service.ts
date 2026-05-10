@@ -10,9 +10,11 @@ import { TripEditHistoryRepository } from '../repositories/trip-edit-history.rep
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { ReviewRepository } from '../repositories/review.repository'
+import type { NotificationService } from './notification.service'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '@shared/utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
+import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
 
 export class TripService {
   constructor(
@@ -24,6 +26,7 @@ export class TripService {
     private tripRequestRepo: TripRequestRepository,
     private reviewRepo: ReviewRepository,
     private logger: Logger,
+    private notificationService?: NotificationService,
   ) {}
 
   async searchTrips(filters: TripFilters) {
@@ -97,7 +100,7 @@ export class TripService {
         id: profile.id,
         businessName: profile.businessName,
         description: profile.description,
-        verified: profile.verificationStatus === 'APPROVED',
+        verified: profile.verificationStatus === VERIFICATION_STATUS.APPROVED,
         rating: Math.round(avgRating * 10) / 10,
         totalReviews: totalReviewCount,
         totalTripsCompleted: profile.totalTripsCompleted,
@@ -128,7 +131,7 @@ export class TripService {
   async createTrip(userId: string, input: CreateTripDto) {
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new ForbiddenError('Organizer profile not found')
-    if (profile.verificationStatus !== 'APPROVED') {
+    if (profile.verificationStatus !== VERIFICATION_STATUS.APPROVED) {
       throw new ForbiddenError('Organizer profile must be approved before creating trips')
     }
 
@@ -183,7 +186,7 @@ export class TripService {
   async updateTrip(userId: string, tripId: string, input: UpdateTripDto) {
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
-    if (trip.status !== 'DRAFT' && trip.status !== 'ACTIVE') {
+    if (trip.status !== TRIP_STATUS.DRAFT && trip.status !== TRIP_STATUS.ACTIVE) {
       throw new ValidationError('Only DRAFT or ACTIVE trips can be edited')
     }
 
@@ -259,7 +262,7 @@ export class TripService {
     })
 
     // Record edit history (skip for drafts to avoid noise)
-    if (trip.status !== 'DRAFT' && changedFields.length > 0) {
+    if (trip.status !== TRIP_STATUS.DRAFT && changedFields.length > 0) {
       await this.editHistoryRepo.create({
         tripId,
         editedById: userId,
@@ -280,7 +283,7 @@ export class TripService {
   async toggleBookings(userId: string, tripId: string) {
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
-    if (trip.status !== 'ACTIVE') {
+    if (trip.status !== TRIP_STATUS.ACTIVE) {
       throw new ValidationError('Only ACTIVE trips can toggle bookings')
     }
 
@@ -345,7 +348,7 @@ export class TripService {
   async publishTrip(userId: string, tripId: string) {
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
-    if (trip.status !== 'DRAFT') {
+    if (trip.status !== TRIP_STATUS.DRAFT) {
       throw new ValidationError('Only DRAFT trips can be published')
     }
 
@@ -354,15 +357,15 @@ export class TripService {
     }
 
     const tripWithPoints = trip as typeof trip & { transferPoints?: { type: string }[] }
-    const hasPickup = tripWithPoints.transferPoints?.some((p) => p.type === 'PICKUP')
-    const hasDrop = tripWithPoints.transferPoints?.some((p) => p.type === 'DROP')
+    const hasPickup = tripWithPoints.transferPoints?.some((p) => p.type === TRANSFER_POINT_TYPE.PICKUP)
+    const hasDrop = tripWithPoints.transferPoints?.some((p) => p.type === TRANSFER_POINT_TYPE.DROP)
     if (!hasPickup) throw new ValidationError('Trip must have at least one pickup point before publishing')
     if (!hasDrop) throw new ValidationError('Trip must have at least one drop point before publishing')
 
     const updated = await this.tripRepo.withTransaction(async (tx) => {
       const result = await tx.trip.update({
         where: { id: tripId },
-        data: { status: 'ACTIVE' },
+        data: { status: TRIP_STATUS.ACTIVE },
         include: { destination: { select: { id: true, name: true, slug: true } }, organizer: { select: { id: true, businessName: true, rating: true, totalReviews: true, verificationStatus: true } } },
       })
       await tx.destination.update({
@@ -388,7 +391,7 @@ export class TripService {
         where: { id: tripId },
         data: { isDeleted: true, isActive: false, deletedAt: new Date() },
       })
-      if (trip.status === 'ACTIVE') {
+      if (trip.status === TRIP_STATUS.ACTIVE) {
         await tx.destination.update({
           where: { id: trip.destinationId },
           data: { tripCount: { decrement: 1 } },
@@ -499,7 +502,7 @@ export class TripService {
     if (!request) throw new NotFoundError('Trip request')
     if (request.tripId !== tripId) throw new NotFoundError('Trip request')
 
-    if (request.status !== 'PENDING') {
+    if (request.status !== TRIP_REQUEST_STATUS.PENDING) {
       throw new ValidationError('Only PENDING requests can be responded to')
     }
 
@@ -528,6 +531,23 @@ export class TripService {
       { tripId, requestId, action, responseNote },
       'Trip request responded',
     )
+
+    // Fire-and-forget: notify traveler of request response
+    const notifType = action === TRIP_REQUEST_STATUS.APPROVED ? NOTIFICATION_TYPE.TRIP_REQUEST_APPROVED : NOTIFICATION_TYPE.TRIP_REQUEST_REJECTED
+    const title = action === TRIP_REQUEST_STATUS.APPROVED
+      ? `Your request for ${trip.title} was approved!`
+      : `Your request for ${trip.title} was rejected`
+    const body = action === TRIP_REQUEST_STATUS.APPROVED
+      ? 'You have 48 hours to complete your payment and secure your spot.'
+      : responseNote || 'The organizer has declined your request.'
+
+    this.notificationService?.send({
+      userId: request.userId,
+      type: notifType,
+      title,
+      body,
+      data: { tripId, requestId, tripName: trip.title },
+    }).catch((err) => this.logger.error({ err, requestId }, 'Failed to send trip request response notification'))
 
     return this.toRequestListItem(updated)
   }
@@ -572,10 +592,10 @@ export class TripService {
     const trip = await this.tripRepo.findByIdLite(tripId)
     if (!trip) throw new NotFoundError('Trip')
 
-    if (trip.status !== 'ACTIVE') {
+    if (trip.status !== TRIP_STATUS.ACTIVE) {
       throw new ValidationError('This trip is not accepting requests')
     }
-    if (trip.bookingMode !== 'REQUEST_BASED') {
+    if (trip.bookingMode !== BOOKING_MODE.REQUEST_BASED) {
       throw new ValidationError('This trip accepts direct bookings — no request needed')
     }
     if (!trip.acceptingBookings) {
@@ -610,6 +630,16 @@ export class TripService {
         travelers: dto.travelers,
       })
       this.logger.info({ tripId, userId, requestId: request.id }, 'Trip request created')
+
+      // Fire-and-forget: notify organizer of new request
+      this.notificationService?.send({
+        userId: trip.organizer.userId,
+        type: NOTIFICATION_TYPE.TRIP_REQUEST_RECEIVED,
+        title: 'New Trip Request',
+        body: `A traveler has requested to join "${trip.title}" (${dto.numTravelers} traveler${dto.numTravelers > 1 ? 's' : ''}).`,
+        data: { tripId, requestId: request.id, tripName: trip.title, numTravelers: dto.numTravelers },
+      }).catch((err) => this.logger.error({ err, tripId }, 'Failed to send trip request notification to organizer'))
+
       return this.toRequestListItem(request)
     } catch (error: unknown) {
       // Prisma P2002 = unique constraint violation (user already has an active request)
@@ -705,7 +735,7 @@ export class TripService {
             businessName: trip.organizer.businessName,
             rating: trip.organizer.rating,
             totalReviews: trip.organizer.totalReviews,
-            verified: trip.organizer.verificationStatus === 'APPROVED',
+            verified: trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
           }
         : undefined,
     }
@@ -721,8 +751,8 @@ export class TripService {
       inclusions: trip.inclusions,
       exclusions: trip.exclusions,
       itinerary: trip.itinerary,
-      pickupPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === 'PICKUP') ?? [],
-      dropPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === 'DROP') ?? [],
+      pickupPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === TRANSFER_POINT_TYPE.PICKUP) ?? [],
+      dropPoints: trip.transferPoints?.filter((p: { type: string }) => p.type === TRANSFER_POINT_TYPE.DROP) ?? [],
       earlyBirdDeadline: trip.earlyBirdDeadline,
       bookingDeadline: trip.bookingDeadline,
       reviews: trip.reviews?.map((r: { id: string; overallRating: number; comment: string | null; photos: string[]; editedAt: Date | null; organizerReply: string | null; organizerReplyAt: Date | null; createdAt: Date; user: { id: string; name: string; avatarUrl: string | null } }) => ({
