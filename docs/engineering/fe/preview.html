@@ -1299,6 +1299,380 @@
     }
 
     /* ============================================
+       SEAT LAYOUT
+       ============================================ */
+    .seat-section-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--neutral-100);
+      padding: 4px;
+      border-radius: var(--radius-lg);
+      width: fit-content;
+      margin-bottom: 24px;
+    }
+    .seat-section-tab {
+      padding: 8px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--neutral-500);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      transition: all 0.15s;
+    }
+    .seat-section-tab:hover { color: var(--neutral-700); }
+    .seat-section-tab.active {
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .seat-template-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .seat-template-btn {
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      color: var(--neutral-700);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .seat-template-btn:hover { border-color: var(--primary-400); color: var(--primary-600); }
+    .seat-template-btn.active {
+      background: var(--primary-50);
+      border-color: var(--primary-500);
+      color: var(--primary-700);
+      font-weight: 600;
+    }
+
+    .seat-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: var(--neutral-50);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--neutral-100);
+    }
+    .seat-control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .seat-control-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-600);
+      min-width: 70px;
+    }
+    .seat-control-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--neutral-600);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+      transition: all 0.15s;
+    }
+    .seat-control-btn:hover { background: var(--primary-50); border-color: var(--primary-300); color: var(--primary-600); }
+    .seat-control-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--neutral-800);
+      min-width: 20px;
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+
+    .seat-grid-wrapper {
+      overflow-x: auto;
+      padding: 4px;
+    }
+    .seat-grid {
+      display: inline-grid;
+      gap: 6px;
+      padding: 16px;
+      background: var(--neutral-50);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--neutral-200);
+      min-width: fit-content;
+    }
+    .seat-grid.has-aisle {
+      column-gap: 0; /* overridden per-layout via JS inline gridTemplateColumns */
+    }
+
+    .seat-cell {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      position: relative;
+    }
+
+    /* Builder cell types */
+    .seat-cell-seat {
+      background: var(--primary-50);
+      border: 2px solid var(--primary-300);
+      color: var(--primary-700);
+    }
+    .seat-cell-seat:hover { background: var(--primary-100); border-color: var(--primary-400); }
+
+    .seat-cell-driver {
+      background: var(--neutral-800);
+      border: 2px solid var(--neutral-700);
+      color: white;
+      font-size: 16px;
+      cursor: not-allowed;
+    }
+
+    .seat-cell-empty {
+      background: var(--neutral-50);
+      border: 2px dashed var(--neutral-200);
+      color: var(--neutral-300);
+      font-size: 18px;
+    }
+    .seat-cell-empty:hover { border-color: var(--neutral-300); background: var(--neutral-100); }
+
+    .seat-cell-blocked {
+      background: var(--neutral-100);
+      border: 2px solid var(--neutral-300);
+      color: var(--neutral-400);
+      font-size: 14px;
+    }
+    .seat-cell-blocked:hover { background: var(--neutral-200); }
+
+    /* Picker cell states */
+    .seat-cell-available {
+      background: var(--success-50);
+      border: 2px solid #6EE7B7;
+      color: #059669;
+    }
+    .seat-cell-available:hover { background: #D1FAE5; border-color: #34D399; transform: scale(1.05); }
+
+    .seat-cell-selected {
+      background: var(--primary-500);
+      border: 2px solid var(--primary-600);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .seat-cell-selected:hover { background: var(--primary-600); }
+
+    .seat-cell-booked {
+      background: var(--neutral-100);
+      border: 2px solid var(--neutral-200);
+      color: var(--neutral-400);
+      cursor: not-allowed;
+    }
+
+    .seat-aisle-gap {
+      width: 24px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .seat-aisle-gap::before,
+    .seat-aisle-gap::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: repeating-linear-gradient(
+        to bottom,
+        var(--neutral-300) 0px,
+        var(--neutral-300) 6px,
+        transparent 6px,
+        transparent 12px
+      );
+    }
+    .seat-aisle-gap::before {
+      left: 5px;
+    }
+    .seat-aisle-gap::after {
+      right: 5px;
+    }
+
+    .seat-dropdown {
+      position: fixed;
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      z-index: 200;
+      min-width: 150px;
+      padding: 4px;
+      animation: seat-dropdown-in 0.15s ease;
+    }
+    @keyframes seat-dropdown-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .seat-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      color: var(--neutral-700);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .seat-dropdown-item:hover {
+      background: var(--neutral-50);
+    }
+    .seat-dropdown-item-active {
+      background: var(--primary-50);
+      color: var(--primary-700);
+      font-weight: 600;
+    }
+    .seat-dropdown-swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+    .seat-dropdown-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 199;
+    }
+
+    .seat-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: var(--neutral-0);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--neutral-100);
+    }
+    .seat-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--neutral-600);
+    }
+    .seat-legend-swatch {
+      width: 20px;
+      height: 20px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+
+    .seat-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--neutral-600);
+    }
+    .seat-summary strong {
+      color: var(--neutral-800);
+      font-weight: 700;
+    }
+
+    .seat-picker-info {
+      padding: 12px 16px;
+      background: var(--info-50);
+      border: 1px solid #BFDBFE;
+      border-radius: var(--radius-lg);
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--info-500);
+      font-weight: 500;
+    }
+
+    .seat-row-label {
+      width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--neutral-400);
+      font-family: var(--font-mono);
+    }
+
+    .vehicle-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+    .vehicle-header-icon {
+      font-size: 20px;
+    }
+    .vehicle-header-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--neutral-800);
+    }
+    .vehicle-header-badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      background: var(--primary-50);
+      color: var(--primary-700);
+    }
+
+    @media (max-width: 768px) {
+      .seat-cell { width: 38px; height: 38px; font-size: 11px; }
+      .seat-aisle-gap { width: 18px; }
+      .seat-controls { gap: 12px; }
+      .seat-template-btns { gap: 6px; }
+      .seat-template-btn { font-size: 12px; padding: 5px 10px; }
+    }
+
+    @media (max-width: 480px) {
+      .seat-cell { width: 34px; height: 34px; font-size: 10px; }
+      .seat-aisle-gap { width: 14px; }
+    }
+
+    /* ============================================
        UTILITY
        ============================================ */
     .flex { display: flex; }
@@ -2838,6 +3212,126 @@
     <button class="btn btn-md btn-danger" onclick="document.getElementById('modal-2').classList.add('active')" style="margin-left: 12px;">Open Cancel Modal</button>
   </div>
 
+  <!-- ======================== VEHICLE & SEAT LAYOUT ======================== -->
+  <div class="section">
+    <h2 class="section-title">Vehicle & Seat Layout</h2>
+    <p class="section-desc">Organizer builder + traveler seat picker — predefined templates and custom layouts</p>
+
+    <!-- View toggle: Builder vs Picker -->
+    <div class="seat-section-tabs">
+      <button class="seat-section-tab active" onclick="switchSeatView('builder')">Organizer Builder</button>
+      <button class="seat-section-tab" onclick="switchSeatView('picker')">Traveler Picker</button>
+    </div>
+
+    <!-- Template buttons -->
+    <div class="component-group">
+      <div class="component-label">Predefined Templates</div>
+      <div class="seat-template-btns" id="seat-template-btns">
+        <button class="seat-template-btn" onclick="applyTemplate('sedan')">Sedan (4+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('ertiga')">Ertiga (7+D)</button>
+        <button class="seat-template-btn active" onclick="applyTemplate('innova')">Innova (6+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('tempo')">Tempo (12+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('minibus')">Mini Bus (20+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('bus22')">Bus 2+2 (40+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('bus23')">Bus 2+3 (49+D)</button>
+        <button class="seat-template-btn" onclick="applyTemplate('custom')">Custom</button>
+      </div>
+    </div>
+
+    <!-- Custom controls (rows, left cols, right cols) -->
+    <div class="seat-controls" id="seat-controls">
+      <div class="seat-control-group">
+        <span class="seat-control-label">Rows</span>
+        <button class="seat-control-btn" onclick="adjustGrid('rows', -1)">−</button>
+        <span class="seat-control-val" id="ctrl-rows">3</span>
+        <button class="seat-control-btn" onclick="adjustGrid('rows', 1)">+</button>
+      </div>
+      <div class="seat-control-group">
+        <span class="seat-control-label">Left Cols</span>
+        <button class="seat-control-btn" onclick="adjustGrid('leftCols', -1)">−</button>
+        <span class="seat-control-val" id="ctrl-left">3</span>
+        <button class="seat-control-btn" onclick="adjustGrid('leftCols', 1)">+</button>
+      </div>
+      <div class="seat-control-group">
+        <span class="seat-control-label">Right Cols</span>
+        <button class="seat-control-btn" onclick="adjustGrid('rightCols', -1)">−</button>
+        <span class="seat-control-val" id="ctrl-right">0</span>
+        <button class="seat-control-btn" onclick="adjustGrid('rightCols', 1)">+</button>
+      </div>
+      <div class="seat-control-group">
+        <span class="seat-control-label">Aisle After</span>
+        <button class="seat-control-btn" onclick="adjustGrid('aisle', -1)">−</button>
+        <span class="seat-control-val" id="ctrl-aisle-label">None</span>
+        <button class="seat-control-btn" onclick="adjustGrid('aisle', 1)">+</button>
+      </div>
+    </div>
+
+    <!-- Builder view -->
+    <div id="seat-view-builder">
+      <div class="vehicle-header">
+        <span class="vehicle-header-icon" id="vehicle-icon">🚗</span>
+        <span class="vehicle-header-name" id="vehicle-name">Innova</span>
+        <span class="vehicle-header-badge" id="vehicle-seats-badge">6 seats</span>
+      </div>
+      <div class="seat-grid-wrapper">
+        <div class="seat-grid" id="builder-grid"></div>
+      </div>
+      <div class="seat-legend">
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--primary-50); border: 2px solid var(--primary-300);"></div>
+          Seat (click to change)
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--neutral-800); border: 2px solid var(--neutral-700);"></div>
+          Driver
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--neutral-50); border: 2px dashed var(--neutral-200); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--neutral-300);">✕</div>
+          No Seat (door/gap)
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--neutral-100); border: 2px solid var(--neutral-300);"></div>
+          Blocked
+        </div>
+      </div>
+      <div class="seat-summary" id="builder-summary"></div>
+    </div>
+
+    <!-- Picker view (hidden by default) -->
+    <div id="seat-view-picker" style="display: none;">
+      <div class="seat-picker-info" id="picker-info">
+        Select <strong>3</strong> seats for your travelers. Click a green seat to select.
+      </div>
+      <div class="vehicle-header">
+        <span class="vehicle-header-icon">🚗</span>
+        <span class="vehicle-header-name" id="picker-vehicle-name">Innova</span>
+        <span class="vehicle-header-badge" id="picker-seats-badge">3 available</span>
+      </div>
+      <div class="seat-grid-wrapper">
+        <div class="seat-grid" id="picker-grid"></div>
+      </div>
+      <div class="seat-legend">
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--success-50); border: 2px solid #6EE7B7;"></div>
+          Available
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--primary-500); border: 2px solid var(--primary-600);"></div>
+          Selected
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--neutral-100); border: 2px solid var(--neutral-200);"></div>
+          Booked
+        </div>
+        <div class="seat-legend-item">
+          <div class="seat-legend-swatch" style="background: var(--neutral-800); border: 2px solid var(--neutral-700);"></div>
+          Driver
+        </div>
+      </div>
+      <div class="seat-summary" id="picker-summary"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL 1: Booking Confirmation -->
@@ -3251,6 +3745,466 @@ function startFullDemo() {
       }, 800)
     }
   }
+})()
+
+// ============================================
+// Vehicle & Seat Layout Demo
+// ============================================
+;(function () {
+  'use strict'
+
+  // ── Constants ─────────────────────────────
+  var CELL = { SEAT: 'SEAT', DRIVER: 'DRIVER', EMPTY: 'EMPTY', BLOCKED: 'BLOCKED' }
+  var CELL_SIZE = 44
+  var AISLE_SIZE = 24
+  var MENU_WIDTH = 150
+  var BOOKED_RATIO = 0.3
+
+  var CELL_DISPLAY = {}
+  CELL_DISPLAY[CELL.DRIVER]  = '🛞'
+  CELL_DISPLAY[CELL.SEAT]    = null // seat number filled dynamically
+  CELL_DISPLAY[CELL.BLOCKED] = '🔒'
+  CELL_DISPLAY[CELL.EMPTY]   = '✕'
+
+  // Dropdown options (Driver excluded — it's locked)
+  var DROPDOWN_OPTIONS = [
+    { type: CELL.SEAT,    label: 'Seat',    icon: '💺', bg: 'var(--primary-50)',  border: 'var(--primary-300)', dashed: false },
+    { type: CELL.EMPTY,   label: 'No Seat', icon: '✕',  bg: 'var(--neutral-50)', border: 'var(--neutral-200)', dashed: true  },
+    { type: CELL.BLOCKED, label: 'Blocked', icon: '🔒', bg: 'var(--neutral-100)', border: 'var(--neutral-300)', dashed: false }
+  ]
+
+  // ── Templates ─────────────────────────────
+  // India: driver ALWAYS at row 0, last col (extreme right). Locked position.
+  var TEMPLATES = {
+    sedan:   { name: 'Sedan',            icon: '🚗', rows: 2,  cols: 3, aisleAfterCol: null, driverPos: [0, 2] },
+    ertiga:  { name: 'Ertiga',           icon: '🚗', rows: 3,  cols: 3, aisleAfterCol: null, driverPos: [0, 2] },
+    innova:  { name: 'Innova',           icon: '🚗', rows: 3,  cols: 3, aisleAfterCol: null, driverPos: [0, 2] },
+    tempo:   { name: 'Tempo Traveller',  icon: '🚐', rows: 5,  cols: 3, aisleAfterCol: 1,    driverPos: [0, 2] },
+    minibus: { name: 'Mini Bus',         icon: '🚌', rows: 6,  cols: 4, aisleAfterCol: 1,    driverPos: [0, 3] },
+    bus22:   { name: 'Bus (2+2)',        icon: '🚌', rows: 11, cols: 4, aisleAfterCol: 1,    driverPos: [0, 3] },
+    bus23:   { name: 'Bus (2+3)',        icon: '🚌', rows: 11, cols: 5, aisleAfterCol: 1,    driverPos: [0, 4] },
+    custom:  { name: 'Custom',           icon: '🔧', rows: 3,  cols: 4, aisleAfterCol: 1,    driverPos: [0, 3] }
+  }
+
+  // Fixed overrides per template (sparse — only non-SEAT cells)
+  var TEMPLATE_OVERRIDES = {
+    sedan:   { '0,1': CELL.EMPTY },
+    ertiga:  { '0,1': CELL.EMPTY },
+    innova:  { '0,1': CELL.EMPTY, '2,2': CELL.EMPTY },
+    tempo:   { '0,1': CELL.EMPTY },
+    minibus: { '0,1': CELL.EMPTY, '0,2': CELL.EMPTY },
+    bus22:   { '0,1': CELL.EMPTY, '0,2': CELL.EMPTY },
+    bus23:   { '0,1': CELL.EMPTY, '0,2': CELL.EMPTY, '0,3': CELL.EMPTY },
+    custom:  { '0,1': CELL.EMPTY, '0,2': CELL.EMPTY }
+  }
+
+  // Generate a layout from template config + overrides
+  function buildTemplateLayout(key) {
+    var t = TEMPLATES[key]
+    var overrides = TEMPLATE_OVERRIDES[key] || {}
+    var layout = []
+    for (var r = 0; r < t.rows; r++) {
+      var row = []
+      for (var c = 0; c < t.cols; c++) {
+        var coordKey = r + ',' + c
+        if (r === t.driverPos[0] && c === t.driverPos[1]) {
+          row.push(CELL.DRIVER)
+        } else if (overrides[coordKey]) {
+          row.push(overrides[coordKey])
+        } else {
+          row.push(CELL.SEAT)
+        }
+      }
+      layout.push(row)
+    }
+    return layout
+  }
+
+  // ── State ─────────────────────────────────
+  var state = {
+    rows: 3, cols: 3, aisleAfterCol: null,
+    driverPos: [0, 2],   // [row, col] — single source of truth
+    layout: [],
+    view: 'builder',
+    pickerSelected: [],   // [{row, col}]
+    pickerBooked: [],     // [{row, col}]
+    numTravelers: 3
+  }
+
+  // ── Helpers ───────────────────────────────
+  function deepCopy(arr) {
+    return arr.map(function (row) { return row.slice() })
+  }
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val))
+  }
+
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1))
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp
+    }
+    return arr
+  }
+
+  function leftCols()  { return state.aisleAfterCol !== null ? state.aisleAfterCol + 1 : state.cols }
+  function rightCols() { return state.aisleAfterCol !== null ? state.cols - state.aisleAfterCol - 1 : 0 }
+
+  // Enforce exactly 1 DRIVER — always at row 0, extreme right (India)
+  function enforceOneDriver() {
+    var dr = 0, dc = state.cols - 1
+    state.driverPos = [dr, dc]
+    // Clear any stale DRIVER cells, then set the canonical one
+    for (var r = 0; r < state.layout.length; r++) {
+      for (var c = 0; c < state.layout[r].length; c++) {
+        if (state.layout[r][c] === CELL.DRIVER) {
+          state.layout[r][c] = CELL.EMPTY
+        }
+      }
+    }
+    state.layout[dr][dc] = CELL.DRIVER
+  }
+
+  // Assign sequential seat numbers — shared by builder + picker
+  function computeSeatNumbers() {
+    var num = 1
+    return state.layout.map(function (row) {
+      return row.map(function (cell) {
+        return cell === CELL.SEAT ? num++ : null
+      })
+    })
+  }
+
+  function countCells() {
+    var seats = 0, drivers = 0, blocked = 0
+    state.layout.forEach(function (row) {
+      row.forEach(function (cell) {
+        if (cell === CELL.SEAT) seats++
+        else if (cell === CELL.DRIVER) drivers++
+        else if (cell === CELL.BLOCKED) blocked++
+      })
+    })
+    return { seats: seats, drivers: drivers, blocked: blocked }
+  }
+
+  function cellLabel(r, c) { return (r + 1) + String.fromCharCode(65 + c) }
+
+  function cellText(type, seatNum) {
+    return type === CELL.SEAT ? seatNum : (CELL_DISPLAY[type] || '')
+  }
+
+  function buildColTemplate() {
+    var parts = []
+    for (var c = 0; c < state.cols; c++) {
+      parts.push(CELL_SIZE + 'px')
+      if (state.aisleAfterCol !== null && c === state.aisleAfterCol) {
+        parts.push(AISLE_SIZE + 'px')
+      }
+    }
+    return parts.join(' ')
+  }
+
+  // Generate simulated booked seats (~30% of SEAT cells)
+  function generatePickerBooked() {
+    var seats = []
+    state.layout.forEach(function (row, r) {
+      row.forEach(function (cell, c) {
+        if (cell === CELL.SEAT) seats.push({ row: r, col: c })
+      })
+    })
+    shuffle(seats)
+    state.pickerBooked = seats.slice(0, Math.floor(seats.length * BOOKED_RATIO))
+  }
+
+  // Rebuild layout when grid dimensions change (preserves existing cells)
+  function rebuildLayout() {
+    var prev = state.layout
+    var layout = []
+    for (var r = 0; r < state.rows; r++) {
+      var row = []
+      for (var c = 0; c < state.cols; c++) {
+        row.push(prev[r] && prev[r][c] ? prev[r][c] : CELL.SEAT)
+      }
+      layout.push(row)
+    }
+    state.layout = layout
+    enforceOneDriver()
+    state.pickerSelected = []
+    generatePickerBooked()
+  }
+
+  // ── DOM Helpers ───────────────────────────
+  function $(id) { return document.getElementById(id) }
+
+  function appendAisle(grid) {
+    var el = document.createElement('div')
+    el.className = 'seat-aisle-gap'
+    grid.appendChild(el)
+  }
+
+  // ── Dropdown ──────────────────────────────
+  function closeDropdown() {
+    var el = document.querySelector('.seat-dropdown')
+    if (el) el.remove()
+    var bd = document.querySelector('.seat-dropdown-backdrop')
+    if (bd) bd.remove()
+  }
+
+  function showDropdown(cellEl, r, c) {
+    if (state.layout[r][c] === CELL.DRIVER) return
+    closeDropdown()
+
+    var current = state.layout[r][c]
+
+    // Invisible backdrop
+    var backdrop = document.createElement('div')
+    backdrop.className = 'seat-dropdown-backdrop'
+    backdrop.addEventListener('click', closeDropdown)
+    document.body.appendChild(backdrop)
+
+    // Position fixed below cell
+    var rect = cellEl.getBoundingClientRect()
+    var left = clamp(
+      rect.left + rect.width / 2 - MENU_WIDTH / 2,
+      8, window.innerWidth - MENU_WIDTH - 8
+    )
+    var top = rect.bottom + 6
+    if (top + 160 > window.innerHeight) top = rect.top - 160 - 6
+
+    var menu = document.createElement('div')
+    menu.className = 'seat-dropdown'
+    menu.style.cssText = 'left:' + left + 'px;top:' + top + 'px;width:' + MENU_WIDTH + 'px'
+
+    DROPDOWN_OPTIONS.forEach(function (opt) {
+      var btn = document.createElement('button')
+      btn.className = 'seat-dropdown-item' + (opt.type === current ? ' seat-dropdown-item-active' : '')
+
+      var swatch = document.createElement('span')
+      swatch.className = 'seat-dropdown-swatch'
+      swatch.style.background = opt.bg
+      swatch.style.border = '2px ' + (opt.dashed ? 'dashed' : 'solid') + ' ' + opt.border
+
+      var label = document.createElement('span')
+      label.textContent = opt.icon + '  ' + opt.label
+
+      btn.appendChild(swatch)
+      btn.appendChild(label)
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        state.layout[r][c] = opt.type
+        closeDropdown()
+        renderCurrentView()
+      })
+      menu.appendChild(btn)
+    })
+
+    document.body.appendChild(menu)
+  }
+
+  // ── Grid Renderers ────────────────────────
+  // Shared: iterate layout and call cellFactory(el, cell, r, c, seatNum) per cell
+  function renderGrid(gridEl, seatNumbers, cellFactory) {
+    gridEl.style.gridTemplateColumns = buildColTemplate()
+    gridEl.innerHTML = ''
+
+    state.layout.forEach(function (row, r) {
+      row.forEach(function (cell, c) {
+        var el = document.createElement('div')
+        cellFactory(el, cell, r, c, seatNumbers[r][c])
+        gridEl.appendChild(el)
+
+        if (state.aisleAfterCol !== null && c === state.aisleAfterCol) {
+          appendAisle(gridEl)
+        }
+      })
+    })
+  }
+
+  function renderBuilder() {
+    closeDropdown()
+    var seatNumbers = computeSeatNumbers()
+
+    renderGrid($('builder-grid'), seatNumbers, function (el, cell, r, c, seatNum) {
+      el.className = 'seat-cell seat-cell-' + cell.toLowerCase()
+      el.textContent = cellText(cell, seatNum)
+
+      if (cell === CELL.DRIVER) {
+        el.title = cellLabel(r, c) + ' — Driver (locked)'
+      } else {
+        el.title = cellLabel(r, c) + ' — ' + cell + ' (click to change)'
+        ;(function (rr, cc) {
+          el.addEventListener('click', function (e) {
+            e.stopPropagation()
+            showDropdown(this, rr, cc)
+          })
+        })(r, c)
+      }
+    })
+
+    // Update summary
+    var counts = countCells()
+    $('vehicle-seats-badge').textContent = counts.seats + ' seats'
+    $('builder-summary').innerHTML =
+      '<span><strong>' + counts.seats + '</strong> bookable seats</span>' +
+      '<span><strong>' + counts.drivers + '</strong> driver</span>' +
+      '<span><strong>' + counts.blocked + '</strong> blocked</span>' +
+      '<span style="color:var(--neutral-400);">Grid: ' + state.rows + ' × ' + state.cols +
+      (state.aisleAfterCol !== null ? ' (aisle after col ' + (state.aisleAfterCol + 1) + ')' : '') + '</span>'
+  }
+
+  function renderPicker() {
+    var seatNumbers = computeSeatNumbers()
+    var availableCount = 0
+
+    renderGrid($('picker-grid'), seatNumbers, function (el, cell, r, c, seatNum) {
+      var isBooked = state.pickerBooked.some(function (b) { return b.row === r && b.col === c })
+      var selIdx = state.pickerSelected.findIndex(function (s) { return s.row === r && s.col === c })
+
+      if (cell === CELL.DRIVER || cell === CELL.BLOCKED) {
+        el.className = 'seat-cell ' + (cell === CELL.DRIVER ? 'seat-cell-driver' : 'seat-cell-booked')
+        el.textContent = CELL_DISPLAY[cell]
+        el.style.cursor = 'not-allowed'
+      } else if (cell === CELL.EMPTY) {
+        el.className = 'seat-cell seat-cell-empty'
+        el.textContent = CELL_DISPLAY[CELL.EMPTY]
+        el.style.cursor = 'default'
+      } else if (isBooked) {
+        el.className = 'seat-cell seat-cell-booked'
+        el.textContent = seatNum
+      } else if (selIdx >= 0) {
+        el.className = 'seat-cell seat-cell-selected'
+        el.textContent = 'T' + (selIdx + 1)
+        el.title = 'Traveler ' + (selIdx + 1) + ' — Seat ' + seatNum + ' (click to deselect)'
+        ;(function (rr, cc) {
+          el.addEventListener('click', function () { togglePickerSeat(rr, cc, false) })
+        })(r, c)
+      } else {
+        availableCount++
+        el.className = 'seat-cell seat-cell-available'
+        el.textContent = seatNum
+        el.title = 'Seat ' + seatNum + ' — click to select'
+        ;(function (rr, cc) {
+          el.addEventListener('click', function () { togglePickerSeat(rr, cc, true) })
+        })(r, c)
+      }
+    })
+
+    // Picker info
+    var needed = state.numTravelers - state.pickerSelected.length
+    $('picker-info').innerHTML = needed > 0
+      ? 'Select <strong>' + needed + '</strong> more seat' + (needed > 1 ? 's' : '') + ' for your travelers.'
+      : '<span style="color:var(--success-500);">All ' + state.numTravelers + ' seats selected!</span>'
+    $('picker-vehicle-name').textContent = $('vehicle-name').textContent
+    $('picker-seats-badge').textContent = availableCount + ' available'
+    $('picker-summary').innerHTML =
+      '<span>Selected: <strong>' + state.pickerSelected.length + '/' + state.numTravelers + '</strong></span>' +
+      '<span>Available: <strong>' + availableCount + '</strong></span>' +
+      (state.pickerSelected.length > 0
+        ? '<span>Seats: <strong>' + state.pickerSelected.map(function (s) { return seatNumbers[s.row][s.col] }).join(', ') + '</strong></span>'
+        : '')
+  }
+
+  function renderCurrentView() {
+    if (state.view === 'builder') renderBuilder()
+    else renderPicker()
+  }
+
+  function togglePickerSeat(r, c, select) {
+    if (select) {
+      if (state.pickerSelected.length >= state.numTravelers) return
+      state.pickerSelected.push({ row: r, col: c })
+    } else {
+      state.pickerSelected = state.pickerSelected.filter(function (s) {
+        return !(s.row === r && s.col === c)
+      })
+    }
+    renderPicker()
+  }
+
+  // ── UI Updates ────────────────────────────
+  function updateControls() {
+    $('ctrl-rows').textContent = state.rows
+    $('ctrl-left').textContent = leftCols()
+    $('ctrl-right').textContent = rightCols()
+    $('ctrl-aisle-label').textContent =
+      state.aisleAfterCol !== null ? 'Col ' + (state.aisleAfterCol + 1) : 'None'
+  }
+
+  function updateHeader(t) {
+    $('vehicle-icon').textContent = t.icon
+    $('vehicle-name').textContent = t.name
+  }
+
+  function refresh() {
+    updateControls()
+    renderBuilder()
+    if (state.view === 'picker') renderPicker()
+  }
+
+  // ── Public API ────────────────────────────
+  window.switchSeatView = function (view) {
+    state.view = view
+    var tabs = document.querySelectorAll('.seat-section-tab')
+    tabs[0].classList.toggle('active', view === 'builder')
+    tabs[1].classList.toggle('active', view === 'picker')
+    $('seat-view-builder').style.display = view === 'builder' ? '' : 'none'
+    $('seat-view-picker').style.display = view === 'picker' ? '' : 'none'
+    if (view === 'picker') renderPicker()
+  }
+
+  window.applyTemplate = function (key) {
+    var btns = document.querySelectorAll('.seat-template-btn')
+    btns.forEach(function (b) { b.classList.remove('active') })
+    var idx = Object.keys(TEMPLATES).indexOf(key)
+    if (idx >= 0 && btns[idx]) btns[idx].classList.add('active')
+
+    var t = TEMPLATES[key]
+    state.rows = t.rows
+    state.cols = t.cols
+    state.aisleAfterCol = t.aisleAfterCol
+    state.driverPos = t.driverPos.slice()
+    state.layout = buildTemplateLayout(key)
+    state.pickerSelected = []
+    generatePickerBooked()
+    updateHeader(t)
+    refresh()
+  }
+
+  window.adjustGrid = function (field, delta) {
+    var lc = leftCols(), rc = rightCols()
+
+    switch (field) {
+      case 'rows':
+        state.rows = clamp(state.rows + delta, 2, 15)
+        break
+      case 'leftCols':
+        lc = clamp(lc + delta, 1, 4)
+        state.cols = lc + rc
+        if (state.aisleAfterCol !== null) state.aisleAfterCol = lc - 1
+        break
+      case 'rightCols':
+        rc = clamp(rc + delta, 0, 4)
+        if (rc === 0) { state.cols = lc; state.aisleAfterCol = null }
+        else { state.cols = lc + rc; if (state.aisleAfterCol === null) state.aisleAfterCol = lc - 1 }
+        break
+      case 'aisle':
+        if (state.aisleAfterCol === null) {
+          if (state.cols >= 2) state.aisleAfterCol = 0
+        } else {
+          var next = state.aisleAfterCol + delta
+          if (next < 0) state.aisleAfterCol = null
+          else if (next < state.cols - 1) state.aisleAfterCol = next
+        }
+        break
+    }
+
+    rebuildLayout()
+    refresh()
+  }
+
+  // ── Init ──────────────────────────────────
+  window.applyTemplate('innova')
 })()
 </script>
 
