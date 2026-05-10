@@ -61,7 +61,7 @@ export const reviewKeys = {
 
 export const notificationKeys = {
   all: ['notifications'] as const,
-  list: () => [...notificationKeys.all, 'list'] as const,
+  list: (filters?: Record<string, unknown>) => [...notificationKeys.all, 'list', filters] as const,
   unreadCount: () => [...notificationKeys.all, 'unread'] as const,
 }
 
