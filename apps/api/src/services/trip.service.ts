@@ -428,7 +428,12 @@ export class TripService {
         totalAmount: b.totalAmount,
         createdAt: b.createdAt,
         user: b.user,
-        travelerDetails: b.travelerDetails,
+        travelerDetails: b.travelerDetails.map((t) => ({
+          ...t,
+          assignedSeat: t.assignedSeat
+            ? { seatNumber: t.assignedSeat.seatNumber, seatLabel: t.assignedSeat.seatLabel, vehicleName: t.assignedSeat.tripVehicle.label }
+            : null,
+        })),
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     }
@@ -670,10 +675,15 @@ export class TripService {
 
   /**
    * Resolves a destination input that can be an existing slug/ID or a new name.
-   * Lookup order: slug (indexed, unique) → name (case-insensitive) → auto-create.
+   * Lookup order: ID → slug (indexed, unique) → name (case-insensitive) → auto-create.
    */
   private async resolveDestination(destinationId: string) {
     const input = destinationId.trim()
+
+    // 0. Try ID lookup first (FE sends existing destination ID from the dropdown)
+    const byId = await this.destinationRepo.findById(input)
+    if (byId) return byId
+
     const slug = generateSlug(input)
 
     // 1. Try slug lookup (fast, indexed, covers both typed names and existing slugs)
@@ -728,6 +738,7 @@ export class TripService {
       status: trip.status,
       acceptingBookings: trip.acceptingBookings,
       photos: trip.photos,
+      seatSelectionEnabled: trip.seatSelectionEnabled ?? false,
       reviewCount: trip._count?.reviews ?? 0,
       organizer: trip.organizer
         ? {

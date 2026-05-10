@@ -4,6 +4,14 @@ import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
+const ASSIGNED_SEAT_SELECT = {
+  select: {
+    seatNumber: true,
+    seatLabel: true,
+    tripVehicle: { select: { label: true } },
+  },
+} as const
+
 const BOOKING_INCLUDE_LIST = {
   user: {
     select: { id: true, name: true, email: true, avatarUrl: true },
@@ -19,6 +27,7 @@ const BOOKING_INCLUDE_LIST = {
       isPrimary: true,
       emergencyContactName: true,
       emergencyContactPhone: true,
+      assignedSeat: ASSIGNED_SEAT_SELECT,
     },
   },
   pickupPoint: { select: { id: true, label: true, time: true } },
@@ -52,6 +61,7 @@ const MY_BOOKING_INCLUDE = {
       isPrimary: true,
       emergencyContactName: true,
       emergencyContactPhone: true,
+      assignedSeat: ASSIGNED_SEAT_SELECT,
     },
   },
   pickupPoint: { select: { id: true, label: true, time: true } },
@@ -380,6 +390,7 @@ export class BookingRepository {
           take: 1,
         },
         tripRequest: { select: { id: true, status: true } },
+        travelerDetails: { select: { id: true, name: true }, orderBy: { createdAt: 'asc' as const } },
       },
     })
   }
@@ -556,6 +567,7 @@ export class BookingRepository {
           where: { isDeleted: false },
           select: {
             id: true, name: true, phone: true, age: true, gender: true, isPrimary: true,
+            assignedSeat: ASSIGNED_SEAT_SELECT,
           },
         },
         paymentTransactions: {

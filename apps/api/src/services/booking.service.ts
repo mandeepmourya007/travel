@@ -9,10 +9,29 @@ import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { PaymentService } from './payment.service'
 import type { NotificationService } from './notification.service'
+import type { VehicleService } from './vehicle.service'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
 import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, CANCELLATION_POLICY } from '@shared/constants'
 import { env } from '../config/env'
+
+/** Maps Prisma's nested assignedSeat → flat API shape */
+function mapAssignedSeat(
+  seat: { seatNumber: number; seatLabel: string; tripVehicle: { label: string } } | null,
+) {
+  if (!seat) return null
+  return { seatNumber: seat.seatNumber, seatLabel: seat.seatLabel, vehicleName: seat.tripVehicle.label }
+}
+
+/** Maps Prisma travelerDetails (with nested assignedSeat) to API shape */
+function mapTravelerDetails(
+  travelers: Array<{ assignedSeat?: { seatNumber: number; seatLabel: string; tripVehicle: { label: string } } | null; [key: string]: unknown }>,
+) {
+  return travelers.map((t) => {
+    const { assignedSeat, ...rest } = t
+    return { ...rest, assignedSeat: mapAssignedSeat(assignedSeat ?? null) }
+  })
+}
 
 export class BookingService {
   constructor(
@@ -23,6 +42,7 @@ export class BookingService {
     private paymentService: PaymentService,
     private logger: Logger,
     private notificationService: NotificationService,
+    private vehicleService: VehicleService | null = null,
   ) {}
 
   /** Guards against calling payment methods when Razorpay is not configured */
@@ -89,7 +109,7 @@ export class BookingService {
               editedAt: b.review.editedAt,
             }
           : null,
-        travelerDetails: b.travelerDetails ?? [],
+        travelerDetails: mapTravelerDetails(b.travelerDetails ?? []),
         pickupPoint: b.pickupPoint ?? undefined,
         dropPoint: b.dropPoint ?? undefined,
       })),
@@ -188,6 +208,12 @@ export class BookingService {
       await this.bookingRepo.cancel(bookingId, userId, reason)
     }
 
+    // Release any held/booked seats
+    if (this.vehicleService) {
+      this.vehicleService.releaseSeats(bookingId)
+        .catch((err) => this.logger.error({ err, bookingId }, 'Failed to release seats on cancellation'))
+    }
+
     // Fire-and-forget: notify traveler of cancellation
     this.notificationService.send({
       userId: booking.userId,
@@ -230,6 +256,7 @@ export class BookingService {
       dropPointId?: string
       numTravelers: number
       travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
+      seatIds?: string[]
     },
   ): Promise<CreateBookingResponse> {
     const timer = startTimer()
@@ -276,6 +303,9 @@ export class BookingService {
     if (input.numTravelers !== input.travelers.length) {
       throw new ValidationError('Number of traveler details must match numTravelers')
     }
+    if (input.seatIds?.length && input.seatIds.length !== input.numTravelers) {
+      throw new ValidationError('Number of selected seats must match number of travelers')
+    }
 
     // REQUEST_BASED mode check
     if (trip.bookingMode === BOOKING_MODE.REQUEST_BASED) {
@@ -308,11 +338,12 @@ export class BookingService {
     const amountInPaise = totalAmount * 100
 
     // 5. Build order-level transfers (H4 fix)
-    // Skip transfers in non-production when organizer has seeded/mock linked account
+    // Only attach transfers in production with a real Razorpay linked account
+    // Real Razorpay linked account IDs: "acc_" + 14+ alphanumeric chars (e.g. acc_HjVXtlV9LdABJ0)
+    const REAL_ACCOUNT_RE = /^acc_[A-Za-z0-9]{14,}$/
     const isRealAccount =
-      env.NODE_ENV === 'production' ||
-      (trip.organizer.razorpayAccountId?.startsWith('acc_') &&
-       trip.organizer.razorpayAccountId.length >= 18)
+      env.NODE_ENV === 'production' &&
+      REAL_ACCOUNT_RE.test(trip.organizer.razorpayAccountId ?? '')
 
     const transfers: Record<string, unknown>[] = isRealAccount
       ? [{
@@ -327,7 +358,15 @@ export class BookingService {
         }]
       : []
 
-    // 5. Create Razorpay order
+    // 5. Pre-check seat availability (optimistic — atomic hold happens after booking creation)
+    if (input.seatIds?.length && this.vehicleService) {
+      const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
+      if (!availableSeats) {
+        throw new ConflictError('One or more selected seats are no longer available')
+      }
+    }
+
+    // 6. Create Razorpay order
     const order = await paymentSvc.createOrder(
       amountInPaise,
       `booking-${Date.now()}`,
@@ -335,7 +374,7 @@ export class BookingService {
       { tripId: input.tripId, userId },
     )
 
-    // 6. Create Booking + PaymentTransaction
+    // 7. Create Booking + PaymentTransaction
     const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
     const booking = await this.bookingRepo.create({
       tripId: input.tripId,
@@ -357,8 +396,20 @@ export class BookingService {
       status: PAYMENT_TX_STATUS.INITIATED,
     })
 
+    // 8. Atomically hold seats (if hold fails, cancel booking to prevent orphaned state)
+    if (input.seatIds?.length && this.vehicleService) {
+      try {
+        await this.vehicleService.holdSeats(input.seatIds, userId, booking.id)
+      } catch (seatErr) {
+        // Cancel the booking — Razorpay order expires naturally
+        await this.bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
+          .catch((cancelErr: unknown) => this.logger.error({ cancelErr, bookingId: booking.id }, 'Failed to expire booking after seat hold failure'))
+        throw seatErr
+      }
+    }
+
     this.logger.info(
-      { bookingId: booking.id, orderId: order.id, amount: totalAmount, durationMs: timer.elapsed() },
+      { bookingId: booking.id, orderId: order.id, amount: totalAmount, seatCount: input.seatIds?.length ?? 0, durationMs: timer.elapsed() },
       'Booking created with Razorpay order',
     )
 
@@ -439,6 +490,26 @@ export class BookingService {
 
     // Update booking to CONFIRMED
     await this.bookingRepo.updateStatus(bookingId, BOOKING_STATUS.CONFIRMED)
+
+    // Confirm held seats → BOOKED and auto-assign travelers
+    if (this.vehicleService) {
+      try {
+        const heldSeats = await this.vehicleService.getBookingSeats(booking.id)
+        const travelers: Array<{ id: string }> = booking.travelerDetails ?? []
+        if (heldSeats.length > 0 && travelers.length > 0) {
+          const assignments = heldSeats
+            .map((seat: { id: string }, i: number) => ({
+              seatId: seat.id,
+              travelerDetailId: travelers[i]?.id ?? '',
+            }))
+            .filter((a: { travelerDetailId: string }) => a.travelerDetailId)
+
+          await this.vehicleService.confirmSeats(booking.id, booking.userId, assignments)
+        }
+      } catch (seatErr) {
+        this.logger.error({ bookingId, seatErr }, 'Seat confirmation failed — booking still confirmed')
+      }
+    }
 
     // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow (C1 fix)
     if (booking.tripRequest && booking.tripRequest.status === TRIP_REQUEST_STATUS.APPROVED) {

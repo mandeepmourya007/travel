@@ -188,7 +188,15 @@ export class AdminService {
   async getBookingDetail(bookingId: string) {
     const booking = await this.bookingRepo.findByIdAdmin(bookingId)
     if (!booking) throw new NotFoundError('Booking')
-    return booking
+    return {
+      ...booking,
+      travelerDetails: booking.travelerDetails.map((t) => ({
+        ...t,
+        assignedSeat: t.assignedSeat
+          ? { seatNumber: t.assignedSeat.seatNumber, seatLabel: t.assignedSeat.seatLabel, vehicleName: t.assignedSeat.tripVehicle.label }
+          : null,
+      })),
+    }
   }
 
   // ─── Cashback ───────────────────────────────────────
