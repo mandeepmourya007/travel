@@ -6,8 +6,7 @@ import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { makeTravelerProfile, makeOrganizerFullProfile } from '@/test/factories/profile.factory'
 import ProfilePage from '@/app/profile/page'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 const { mockUpdateUser, mockState } = vi.hoisted(() => {
   const mockUpdateUser = vi.fn()

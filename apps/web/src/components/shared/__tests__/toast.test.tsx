@@ -22,6 +22,10 @@ describe('ToastProvider + useToast', () => {
     vi.useFakeTimers()
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('throws when useToast is called outside provider', () => {
     // Suppress console.error for this test
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -45,8 +49,13 @@ describe('ToastProvider + useToast', () => {
     fireEvent.click(screen.getByText('Trigger'))
     expect(screen.getByRole('alert')).toBeInTheDocument()
 
+    // Advance past duration to trigger dismissWithAnimation
     act(() => {
       vi.advanceTimersByTime(4100)
+    })
+    // Advance past the 200ms exit animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(200)
     })
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
@@ -61,6 +70,9 @@ describe('ToastProvider + useToast', () => {
     act(() => {
       vi.advanceTimersByTime(1100)
     })
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
@@ -72,6 +84,10 @@ describe('ToastProvider + useToast', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText('Dismiss'))
+    // Advance past the 200ms exit animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 

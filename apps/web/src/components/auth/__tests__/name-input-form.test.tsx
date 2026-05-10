@@ -5,8 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { NameInputForm } from '../name-input-form'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 // Mock zustand store so useUpdateProfile's store selectors work
 const { mockState } = vi.hoisted(() => {

@@ -7,6 +7,7 @@ import { useCompareTrips } from '../use-compare-trips'
 import { createTestQueryClient } from '@/test/test-utils'
 import { makeTripDetail, resetTripFactory } from '@/test/factories/trip.factory'
 import { server } from '@/test/mocks/server'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 function createWrapper() {
   const queryClient = createTestQueryClient()
@@ -35,10 +36,10 @@ describe('useCompareTrips', () => {
     const trip2 = makeTripDetail({ slug: 'manali-trek', title: 'Manali Trek' })
 
     server.use(
-      http.get('*/trips/slug/goa-beach', () =>
+      http.get(`${API}/trips/slug/goa-beach`, () =>
         HttpResponse.json({ success: true, data: trip1 }),
       ),
-      http.get('*/trips/slug/manali-trek', () =>
+      http.get(`${API}/trips/slug/manali-trek`, () =>
         HttpResponse.json({ success: true, data: trip2 }),
       ),
     )
@@ -62,13 +63,13 @@ describe('useCompareTrips', () => {
 
   it('reports error when any slug fetch fails', async () => {
     server.use(
-      http.get('*/trips/slug/good-trip', () =>
+      http.get(`${API}/trips/slug/good-trip`, () =>
         HttpResponse.json({
           success: true,
           data: makeTripDetail({ slug: 'good-trip' }),
         }),
       ),
-      http.get('*/trips/slug/bad-trip', () =>
+      http.get(`${API}/trips/slug/bad-trip`, () =>
         HttpResponse.json(
           { success: false, error: { code: 'NOT_FOUND', message: 'Trip not found' } },
           { status: 404 },

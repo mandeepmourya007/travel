@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { renderWithQuery } from '@/test/test-utils'
 import { makeTripDetail, resetTripFactory } from '@/test/factories/trip.factory'
 import { server } from '@/test/mocks/server'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 // Mock next/navigation
 const mockPush = vi.fn()
@@ -67,10 +68,10 @@ describe('Compare Page', () => {
     })
 
     server.use(
-      http.get('*/trips/slug/goa-beach', () =>
+      http.get(`${API}/trips/slug/goa-beach`, () =>
         HttpResponse.json({ success: true, data: trip1 }),
       ),
-      http.get('*/trips/slug/manali-trek', () =>
+      http.get(`${API}/trips/slug/manali-trek`, () =>
         HttpResponse.json({ success: true, data: trip2 }),
       ),
     )
@@ -118,10 +119,10 @@ describe('Compare Page', () => {
     })
 
     server.use(
-      http.get('*/trips/slug/cheap-trip', () =>
+      http.get(`${API}/trips/slug/cheap-trip`, () =>
         HttpResponse.json({ success: true, data: trip1 }),
       ),
-      http.get('*/trips/slug/premium-trip', () =>
+      http.get(`${API}/trips/slug/premium-trip`, () =>
         HttpResponse.json({ success: true, data: trip2 }),
       ),
     )
@@ -142,13 +143,13 @@ describe('Compare Page', () => {
 
   it('shows error state when API fails', async () => {
     server.use(
-      http.get('*/trips/slug/fail-1', () =>
+      http.get(`${API}/trips/slug/fail-1`, () =>
         HttpResponse.json(
           { success: false, error: { code: 'INTERNAL_ERROR', message: 'Server error' } },
           { status: 500 },
         ),
       ),
-      http.get('*/trips/slug/fail-2', () =>
+      http.get(`${API}/trips/slug/fail-2`, () =>
         HttpResponse.json(
           { success: false, error: { code: 'INTERNAL_ERROR', message: 'Server error' } },
           { status: 500 },
@@ -220,10 +221,10 @@ describe('Compare Page', () => {
     })
 
     server.use(
-      http.get('*/trips/slug/goa-beach', () =>
+      http.get(`${API}/trips/slug/goa-beach`, () =>
         HttpResponse.json({ success: true, data: trip1 }),
       ),
-      http.get('*/trips/slug/manali-trek', () =>
+      http.get(`${API}/trips/slug/manali-trek`, () =>
         HttpResponse.json({ success: true, data: trip2 }),
       ),
     )

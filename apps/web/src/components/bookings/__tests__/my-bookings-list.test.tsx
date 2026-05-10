@@ -5,8 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderWithQuery } from '@/test/test-utils'
 import { makeMyBooking, makeMyBookingSummary, resetBookingFactory } from '@/test/factories/booking.factory'
 import { server } from '@/test/mocks/server'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 // Mock next/navigation (required for Link components inside cards)
 const mockPush = vi.fn()

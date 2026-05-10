@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { OnboardingForm } from '../onboarding-form'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 const { mockUpdateUser, mockState } = vi.hoisted(() => {
   const mockUpdateUser = vi.fn()
@@ -103,7 +104,7 @@ describe('OnboardingForm', () => {
 
   it('should show error on API failure', async () => {
     server.use(
-      http.patch('*/auth/profile', () => {
+      http.patch(`${API}/auth/profile`, () => {
         return HttpResponse.json(
           { success: false, error: { message: 'Server error' } },
           { status: 500 },

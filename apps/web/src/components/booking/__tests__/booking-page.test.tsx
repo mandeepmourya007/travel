@@ -10,8 +10,7 @@ import {
 } from '@/test/factories/booking.factory'
 import { makeTripDetail, resetTripFactory } from '@/test/factories/trip.factory'
 import { server } from '@/test/mocks/server'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 // Mock next/navigation
 const mockPush = vi.fn()

@@ -7,8 +7,7 @@ import { useWalletBalance, useWalletTransactions } from '../use-wallet'
 import { createTestQueryClient } from '@/test/test-utils'
 import { makeWalletSummary, makeWalletTxItem, resetWalletFactory } from '@/test/factories/wallet.factory'
 import { server } from '@/test/mocks/server'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 function createWrapper() {
   const queryClient = createTestQueryClient()

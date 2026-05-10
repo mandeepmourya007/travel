@@ -5,6 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '@/test/mocks/server'
 import { renderWithQuery } from '@/test/test-utils'
 import { PhoneInputForm } from '../phone-input-form'
+import { API_BASE_URL as API } from '@/test/test-constants'
 
 describe('PhoneInputForm', () => {
   const onOtpSent = vi.fn()
@@ -39,7 +40,7 @@ describe('PhoneInputForm', () => {
   it('should show spinner on button during API call (isPending)', async () => {
     // Delay the response so we can observe the pending state
     server.use(
-      http.post('*/auth/otp/send', async () => {
+      http.post(`${API}/auth/otp/send`, async () => {
         await new Promise((r) => setTimeout(r, 200))
         return HttpResponse.json({ success: true, data: { message: 'OTP sent', retryAfter: 30 } })
       }),
@@ -68,7 +69,7 @@ describe('PhoneInputForm', () => {
 
   it('should show error banner when API returns 429 (rate limit)', async () => {
     server.use(
-      http.post('*/auth/otp/send', () => {
+      http.post(`${API}/auth/otp/send`, () => {
         return HttpResponse.json(
           { success: false, error: { message: 'Too many requests', code: 'TOO_MANY_REQUESTS' } },
           { status: 429 },
