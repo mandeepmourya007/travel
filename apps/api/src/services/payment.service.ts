@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import type Razorpay from 'razorpay'
 import { Logger } from 'pino'
+import { startTimer } from '../utils/perf-timer'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentError, ValidationError } from '../errors/app-error'
@@ -33,12 +34,13 @@ export class PaymentService {
     transfers: Record<string, unknown>[],
     notes: Record<string, unknown>,
   ) {
+    const timer = startTimer()
     if (amount <= 0) {
       throw new ValidationError('Order amount must be greater than zero')
     }
 
     try {
-      return await this.razorpay.orders.create({
+      const order = await this.razorpay.orders.create({
         amount,
         currency: CURRENCY,
         receipt,
@@ -46,8 +48,10 @@ export class PaymentService {
         ...(transfers.length > 0 ? { transfers } : {}),
         notes,
       } as Parameters<typeof this.razorpay.orders.create>[0])
+      this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created')
+      return order
     } catch (error) {
-      this.logger.error({ error, amount, receipt }, 'Razorpay order creation failed')
+      this.logger.error({ error, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed')
       throw new PaymentError('Failed to create Razorpay order', error)
     }
   }
@@ -154,6 +158,7 @@ export class PaymentService {
     rawBody: Buffer,
     headers: Record<string, string | string[] | undefined>,
   ): Promise<string | null> {
+    const timer = startTimer()
     const eventId = headers['x-razorpay-event-id'] as string
     if (!eventId) {
       throw new ValidationError('Missing x-razorpay-event-id header')
@@ -193,6 +198,7 @@ export class PaymentService {
       status: WEBHOOK_STATUS.RECEIVED,
     })
 
+    this.logger.info({ webhookEventId: webhookEvent.id, durationMs: timer.elapsed() }, 'Webhook event recorded')
     return webhookEvent.id
   }
 
@@ -362,12 +368,13 @@ export class PaymentService {
    * @throws PaymentError — Razorpay API failure
    */
   async releaseTransferHold(transferId: string): Promise<void> {
+    const timer = startTimer()
     try {
       // razorpay SDK v2.9.6: transfers.edit(transferId, data)
       // Razorpay SDK doesn't type transfers.edit — cast through unknown
       const rzp = this.razorpay as unknown as { transfers: { edit: (id: string, data: { on_hold: boolean }) => Promise<void> } }
       await rzp.transfers.edit(transferId, { on_hold: false })
-      this.logger.info({ transferId }, 'Escrow transfer hold released')
+      this.logger.info({ transferId, durationMs: timer.elapsed() }, 'Escrow transfer hold released')
     } catch (error: unknown) {
       // Fallback: if SDK method doesn't exist, try raw API call
       if (error instanceof Error && error.message?.includes('is not a function')) {

@@ -1,4 +1,5 @@
 import { Logger } from 'pino'
+import { startTimer } from '../utils/perf-timer'
 import type { MyBookingFilters, MyBookingSummary, CancelBookingResult, MyTripBookingStatus } from '@shared/types/booking.types'
 import type { MyTripRequestItem } from '@shared/types/trip-request.types'
 import type { CreateBookingResponse, VerifyPaymentDto, VerifyPaymentResponse } from '@shared/types/payment.types'
@@ -140,6 +141,7 @@ export class BookingService {
    * @throws ValidationError — booking can't be cancelled (wrong status)
    */
   async cancelBooking(userId: string, bookingId: string, reason: string): Promise<CancelBookingResult> {
+    const timer = startTimer()
     const booking = await this.bookingRepo.findById(bookingId)
     if (!booking) throw new NotFoundError('Booking')
     if (booking.userId !== userId) throw new ForbiddenError('You can only cancel your own bookings')
@@ -152,7 +154,7 @@ export class BookingService {
     const refundPercent = this.calculateRefundPercent(booking.trip.cancellationPolicy, hoursUntilTrip)
     const refundAmount = Math.round((booking.totalAmount * refundPercent) / 100)
 
-    this.logger.info({ bookingId, userId, refundPercent, refundAmount }, 'Cancelling booking')
+    this.logger.info({ bookingId, userId, refundPercent, refundAmount, durationMs: timer.elapsed() }, 'Cancelling booking')
 
     if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
       // Cancel + decrement seats atomically in a transaction
@@ -230,6 +232,7 @@ export class BookingService {
       travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
     },
   ): Promise<CreateBookingResponse> {
+    const timer = startTimer()
     const paymentSvc = this.requirePaymentService()
 
     // 1. Idempotency check
@@ -355,7 +358,7 @@ export class BookingService {
     })
 
     this.logger.info(
-      { bookingId: booking.id, orderId: order.id, amount: totalAmount },
+      { bookingId: booking.id, orderId: order.id, amount: totalAmount, durationMs: timer.elapsed() },
       'Booking created with Razorpay order',
     )
 
@@ -389,6 +392,7 @@ export class BookingService {
     bookingId: string,
     preloadedBooking?: Awaited<ReturnType<BookingRepository['findWithPaymentDetails']>>,
   ): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+    const timer = startTimer()
     this.requirePaymentService()
 
     const booking = preloadedBooking ?? await this.bookingRepo.findWithPaymentDetails(bookingId)
@@ -447,7 +451,7 @@ export class BookingService {
       this.logger.info({ tripId: booking.trip.id }, 'Trip auto-transitioned to FULL')
     }
 
-    this.logger.info({ bookingId }, 'Booking confirmed')
+    this.logger.info({ bookingId, durationMs: timer.elapsed() }, 'Booking confirmed')
 
     // Fire-and-forget: notify traveler of booking confirmation
     this.notificationService.send({

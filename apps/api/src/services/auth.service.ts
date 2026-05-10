@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import type { Logger } from 'pino'
+import { startTimer } from '../utils/perf-timer'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
 import type { UserProfileResponse } from '@shared/types/user.types'
 import { DEFAULT_USER_NAME } from '@shared/constants/roles'
@@ -31,6 +32,7 @@ export class AuthService {
     dto: SignupDto,
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
+    const timer = startTimer()
     const exists = await this.userRepo.emailExists(dto.email)
     if (exists) {
       throw new ConflictError('An account with this email already exists')
@@ -62,7 +64,7 @@ export class AuthService {
 
     await this.createWalletForUser(user.id)
 
-    this.logger.info({ userId: user.id, role: user.role }, 'User signed up')
+    this.logger.info({ userId: user.id, role: user.role, durationMs: timer.elapsed() }, 'User signed up')
     return this.issueTokens(user, meta)
   }
 
@@ -70,6 +72,7 @@ export class AuthService {
     dto: LoginDto,
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
+    const timer = startTimer()
     const user = await this.userRepo.findByEmail(dto.email)
     if (!user) {
       throw new AuthError('Invalid email or password')
@@ -91,7 +94,7 @@ export class AuthService {
       throw new AuthError('Account is deactivated')
     }
 
-    this.logger.info({ userId: user.id }, 'User logged in')
+    this.logger.info({ userId: user.id, durationMs: timer.elapsed() }, 'User logged in')
     return this.issueTokens(user, meta)
   }
 
