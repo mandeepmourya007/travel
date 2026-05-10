@@ -148,12 +148,14 @@ echo "🌐 Domain configuration..."
 EXISTING_DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
 
 if [ -n "$EXISTING_DOMAIN" ]; then
-  DOMAIN="$EXISTING_DOMAIN"
+  # Strip protocol and trailing slashes in case it was stored incorrectly
+  DOMAIN=$(echo "$EXISTING_DOMAIN" | sed 's|^https\?://||' | sed 's|/.*||')
   echo "   ✅ Using domain from ${ENV_FILE}: $DOMAIN"
 else
   read -rp "   No domain set. Enter domain (or leave empty to skip): " NEW_DOMAIN
   if [ -n "$NEW_DOMAIN" ]; then
-    DOMAIN="$NEW_DOMAIN"
+    # Strip protocol and trailing slashes (user might type https://example.com)
+    DOMAIN=$(echo "$NEW_DOMAIN" | sed 's|^https\?://||' | sed 's|/.*||')
   else
     DOMAIN=""
   fi
@@ -296,6 +298,25 @@ echo "🌱 Seeding database..."
 $DC --profile seed run --rm seed \
   && echo "  ✅ Seed complete" \
   || echo "  ⏭️  Seed skipped (already applied or no seed data)"
+
+# ── Prepare Nginx template ───────────────────────────
+# Use HTTP-only template until SSL certs exist (Certbot runs after health checks)
+CERTS_EXIST=false
+if [ -n "$DOMAIN" ]; then
+  # Certs live inside Docker volume — check via a temp container
+  if docker run --rm -v "$(docker volume ls -q | grep certbot_certs | head -1):/certs:ro" alpine \
+    test -f "/certs/live/${DOMAIN}/fullchain.pem" 2>/dev/null; then
+    CERTS_EXIST=true
+  fi
+fi
+
+if [ "$CERTS_EXIST" = true ]; then
+  echo "🔒 SSL certs found — using HTTPS template"
+  cp docker/nginx/ssl.conf.template docker/nginx/templates/default.conf.template
+else
+  echo "🌐 No SSL certs yet — using HTTP-only template (Certbot will run after)"
+  cp docker/nginx/templates/default.conf.template.http-only docker/nginx/templates/default.conf.template
+fi
 
 # ── Start all services ────────────────────────────────
 echo ""
