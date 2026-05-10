@@ -55,7 +55,7 @@ export function PopularDestinations() {
           {destinations.map((dest) => (
             <Link
               key={dest.id}
-              href={`/trips?destinationId=${dest.id}`}
+              href={`/destinations/${dest.slug}`}
               className="group relative h-36 overflow-hidden rounded-xl bg-neutral-200"
             >
               {dest.photoUrl && (

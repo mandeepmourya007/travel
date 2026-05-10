@@ -40,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   const destinationPages: MetadataRoute.Sitemap = data.destinations.map((dest) => ({
-    url: `${SITE_URL}/trips?destination=${dest.slug}`,
+    url: `${SITE_URL}/destinations/${dest.slug}`,
     lastModified: new Date(dest.updatedAt),
     changeFrequency: 'weekly',
     priority: 0.7,
