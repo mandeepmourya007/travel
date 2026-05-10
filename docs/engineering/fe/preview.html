@@ -2568,6 +2568,267 @@
     </div>
   </div>
 
+  <!-- ======================== NOTIFICATION SYSTEM ======================== -->
+  <div class="section">
+    <h2 class="section-title">Notification System</h2>
+    <p class="section-desc">Real-time notification bell with popover dropdown, notification list page, error/empty states, and design-system-compliant spinners. Refactored to eliminate duplicate socket listeners.</p>
+
+    <!-- Architecture Summary -->
+    <div class="component-group">
+      <div class="component-label">Architecture (What Was Built)</div>
+      <div class="card" style="padding: 20px; max-width: 700px;">
+        <div style="font-size: 13px; color: var(--neutral-700); line-height: 1.7;">
+          <strong style="color: var(--neutral-900);">Backend:</strong> NotificationService → channels (IN_APP, EMAIL, SMS, PUSH) in parallel. Fire-and-forget from booking/trip/admin services.<br>
+          <strong style="color: var(--neutral-900);">Frontend:</strong> SocketConnector (global, in Providers) → Zustand store → React Query hooks → NotificationBell (Popover) + /notifications page.<br>
+          <strong style="color: var(--neutral-900);">Socket:</strong> Single connection per session. SocketConnector connects on auth, disconnects on logout. No duplicate listeners.<br>
+          <strong style="color: var(--neutral-900);">Polling:</strong> Unread count polled every 30s as fallback. Real-time via <code style="font-family:var(--font-mono);font-size:12px;background:var(--neutral-100);padding:1px 4px;border-radius:4px;">notification:new</code> socket event.
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOW 1: Notification Bell (Popover) -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Flow 1 — Notification Bell (shadcn Popover)</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">Desktop header: single bell icon with unread badge. Click opens a Popover (not raw dropdown) with recent notifications. Mobile: simple link to /notifications page.</p>
+
+      <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start;">
+        <!-- Bell with no notifications -->
+        <div class="card" style="padding: 20px; width: 260px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); margin-bottom: 12px;">No Notifications</div>
+          <div style="display: inline-flex; position: relative; padding: 8px; border-radius: var(--radius-lg); background: var(--neutral-50);">
+            <span style="font-size: 20px;">🔔</span>
+          </div>
+          <div style="margin-top: 16px; padding: 24px; background: var(--neutral-50); border-radius: var(--radius-lg);">
+            <span style="font-size: 28px; display: block; margin-bottom: 4px; color: var(--neutral-300);">🔔</span>
+            <span style="font-size: 13px; color: var(--neutral-500);">No notifications yet</span>
+          </div>
+        </div>
+
+        <!-- Bell with unread count + items -->
+        <div class="card" style="padding: 20px; width: 360px;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); margin-bottom: 12px;">With Unread (3)</div>
+          <div style="display: inline-flex; position: relative; padding: 8px; border-radius: var(--radius-lg); background: var(--neutral-50);">
+            <span style="font-size: 20px;">🔔</span>
+            <span style="position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: var(--error-500); color: white; font-size: 10px; font-weight: 700; padding: 0 4px;">3</span>
+          </div>
+
+          <!-- Popover preview -->
+          <div style="margin-top: 16px; border: 1px solid var(--neutral-200); border-radius: var(--radius-xl); overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--neutral-100);">
+              <span style="font-size: 14px; font-weight: 600; color: var(--neutral-900);">Notifications</span>
+              <span style="font-size: 12px; font-weight: 500; color: var(--primary-600); cursor: pointer;">✓✓ Mark all read</span>
+            </div>
+
+            <!-- Unread item -->
+            <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(224, 255, 254, 0.3); border-bottom: 1px solid var(--neutral-100);">
+              <span style="font-size: 16px; margin-top: 2px;">✅</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">Booking Confirmed!</div>
+                <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;">Your Goa Beach Getaway booking is confirmed.</div>
+                <div style="font-size: 11px; color: var(--neutral-400); margin-top: 4px;">2 minutes ago</div>
+              </div>
+              <span style="margin-top: 6px; width: 8px; height: 8px; border-radius: 9999px; background: var(--primary-500); flex-shrink: 0;"></span>
+            </div>
+
+            <!-- Unread item -->
+            <div style="display: flex; gap: 12px; padding: 12px 16px; background: rgba(224, 255, 254, 0.3); border-bottom: 1px solid var(--neutral-100);">
+              <span style="font-size: 16px; margin-top: 2px;">📩</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; font-weight: 600; color: var(--neutral-900);">New Trip Request</div>
+                <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;">Rahul wants to join Manali Snow Trek.</div>
+                <div style="font-size: 11px; color: var(--neutral-400); margin-top: 4px;">15 minutes ago</div>
+              </div>
+              <span style="margin-top: 6px; width: 8px; height: 8px; border-radius: 9999px; background: var(--primary-500); flex-shrink: 0;"></span>
+            </div>
+
+            <!-- Read item -->
+            <div style="display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--neutral-100);">
+              <span style="font-size: 16px; margin-top: 2px;">💰</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 13px; color: var(--neutral-700);">Payment Received</div>
+                <div style="font-size: 12px; color: var(--neutral-500); margin-top: 2px;">₹4,649 received for booking #BK-1234.</div>
+                <div style="font-size: 11px; color: var(--neutral-400); margin-top: 4px;">1 hour ago</div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 10px 16px; border-top: 1px solid var(--neutral-100); text-align: center;">
+              <span style="font-size: 12px; font-weight: 500; color: var(--primary-600); cursor: pointer;">View all notifications</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOW 2: Notifications Page -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Flow 2 — Notifications Page (/notifications)</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">Full-page list with unread filter, mark-all-read, pagination. Type icons from shared NOTIFICATION_TYPE_ICON constant.</p>
+
+      <div class="card" style="max-width: 640px; width: 100%; overflow: hidden;">
+        <!-- Page header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid var(--neutral-100);">
+          <div>
+            <div style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--neutral-900);">Notifications</div>
+            <div style="font-size: 13px; color: var(--neutral-500); margin-top: 2px;">3 unread</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; gap: 4px; background: var(--neutral-100); padding: 4px; border-radius: var(--radius-lg);">
+              <button class="tab tab-active" style="padding: 6px 14px; font-size: 12px;">All</button>
+              <button class="tab" style="padding: 6px 14px; font-size: 12px;">Unread</button>
+            </div>
+            <button class="btn btn-sm btn-secondary" style="font-size: 12px; padding: 6px 12px;">✓✓ Mark all read</button>
+          </div>
+        </div>
+
+        <!-- Notification rows -->
+        <div style="padding: 0;">
+          <!-- Unread row -->
+          <div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 20px; background: rgba(224, 255, 254, 0.25); border: 1px solid var(--primary-200); border-left: none; border-right: none; border-top: none;">
+            <span style="font-size: 18px; margin-top: 2px;">✅</span>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--neutral-900);">Booking Confirmed!</span>
+                <button style="font-size: 11px; font-weight: 500; color: var(--primary-600); background: none; border: none; cursor: pointer; padding: 2px 8px; border-radius: var(--radius-md);">Mark read</button>
+              </div>
+              <div style="font-size: 13px; color: var(--neutral-600); margin-top: 4px;">Your Goa Beach Getaway booking is confirmed. See you on Dec 6!</div>
+              <div style="font-size: 12px; color: var(--neutral-400); margin-top: 6px;">2 minutes ago</div>
+            </div>
+          </div>
+
+          <!-- Unread row -->
+          <div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 20px; background: rgba(224, 255, 254, 0.25); border-bottom: 1px solid var(--neutral-100);">
+            <span style="font-size: 18px; margin-top: 2px;">🎉</span>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--neutral-900);">Organizer Approved!</span>
+                <button style="font-size: 11px; font-weight: 500; color: var(--primary-600); background: none; border: none; cursor: pointer; padding: 2px 8px; border-radius: var(--radius-md);">Mark read</button>
+              </div>
+              <div style="font-size: 13px; color: var(--neutral-600); margin-top: 4px;">Congratulations! Your organizer profile has been approved. Start creating trips!</div>
+              <div style="font-size: 12px; color: var(--neutral-400); margin-top: 6px;">1 hour ago</div>
+            </div>
+          </div>
+
+          <!-- Read row -->
+          <div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 20px; border-bottom: 1px solid var(--neutral-100);">
+            <span style="font-size: 18px; margin-top: 2px;">💸</span>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; color: var(--neutral-700);">Refund Processed</div>
+              <div style="font-size: 13px; color: var(--neutral-600); margin-top: 4px;">₹4,649 refund for Manali Trek has been initiated. Expect it in 5-7 business days.</div>
+              <div style="font-size: 12px; color: var(--neutral-400); margin-top: 6px;">Yesterday</div>
+            </div>
+          </div>
+
+          <!-- Read row -->
+          <div style="display: flex; gap: 16px; align-items: flex-start; padding: 16px 20px; border-bottom: 1px solid var(--neutral-100);">
+            <span style="font-size: 18px; margin-top: 2px;">⭐</span>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; color: var(--neutral-700);">Review Request</div>
+              <div style="font-size: 13px; color: var(--neutral-600); margin-top: 4px;">How was your Goa Beach Getaway? Leave a review to help other travelers.</div>
+              <div style="font-size: 12px; color: var(--neutral-400); margin-top: 6px;">2 days ago</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; padding: 16px; border-top: 1px solid var(--neutral-100);">
+          <button class="btn btn-sm btn-ghost" disabled style="opacity: 0.4; cursor: not-allowed;">← Prev</button>
+          <span style="font-size: 12px; color: var(--neutral-500);">Page 1 of 3</span>
+          <button class="btn btn-sm btn-ghost">Next →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOW 3: 4-State Rendering -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Flow 3 — 4-State Rendering (Loading / Error / Empty / Data)</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">Every notification component handles all 4 states per project rules.</p>
+
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
+        <!-- Loading state -->
+        <div class="card" style="width: 260px; padding: 40px 20px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); margin-bottom: 16px;">Loading State</div>
+          <div style="display: inline-block; width: 32px; height: 32px; border: 3px solid var(--primary-100); border-top-color: var(--primary-500); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          <div style="margin-top: 8px; font-size: 12px; color: var(--neutral-400);">.spinner .spinner-lg</div>
+        </div>
+
+        <!-- Error state -->
+        <div class="card" style="width: 260px; overflow: hidden;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); padding: 12px 16px;">Error State</div>
+          <div style="padding: 24px; background: var(--error-50); border: 1px solid #FECACA; border-radius: var(--radius-lg); margin: 0 12px 12px; text-align: center;">
+            <span style="font-size: 24px;">😟</span>
+            <div style="font-size: 13px; font-weight: 600; color: var(--neutral-800); margin-top: 8px;">Something went wrong</div>
+            <div style="font-size: 12px; color: var(--neutral-500); margin-top: 4px;">Failed to load notifications.</div>
+            <button class="btn btn-sm btn-outline" style="margin-top: 12px; font-size: 12px; padding: 4px 12px;">Try again</button>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="card" style="width: 260px; padding: 32px 20px; text-align: center;">
+          <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--neutral-400); margin-bottom: 16px;">Empty State</div>
+          <span style="font-size: 28px; display: block; color: var(--neutral-300);">🔔</span>
+          <div style="font-size: 13px; color: var(--neutral-500); margin-top: 8px;">No notifications yet</div>
+          <div style="font-size: 12px; color: var(--neutral-400); margin-top: 4px;">We'll notify you about bookings, trips & more.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLOW 4: Real-time Toast -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Flow 4 — Real-Time Socket Toast</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">When a <code style="font-family:var(--font-mono);font-size:12px;background:var(--neutral-100);padding:1px 4px;border-radius:4px;">notification:new</code> event arrives via Socket.IO, SocketConnector shows a Sonner toast and updates the store.</p>
+      <div class="component-row" style="gap: 12px;">
+        <button class="btn btn-sm btn-primary" onclick="showDemoToast('success')">Simulate Booking Toast</button>
+        <button class="btn btn-sm btn-secondary" onclick="showDemoToast('info')">Simulate Trip Update</button>
+      </div>
+    </div>
+
+    <!-- FLOW 5: Notification Types -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">All Notification Types (NOTIFICATION_TYPE_ICON)</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">Shared constant in <code style="font-family:var(--font-mono);font-size:12px;background:var(--neutral-100);padding:1px 4px;border-radius:4px;">lib/notification-icons.ts</code> — used by both bell and page.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <span class="badge badge-neutral">✅ BOOKING_CONFIRMED</span>
+        <span class="badge badge-neutral">❌ BOOKING_CANCELLED</span>
+        <span class="badge badge-neutral">💰 PAYMENT_RECEIVED</span>
+        <span class="badge badge-neutral">⚠️ PAYMENT_FAILED</span>
+        <span class="badge badge-neutral">💸 REFUND_PROCESSED</span>
+        <span class="badge badge-neutral">🔔 TRIP_REMINDER</span>
+        <span class="badge badge-neutral">⭐ REVIEW_REQUEST</span>
+        <span class="badge badge-neutral">💬 CHAT_MESSAGE</span>
+        <span class="badge badge-neutral">🎉 ORGANIZER_APPROVED</span>
+        <span class="badge badge-neutral">😔 ORGANIZER_REJECTED</span>
+        <span class="badge badge-neutral">📩 TRIP_REQUEST_RECEIVED</span>
+        <span class="badge badge-neutral">👍 TRIP_REQUEST_APPROVED</span>
+        <span class="badge badge-neutral">👎 TRIP_REQUEST_REJECTED</span>
+        <span class="badge badge-neutral">⏰ TRIP_REQUEST_EXPIRED</span>
+        <span class="badge badge-neutral">🛡️ ADMIN_SUPPORT_MESSAGE</span>
+        <span class="badge badge-neutral">📢 SYSTEM_ALERT</span>
+      </div>
+    </div>
+
+    <!-- FLOW 6: Optimistic Rollback Demo -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Flow 6 — Optimistic Mark-as-Read with Rollback</div>
+      <p style="font-size: 13px; color: var(--neutral-500); margin-bottom: 16px;">Click "Mark read" → instantly greys out (optimistic). If API fails → reverts to unread (rollback). Click the demo to see both flows.</p>
+      <div style="max-width: 500px;">
+        <!-- Unread state -->
+        <div id="notif-demo-row" style="display: flex; gap: 16px; padding: 16px 20px; background: rgba(224, 255, 254, 0.25); border: 1px solid var(--primary-200); border-radius: var(--radius-xl); transition: all 0.3s ease; cursor: pointer;" onclick="toggleNotifDemo()">
+          <span style="font-size: 18px; margin-top: 2px;">✅</span>
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <span id="notif-demo-title" style="font-size: 14px; font-weight: 600; color: var(--neutral-900); transition: all 0.3s;">Booking Confirmed!</span>
+              <span id="notif-demo-btn" style="font-size: 11px; font-weight: 500; color: var(--primary-600); padding: 2px 8px; border-radius: var(--radius-md);">Mark read</span>
+            </div>
+            <div style="font-size: 13px; color: var(--neutral-600); margin-top: 4px;">Your Goa Beach Getaway booking is confirmed.</div>
+            <div id="notif-demo-status" style="font-size: 11px; margin-top: 6px; color: var(--neutral-400);">Click to mark read (optimistic)</div>
+          </div>
+          <span id="notif-demo-dot" style="margin-top: 6px; width: 8px; height: 8px; border-radius: 9999px; background: var(--primary-500); flex-shrink: 0; transition: opacity 0.3s;"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== MODAL ======================== -->
   <div class="section">
     <h2 class="section-title">Modal</h2>
@@ -2941,6 +3202,54 @@ function startFullDemo() {
     setTimeout(function () {
       if (el.parentNode) el.parentNode.removeChild(el)
     }, 200)
+  }
+})()
+
+// ============================================
+// Notification Optimistic Rollback Demo
+// ============================================
+;(function () {
+  var state = 'unread' // unread | read | rolling-back
+  var clickCount = 0
+
+  window.toggleNotifDemo = function () {
+    var row = document.getElementById('notif-demo-row')
+    var title = document.getElementById('notif-demo-title')
+    var btn = document.getElementById('notif-demo-btn')
+    var dot = document.getElementById('notif-demo-dot')
+    var status = document.getElementById('notif-demo-status')
+
+    clickCount++
+
+    if (state === 'unread') {
+      // Optimistic: instantly mark as read
+      row.style.background = 'var(--neutral-0)'
+      row.style.borderColor = 'var(--neutral-200)'
+      title.style.fontWeight = '400'
+      title.style.color = 'var(--neutral-700)'
+      btn.textContent = ''
+      dot.style.opacity = '0'
+      status.textContent = '✓ Marked read (optimistic). Click again to simulate API failure → rollback.'
+      status.style.color = 'var(--success-500)'
+      state = 'read'
+    } else if (state === 'read') {
+      // Simulate API failure → rollback
+      status.textContent = '⚠ API failed! Rolling back...'
+      status.style.color = 'var(--error-500)'
+      state = 'rolling-back'
+
+      setTimeout(function () {
+        row.style.background = 'rgba(224, 255, 254, 0.25)'
+        row.style.borderColor = 'var(--primary-200)'
+        title.style.fontWeight = '600'
+        title.style.color = 'var(--neutral-900)'
+        btn.textContent = 'Mark read'
+        dot.style.opacity = '1'
+        status.textContent = '↩ Rolled back to unread! onError restored previous state. Click to try again.'
+        status.style.color = 'var(--warning-500)'
+        state = 'unread'
+      }, 800)
+    }
   }
 })()
 </script>
