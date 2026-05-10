@@ -142,6 +142,73 @@ else
   echo "  ✅ ${ENV_FILE} already exists (preserving secrets)"
 fi
 
+# ── Domain configuration ──────────────────────────────
+echo ""
+echo "🌐 Domain configuration..."
+EXISTING_DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
+
+if [ -n "$EXISTING_DOMAIN" ]; then
+  echo "   Found domain in ${ENV_FILE}: $EXISTING_DOMAIN"
+  read -rp "   Use this domain? (y/n): " USE_DOMAIN
+  if [[ "$USE_DOMAIN" == "y" || "$USE_DOMAIN" == "Y" ]]; then
+    DOMAIN="$EXISTING_DOMAIN"
+    echo "   ✅ Using domain: $DOMAIN"
+  else
+    read -rp "   Enter new domain (or leave empty to skip): " NEW_DOMAIN
+    if [ -n "$NEW_DOMAIN" ]; then
+      DOMAIN="$NEW_DOMAIN"
+    else
+      DOMAIN=""
+    fi
+  fi
+else
+  read -rp "   No domain set. Enter domain (or leave empty to skip): " NEW_DOMAIN
+  if [ -n "$NEW_DOMAIN" ]; then
+    DOMAIN="$NEW_DOMAIN"
+  else
+    DOMAIN=""
+  fi
+fi
+
+# Persist domain + update related URLs in .env.prod
+if [ -n "$DOMAIN" ]; then
+  SCHEME="https"
+  BASE_DOMAIN_URL="${SCHEME}://${DOMAIN}"
+
+  # Helper: upsert a key=value in .env.prod
+  _env_set() {
+    local KEY="$1" VAL="$2"
+    if grep -q "^${KEY}=" "$ENV_FILE" 2>/dev/null; then
+      sed -i "s|^${KEY}=.*|${KEY}=${VAL}|" "$ENV_FILE"
+    elif grep -q "^# *${KEY}=" "$ENV_FILE" 2>/dev/null; then
+      # Uncomment and set
+      sed -i "s|^# *${KEY}=.*|${KEY}=${VAL}|" "$ENV_FILE"
+    else
+      echo "${KEY}=${VAL}" >> "$ENV_FILE"
+    fi
+  }
+
+  _env_set "DOMAIN" "$DOMAIN"
+  _env_set "SERVER_NAME" "$DOMAIN"
+  _env_set "CLIENT_URL" "$BASE_DOMAIN_URL"
+  _env_set "NEXT_PUBLIC_API_URL" "${BASE_DOMAIN_URL}/api/v1"
+  _env_set "NEXT_PUBLIC_SOCKET_URL" "$BASE_DOMAIN_URL"
+  _env_set "NEXT_PUBLIC_SITE_URL" "$BASE_DOMAIN_URL"
+
+  # Prompt for ACME_EMAIL if not set (needed for HTTPS)
+  EXISTING_ACME=$(grep '^ACME_EMAIL=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
+  if [ -z "$EXISTING_ACME" ]; then
+    read -rp "   Enter email for Let's Encrypt (ACME_EMAIL): " ACME_INPUT
+    if [ -n "$ACME_INPUT" ]; then
+      _env_set "ACME_EMAIL" "$ACME_INPUT"
+    fi
+  fi
+
+  echo "   ✅ Domain set to $DOMAIN — URLs updated in ${ENV_FILE}"
+else
+  echo "   ⏭️  No domain configured (HTTP-only with IP)"
+fi
+
 # ── Validate critical secrets ───────────────────────
 echo ""
 echo "🔑 Validating critical secrets in ${ENV_FILE}..."
@@ -303,7 +370,6 @@ if [ ${#FAILED[@]} -gt 0 ]; then
 fi
 
 # ── Enable HTTPS (if DOMAIN is set) ──────────────────
-DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)
 ACME_EMAIL=$(grep '^ACME_EMAIL=' "$ENV_FILE" 2>/dev/null | cut -d'=' -f2 | tr -d ' ' || true)
 
 if [ -n "$DOMAIN" ] && [ -n "$ACME_EMAIL" ]; then
@@ -347,9 +413,7 @@ echo ""
 if [ -z "${DOMAIN:-}" ]; then
   echo "To enable HTTPS:"
   echo "  1. Point DNS A record to $HOST_IP"
-  echo "  2. Edit .env.prod: set DOMAIN, ACME_EMAIL, SERVER_NAME"
-  echo "  3. Update CLIENT_URL, NEXT_PUBLIC_API_URL, NEXT_PUBLIC_SOCKET_URL to https://yourdomain.com"
-  echo "  4. Re-run: ./scripts/deploy-prod.sh"
+  echo "  2. Re-run: ./scripts/deploy-prod.sh (it will prompt for domain)"
   echo ""
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
