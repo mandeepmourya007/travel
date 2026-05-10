@@ -109,6 +109,11 @@ export interface AdminBookingDetail extends AdminBookingItem {
     age: number | null
     gender: string | null
     isPrimary: boolean
+    assignedSeat?: {
+      seatNumber: number
+      seatLabel: string
+      vehicleName: string
+    } | null
   }>
   paymentTransactions: Array<{
     id: string

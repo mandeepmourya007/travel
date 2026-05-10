@@ -25,6 +25,7 @@ export interface CreateBookingDto {
   dropPointId?: string
   numTravelers: number
   travelers: TravelerInfo[]
+  seatIds?: string[]
 }
 
 export interface TravelerInfo {
@@ -66,6 +67,11 @@ export interface TravelerDetailItem {
   isPrimary: boolean
   emergencyContactName: string | null
   emergencyContactPhone: string | null
+  assignedSeat?: {
+    seatNumber: number
+    seatLabel: string
+    vehicleName: string
+  } | null
 }
 
 /** Filters for GET /trips/:tripId/bookings */
