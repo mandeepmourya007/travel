@@ -72,6 +72,82 @@ Use these Windsurf workflows for feature development:
 /build-frontend  # Frontend only: hooks, components, 4-state rendering
 ```
 
+## Commands Reference
+
+### npm Scripts (Root)
+
+```bash
+npm run dev              # Start all dev servers (Turbo)
+npm run build            # Build all packages
+npm run lint             # Lint all packages
+npm run type-check       # TypeScript check (no emit)
+npm run test             # Run all tests
+npm run format           # Prettier format all files
+npm run format:check     # Check formatting without writing
+```
+
+### Docker — Development
+
+```bash
+npm run docker:up        # Build + start all containers (Postgres, Redis, API, Web)
+npm run docker:down      # Stop all containers
+npm run docker:logs      # Tail logs from all containers
+npm run docker:clean     # Stop + remove volumes + orphans (full reset)
+npm run docker:seed      # Run dev seed data
+npm run docker:seed:prod # Run production seed data
+```
+
+### Docker — Production
+
+```bash
+./scripts/deploy-prod.sh                   # Full deploy (build, migrate, seed, Nginx, HTTPS)
+
+# Manual compose commands (use DC shorthand from deploy script)
+DC="docker compose --env-file .env.prod -f docker-compose.prod.yml"
+$DC up -d                                  # Start all services
+$DC down                                   # Stop all services
+$DC down -v                                # Stop + delete volumes (data loss!)
+$DC logs -f                                # Tail all logs
+$DC logs -f api                            # Tail API logs only
+$DC restart api web nginx                  # Restart specific services
+$DC --profile migrate run --rm migrate     # Run Prisma migrations
+$DC --profile seed run --rm seed           # Run production seed
+```
+
+### Database (inside apps/api)
+
+```bash
+npx prisma migrate dev       # Create + apply migration
+npx prisma db push           # Push schema without migration
+npx prisma studio            # Open DB browser (port 5555)
+npx prisma generate          # Regenerate Prisma client
+npm run db:seed              # Seed dev data
+npm run db:seed:prod         # Seed production data
+```
+
+### Testing
+
+```bash
+npm run test                             # All tests (root)
+npm run test --workspace=apps/api        # Backend tests only
+npm run test --workspace=apps/web        # Frontend tests only
+
+# Inside apps/api or apps/web:
+npm run test:watch                       # Watch mode
+npm run test:coverage                    # Coverage report (web only)
+```
+
+### Docker — Debugging
+
+```bash
+docker compose ps                              # List running containers + status
+docker compose exec api sh                     # Shell into API container
+docker compose exec postgres psql -U travel_user -d travel_dev  # Postgres CLI
+docker compose exec redis redis-cli -a dev-redis-pass           # Redis CLI
+docker logs travel-api --tail 50               # Last 50 API log lines
+docker compose exec api npx prisma studio      # DB Studio inside container
+```
+
 ## License
 
 Private — All rights reserved.
