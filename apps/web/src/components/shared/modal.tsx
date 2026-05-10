@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
@@ -34,7 +35,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
 
   if (!open) return null
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       role="dialog"
@@ -50,12 +53,12 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
       {/* Panel */}
       <div
         className={cn(
-          'relative w-full max-w-[520px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl animate-slide-up',
+          'relative flex max-h-[90vh] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl animate-slide-up',
           className,
         )}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-neutral-100 px-6 py-5">
+          <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-6 py-5">
             <h2 className="text-xl font-bold text-neutral-800">{title}</h2>
             <button
               onClick={onClose}
@@ -66,13 +69,14 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             </button>
           </div>
         )}
-        <div className="p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-6">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-3 border-t border-neutral-100 bg-neutral-50 px-6 py-4 rounded-b-2xl">
+          <div className="flex shrink-0 justify-end gap-3 border-t border-neutral-100 bg-neutral-50 px-6 py-4 rounded-b-2xl">
             {footer}
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
