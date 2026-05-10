@@ -36,7 +36,12 @@ export async function fetchApi<T>(
   })
 
   if (!res.ok) {
-    throw new Error(`API error ${res.status}: ${res.statusText}`)
+    let message = `API error ${res.status}: ${res.statusText}`
+    try {
+      const body = await res.json() as { error?: { message?: string } }
+      if (body.error?.message) message = body.error.message
+    } catch { /* non-JSON response — keep default message */ }
+    throw new Error(message)
   }
 
   const json = await res.json() as { success: boolean; data: T }
