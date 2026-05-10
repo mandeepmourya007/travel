@@ -1,3 +1,5 @@
+const DEFAULT_TIMEZONE = 'Asia/Kolkata'
+
 export function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`
 }
@@ -6,6 +8,7 @@ export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-IN', {
     month: 'short',
     day: 'numeric',
+    timeZone: DEFAULT_TIMEZONE,
   })
 }
 
@@ -14,17 +17,19 @@ export function formatDateFull(dateString: string): string {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: DEFAULT_TIMEZONE,
   })
 }
 
 export function formatDateRange(start: string, end: string): string {
   const startDate = new Date(start)
   const endDate = new Date(end)
-  const startStr = startDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+  const startStr = startDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', timeZone: DEFAULT_TIMEZONE })
   const endStr = endDate.toLocaleDateString('en-IN', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    timeZone: DEFAULT_TIMEZONE,
   })
   return `${startStr} – ${endStr}`
 }

@@ -110,6 +110,14 @@ export const chatKeys = {
     [...chatKeys.all, 'flagged', page, limit] as const,
 }
 
+export const vehicleKeys = {
+  all: ['vehicle'] as const,
+  seatMap: (tripId: string) => [...vehicleKeys.all, 'seat-map', tripId] as const,
+  organizerSeatMap: (tripId: string) => [...vehicleKeys.all, 'organizer-seat-map', tripId] as const,
+  vehicle: (tripId: string) => [...vehicleKeys.all, 'detail', tripId] as const,
+  vehicleList: (tripId: string) => [...vehicleKeys.all, 'list', tripId] as const,
+}
+
 export const adminKeys = {
   all: ['admin'] as const,
   stats: () => [...adminKeys.all, 'stats'] as const,

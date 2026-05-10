@@ -16,6 +16,7 @@ interface CreateBookingInput {
     emergencyContactName?: string
     emergencyContactPhone?: string
   }[]
+  seatIds?: string[]
 }
 
 /**
