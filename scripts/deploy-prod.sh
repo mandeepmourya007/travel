@@ -148,19 +148,8 @@ echo "🌐 Domain configuration..."
 EXISTING_DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
 
 if [ -n "$EXISTING_DOMAIN" ]; then
-  echo "   Found domain in ${ENV_FILE}: $EXISTING_DOMAIN"
-  read -rp "   Use this domain? (y/n): " USE_DOMAIN
-  if [[ "$USE_DOMAIN" == "y" || "$USE_DOMAIN" == "Y" ]]; then
-    DOMAIN="$EXISTING_DOMAIN"
-    echo "   ✅ Using domain: $DOMAIN"
-  else
-    read -rp "   Enter new domain (or leave empty to skip): " NEW_DOMAIN
-    if [ -n "$NEW_DOMAIN" ]; then
-      DOMAIN="$NEW_DOMAIN"
-    else
-      DOMAIN=""
-    fi
-  fi
+  DOMAIN="$EXISTING_DOMAIN"
+  echo "   ✅ Using domain from ${ENV_FILE}: $DOMAIN"
 else
   read -rp "   No domain set. Enter domain (or leave empty to skip): " NEW_DOMAIN
   if [ -n "$NEW_DOMAIN" ]; then
