@@ -72,6 +72,10 @@ import { SmsNotificationProvider } from '../providers/sms-notification.provider'
 import { PushNotificationProvider } from '../providers/push-notification.provider'
 import { NotificationController } from '../controllers/notification.controller'
 import { createNotificationRoutes } from '../routes/notification.routes'
+import { VehicleRepository } from '../repositories/vehicle.repository'
+import { VehicleService } from '../services/vehicle.service'
+import { VehicleController } from '../controllers/vehicle.controller'
+import { createVehicleRoutes } from '../routes/vehicle.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -93,6 +97,7 @@ const walletRepo = new WalletRepository(prisma)
 const conversationRepo = new ConversationRepository(prisma)
 const messageRepo = new MessageRepository(prisma)
 const notificationRepo = new NotificationRepository(prisma)
+const vehicleRepo = new VehicleRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -127,6 +132,7 @@ const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
+export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organizerProfileRepo, logger)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
@@ -157,7 +163,7 @@ export const notificationService = new NotificationService(
 )
 
 // Services that depend on notificationService (must be after it)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
@@ -183,6 +189,7 @@ const walletController = new WalletController(walletService)
 const chatController = new ChatController(chatService)
 const notificationController = new NotificationController(notificationService)
 const adminController = new AdminController(adminService)
+const vehicleController = new VehicleController(vehicleService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
   : (null as unknown as WebhookController)
@@ -209,6 +216,7 @@ export const walletRoutes = createWalletRoutes(walletController, authMiddleware,
 export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
 export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
 export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole)
+export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null
@@ -230,4 +238,5 @@ export const cronDeps = {
   verifCodeRepo,
   paymentService,
   tripLifecycleService,
+  vehicleService,
 } as const

@@ -38,6 +38,9 @@ export const DEV_OTP = '0000'
 export const ESCROW_SAFETY_BUFFER_DAYS = 90
 export const TRIP_COMPLETION_BATCH_SIZE = 50
 
+// ─── Vehicle / Seat ─────────────────────────────────
+export const SEAT_HOLD_MINUTES = 30
+
 // ─── Wallet ──────────────────────────────────────────
 export const WALLET_CASHBACK_PERCENT = 5
 export const WALLET_SIGNUP_BONUS = 0

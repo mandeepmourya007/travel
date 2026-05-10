@@ -8,7 +8,7 @@ import { pinoHttpMiddleware } from './middleware/pino-http.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, webhookRoutes, sitemapDeps } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, sitemapDeps } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -53,6 +53,7 @@ export function createServer() {
   }
   app.use('/api/v1/destinations', destinationRoutes)
   app.use('/api/v1/trips', tripRoutes)
+  app.use('/api/v1/trips', vehicleRoutes)
 
   app.use('/api/v1/uploads', uploadRoutes)
   app.use('/api/v1/bookings', bookingRoutes)

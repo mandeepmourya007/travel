@@ -5,11 +5,13 @@ import { RefreshTokenRepository } from '../repositories/refresh-token.repository
 import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { PaymentService } from '../services/payment.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
+import { VehicleService } from '../services/vehicle.service'
 
 // ── Intervals (ms) ───────────────────────────────────
 const FIVE_MINUTES = 5 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
+const ONE_MINUTE = 60 * 1000
 
 /**
  * Expires stale PENDING_PAYMENT bookings that have passed their expiresAt.
@@ -129,6 +131,21 @@ async function completeTripsAndReleaseEscrow(tripLifecycleService: TripLifecycle
 }
 
 /**
+ * Expires HELD seats whose hold window has passed.
+ * Runs every minute to keep seat availability fresh.
+ */
+async function expireHeldSeats(vehicleService: VehicleService) {
+  try {
+    const count = await vehicleService.expireHeldSeats()
+    if (count > 0) {
+      logger.info({ count }, 'Expired held seats')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Seat hold expiry job failed')
+  }
+}
+
+/**
  * Registers all recurring background jobs. Call once at server startup.
  * Returns a cleanup function that clears all intervals (for graceful shutdown).
  */
@@ -139,6 +156,7 @@ export function startCronJobs(deps: {
   verifCodeRepo: VerificationCodeRepository
   paymentService: PaymentService | null
   tripLifecycleService: TripLifecycleService
+  vehicleService: VehicleService
 }): () => void {
   logger.info('Starting background cron jobs')
 
@@ -148,6 +166,7 @@ export function startCronJobs(deps: {
     setInterval(() => cleanupExpiredCodes(deps.verifCodeRepo), ONE_HOUR),
     setInterval(() => cleanupStaleTokens(deps.refreshTokenRepo), ONE_HOUR),
     setInterval(() => completeTripsAndReleaseEscrow(deps.tripLifecycleService), THIRTY_MINUTES),
+    setInterval(() => expireHeldSeats(deps.vehicleService), ONE_MINUTE),
   ]
 
   return () => {

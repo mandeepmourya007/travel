@@ -7,7 +7,7 @@ const SOFT_DELETE_MODELS = [
 ] as const
 
 export const basePrisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 })
 
 export const prisma = basePrisma.$extends({
