@@ -225,9 +225,10 @@ model Destination {
   name      String
   slug      String  @unique
   state     String
-  photoUrl  String?
-  tripCount Int     @default(0)
-  isPopular Boolean @default(false)
+  photoUrl    String?
+  description String?
+  tripCount   Int     @default(0)
+  isPopular   Boolean @default(false)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
