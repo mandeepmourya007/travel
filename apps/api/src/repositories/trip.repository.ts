@@ -121,6 +121,57 @@ export class TripRepository {
     return { data, total }
   }
 
+  async findByDestinationIdPaginated(
+    destinationId: string,
+    pagination: { offset: number; limit: number },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      destinationId,
+      isDeleted: false,
+      status: { in: ['ACTIVE', 'FULL'] },
+    }
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.trip.findMany({
+        where,
+        include: TRIP_INCLUDE_SUMMARY,
+        orderBy: { startDate: 'asc' },
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  async getDestinationStats(destinationId: string) {
+    const baseWhere: Prisma.TripWhereInput = {
+      destinationId,
+      isDeleted: false,
+      status: { in: ['ACTIVE', 'FULL'] },
+    }
+
+    const [priceAgg, organizerIds, upcomingCount] = await Promise.all([
+      this.prisma.trip.aggregate({
+        where: baseWhere,
+        _avg: { pricePerPerson: true },
+      }),
+      this.prisma.trip.findMany({
+        where: baseWhere,
+        select: { organizerId: true },
+        distinct: ['organizerId'],
+      }),
+      this.prisma.trip.count({
+        where: { ...baseWhere, startDate: { gt: new Date() } },
+      }),
+    ])
+
+    return {
+      avgPrice: Math.round(priceAgg._avg.pricePerPerson ?? 0),
+      organizerCount: organizerIds.length,
+      upcomingCount,
+    }
+  }
+
   async slugExists(slug: string) {
     const count = await this.prisma.trip.count({ where: { slug } })
     return count > 0

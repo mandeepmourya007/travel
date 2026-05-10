@@ -1,12 +1,15 @@
 import { Logger } from 'pino'
 import type { CreateDestinationDto, UpdateDestinationDto } from '@shared/types/destination.types'
 import { DestinationRepository } from '../repositories/destination.repository'
+import { TripRepository } from '../repositories/trip.repository'
 import { NotFoundError, ConflictError, ValidationError } from '../errors/app-error'
 import { generateSlug } from '@shared/utils/slug'
+import { PAGINATION_DEFAULTS } from '../utils/constants'
 
 export class DestinationService {
   constructor(
     private destinationRepo: DestinationRepository,
+    private tripRepo: TripRepository,
     private logger: Logger,
   ) {}
 
@@ -18,6 +21,7 @@ export class DestinationService {
       slug: d.slug,
       state: d.state,
       photoUrl: d.photoUrl,
+      description: d.description,
       tripCount: d.tripCount,
       isPopular: d.isPopular,
     }))
@@ -32,8 +36,42 @@ export class DestinationService {
       slug: destination.slug,
       state: destination.state,
       photoUrl: destination.photoUrl,
+      description: destination.description,
       tripCount: destination.tripCount,
       isPopular: destination.isPopular,
+    }
+  }
+
+  async getBySlug(slug: string, page: number = 1, limit: number = PAGINATION_DEFAULTS.limit) {
+    const destination = await this.destinationRepo.findBySlugPublic(slug)
+    if (!destination) throw new NotFoundError('Destination')
+
+    const offset = (page - 1) * limit
+
+    const [tripsResult, stats] = await Promise.all([
+      this.tripRepo.findByDestinationIdPaginated(destination.id, { offset, limit }),
+      this.tripRepo.getDestinationStats(destination.id),
+    ])
+
+    return {
+      destination: {
+        id: destination.id,
+        name: destination.name,
+        slug: destination.slug,
+        state: destination.state,
+        photoUrl: destination.photoUrl,
+        description: destination.description,
+        tripCount: destination.tripCount,
+        isPopular: destination.isPopular,
+      },
+      trips: tripsResult.data,
+      tripsPagination: {
+        page,
+        limit,
+        total: tripsResult.total,
+        totalPages: Math.ceil(tripsResult.total / limit),
+      },
+      stats,
     }
   }
 
@@ -48,6 +86,7 @@ export class DestinationService {
       slug,
       state: input.state,
       photoUrl: input.photoUrl,
+      description: input.description,
       isPopular: input.isPopular ?? false,
     })
 

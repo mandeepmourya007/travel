@@ -15,6 +15,12 @@ export class DestinationController {
     res.json({ success: true, data: destination })
   })
 
+  getBySlug = asyncHandler(async (req: Request, res: Response) => {
+    const { page, limit } = req.query as { page?: number; limit?: number }
+    const data = await this.destinationService.getBySlug(req.params.slug, page, limit)
+    res.json({ success: true, data })
+  })
+
   create = asyncHandler(async (req: Request, res: Response) => {
     const destination = await this.destinationService.create(req.body)
     res.status(201).json({ success: true, data: destination })
