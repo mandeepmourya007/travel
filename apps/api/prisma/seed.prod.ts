@@ -1,4 +1,4 @@
-import { PrismaClient, Gender } from '@prisma/client'
+import { PrismaClient, Gender, NotificationType, Prisma } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
@@ -165,6 +165,12 @@ async function main() {
   await seedBulkReviews(allTravelers)
 
   await seedBulkBookingsAndPayments(allTravelers)
+
+  // ══════════════════════════════════════════════════════
+  // ── NOTIFICATIONS (all types, 3 users) ──────────────
+  // ══════════════════════════════════════════════════════
+
+  await seedNotifications(admin.id, org1User.id, t1.id)
 
   // ── Recalculate destination tripCount from actual ACTIVE/FULL trips ──
   await prisma.$executeRaw`
@@ -1763,6 +1769,58 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     await prisma.wallet.update({ where: { id: w11.id }, data: { balance: 350 } })
   }
   console.log('  ✓ Bulk wallet transactions: cashbacks, refunds, promo credits, deductions')
+}
+
+// ══════════════════════════════════════════════════════════
+// ── NOTIFICATIONS SEED ────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+async function seedNotifications(adminId: string, organizerId: string, travelerId: string) {
+  const now = new Date()
+  const ago = (mins: number) => new Date(now.getTime() - mins * 60_000)
+
+  const notifications: Prisma.NotificationCreateManyInput[] = [
+    // ── TRAVELER (amit.kulkarni@gmail.com) ──
+    { userId: travelerId, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your Goa Beach Carnival booking is confirmed. See you on Jan 10!', data: { bookingId: 'seed-bk-1', tripSlug: 'goa-beach-carnival-jan-2026' }, sentAt: ago(3), createdAt: ago(3) },
+    { userId: travelerId, channel: 'IN_APP', type: 'PAYMENT_RECEIVED', title: 'Payment Received', body: '₹6,499 payment received for Goa Beach Carnival booking.', data: { amount: 6499 }, sentAt: ago(5), createdAt: ago(5) },
+    { userId: travelerId, channel: 'IN_APP', type: 'TRIP_REMINDER', title: 'Trip Starting Soon!', body: 'Your Goa Beach Carnival trip starts in 3 days. Pack your bags!', data: { tripSlug: 'goa-beach-carnival-jan-2026' }, sentAt: ago(30), createdAt: ago(30) },
+    { userId: travelerId, channel: 'IN_APP', type: 'REVIEW_REQUEST', title: 'How was your trip?', body: 'Share your experience from Rishikesh Rafting & Camping. Your review helps other travelers!', data: { tripSlug: 'rishikesh-rafting-camping-feb-2026' }, readAt: ago(200), sentAt: ago(1440), createdAt: ago(1440) },
+    { userId: travelerId, channel: 'IN_APP', type: 'CHAT_MESSAGE', title: 'New message from Rajesh', body: 'Rajesh Khanna: "Hi! Pickup point is Shivaji Nagar Bus Stand, 8 PM sharp."', data: { conversationId: 'seed-conv-1' }, sentAt: ago(10), createdAt: ago(10) },
+    { userId: travelerId, channel: 'IN_APP', type: 'TRIP_REQUEST_APPROVED', title: 'Trip Request Approved!', body: 'Your request to join Ladakh Bike Expedition has been approved. Complete payment within 48h.', data: { tripSlug: 'ladakh-bike-expedition-aug-2025' }, sentAt: ago(60), createdAt: ago(60) },
+    { userId: travelerId, channel: 'IN_APP', type: 'BOOKING_CANCELLED', title: 'Booking Cancelled', body: 'Your Jaipur Heritage Experience booking has been cancelled. Refund will be processed in 5-7 days.', data: { bookingId: 'seed-bk-2' }, readAt: ago(3000), sentAt: ago(4320), createdAt: ago(4320) },
+    { userId: travelerId, channel: 'IN_APP', type: 'REFUND_PROCESSED', title: 'Refund Processed', body: '₹5,999 refund for Jaipur Heritage Experience has been initiated to your bank account.', data: { amount: 5999 }, readAt: ago(2800), sentAt: ago(4200), createdAt: ago(4200) },
+    { userId: travelerId, channel: 'IN_APP', type: 'PAYMENT_FAILED', title: 'Payment Failed', body: 'Your payment of ₹8,999 for Manali Snow Adventure failed. Please try again.', data: { amount: 8999 }, sentAt: ago(120), createdAt: ago(120) },
+    { userId: travelerId, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'Platform Maintenance', body: 'Scheduled maintenance on May 15, 2-4 AM IST. Bookings may be temporarily unavailable.', sentAt: ago(2880), createdAt: ago(2880), readAt: ago(2000) },
+
+    // ── ORGANIZER (rajesh@desiexplorers.in) ──
+    { userId: organizerId, channel: 'IN_APP', type: 'TRIP_REQUEST_RECEIVED', title: 'New Trip Request', body: 'Amit Kulkarni wants to join your Ladakh Bike Expedition. Review and respond.', data: { tripSlug: 'ladakh-bike-expedition-aug-2025', travelerName: 'Amit Kulkarni' }, sentAt: ago(90), createdAt: ago(90) },
+    { userId: organizerId, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'New Booking!', body: 'Sneha Deshmukh just booked Goa Beach Carnival. 19/24 seats filled!', data: { bookingId: 'seed-bk-3', currentBookings: 19, maxGroupSize: 24 }, sentAt: ago(15), createdAt: ago(15) },
+    { userId: organizerId, channel: 'IN_APP', type: 'PAYMENT_RECEIVED', title: 'Payment Received', body: '₹6,499 received from Sneha Deshmukh for Goa Beach Carnival.', data: { amount: 6499, travelerName: 'Sneha Deshmukh' }, sentAt: ago(15), createdAt: ago(15) },
+    { userId: organizerId, channel: 'IN_APP', type: 'CHAT_MESSAGE', title: 'New message from Amit', body: 'Amit Kulkarni: "What should I pack for the Goa trip?"', data: { conversationId: 'seed-conv-1' }, sentAt: ago(8), createdAt: ago(8) },
+    { userId: organizerId, channel: 'IN_APP', type: 'ORGANIZER_APPROVED', title: 'Profile Approved!', body: 'Congratulations! Your organizer profile "Desi Explorers" has been approved. Start creating trips!', data: { profileId: 'seed-profile-1' }, readAt: ago(40000), sentAt: ago(43200), createdAt: ago(43200) },
+    { userId: organizerId, channel: 'IN_APP', type: 'REVIEW_REQUEST', title: 'New review received', body: 'Rohan Joshi left a 5-star review for Rishikesh Rafting & Camping.', data: { rating: 5, tripSlug: 'rishikesh-rafting-camping-feb-2026' }, readAt: ago(600), sentAt: ago(1440), createdAt: ago(1440) },
+    { userId: organizerId, channel: 'IN_APP', type: 'BOOKING_CANCELLED', title: 'Booking Cancelled', body: 'Kavita Reddy cancelled her booking for Jaipur Heritage Experience. Seat released.', data: { bookingId: 'seed-bk-4', travelerName: 'Kavita Reddy' }, readAt: ago(3500), sentAt: ago(5760), createdAt: ago(5760) },
+    { userId: organizerId, channel: 'IN_APP', type: 'TRIP_REQUEST_EXPIRED' as NotificationType, title: 'Trip Request Expired', body: 'Saurabh Patil\'s request for Ladakh Bike Expedition expired (no response in 48h).', data: { travelerName: 'Saurabh Patil' }, sentAt: ago(180), createdAt: ago(180) },
+    { userId: organizerId, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'Commission Update', body: 'Platform commission rate remains 10% for Q2 2026. No changes to your payout structure.', sentAt: ago(7200), createdAt: ago(7200), readAt: ago(6000) },
+
+    // ── ADMIN (mandeep@safarnama.in) ──
+    { userId: adminId, channel: 'IN_APP', type: 'ADMIN_SUPPORT_MESSAGE' as NotificationType, title: 'Support Ticket #1042', body: 'Amit Kulkarni reported an issue: "Refund not received for cancelled booking after 10 days."', data: { ticketId: '1042', userId: travelerId }, sentAt: ago(20), createdAt: ago(20) },
+    { userId: adminId, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'New Organizer Pending', body: 'Vikram Desai from "Sahyadri Adventures Club" submitted an organizer application. Review it.', data: { profileId: 'seed-pending-1' }, sentAt: ago(45), createdAt: ago(45) },
+    { userId: adminId, channel: 'IN_APP', type: 'PAYMENT_FAILED', title: 'Payment Gateway Alert', body: '3 payment failures detected in the last hour. Razorpay may be experiencing issues.', data: { failureCount: 3 }, sentAt: ago(75), createdAt: ago(75) },
+    { userId: adminId, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Platform Milestone!', body: 'Total platform bookings crossed 500. Goa Beach Carnival is the most popular trip this month.', data: { totalBookings: 500 }, readAt: ago(100), sentAt: ago(180), createdAt: ago(180) },
+    { userId: adminId, channel: 'IN_APP', type: 'ORGANIZER_REJECTED', title: 'Organizer Rejected', body: 'Neha Gupta\'s application for "Budget Trails India" was rejected — incomplete bank details.', data: { profileId: 'seed-rejected-1' }, readAt: ago(5000), sentAt: ago(10080), createdAt: ago(10080) },
+    { userId: adminId, channel: 'IN_APP', type: 'CHAT_MESSAGE', title: 'Flagged Message', body: 'Anti-leakage filter flagged a message in conversation between Amit and Rajesh (phone number detected).', data: { conversationId: 'seed-conv-1' }, sentAt: ago(35), createdAt: ago(35) },
+    { userId: adminId, channel: 'IN_APP', type: 'REFUND_PROCESSED', title: 'Refund Completed', body: '₹5,999 refund processed for Kavita Reddy (Jaipur Heritage Experience). Transaction ID: TXN-RF-9847.', data: { amount: 5999, transactionId: 'TXN-RF-9847' }, readAt: ago(2500), sentAt: ago(4320), createdAt: ago(4320) },
+    { userId: adminId, channel: 'IN_APP', type: 'TRIP_REQUEST_RECEIVED', title: 'High-Value Request', body: 'New request for ₹24,999 Ladakh Bike Expedition. Organizer has 48h to respond.', data: { amount: 24999 }, sentAt: ago(95), createdAt: ago(95) },
+    { userId: adminId, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'Daily Stats Summary', body: 'Today: 12 new bookings, 3 cancellations, ₹1.2L revenue, 2 new organizer applications.', data: { bookings: 12, cancellations: 3, revenue: 120000 }, sentAt: ago(1440), createdAt: ago(1440), readAt: ago(1300) },
+  ]
+
+  await prisma.notification.createMany({ data: notifications.map(n => ({ ...n, sentAt: n.sentAt, readAt: n.readAt ?? null })) })
+
+  const unreadAdmin = notifications.filter(n => n.userId === adminId && !n.readAt).length
+  const unreadOrg = notifications.filter(n => n.userId === organizerId && !n.readAt).length
+  const unreadTrav = notifications.filter(n => n.userId === travelerId && !n.readAt).length
+  console.log(`  ✓ Created ${notifications.length} notifications (Admin: ${unreadAdmin} unread, Organizer: ${unreadOrg} unread, Traveler: ${unreadTrav} unread)`)
 }
 
 main()
