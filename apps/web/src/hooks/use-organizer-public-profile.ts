@@ -9,6 +9,7 @@ interface OrganizerProfileParams {
   tripsLimit?: number
   reviewsPage?: number
   reviewsLimit?: number
+  initialData?: OrganizerPublicProfileResponse
 }
 
 export function useOrganizerPublicProfile({
@@ -17,9 +18,10 @@ export function useOrganizerPublicProfile({
   tripsLimit = 0,
   reviewsPage = 1,
   reviewsLimit = 10,
+  initialData,
 }: OrganizerProfileParams) {
   return useQuery({
-    queryKey: organizerKeys.publicProfile(organizerId, { reviewsPage }),
+    queryKey: organizerKeys.publicProfile(organizerId, { tripsPage, reviewsPage }),
     queryFn: async () => {
       const res = await apiClient.get<{
         success: true
@@ -30,6 +32,8 @@ export function useOrganizerPublicProfile({
       return res.data.data
     },
     enabled: !!organizerId,
+    initialData,
+    staleTime: initialData ? 5 * 60 * 1000 : 0,
     placeholderData: (prev) => prev,
   })
 }

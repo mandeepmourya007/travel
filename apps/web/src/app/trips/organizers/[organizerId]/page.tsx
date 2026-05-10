@@ -1,90 +1,82 @@
-'use client'
+import { cache } from 'react'
+import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
+import { fetchApi } from '@/lib/api-server'
+import { APP_NAME, SITE_URL } from '@/lib/constants'
+import { buildOrganizerProfileJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
+import { OrganizerProfileClient } from '@/components/trips/organizer-profile-client'
+import type { OrganizerPublicProfileResponse } from '@shared/types/organizer.types'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { useOrganizerPublicProfile } from '@/hooks/use-organizer-public-profile'
-import { OrganizerProfileHeader } from '@/components/trips/organizer-profile-header'
-import { OrganizerReviewsSection } from '@/components/trips/organizer-reviews-section'
-import { useProfile } from '@/hooks/use-profile'
-import OrganizerProfileLoading from './loading'
-
-export default function OrganizerPublicProfilePage({
-  params,
-}: {
+interface OrganizerPageProps {
   params: { organizerId: string }
-}) {
-  const { organizerId } = params
-  const [reviewsPage, setReviewsPage] = useState(1)
-  const { data: profile } = useProfile()
-  const isOwner = profile?.organizerProfile?.id === organizerId
+}
 
-  const { data, isLoading, error, refetch } = useOrganizerPublicProfile({
-    organizerId,
-    reviewsPage,
-    reviewsLimit: 10,
-  })
-
-  if (isLoading) {
-    return <OrganizerProfileLoading />
-  }
-
-  if (error || !data) {
-    const message =
-      (error as Error)?.message ||
-      'Could not load this organizer. They may not exist or are not verified.'
-
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 flex justify-center">
-        <div className="max-w-md w-full rounded-xl bg-error-50 border border-error-200 p-8 text-center">
-          <p className="text-4xl mb-2">😕</p>
-          <h2 className="text-base font-semibold text-neutral-800">
-            Organizer not found
-          </h2>
-          <p className="mt-1 text-sm text-neutral-500">{message}</p>
-          <div className="mt-6 flex items-center justify-center gap-3">
-            <Link
-              href="/trips"
-              className="btn-secondary inline-flex items-center gap-2 text-sm"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All Trips
-            </Link>
-            <button onClick={() => refetch()} className="btn-outline">
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
+const getOrganizerProfile = cache(async (id: string): Promise<OrganizerPublicProfileResponse | null> => {
+  try {
+    return await fetchApi<OrganizerPublicProfileResponse>(
+      `/trips/organizers/${id}?tripsLimit=12`,
+      { revalidate: 300 },
     )
+  } catch {
+    return null
+  }
+})
+
+export async function generateMetadata({ params }: OrganizerPageProps): Promise<Metadata> {
+  const data = await getOrganizerProfile(params.organizerId)
+  if (!data) {
+    return { title: 'Organizer Not Found' }
   }
 
-  const { organizer, reviews, reviewsSummary, reviewsPagination } = data
+  const { organizer } = data
+  const title = `${organizer.businessName} — Verified Trip Organizer | ${APP_NAME}`
+  const raw = organizer.description
+    || `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with escrow protection.`
+  const description = raw.length > 160
+    ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
+    : raw
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/trips/organizers/${params.organizerId}`,
+    },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `/trips/organizers/${params.organizerId}`,
+    },
+  }
+}
+
+export default async function OrganizerPublicProfilePage({ params }: OrganizerPageProps) {
+  const data = await getOrganizerProfile(params.organizerId)
+
+  if (!data) {
+    notFound()
+  }
+
+  const { organizer } = data
+  const organizerJsonLd = buildOrganizerProfileJsonLd(organizer, SITE_URL, params.organizerId)
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Trips', url: `${SITE_URL}/trips` },
+    { name: organizer.businessName, url: `${SITE_URL}/trips/organizers/${params.organizerId}` },
+  ])
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      {/* Back link */}
-      <Link
-        href="/trips"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-primary-600 transition-colors mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to all trips
-      </Link>
-
-      {/* Organizer header */}
-      <OrganizerProfileHeader organizer={organizer} />
-
-      {/* Reviews section */}
-      <section className="mt-10">
-        <OrganizerReviewsSection
-          reviews={reviews}
-          summary={reviewsSummary}
-          pagination={reviewsPagination}
-          onPageChange={setReviewsPage}
-          isOwner={isOwner}
-        />
-      </section>
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizerJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <OrganizerProfileClient initialData={data} organizerId={params.organizerId} />
+    </>
   )
 }
