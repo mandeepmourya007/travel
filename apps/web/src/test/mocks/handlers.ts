@@ -1,7 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { makeTripDetail } from '../factories/trip.factory'
-
-const API = 'http://localhost:4000/api/v1'
+import { API_BASE_URL as API } from '../test-constants'
 
 export const handlers = [
   // GET /trips/slug/:slug — returns TripDetail
