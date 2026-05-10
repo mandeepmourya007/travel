@@ -10,13 +10,23 @@ process.env.CLIENT_URL = 'http://localhost:3000'
 // Remove vars that may leak from .env and fail Zod validation in tests
 delete process.env.REDIS_URL
 
-// Mock Pino logger globally
+// ── Mock logger (base + request-aware) ───────────────
+const mockLogger = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  fatal: vi.fn(),
+  child: vi.fn().mockReturnThis(),
+}
+
 vi.mock('../src/utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    fatal: vi.fn(),
-  },
+  logger: mockLogger,
+  getLogger: vi.fn().mockReturnValue(mockLogger),
+}))
+
+vi.mock('../src/utils/request-context', () => ({
+  requestContext: { getStore: vi.fn(), run: vi.fn() },
+  getRequestLogger: vi.fn(),
+  getRequestContext: vi.fn().mockReturnValue({}),
 }))
