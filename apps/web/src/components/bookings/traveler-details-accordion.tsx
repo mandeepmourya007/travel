@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Phone, Users } from 'lucide-react'
+import { ChevronDown, Phone, Users, Armchair } from 'lucide-react'
 import type { TravelerDetailItem } from '@shared/types/booking.types'
 
 /** Props for the expandable traveler details section on booking cards */
@@ -22,9 +22,15 @@ export function TravelerDetailsAccordion({ travelers }: TravelerDetailsAccordion
 
   // Single traveler — show inline
   if (travelers.length === 1) {
+    const seat = travelers[0].assignedSeat
     return (
       <p className="text-sm text-neutral-600">
         Booked for: <span className="font-medium text-neutral-800">{travelers[0].name}</span>
+        {seat && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+            <Armchair className="h-3 w-3" /> Seat {seat.seatNumber} · {seat.vehicleName}
+          </span>
+        )}
       </p>
     )
   }
@@ -55,6 +61,7 @@ export function TravelerDetailsAccordion({ travelers }: TravelerDetailsAccordion
                 <th className="px-4 py-2">Age</th>
                 <th className="px-4 py-2">Gender</th>
                 <th className="px-4 py-2">Phone</th>
+                <th className="px-4 py-2">Seat</th>
                 <th className="px-4 py-2">Emergency Contact</th>
               </tr>
             </thead>
@@ -75,6 +82,13 @@ export function TravelerDetailsAccordion({ travelers }: TravelerDetailsAccordion
                     {td.phone ? (
                       <span className="inline-flex items-center gap-1">
                         <Phone className="h-3 w-3" /> {td.phone}
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-neutral-600">
+                    {td.assignedSeat ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+                        <Armchair className="h-3 w-3" /> {td.assignedSeat.seatLabel} · {td.assignedSeat.vehicleName}
                       </span>
                     ) : '—'}
                   </td>
@@ -112,6 +126,11 @@ export function TravelerDetailsAccordion({ travelers }: TravelerDetailsAccordion
                     </span>
                   )}
                 </div>
+                {td.assignedSeat && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+                    <Armchair className="h-3 w-3" /> Seat {td.assignedSeat.seatNumber} · {td.assignedSeat.vehicleName}
+                  </span>
+                )}
                 {td.emergencyContactName && (
                   <p className="text-xs text-neutral-400">
                     Emergency: {td.emergencyContactName}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, X, Users, Eye, ChevronDown, ChevronUp, Phone } from 'lucide-react'
+import { Check, X, Users, Eye, ChevronDown, ChevronUp, Phone, Armchair } from 'lucide-react'
 import { Avatar } from '@/components/shared/avatar'
 import { cn } from '@/lib/utils'
 import { formatCurrency, timeAgo } from '@/lib/format'
@@ -76,6 +76,11 @@ export function BookingCard({ booking, onViewDetails }: BookingCardProps) {
               <span className="flex items-center gap-2 text-xs text-neutral-500">
                 <span>{t.age}y {t.gender ? <>&middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()}</> : null}</span>
                 {t.phone && <span className="inline-flex items-center gap-0.5"><Phone className="h-3 w-3" />{t.phone}</span>}
+                {t.assignedSeat && (
+                  <span className="inline-flex items-center gap-0.5 rounded bg-primary-50 px-1 py-0.5 text-[10px] font-medium text-primary-700">
+                    <Armchair className="h-2.5 w-2.5" /> {t.assignedSeat.seatLabel} · {t.assignedSeat.vehicleName}
+                  </span>
+                )}
               </span>
             </div>
           ))}

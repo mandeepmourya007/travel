@@ -1,6 +1,6 @@
 'use client'
 
-import { Phone } from 'lucide-react'
+import { Phone, Armchair } from 'lucide-react'
 
 interface TravelerRow {
   id?: string
@@ -11,6 +11,7 @@ interface TravelerRow {
   isPrimary: boolean
   emergencyContactName?: string | null
   emergencyContactPhone?: string | null
+  assignedSeat?: { seatNumber: number; seatLabel: string; vehicleName: string } | null
 }
 
 interface TravelerDetailsTableProps {
@@ -31,6 +32,7 @@ export function TravelerDetailsTable({ travelers }: TravelerDetailsTableProps) {
               <th className="px-4 py-2">Age</th>
               <th className="px-4 py-2">Gender</th>
               <th className="px-4 py-2">Phone</th>
+              <th className="px-4 py-2">Seat</th>
               <th className="px-4 py-2">Emergency</th>
             </tr>
           </thead>
@@ -49,6 +51,13 @@ export function TravelerDetailsTable({ travelers }: TravelerDetailsTableProps) {
                   {td.phone ? (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" /> {td.phone}
+                    </span>
+                  ) : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-neutral-600">
+                  {td.assignedSeat ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+                      <Armchair className="h-3 w-3" /> {td.assignedSeat.seatLabel} · {td.assignedSeat.vehicleName}
                     </span>
                   ) : '—'}
                 </td>

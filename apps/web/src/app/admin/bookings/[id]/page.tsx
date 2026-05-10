@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, CreditCard, User } from 'lucide-react'
+import { ArrowLeft, Calendar, CreditCard, User, Armchair } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -167,6 +167,7 @@ export default function AdminBookingDetailPage() {
                     <TableHead>Phone</TableHead>
                     <TableHead>Age</TableHead>
                     <TableHead>Gender</TableHead>
+                    <TableHead>Seat</TableHead>
                     <TableHead>Primary</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -177,6 +178,13 @@ export default function AdminBookingDetailPage() {
                       <TableCell className="font-mono text-sm">{t.phone ?? '—'}</TableCell>
                       <TableCell>{t.age ?? '—'}</TableCell>
                       <TableCell>{t.gender ?? '—'}</TableCell>
+                      <TableCell>
+                        {t.assignedSeat ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+                            <Armchair className="h-3 w-3" /> {t.assignedSeat.seatLabel} · {t.assignedSeat.vehicleName}
+                          </span>
+                        ) : '—'}
+                      </TableCell>
                       <TableCell>{t.isPrimary ? 'Yes' : 'No'}</TableCell>
                     </TableRow>
                   ))}
@@ -189,6 +197,11 @@ export default function AdminBookingDetailPage() {
                 <div key={t.id} className="rounded-lg border border-neutral-200 p-3 text-sm">
                   <p className="font-medium">{t.name}{t.isPrimary ? ' (Primary)' : ''}</p>
                   <p className="text-neutral-500">{t.phone ?? '—'} · Age {t.age ?? '—'} · {t.gender ?? '—'}</p>
+                  {t.assignedSeat && (
+                    <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+                      <Armchair className="h-3 w-3" /> Seat {t.assignedSeat.seatNumber} · {t.assignedSeat.vehicleName}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
