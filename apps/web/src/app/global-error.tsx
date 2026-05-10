@@ -1,12 +1,16 @@
 'use client'
 
+import { useLogError } from '@/hooks/use-log-error'
+
 export default function GlobalError({
-  error: _error,
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useLogError(error)
+
   return (
     <html lang="en">
       <body>

@@ -1,5 +1,7 @@
 'use client'
 
+import { useLogError } from '@/hooks/use-log-error'
+
 export default function MyBookingsError({
   error,
   reset,
@@ -7,6 +9,8 @@ export default function MyBookingsError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useLogError(error)
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 flex justify-center">
       <div className="max-w-md w-full rounded-xl bg-error-50 border border-error-200 p-8 text-center">

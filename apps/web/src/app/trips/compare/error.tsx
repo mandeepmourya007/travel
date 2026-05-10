@@ -1,12 +1,16 @@
 'use client'
 
+import { useLogError } from '@/hooks/use-log-error'
+
 export default function CompareError({
-  error: _error,
+  error,
   reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useLogError(error)
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
       <div className="text-5xl">😵</div>

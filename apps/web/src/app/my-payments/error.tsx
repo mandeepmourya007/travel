@@ -1,5 +1,7 @@
 'use client'
 
+import { useLogError } from '@/hooks/use-log-error'
+
 import { ErrorState } from '@/components/shared/data-states'
 
 export default function MyPaymentsError({
@@ -9,6 +11,8 @@ export default function MyPaymentsError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useLogError(error)
+
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       <ErrorState
