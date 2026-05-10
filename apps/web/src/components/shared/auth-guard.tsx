@@ -34,11 +34,19 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   }
 
   if (!isAuthenticated) {
-    return null
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Spinner size="lg" label="Redirecting..." />
+      </div>
+    )
   }
 
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-    return null
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Spinner size="lg" label="Redirecting..." />
+      </div>
+    )
   }
 
   return <>{children}</>
