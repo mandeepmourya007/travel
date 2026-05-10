@@ -131,6 +131,7 @@ services:
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
         NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
         NEXT_PUBLIC_PHONE_AUTH_STRATEGY: ${NEXT_PUBLIC_PHONE_AUTH_STRATEGY:-backend}
+        NEXT_PUBLIC_LOG_LEVEL: ${NEXT_PUBLIC_LOG_LEVEL:-warn}
     image: travel-web:prod
     container_name: travel-web-prod
     restart: unless-stopped
