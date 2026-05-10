@@ -9,6 +9,7 @@ import { useSendEmailOtp, useVerifyEmailOtp } from '@/hooks/use-email-otp'
 import { useAuthStore } from '@/store/auth.store'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
+import { useLoadingStore } from '@/store/loading.store'
 
 export default function EmailOtpLoginPage() {
   const router = useRouter()
@@ -26,6 +27,7 @@ export default function EmailOtpLoginPage() {
   }, [hasHydrated, isAuthenticated, router])
 
   const handleVerified = (data: { isNewUser: boolean }) => {
+    useLoadingStore.getState().show('Signing in...')
     if (data.isNewUser) {
       router.push('/onboarding')
     } else {
@@ -67,6 +69,7 @@ export default function EmailOtpLoginPage() {
           {step === 'email' && (
             <GoogleAuthSection
               onSuccess={(isNewUser) => {
+                useLoadingStore.getState().show('Signing in...')
                 if (!isNewUser) markOnboardingComplete()
                 router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
               }}

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { OnboardingForm } from '@/components/auth/onboarding-form'
 import { useAuthStore } from '@/store/auth.store'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { useLoadingStore } from '@/store/loading.store'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -33,7 +34,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="rounded-xl bg-white p-8 shadow-card border border-neutral-100">
-          <OnboardingForm onComplete={() => { markOnboardingComplete(); router.push(getHomeRoute(useAuthStore.getState().user?.role)) }} />
+          <OnboardingForm onComplete={() => { useLoadingStore.getState().show('Setting up...'); markOnboardingComplete(); router.push(getHomeRoute(useAuthStore.getState().user?.role)) }} />
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { useFirebasePhoneAuth } from '@/hooks/use-firebase-phone-auth'
 import { useAuthStore } from '@/store/auth.store'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
+import { useLoadingStore } from '@/store/loading.store'
 
 const PHONE_STRATEGY = process.env.NEXT_PUBLIC_PHONE_AUTH_STRATEGY || 'backend'
 const RECAPTCHA_CONTAINER_ID = 'recaptcha-container'
@@ -39,6 +40,7 @@ export default function PhoneLoginPage() {
 
   /** Route based on isNewUser — new users need onboarding (name + role) */
   const handleVerified = (data: { isNewUser: boolean }) => {
+    useLoadingStore.getState().show('Signing in...')
     if (data.isNewUser) {
       router.push('/onboarding')
     } else {
@@ -104,6 +106,7 @@ export default function PhoneLoginPage() {
           {step === 'phone' && (
             <GoogleAuthSection
               onSuccess={(isNewUser) => {
+                useLoadingStore.getState().show('Signing in...')
                 if (!isNewUser) markOnboardingComplete()
                 router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
               }}

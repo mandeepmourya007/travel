@@ -9,6 +9,7 @@ import { APP_NAME, getHomeRoute } from '@/lib/constants'
 import { loginSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { EmailInput } from '@/components/shared/email-input'
+import { useLoadingStore } from '@/store/loading.store'
 
 export default function EmailLoginPage() {
   const router = useRouter()
@@ -48,6 +49,7 @@ export default function EmailLoginPage() {
     try {
       const { data: res } = await apiClient.post('/auth/login', result.data)
       if (res.success) {
+        useLoadingStore.getState().show('Signing in...')
         setAuth(res.data.user, res.data.tokens.accessToken)
         markOnboardingComplete()
         router.push(getHomeRoute(res.data.user.role))
@@ -117,6 +119,7 @@ export default function EmailLoginPage() {
 
           <GoogleAuthSection
             onSuccess={(isNewUser) => {
+              useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
               router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
             }}
