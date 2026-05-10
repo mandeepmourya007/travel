@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet, Star } from 'lucide-react'
+import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet, Star, Armchair } from 'lucide-react'
 import { Modal } from '@/components/shared/modal'
 import { formatDateRange, formatCurrency } from '@/lib/format'
 import { slugify } from '@shared/utils/slug'
@@ -68,7 +68,7 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
         {/* Actions — always visible; disabled when not applicable */}
         <div className="flex shrink-0 flex-col items-end gap-2">
           {/* Text buttons */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             <button
               onClick={() => onPublish?.(trip.id)}
               disabled={!canPublish}
@@ -85,6 +85,9 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             </Link>
             <Link href={`/dashboard/trips/${trip.id}/reviews?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Star className="h-4 w-4 shrink-0" /> Reviews <span className="font-mono text-xs text-neutral-500">({trip.reviewCount})</span>
+            </Link>
+            <Link href={`/dashboard/trips/${trip.id}/vehicle`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+              <Armchair className="h-4 w-4 shrink-0" /> Seats
             </Link>
           </div>
           {/* Icon buttons */}

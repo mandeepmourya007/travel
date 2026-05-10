@@ -136,15 +136,16 @@ export function RequestToBookModal({
             <legend className="text-xs font-semibold text-neutral-600 px-1">
               Traveler {i + 1} {i === 0 ? '(You)' : ''}
             </legend>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="col-span-2 sm:col-span-1">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-3">
+              <div className="col-span-2 sm:col-span-1 space-y-1.5">
+                <label className="block text-sm font-medium text-neutral-700">Name</label>
                 <input
                   {...register(`travelers.${i}.name`)}
                   placeholder="Full name"
                   className={cn('input w-full text-sm', errors.travelers?.[i]?.name && 'border-error-500')}
                 />
                 {errors.travelers?.[i]?.name && (
-                  <p className="text-xs text-error-500 mt-0.5">{errors.travelers[i]!.name!.message}</p>
+                  <p className="text-xs text-error-500">{errors.travelers[i]!.name!.message}</p>
                 )}
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -184,7 +185,8 @@ export function RequestToBookModal({
                   )}
                 />
               </div>
-              <div>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-neutral-700">Gender</label>
                 <select
                   {...register(`travelers.${i}.gender`)}
                   className="input w-full text-sm"

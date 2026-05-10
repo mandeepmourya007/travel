@@ -7,6 +7,7 @@ export const TRIP_FORM_TABS = [
   { id: 'dates', label: 'Dates & Pricing' },
   { id: 'itinerary', label: 'Itinerary' },
   { id: 'transfers', label: 'Pickup & Drop' },
+  { id: 'vehicle', label: 'Vehicle' },
   { id: 'media', label: 'Photos & Docs' },
   { id: 'review', label: 'Review' },
 ] as const

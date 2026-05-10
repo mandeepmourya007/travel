@@ -11,18 +11,21 @@ import { DatesPricingTab } from './dates-pricing-tab'
 import { ItineraryTab } from './itinerary-tab'
 import { MediaTab } from './media-tab'
 import { TransferPointsTab } from './transfer-points-tab'
+import { VehicleTab } from './vehicle-tab'
 import { ReviewTab } from './review-tab'
 import { Alert } from '@/components/shared/alert'
 import type { TripFormTabId } from './tab-navigation'
 import type { CreateTripDto } from '@shared/types/trip.types'
+import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 
 interface TripFormProps {
   defaultValues?: Partial<CreateTripDto>
-  onSubmit: (data: CreateTripDto) => void
+  onSubmit: (data: CreateTripDto, vehicleData?: CreateVehicleDto[]) => void
   isSubmitting?: boolean
   submitError?: string | null
   submitLabel?: string
   storageKey?: string
+  initialVehicleData?: CreateVehicleDto[] | null
 }
 
 const STORAGE_DEBOUNCE_MS = 500
@@ -76,6 +79,7 @@ export function TripForm({
   submitError,
   submitLabel = 'Create Trip',
   storageKey = 'trip-form-draft',
+  initialVehicleData,
 }: TripFormProps) {
   const draft = loadDraft(storageKey)
   const [activeTab, setActiveTab] = useState<TripFormTabId>('basic')
@@ -94,6 +98,7 @@ export function TripForm({
 
   const { handleSubmit, formState: { errors }, watch } = methods
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const vehicleDataRef = useRef<CreateVehicleDto[] | null>(initialVehicleData ?? null)
 
   // Debounced auto-save to localStorage
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
@@ -112,7 +117,7 @@ export function TripForm({
     (data: CreateTripDto) => {
       clearTripDraft(storageKey)
       if (typeof window !== 'undefined') localStorage.removeItem(`${storageKey}-tab`)
-      onSubmit(data)
+      onSubmit(data, vehicleDataRef.current ?? undefined)
     },
     [onSubmit, storageKey],
   )
@@ -165,6 +170,13 @@ export function TripForm({
           {activeTab === 'dates' && <DatesPricingTab />}
           {activeTab === 'itinerary' && <ItineraryTab />}
           {activeTab === 'transfers' && <TransferPointsTab />}
+          {activeTab === 'vehicle' && (
+            <VehicleTab
+              initialEnabled={!!(initialVehicleData && initialVehicleData.length > 0)}
+              initialVehicleData={initialVehicleData}
+              onVehicleChange={(data) => { vehicleDataRef.current = data }}
+            />
+          )}
           {activeTab === 'media' && <MediaTab />}
           {activeTab === 'review' && <ReviewTab />}
         </div>

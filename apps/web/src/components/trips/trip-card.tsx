@@ -4,7 +4,7 @@ import { useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQueryClient } from '@tanstack/react-query'
-import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows } from 'lucide-react'
+import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows, Armchair } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
 import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -90,6 +90,12 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
           {seatsLeft > 0 && seatsLeft <= 5 && (
             <span className="absolute bottom-3 right-3 badge bg-accent-50 text-accent-700 text-xs font-semibold">
               {seatsLeft} seats left
+            </span>
+          )}
+          {trip.seatSelectionEnabled && (
+            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+              <Armchair className="h-3 w-3" />
+              Choose Seat
             </span>
           )}
         </div>

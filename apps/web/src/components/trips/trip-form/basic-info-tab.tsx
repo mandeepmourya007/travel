@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useDestinations } from '@/hooks/use-destinations'
 import { FormField } from './form-field'
@@ -25,7 +25,13 @@ export function BasicInfoTab() {
   const { data: destinations } = useDestinations()
   const currentVal = watch('destinationId')
   const isExistingId = destinations?.some((d) => d.id === currentVal)
-  const [useCustom, setUseCustom] = useState(!isExistingId && !!currentVal)
+  const [useCustom, setUseCustom] = useState(false)
+
+  // Sync custom mode when destinations load — prevents showing raw CUID on edit
+  useEffect(() => {
+    if (!destinations) return
+    setUseCustom(!isExistingId && !!currentVal)
+  }, [destinations, isExistingId, currentVal])
 
   return (
     <div className="space-y-6">
