@@ -19,6 +19,8 @@ async function main() {
   await prisma.paymentTransaction.deleteMany()
   await prisma.review.deleteMany()
   await prisma.tripRequest.deleteMany()
+  await prisma.vehicleSeat.deleteMany()
+  await prisma.tripVehicle.deleteMany()
   await prisma.booking.deleteMany()
   await prisma.tripTransferPoint.deleteMany()
   await prisma.tripEditHistory.deleteMany()
@@ -110,10 +112,10 @@ async function main() {
   // ── ORGANIZER PROFILES ────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const org1 = await prisma.organizerProfile.create({ data: { userId: org1User.id, businessName: 'Desi Explorers', description: 'India\'s favourite adventure travel community. Group trips across India — Himalayan treks to Goa beach getaways. 8+ years, 15000+ happy travelers. IATO certified.', verificationStatus: 'APPROVED', rating: 4.7, totalReviews: 86, totalTripsCompleted: 62, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_prod_desiexplorers' } })
-  const org2 = await prisma.organizerProfile.create({ data: { userId: org2User.id, businessName: 'Summit & Shore Travels', description: 'Community-driven group trips for young professionals and solo travelers. Based in Bangalore, operating pan-India. 5+ years of curated experiences.', verificationStatus: 'APPROVED', rating: 4.5, totalReviews: 54, totalTripsCompleted: 38, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_prod_summitshore' } })
-  const org3 = await prisma.organizerProfile.create({ data: { userId: org3User.id, businessName: 'Nomad Trails India', description: 'Heritage walks in Rajasthan to backpacking in Northeast India — curated group trips with local experts. 5+ years, 8000+ travelers.', verificationStatus: 'APPROVED', rating: 4.4, totalReviews: 42, totalTripsCompleted: 28, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_prod_nomadtrails' } })
-  const org4 = await prisma.organizerProfile.create({ data: { userId: org4User.id, businessName: 'Backpack Bharat', description: 'India\'s favourite hostel-turned-adventure brand. Budget-friendly trips for backpackers and solo travelers across 30+ destinations.', verificationStatus: 'APPROVED', rating: 4.3, totalReviews: 38, totalTripsCompleted: 24, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_prod_backpackbharat' } })
+  const org1 = await prisma.organizerProfile.create({ data: { userId: org1User.id, businessName: 'Desi Explorers', description: 'India\'s favourite adventure travel community. Group trips across India — Himalayan treks to Goa beach getaways. 8+ years, 15000+ happy travelers. IATO certified.', verificationStatus: 'APPROVED', rating: 4.7, totalReviews: 86, totalTripsCompleted: 62, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_HjVXtlV9LdABJ0' } })
+  const org2 = await prisma.organizerProfile.create({ data: { userId: org2User.id, businessName: 'Summit & Shore Travels', description: 'Community-driven group trips for young professionals and solo travelers. Based in Bangalore, operating pan-India. 5+ years of curated experiences.', verificationStatus: 'APPROVED', rating: 4.5, totalReviews: 54, totalTripsCompleted: 38, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Kp3mNqR8WsYZ2x' } })
+  const org3 = await prisma.organizerProfile.create({ data: { userId: org3User.id, businessName: 'Nomad Trails India', description: 'Heritage walks in Rajasthan to backpacking in Northeast India — curated group trips with local experts. 5+ years, 8000+ travelers.', verificationStatus: 'APPROVED', rating: 4.4, totalReviews: 42, totalTripsCompleted: 28, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Tn7vBcD4FgHJ1k' } })
+  const org4 = await prisma.organizerProfile.create({ data: { userId: org4User.id, businessName: 'Backpack Bharat', description: 'India\'s favourite hostel-turned-adventure brand. Budget-friendly trips for backpackers and solo travelers across 30+ destinations.', verificationStatus: 'APPROVED', rating: 4.3, totalReviews: 38, totalTripsCompleted: 24, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Lm9wXeF2QrST5n' } })
   await prisma.organizerProfile.create({ data: { userId: org5User.id, businessName: 'Sahyadri Adventures Club', description: 'Western Ghats trekking and camping specialists from Pune.', verificationStatus: 'PENDING', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 } })
   await prisma.organizerProfile.create({ data: { userId: org6User.id, businessName: 'Budget Trails India', description: 'Affordable travel packages across India for students.', verificationStatus: 'REJECTED', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 } })
   console.log('  ✓ Created 6 organizer profiles (4 APPROVED, 1 PENDING, 1 REJECTED)')
@@ -169,6 +171,14 @@ async function main() {
   // ══════════════════════════════════════════════════════
   // ── NOTIFICATIONS (all types, 3 users) ──────────────
   // ══════════════════════════════════════════════════════
+
+  await seedVehicleLayouts({
+    tripU2: upcomingTrips.tripU2,
+    tripU7: upcomingTrips.tripU7,
+    tripU9: upcomingTrips.tripU9,
+    tripU11: upcomingTrips.tripU11,
+    tripU12: upcomingTrips.tripU12,
+  })
 
   await seedNotifications(admin.id, org1User.id, t1.id)
 
@@ -448,7 +458,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
     data: {
       organizerId: org2.id, destinationId: spiti.id,
       title: 'Spiti Valley Circuit — 6N/7D High Altitude Adventure', slug: 'spiti-valley-circuit-jun-2026',
-      tripType: 'ROAD_TRIP', bookingMode: 'REQUEST_BASED',
+      tripType: 'ROAD_TRIP', bookingMode: 'REQUEST_BASED', seatSelectionEnabled: true,
       description: 'Journey through the cold desert mountain valley of Spiti! Epic road trip from Shimla through Kinnaur to Kaza. Visit the world\'s highest post office at Hikkim, 1000-year-old Tabo Monastery, and stunning Chandratal Lake. Some of India\'s most dramatic and remote landscapes.',
       itinerary: [
         { day: 1, title: 'Shimla to Narkanda', description: 'Start the journey.', activities: [{ title: 'Shimla pickup', time: '7:00 AM' }, { title: 'Kufri stop', time: '9:00 AM' }, { title: 'Arrive Narkanda', time: '1:00 PM' }] },
@@ -578,7 +588,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
     data: {
       organizerId: org1.id, destinationId: goa.id,
       title: 'Goa Monsoon Beach Escape — 3N/4D from Pune', slug: 'goa-monsoon-beach-escape-jul-2026',
-      tripType: 'BEACH', bookingMode: 'INSTANT',
+      tripType: 'BEACH', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Experience Goa like never before — in the magical monsoon! Lush green landscapes, empty beaches, dramatic waterfalls, and the freshest seafood of the year. Stay at a boutique resort in South Goa, explore the lesser-known Divar Island, kayak through mangroves, and enjoy Goan feni-tasting sessions. Perfect for those who want Goa without the tourist crowds.',
       itinerary: [
         { day: 1, title: 'Pune to South Goa', description: 'Overnight drive, morning arrival at South Goa.', activities: [{ title: 'AC bus departure from Pune', time: '10:00 PM' }, { title: 'Arrive Palolem & resort check-in', time: '8:00 AM' }, { title: 'Brunch at resort', time: '10:00 AM' }, { title: 'Palolem Beach walk', time: '4:00 PM' }, { title: 'Seafood dinner at a beach shack', time: '7:30 PM' }] },
@@ -631,7 +641,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
     data: {
       organizerId: org2.id, destinationId: manali.id,
       title: 'Manali Summer Adventure — 5N/6D Himalayan Escape', slug: 'manali-summer-adventure-jun-2026',
-      tripType: 'ADVENTURE', bookingMode: 'INSTANT',
+      tripType: 'ADVENTURE', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Beat the summer heat in the cool Himalayan air of Manali! Paragliding at Solang Valley, river crossing at Beas, Old Manali cafe hopping, and a day trip through the legendary Atal Tunnel to Sissu. Stay at a charming wooden cottage with apple orchard views. Includes a surprise adventure activity!',
       itinerary: [
         { day: 1, title: 'Arrival in Manali', description: 'Fly to Kullu/overnight bus to Manali.', activities: [{ title: 'Arrival & cottage check-in', time: '10:00 AM' }, { title: 'Lunch at river-view cafe', time: '12:30 PM' }, { title: 'Mall Road evening walk', time: '4:00 PM' }, { title: 'Welcome bonfire + hot chocolate', time: '8:00 PM' }] },
@@ -688,7 +698,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
     data: {
       organizerId: org1.id, destinationId: rishikesh.id,
       title: 'Rishikesh Rafting & Bungee Weekend — 1N/2D', slug: 'rishikesh-rafting-bungee-aug-2026',
-      tripType: 'ADVENTURE', bookingMode: 'INSTANT',
+      tripType: 'ADVENTURE', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Maximum adrenaline in minimum time! 16 km Grade III-IV white water rafting on the Ganges, India\'s highest bungee jump (83m), cliff jumping, riverside camping under the stars, and a magical Ganga Aarti. Bus from Delhi on Friday night, back by Sunday afternoon. The ultimate weekend adrenaline fix.',
       itinerary: [
         { day: 1, title: 'Arrive, Raft, Camp', description: 'Arrive Rishikesh, hit the rapids, camp by the river.', activities: [{ title: 'Arrive Shivpuri base camp', time: '9:00 AM' }, { title: '16 km white water rafting (Grade III-IV)', time: '10:00 AM' }, { title: 'Cliff jumping at Maggi Point', time: '1:00 PM' }, { title: 'Bungee jump at Jumpin Heights (83m)', time: '3:30 PM' }, { title: 'Riverside tent check-in', time: '5:30 PM' }, { title: 'Ganga Aarti at Triveni Ghat', time: '6:30 PM' }, { title: 'Bonfire + live guitar + dinner', time: '8:30 PM' }] },
@@ -713,7 +723,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
     data: {
       organizerId: org3.id, destinationId: jaipur.id,
       title: 'Jaipur Royal Heritage & Food Trail — 2N/3D', slug: 'jaipur-royal-heritage-food-trail-aug-2026',
-      tripType: 'CULTURAL', bookingMode: 'INSTANT',
+      tripType: 'CULTURAL', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'The Pink City reimagined! Beyond the usual tourist trail — this trip combines iconic forts with hidden gems: secret step wells, Rajasthani cooking masterclass with a local family, sunrise hot-air balloon ride over Amber Fort, block printing workshop, and a curated street food trail through Jaipur\'s bylanes. Stay at a 200-year-old heritage haveli.',
       itinerary: [
         { day: 1, title: 'Arrival & Hidden Jaipur', description: 'Heritage haveli check-in and explore beyond the obvious.', activities: [{ title: 'Heritage haveli check-in', time: '10:00 AM' }, { title: 'Panna Meena Ka Kund (secret stepwell)', time: '12:00 PM' }, { title: 'Hawa Mahal & City Palace', time: '2:00 PM' }, { title: 'Curated street food trail — kachori, kulfi, pyaaz kachori, ghewar', time: '5:00 PM' }, { title: 'Dharohar dance show at Bagore ki Haveli', time: '7:00 PM' }, { title: 'Rooftop dinner at haveli', time: '8:30 PM' }] },
@@ -1769,6 +1779,140 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     await prisma.wallet.update({ where: { id: w11.id }, data: { balance: 350 } })
   }
   console.log('  ✓ Bulk wallet transactions: cashbacks, refunds, promo credits, deductions')
+}
+
+// ══════════════════════════════════════════════════════════
+// ── VEHICLE LAYOUTS SEED ──────────────────────────────────
+// ══════════════════════════════════════════════════════════
+
+type CellType = 'SEAT' | 'DRIVER' | 'EMPTY' | 'BLOCKED'
+
+interface VehicleLayoutDef {
+  tripId: string
+  label: string
+  vehicleType: string
+  rows: number
+  cols: number
+  aisleAfterCol: number | null
+  layout: CellType[][]
+}
+
+const INNOVA_LAYOUT: CellType[][] = [
+  ['SEAT', 'EMPTY', 'DRIVER'],
+  ['SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'EMPTY'],
+]
+
+const TEMPO_LAYOUT: CellType[][] = [
+  ['EMPTY', 'EMPTY', 'EMPTY', 'DRIVER'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['EMPTY', 'EMPTY', 'EMPTY', 'EMPTY'],
+]
+
+// ── Custom layouts (not from a template) ──
+const CUSTOM_SUV_LAYOUT: CellType[][] = [
+  ['DRIVER', 'EMPTY', 'SEAT'],
+  ['SEAT', 'EMPTY', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT'],
+]
+
+const CUSTOM_MINIBUS_LAYOUT: CellType[][] = [
+  ['EMPTY', 'EMPTY', 'EMPTY', 'EMPTY', 'DRIVER'],
+  ['SEAT', 'SEAT', 'EMPTY', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'EMPTY', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'EMPTY', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT', 'SEAT'],
+]
+
+const CUSTOM_VAN_LAYOUT: CellType[][] = [
+  ['DRIVER', 'EMPTY', 'EMPTY', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+]
+
+const CUSTOM_ERTIGA_LAYOUT: CellType[][] = [
+  ['DRIVER', 'EMPTY', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT'],
+  ['EMPTY', 'SEAT', 'SEAT'],
+]
+
+const CUSTOM_SLEEPER_LAYOUT: CellType[][] = [
+  ['EMPTY', 'EMPTY', 'EMPTY', 'DRIVER'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'SEAT', 'SEAT'],
+  ['SEAT', 'SEAT', 'BLOCKED', 'BLOCKED'],
+]
+
+async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
+  const { tripU2, tripU7, tripU9, tripU11, tripU12 } = trips
+
+  const defs: VehicleLayoutDef[] = [
+    // ── tripU2 (Spiti): 1 predefined Innova + 1 custom SUV ──
+    { tripId: tripU2.id, label: 'Innova Crysta — Spiti Primary', vehicleType: 'innova', rows: 4, cols: 3, aisleAfterCol: null, layout: INNOVA_LAYOUT },
+    { tripId: tripU2.id, label: 'Custom SUV — Spiti Backup', vehicleType: 'custom', rows: 3, cols: 3, aisleAfterCol: null, layout: CUSTOM_SUV_LAYOUT },
+
+    // ── tripU7 (Goa Monsoon): 1 predefined Tempo + 1 custom sleeper ──
+    { tripId: tripU7.id, label: 'Tempo Traveller — Goa Pune', vehicleType: 'tempo', rows: 5, cols: 4, aisleAfterCol: 1, layout: TEMPO_LAYOUT },
+    { tripId: tripU7.id, label: 'Custom Sleeper Coach — Goa Pune', vehicleType: 'custom', rows: 6, cols: 4, aisleAfterCol: 1, layout: CUSTOM_SLEEPER_LAYOUT },
+
+    // ── tripU9 (Manali Summer): 1 predefined Innova + 1 custom Ertiga ──
+    { tripId: tripU9.id, label: 'Innova Crysta — Manali Primary', vehicleType: 'innova', rows: 4, cols: 3, aisleAfterCol: null, layout: INNOVA_LAYOUT },
+    { tripId: tripU9.id, label: 'Custom Ertiga — Manali Overflow', vehicleType: 'custom', rows: 4, cols: 3, aisleAfterCol: null, layout: CUSTOM_ERTIGA_LAYOUT },
+
+    // ── tripU11 (Rishikesh): 1 predefined Tempo + 1 custom van ──
+    { tripId: tripU11.id, label: 'Tempo Traveller — Rishikesh', vehicleType: 'tempo', rows: 5, cols: 4, aisleAfterCol: 1, layout: TEMPO_LAYOUT },
+    { tripId: tripU11.id, label: 'Custom Adventure Van — Rishikesh', vehicleType: 'custom', rows: 3, cols: 4, aisleAfterCol: null, layout: CUSTOM_VAN_LAYOUT },
+
+    // ── tripU12 (Jaipur): 1 predefined Tempo + 1 custom minibus ──
+    { tripId: tripU12.id, label: 'Tempo Traveller — Jaipur Heritage', vehicleType: 'tempo', rows: 5, cols: 4, aisleAfterCol: 1, layout: TEMPO_LAYOUT },
+    { tripId: tripU12.id, label: 'Custom Minibus — Jaipur Heritage', vehicleType: 'custom', rows: 5, cols: 5, aisleAfterCol: 2, layout: CUSTOM_MINIBUS_LAYOUT },
+  ]
+
+  const COL_LETTERS = 'ABCDEFGHIJ'
+
+  for (const def of defs) {
+    const vehicle = await prisma.tripVehicle.create({
+      data: {
+        tripId: def.tripId,
+        label: def.label,
+        vehicleType: def.vehicleType,
+        rows: def.rows,
+        cols: def.cols,
+        aisleAfterCol: def.aisleAfterCol,
+        driverRow: 0,
+        driverCol: def.cols - 1,
+        layout: def.layout,
+      },
+    })
+
+    let seatNumber = 1
+    const seatData: { tripVehicleId: string; row: number; col: number; seatLabel: string; seatNumber: number; status: 'AVAILABLE' }[] = []
+
+    for (let r = 0; r < def.rows; r++) {
+      for (let c = 0; c < def.cols; c++) {
+        if (def.layout[r][c] === 'SEAT') {
+          seatData.push({
+            tripVehicleId: vehicle.id,
+            row: r,
+            col: c,
+            seatLabel: `${r + 1}${COL_LETTERS[c]}`,
+            seatNumber: seatNumber++,
+            status: 'AVAILABLE',
+          })
+        }
+      }
+    }
+
+    await prisma.vehicleSeat.createMany({ data: seatData })
+  }
+
+  console.log(`  ✓ Created ${defs.length} vehicle layouts with seat maps (5 predefined + 5 custom, 2 per trip)`)
 }
 
 // ══════════════════════════════════════════════════════════

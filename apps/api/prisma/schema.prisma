@@ -143,6 +143,20 @@ enum ConversationStatus {
   CLOSED
 }
 
+enum SeatCellType {
+  SEAT
+  DRIVER
+  EMPTY
+  BLOCKED
+}
+
+enum SeatStatus {
+  AVAILABLE
+  HELD
+  BOOKED
+  BLOCKED
+}
+
 enum WalletTransactionType {
   REFUND
   CASHBACK
@@ -271,6 +285,7 @@ model Trip {
   status             TripStatus         @default(DRAFT)
   bookingMode        BookingMode        @default(INSTANT)
   acceptingBookings  Boolean            @default(true)
+  seatSelectionEnabled Boolean           @default(false)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -284,6 +299,7 @@ model Trip {
   tripRequests  TripRequest[]
   editHistory      TripEditHistory[]
   transferPoints   TripTransferPoint[]
+  vehicles         TripVehicle[]
 
   @@index([destinationId, startDate, status])
   @@index([slug])
@@ -324,6 +340,7 @@ model Booking {
 
   travelerDetails     TravelerDetail[]
   paymentTransactions PaymentTransaction[]
+  vehicleSeats        VehicleSeat[]
   review              Review?
   tripRequest         TripRequest?
 
@@ -378,8 +395,72 @@ model TravelerDetail {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  assignedSeat VehicleSeat?
+
   @@index([bookingId])
   @@index([tripRequestId])
+  @@index([isDeleted])
+}
+
+model TripVehicle {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  label         String   @default("Main Vehicle")
+  vehicleType   String
+  sortOrder     Int      @default(0)
+
+  rows          Int
+  cols          Int
+  aisleAfterCol Int?
+  driverRow     Int      @default(0)
+  driverCol     Int
+
+  layout        Json
+
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  seats         VehicleSeat[]
+
+  @@index([tripId])
+  @@index([isDeleted])
+}
+
+model VehicleSeat {
+  id              String      @id @default(cuid())
+  tripVehicleId   String
+  tripVehicle     TripVehicle @relation(fields: [tripVehicleId], references: [id])
+
+  row             Int
+  col             Int
+  seatLabel       String
+  seatNumber      Int
+  status          SeatStatus  @default(AVAILABLE)
+
+  bookingId       String?
+  booking         Booking?    @relation(fields: [bookingId], references: [id])
+  travelerDetailId String?    @unique
+  travelerDetail  TravelerDetail? @relation(fields: [travelerDetailId], references: [id])
+
+  heldAt          DateTime?
+  heldUntil       DateTime?
+  heldByUserId    String?
+
+  isActive        Boolean  @default(true)
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([tripVehicleId, row, col])
+  @@unique([tripVehicleId, seatNumber])
+  @@index([tripVehicleId, status])
+  @@index([bookingId])
+  @@index([status, heldUntil])
   @@index([isDeleted])
 }
 
