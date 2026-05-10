@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { tripRequestKeys, bookingKeys, organizerKeys } from '@/lib/query-keys'
+import { useToast } from '@/components/shared/toast'
 import type { TripRequestListItem } from '@shared/types/trip-request.types'
 
 interface RespondPayload {
@@ -18,6 +19,7 @@ interface RespondPayload {
  */
 export function useRespondToRequest() {
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   return useMutation({
     mutationFn: async ({ tripId, requestId, status, rejectionReason }: RespondPayload) => {
@@ -27,10 +29,17 @@ export function useRespondToRequest() {
       }>(`/trips/${tripId}/requests/${requestId}`, { status, rejectionReason })
       return res.data.data
     },
-    onSuccess: (_data, { tripId }) => {
+    onSuccess: (_data, { status, tripId }) => {
       queryClient.invalidateQueries({ queryKey: tripRequestKeys.all })
       queryClient.invalidateQueries({ queryKey: bookingKeys.tripSummary(tripId) })
       queryClient.invalidateQueries({ queryKey: organizerKeys.stats() })
+      toast({
+        variant: 'success',
+        title: status === 'APPROVED' ? 'Request approved' : 'Request rejected',
+      })
+    },
+    onError: (err) => {
+      toast({ variant: 'error', title: (err as Error).message || 'Failed to respond to request. Please try again.' })
     },
   })
 }
