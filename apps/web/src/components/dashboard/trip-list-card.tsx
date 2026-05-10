@@ -35,9 +35,9 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
 
   return (
     <>
-      <div className="card flex flex-col sm:flex-row sm:items-center gap-4 p-4">
+      <div className="card flex flex-col gap-4 p-4 md:flex-row">
         {/* Cover thumbnail */}
-        <div className="h-24 w-full shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-20 sm:w-28">
+        <div className="h-32 w-full shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-24 md:h-28 md:w-36">
           {coverPhoto ? (
             <img src={coverPhoto} alt={trip.title} className="h-full w-full object-cover" />
           ) : (
@@ -47,28 +47,58 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
           )}
         </div>
 
-        {/* Info */}
+        {/* Content: Info + Actions stacked vertically */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-neutral-800">{trip.title}</h3>
-            <span className={STATUS_BADGE[trip.status]}>{trip.status}</span>
-            {trip.status === 'ACTIVE' && !trip.acceptingBookings && (
-              <span className="badge badge-warning text-xs">Bookings Closed</span>
-            )}
+          {/* Top row: info left, icon buttons right */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate font-semibold text-neutral-800">{trip.title}</h3>
+                <span className={`shrink-0 ${STATUS_BADGE[trip.status]}`}>{trip.status}</span>
+                {trip.status === 'ACTIVE' && !trip.acceptingBookings && (
+                  <span className="badge badge-warning text-xs shrink-0">Bookings Closed</span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-neutral-500">
+                {trip.destination.name} &middot; {formatDateRange(trip.startDate, trip.endDate)}
+              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
+                <span className="font-mono text-neutral-700">{formatCurrency(trip.pricePerPerson)}</span>
+                <span>{trip.currentBookings}/{trip.maxGroupSize} booked</span>
+              </div>
+            </div>
+            {/* Icon buttons — top-right on desktop */}
+            <div className="hidden shrink-0 items-center gap-0.5 md:flex">
+              <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost p-1.5" title="Edit">
+                <Edit className="h-4 w-4" />
+              </Link>
+              <Link href={`/trips/${trip.slug}`} className="btn-ghost p-1.5" title="View Public Page">
+                <Eye className="h-4 w-4" />
+              </Link>
+              <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost p-1.5" title="Edit History">
+                <History className="h-4 w-4" />
+              </Link>
+              <button
+                onClick={() => onToggleBookings?.(trip.id)}
+                disabled={!canToggleBookings}
+                className="btn-ghost p-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={canToggleBookings ? (trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings') : 'Only ACTIVE trips can toggle bookings'}
+              >
+                {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => { if (canDelete) setShowDeleteModal(true) }}
+                disabled={!canDelete}
+                className="btn-ghost p-1.5 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={canDelete ? 'Delete Trip' : 'Only DRAFT or ACTIVE trips can be deleted'}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-neutral-500">
-            {trip.destination.name} &middot; {formatDateRange(trip.startDate, trip.endDate)}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-            <span className="font-mono text-neutral-700">{formatCurrency(trip.pricePerPerson)}</span>
-            <span>{trip.currentBookings}/{trip.maxGroupSize} booked</span>
-          </div>
-        </div>
 
-        {/* Actions — always visible; disabled when not applicable */}
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          {/* Text buttons */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Action links — below info, full width */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               onClick={() => onPublish?.(trip.id)}
               disabled={!canPublish}
@@ -90,21 +120,22 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
               <Armchair className="h-4 w-4 shrink-0" /> Seats
             </Link>
           </div>
-          {/* Icon buttons */}
-          <div className="flex items-center gap-1">
-            <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost py-1.5 px-3" title="Edit">
+
+          {/* Icon buttons — mobile only (below action links) */}
+          <div className="mt-2 flex items-center gap-1 justify-end md:hidden">
+            <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost p-1.5" title="Edit">
               <Edit className="h-4 w-4" />
             </Link>
-            <Link href={`/trips/${trip.slug}`} className="btn-ghost py-1.5 px-3" title="View Public Page">
+            <Link href={`/trips/${trip.slug}`} className="btn-ghost p-1.5" title="View Public Page">
               <Eye className="h-4 w-4" />
             </Link>
-            <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost py-1.5 px-3" title="Edit History">
+            <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost p-1.5" title="Edit History">
               <History className="h-4 w-4" />
             </Link>
             <button
               onClick={() => onToggleBookings?.(trip.id)}
               disabled={!canToggleBookings}
-              className="btn-ghost py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-ghost p-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               title={canToggleBookings ? (trip.acceptingBookings ? 'Stop Bookings' : 'Resume Bookings') : 'Only ACTIVE trips can toggle bookings'}
             >
               {trip.acceptingBookings ? <BookX className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
@@ -112,7 +143,7 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             <button
               onClick={() => { if (canDelete) setShowDeleteModal(true) }}
               disabled={!canDelete}
-              className="btn-ghost py-1.5 px-3 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-ghost p-1.5 text-error-500 disabled:opacity-50 disabled:cursor-not-allowed"
               title={canDelete ? 'Delete Trip' : 'Only DRAFT or ACTIVE trips can be deleted'}
             >
               <Trash2 className="h-4 w-4" />
@@ -148,8 +179,8 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
 
 export function TripListCardSkeleton() {
   return (
-    <div className="card-static flex flex-col sm:flex-row sm:items-center gap-4 p-4">
-      <div className="skeleton h-24 w-full shrink-0 sm:h-20 sm:w-28" />
+    <div className="card-static flex flex-col gap-4 p-4 md:flex-row md:items-center">
+      <div className="skeleton h-32 w-full shrink-0 sm:h-24 md:h-20 md:w-28" />
       <div className="flex-1 space-y-2">
         <div className="skeleton h-5 w-48" />
         <div className="skeleton h-4 w-32" />
