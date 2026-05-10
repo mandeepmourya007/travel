@@ -210,15 +210,16 @@ export class VehicleService {
 
   /**
    * Returns the full seat map including traveler names and booking refs.
+   * Returns empty vehicles array when no vehicle is configured (organizer needs empty state).
    *
-   * @throws NotFoundError — trip or vehicle not found
+   * @throws NotFoundError — trip not found
    * @throws ForbiddenError — user is not the trip organizer
    */
   async getOrganizerSeatMap(tripId: string, userId: string): Promise<MultiVehicleSeatMapResponse> {
     await this.resolveOrganizerAndTrip(userId, tripId)
 
     const vehicles = await this.vehicleRepo.findByTripId(tripId)
-    if (vehicles.length === 0) throw new NotFoundError('Vehicle for this trip')
+    if (vehicles.length === 0) return { vehicles: [] }
 
     const result: SeatMapResponse[] = vehicles.map((vehicle) => {
       const seats: VehicleSeatItem[] = vehicle.seats.map((s) => ({
