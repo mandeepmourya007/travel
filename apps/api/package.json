@@ -14,7 +14,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:prod": "tsx prisma/seed.prod.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "shell": "tsx --tsconfig tsconfig.json src/repl.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.17.0",

@@ -1279,12 +1279,46 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 11. `adminKeys.bookingDetail` key collision → `'detail'` segment
 12. Missing `staleTime` on `useAdminBookingDetail`
 
-#### ⬜ Not Started — Remaining Features
-- [ ] **Email notifications** — booking confirmation, trip updates, organizer approval/rejection (providers built, templates pending)
+#### ✅ Notification System (Full Implementation — BE + FE)
+
+**Backend:**
+- [x] `NotificationRepository` — create, createBulk, findByUserId (pagination), countUnread, markRead, markAllRead
+- [x] `NotificationService` — orchestrator: send, sendBulk, sendToAdmins, getNotifications, getUnreadCount, markRead, markAllRead
+- [x] `NotificationController` — list, unreadCount, markRead, markAllRead
+- [x] `notification.routes.ts` — `GET /`, `GET /unread-count`, `PATCH /:id/read`, `PATCH /read-all` (behind `authMiddleware`)
+- [x] `INotificationChannelProvider` interface — pluggable channel architecture
+- [x] `InAppNotificationProvider` — saves to DB + emits via Socket.IO to user room
+- [x] `EmailNotificationProvider` — uses NodemailerEmailProvider + branded email templates
+- [x] `SmsNotificationProvider` — stub (logs warning, ready for Phase 2)
+- [x] `PushNotificationProvider` — stub (ready for Phase 2)
+- [x] DEFAULT_CHANNELS map per NotificationType — auto-routes to correct channels
+- [x] Notification triggers: `booking.service.ts` (confirm + cancel), `trip.service.ts` (request received + approved/rejected), `admin.service.ts` (organizer approved/rejected)
+- [x] Wired in `dependencies.ts`, mounted at `/api/v1/notifications` in `server.ts`
+
+**Frontend:**
+- [x] `store/notification.store.ts` — Zustand: unreadCount, recentNotifications, addNotification, markAsRead, markAllAsRead
+- [x] `lib/query-keys.ts` — `notificationKeys.list(filters)`, `notificationKeys.unreadCount()`
+- [x] `lib/notification-redirect.ts` — notification click routing
+- [x] `lib/notification-icons.ts` — icon mapping per notification type
+- [x] `hooks/use-notifications.ts` — useNotifications, useUnreadCount (30s poll), useMarkRead, useMarkAllRead
+- [x] `components/notifications/notification-bell.tsx` — bell icon with unread badge + dropdown
+- [x] `components/layout/header.tsx` — NotificationBell integrated for authenticated users (desktop + mobile)
+- [x] `app/(dashboard)/notifications/page.tsx` — full notifications page with pagination, unread filter, mark all read
+- [x] `app/(dashboard)/notifications/error.tsx` — error boundary
+- [x] `lib/__tests__/notification-redirect.test.ts` — notification redirect tests
+
+#### ✅ Email Notifications (Full Implementation)
+- [x] **Email notifications** — booking confirmation/cancellation, payment received, organizer approval/rejection, trip request approved
+- [x] `templates/index.ts` — 7 email templates (bookingConfirmed, bookingCancelled, paymentReceived, tripRequestApproved, organizerApproved, organizerRejected, generic) with branded HTML layout
+- [x] `EmailNotificationProvider` — uses NodemailerEmailProvider + `getEmailTemplate()`
+- [x] `NotificationService` — DEFAULT_CHANNELS map sends EMAIL for BOOKING_CONFIRMED/CANCELLED, PAYMENT_RECEIVED/FAILED, REFUND_PROCESSED, TRIP_REMINDER, ORGANIZER_APPROVED/REJECTED, TRIP_REQUEST_APPROVED
+- [x] Notification triggers: `booking.service.ts` (confirm + cancel), `trip.service.ts` (request received + approved/rejected), `admin.service.ts` (organizer approved/rejected)
 
 #### ⬜ Not Started — Viral & Differentiator Features
 
 > These 8 features transform TripCompare from "a well-built aggregator" into **"the only safe, transparent, and community-driven way to book group trips in India."** No competitor — MakeMyTrip, Tripoto, GoGaffl, Zostel — offers ANY of these. Each feature solves a real pain point AND has a built-in sharing/growth mechanic.
+> 
+> **Note:** Feature #2 (Organizer Public Profile) is already implemented — see below.
 
 ---
 
@@ -1317,7 +1351,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ---
 
-##### 2. Organizer Public Profile (`/organizers/[id]`)
+##### 2. ✅ Organizer Public Profile (`/trips/organizers/[organizerId]`) — DONE
 
 **What:** A public-facing profile page for each verified organizer — showing their bio, completed trips, ratings, reviews, response time, and trust metrics. The organizer's **portable reputation** on the platform.
 
@@ -1334,15 +1368,16 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - **SEO indexed** — `/organizers/tripvibes` ranks for "TripVibes reviews", "TripVibes trips"
 
 **Scope:**
-- [ ] BE: `OrganizerProfileService.getPublicProfile()` — aggregates stats from trips, bookings, reviews, chat response time
-- [ ] BE: `GET /api/v1/organizers/:id/public` endpoint
-- [ ] FE: `/organizers/[id]/page.tsx` — SSR with `generateMetadata()`
-- [ ] FE: Profile header (avatar, business name, verified badge, rating, member since)
-- [ ] FE: Stats grid (trips completed, total travelers, avg rating, response time)
-- [ ] FE: Active trips tab (upcoming trips by this organizer)
-- [ ] FE: Reviews tab (all reviews across their trips, sorted by newest)
-- [ ] FE: "Chat with Organizer" CTA (reuse existing ChatWithOrganizerButton)
-- [ ] SEO: JSON-LD (Organization/LocalBusiness schema), OG image
+- [x] BE: `TripService.getOrganizerPublicProfile()` — aggregates stats from trips, bookings, reviews
+- [x] BE: `GET /api/v1/trips/organizers/:organizerId` endpoint (validated with `organizerIdParamSchema` + `organizerProfileQuerySchema`)
+- [x] BE: `ReviewRepository.findByOrganizerId()` + `getRatingDistributionByOrganizer()` — paginated reviews + rating breakdown
+- [x] Shared: `OrganizerPublicProfile`, `OrganizerPublicProfileResponse` types in `packages/shared/src/types/organizer.types.ts`
+- [x] FE: `/trips/organizers/[organizerId]/page.tsx` — client page with loading state + error state + retry
+- [x] FE: `/trips/organizers/[organizerId]/loading.tsx` — skeleton loading
+- [x] FE: `OrganizerProfileHeader` component (avatar, business name, verified badge, rating, trips completed, member since)
+- [x] FE: `OrganizerReviewsSection` component (all reviews across their trips, paginated)
+- [x] FE: `useOrganizerPublicProfile` hook + `organizerKeys.publicProfile()` query key
+- [ ] SEO: JSON-LD (Organization/LocalBusiness schema), OG image, `generateMetadata()` — not yet SSR
 
 ---
 
@@ -1581,11 +1616,11 @@ TODO
 2. ~~Traveler is redirected to dashboard — please fix~~ ✅ Done (organizer redirect to /dashboard, traveler stays on /trips)
 3. ~~Don't allow Organizer to go to trips list page, only dashboard~~ ✅ Done (header hides Explore Trips for ORGANIZER, /trips redirects organizers)
 4. ~~Compare UI visible in all pages — show in trips list page only~~ ✅ Done (GlobalCompareBar scoped to `/trips` via pathname check)
-5. ~~When clicking signin button, no loader shown~~ (needs verification — low priority)
+5. ~~When clicking signin button, no loader shown~~ ✅ Fixed (FullScreenLoader + useLoadingStore + DismissLoader system; email login has inline spinner, phone/Google use fullscreen overlay, auto-dismissed on route change)
 6. ~~Please check pagination~~ ✅ Done (shared Pagination component with ellipsis: < 1 ... 4 5 6 ... 20 >)
-7. ~~Modals are in viewport — fix it~~ (needs verification — low priority)
+7. ~~Modals are in viewport — fix it~~ ✅ Fixed (Modal uses `fixed inset-0 z-50 flex items-center justify-center`, `max-h-[90vh] overflow-y-auto`, animate-slide-up)
 8. ~~Trip is getting created even without clicking create trip~~ ✅ Fixed (Enter key prevention on form)
-9. ~~Uploaded image of trip is not visible~~ (needs verification — low priority)
+9. ~~Uploaded image of trip is not visible~~ ✅ Fixed (useCloudinaryUpload signed direct upload → media-tab grid → trip-detail-header Carousel with next/image → res.cloudinary.com in next.config.js remotePatterns)
 10. ~~Please have cron job for expiry trip request + removing tokens~~ ✅ Done (4 cron jobs: bookings, requests, codes, tokens)
 11. ~~Nav bar is not consistent in all pages~~ ✅ Fixed (header role-based nav links)
 12. ~~Show proper error message if we are showing error in UI~~ ✅ Done (ErrorState with title + message props)

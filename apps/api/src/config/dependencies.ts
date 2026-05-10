@@ -105,7 +105,7 @@ export const authService = new AuthService(
   env.GOOGLE_CLIENT_ID,
 )
 
-const destinationService = new DestinationService(destinationRepo, logger)
+const destinationService = new DestinationService(destinationRepo, tripRepo, logger)
 const uploadService = new UploadService()
 const paymentService = razorpayClient
   ? new PaymentService(
@@ -132,7 +132,7 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
   : new MockOtpProvider(logger)
 
-const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
+export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
   ? new NodemailerEmailProvider(
       { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
       env.SMTP_FROM || `TripCompare <${env.SMTP_USER}>`,

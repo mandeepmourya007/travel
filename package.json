@@ -19,7 +19,8 @@
     "docker:clean": "docker compose down -v --remove-orphans",
     "docker:seed": "docker compose --profile seed run --rm seed",
     "docker:seed:prod": "docker compose --profile seed-prod run --rm seed-prod",
-    "deploy:prod": "./scripts/deploy-prod.sh"
+    "deploy:prod": "./scripts/deploy-prod.sh",
+    "shell": "npm run shell --workspace=apps/api"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
