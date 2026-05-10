@@ -17,6 +17,16 @@ import { TripLifecycleService } from '../../../src/services/trip-lifecycle.servi
 import { logger } from '../../../src/utils/logger'
 import { ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT } from '../../../src/utils/constants'
 
+vi.mock('../../../src/config/env', () => ({
+  env: {
+    NODE_ENV: 'production',
+    RAZORPAY_KEY_ID: 'rzp_test_key',
+    RAZORPAY_KEY_SECRET: 'test_secret',
+    RAZORPAY_WEBHOOK_SECRET: 'test_webhook_secret',
+    CLIENT_URL: 'http://localhost:3000',
+  },
+}))
+
 // ══════════════════════════════════════════════════════
 // Shared Mock Infrastructure
 // ══════════════════════════════════════════════════════
