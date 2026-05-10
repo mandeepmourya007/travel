@@ -39,8 +39,8 @@ const mockMessageRepo = {
   countFlagged: vi.fn(),
 }
 
-const mockNotificationRepo = {
-  create: vi.fn(),
+const mockNotificationService = {
+  send: vi.fn().mockResolvedValue([{ channel: 'IN_APP', success: true }]),
 }
 
 const mockWalletRepo = {
@@ -64,10 +64,10 @@ beforeEach(() => {
     mockTripRepo as any,
     mockPaymentTxRepo as any,
     mockMessageRepo as any,
-    mockNotificationRepo as any,
     mockWalletRepo as any,
     mockWalletService as any,
     logger as any,
+    mockNotificationService as any,
   )
 })
 
@@ -192,7 +192,6 @@ describe('AdminService — Approve/Reject', () => {
     const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
     mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
     mockOrganizerProfileRepo.update.mockResolvedValue({ ...profile, verificationStatus: 'APPROVED' })
-    mockNotificationRepo.create.mockResolvedValue({})
 
     const result = await service.approveOrReject('org_1', { action: 'APPROVED' })
 
@@ -204,7 +203,6 @@ describe('AdminService — Approve/Reject', () => {
     const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
     mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
     mockOrganizerProfileRepo.update.mockResolvedValue({ ...profile, verificationStatus: 'REJECTED' })
-    mockNotificationRepo.create.mockResolvedValue({})
 
     const result = await service.approveOrReject('org_1', { action: 'REJECTED', reason: 'Incomplete docs' })
 
@@ -216,15 +214,12 @@ describe('AdminService — Approve/Reject', () => {
     const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
     mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
     mockOrganizerProfileRepo.update.mockResolvedValue({})
-    mockNotificationRepo.create.mockResolvedValue({})
-
     await service.approveOrReject('org_1', { action: 'APPROVED' })
 
-    expect(mockNotificationRepo.create).toHaveBeenCalledWith(
+    expect(mockNotificationService.send).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user_1',
         type: 'ORGANIZER_APPROVED',
-        channel: 'IN_APP',
       }),
     )
   })
@@ -233,15 +228,12 @@ describe('AdminService — Approve/Reject', () => {
     const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
     mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
     mockOrganizerProfileRepo.update.mockResolvedValue({})
-    mockNotificationRepo.create.mockResolvedValue({})
-
     await service.approveOrReject('org_1', { action: 'REJECTED', reason: 'Bad docs' })
 
-    expect(mockNotificationRepo.create).toHaveBeenCalledWith(
+    expect(mockNotificationService.send).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user_1',
         type: 'ORGANIZER_REJECTED',
-        channel: 'IN_APP',
         body: expect.stringContaining('Bad docs'),
       }),
     )

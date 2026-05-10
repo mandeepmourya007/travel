@@ -121,6 +121,7 @@ beforeEach(() => {
     mockTripRequestRepo as any,
     {} as any,
     logger as any,
+    { send: vi.fn().mockResolvedValue([]) } as any,
   )
 })
 

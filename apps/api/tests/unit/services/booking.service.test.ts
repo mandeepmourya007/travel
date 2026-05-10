@@ -110,6 +110,7 @@ beforeEach(() => {
     mockPaymentTxRepo as any,
     mockPaymentService as any,
     logger as any,
+    { send: vi.fn().mockResolvedValue([]) } as any,
   )
 })
 

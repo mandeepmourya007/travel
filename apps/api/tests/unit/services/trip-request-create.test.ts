@@ -118,6 +118,7 @@ function createMockTrip(overrides: Record<string, unknown> = {}) {
     currentBookings: 12,
     status: 'ACTIVE',
     acceptingBookings: true,
+    organizer: { userId: 'user-org-1' },
     ...overrides,
   }
 }
@@ -172,6 +173,7 @@ beforeEach(() => {
     mockTripRequestRepo as any,
     {} as any,
     logger as any,
+    { send: vi.fn().mockResolvedValue([]) } as any,
   )
   bookingService = new BookingService(
     mockBookingRepo as any,
@@ -180,6 +182,7 @@ beforeEach(() => {
     mockPaymentTxRepo as any,
     mockPaymentService as any,
     logger as any,
+    { send: vi.fn().mockResolvedValue([]) } as any,
   )
 })
 
