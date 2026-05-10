@@ -61,6 +61,52 @@ export function paginate(filters: { page?: number; limit?: number }) {
   }
 }
 
+// ─── Payment Transaction ─────────────────────────────
+export const PAYMENT_TX_TYPE = {
+  PAYMENT: 'PAYMENT',
+  REFUND: 'REFUND',
+  ESCROW_RELEASE: 'ESCROW_RELEASE',
+} as const
+
+export const PAYMENT_TX_STATUS = {
+  INITIATED: 'INITIATED',
+  AUTHORIZED: 'AUTHORIZED',
+  CAPTURED: 'CAPTURED',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED',
+} as const
+
+// ─── Webhook ─────────────────────────────────────────
+export const WEBHOOK_STATUS = {
+  RECEIVED: 'RECEIVED',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED',
+} as const
+
+export const WEBHOOK_SOURCE = {
+  RAZORPAY: 'RAZORPAY',
+} as const
+
+// ─── Misc ────────────────────────────────────────────
+export const CURRENCY = 'INR'
+export const RAZORPAY_MOCK_KEY = 'rzp_mock_dev_key'
+export const DEFAULT_COMMISSION_RATE = 10.0
+export const JWT_ACCESS_EXPIRY_SECONDS = 900
+
+export const OTP_TYPE = {
+  PHONE_OTP: 'PHONE_OTP',
+  EMAIL_OTP: 'EMAIL_OTP',
+} as const
+
+export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'
+
+/** Generic reference model constants for webhook events + payment transactions */
+export const REFERENCE_MODEL = {
+  BOOKING: 'Booking',
+} as const
+
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
