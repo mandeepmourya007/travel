@@ -204,8 +204,7 @@ apps/api/src/
 │   ├── validate.middleware.ts   ← Zod schema validation (body, query, params)
 │   ├── error-handler.middleware.ts ← Global error → API error response
 │   ├── rate-limit.middleware.ts ← General + auth-specific rate limits
-│   ├── request-id.middleware.ts ← X-Request-ID for distributed tracing
-│   ├── request-logger.middleware.ts ← Pino request logging
+│   ├── pino-http.middleware.ts ← pino-http + ALS request logging & tracing
 │   └── webhook-verify.middleware.ts ← HMAC signature verification
 ├── providers/
 │   ├── otp-provider.interface.ts

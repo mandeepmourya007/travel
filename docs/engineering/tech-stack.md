@@ -89,13 +89,13 @@ A senior architect-level tech spec for building a scalable, maintainable group t
 
 | Pattern | Where Used | File(s) | Why |
 |---------|-----------|---------|-----|
-| **Chain of Responsibility** | Express middleware pipeline — each middleware decides to pass or halt | `server.ts` middleware stack | Request flows: RequestID → RateLimit → CORS → Logger → Auth → Role → Validate → Controller → ErrorHandler |
+| **Chain of Responsibility** | Express middleware pipeline — each middleware decides to pass or halt | `server.ts` middleware stack | Request flows: pinoHttp (ID + ALS + logging) → RateLimit → CORS → Auth → Role → Validate → Controller → ErrorHandler |
 | **Strategy** | Sort strategy — `buildOrderBy(sort)` switches behavior based on input | `repositories/trip.repository.ts` | `price_asc`, `price_desc`, `rating`, `date`, `popularity` — each is a different sort strategy |
 | **Strategy** | Cancellation policy — `FLEXIBLE`, `MODERATE`, `STRICT` determine refund rules | `services/booking.service.ts` | Enum selects which refund calculation strategy to apply |
 | **Strategy** | Booking mode — `INSTANT` vs `REQUEST_BASED` changes the booking flow | `services/booking.service.ts` | Strategy determines if approval check is needed before payment |
 | **Strategy** | Rate limit tiers — `generalRateLimit`, `authRateLimit`, `webhookRateLimit` | `middleware/rate-limit.middleware.ts` | Different sliding window strategies for different endpoint types |
 | **Observer** | Socket.IO events — `socket.on('message:send')`, `io.emit('message:new')` | `socket/handlers/chat.handler.ts` | Pub/sub: message sender publishes, all room members receive notification |
-| **Observer** | `res.on('finish', ...)` — response event triggers request logging | `middleware/request-logger.middleware.ts` | Observer listens for response completion to calculate and log duration |
+| **Observer** | pino-http automatic response logging — logs method, path, statusCode, duration on finish | `middleware/pino-http.middleware.ts` | pino-http hooks `res.on('finish')` internally to emit structured request completion logs |
 | **Observer** | TanStack Query `onSuccess` callbacks — mutation triggers cache invalidation | `hooks/use-booking.ts` | Creating a booking triggers invalidation of trip detail + trip lists + my bookings |
 | **Template Method** | Soft-delete mixin — every model follows the same 5-field template | `db-design.md` Section 1 | `isActive`, `isDeleted`, `createdAt`, `updatedAt`, `deletedAt` — invariant structure, model-specific fields vary |
 | **Template Method** | 4-state rendering pattern — every data component follows loading/error/empty/data | `build-frontend.md` Step 6 | Skeleton → ErrorState → EmptyState → ActualComponent — template is fixed, content varies |
@@ -340,10 +340,9 @@ travel-app/
 │       │   │   ├── role.middleware.ts         # Role-based access
 │       │   │   ├── validate.middleware.ts     # Zod schema validation
 │       │   │   ├── rate-limit.middleware.ts   # Redis-backed rate limiting
-│       │   │   ├── request-id.middleware.ts   # UUID request tracing
+│       │   │   ├── pino-http.middleware.ts    # pino-http + ALS request logging & tracing
 │       │   │   ├── webhook-verify.middleware.ts # Razorpay HMAC signature verification
-│       │   │   ├── error-handler.middleware.ts # Global error handler
-│       │   │   └── request-logger.middleware.ts # Request/response logging
+│       │   │   └── error-handler.middleware.ts # Global error handler
 │       │   ├── validators/           # Zod schemas for request validation
 │       │   │   ├── auth.schema.ts
 │       │   │   ├── trip.schema.ts
@@ -1530,28 +1529,35 @@ export const logger = pino({
 | Aadhaar numbers | Privacy law (India) |
 | Raw request bodies with PII | GDPR/privacy |
 
-### Request Logging Middleware
+### Request Logging Middleware (pino-http + AsyncLocalStorage)
 
 ```typescript
-// middleware/request-logger.middleware.ts
+// middleware/pino-http.middleware.ts — replaces request-id + request-logger middleware
 
-export function requestLogger(req: Request, res: Response, next: NextFunction) {
-  const start = Date.now()
+import pinoHttp, { type Options } from 'pino-http'
+import { v4 as uuidv4 } from 'uuid'
+import { logger } from '../utils/logger'
+import { requestContext } from '../utils/request-context'
 
-  res.on('finish', () => {
-    const duration = Date.now() - start
-    logger.info({
-      requestId: req.requestId,
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`,
-      userId: req.user?.id || 'anonymous',
-      ip: req.ip,
-    }, `${req.method} ${req.path} ${res.statusCode} ${duration}ms`)
+const options: Options = {
+  logger,
+  genReqId: (req) => (req.headers['x-request-id'] as string) || uuidv4(),
+  customProps: (req) => ({ userId: req.user?.userId, role: req.user?.role }),
+  customLogLevel: (_req, res, err) => {
+    if (err || res.statusCode >= 500) return 'error'
+    if (res.statusCode >= 400) return 'warn'
+    return 'info'
+  },
+  autoLogging: { ignore: (req) => req.url === '/health' || req.url === '/api/v1/health' },
+}
+
+const httpLogger = pinoHttp(options)
+
+// Wraps pino-http in ALS.run() so downstream code can call getRequestLogger()
+export function pinoHttpMiddleware(req, res, next) {
+  httpLogger(req, res, () => {
+    requestContext.run({ logger: req.log, requestId: req.id }, () => next())
   })
-
-  next()
 }
 ```
 
@@ -1974,29 +1980,38 @@ export class UploadService {
 
 ---
 
-## 9d. Request Tracing (Request ID)
+## 9d. Request Tracing (Correlation ID)
 
 > Every request gets a unique ID for distributed tracing. Included in all logs and error responses.
 > Essential for debugging in production — correlate FE error report with exact server log.
+>
+> **Request ID is generated by pino-http** inside `pino-http.middleware.ts` (see Section 9 → Request Logging).
+> The FE sends `X-Request-Id` via `api-client.ts`; if missing, a UUID v4 is generated server-side.
 
 ```typescript
-// middleware/request-id.middleware.ts
-import { v4 as uuidv4 } from 'uuid'
+// utils/request-context.ts — AsyncLocalStorage for request-scoped context
+import { AsyncLocalStorage } from 'async_hooks'
+import type { Logger } from 'pino'
 
-export function requestIdMiddleware(req: Request, res: Response, next: NextFunction) {
-  const requestId = req.headers['x-request-id'] as string || uuidv4()
-  req.requestId = requestId
-  res.setHeader('X-Request-Id', requestId)
-  next()
+interface RequestStore {
+  logger: Logger
+  requestId: string
+  userId?: string
+  role?: string
 }
 
-// Extend Express Request type:
-// types/express.d.ts
+export const requestContext = new AsyncLocalStorage<RequestStore>()
+export function getRequestLogger(): Logger | undefined {
+  return requestContext.getStore()?.logger
+}
+
+// types/express.d.ts — pino-http augments req with log + id
 declare global {
   namespace Express {
     interface Request {
-      requestId: string
-      user?: { id: string; role: UserRole }
+      user?: JwtPayload
+      log: Logger
+      id?: string
     }
   }
 }
