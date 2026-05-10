@@ -1,7 +1,7 @@
 'use client'
 
 export default function GlobalError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string }
@@ -34,7 +34,7 @@ export default function GlobalError({
               Something went wrong
             </h1>
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#737373' }}>
-              {error.message || 'An unexpected error occurred. Please try again.'}
+              An unexpected error occurred. Please try again or refresh the page.
             </p>
             <button
               onClick={reset}
