@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/store/auth.store'
-import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { useConversations } from '@/hooks/use-chat'
 import { ConversationSidebar } from './conversation-sidebar'
 import { ChatWindow } from './chat-window'
@@ -21,21 +19,11 @@ export function ChatLayout({ className }: ChatLayoutProps) {
 
   const [activeConversationId, setActiveConversationId] = useState<string | null>(conversationParam)
   const [showSidebar, setShowSidebar] = useState(!conversationParam)
-  const accessToken = useAuthStore((s) => s.accessToken)
   const { data } = useConversations()
 
   const conversations = data?.conversations ?? []
   const activeConversation: ConversationListItem | null =
     conversations.find((c) => c.id === activeConversationId) ?? null
-
-  useEffect(() => {
-    if (accessToken) {
-      connectSocket(accessToken)
-    }
-    return () => {
-      disconnectSocket()
-    }
-  }, [accessToken])
 
   useEffect(() => {
     if (conversationParam) {

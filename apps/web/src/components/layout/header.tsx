@@ -7,6 +7,7 @@ import {
   Search,
   Menu,
   X,
+  Bell,
   LayoutDashboard,
   LogOut,
   Coins,
@@ -20,6 +21,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 import type { UserRole } from '@shared/types/user.types'
 
 interface NavLink {
@@ -156,6 +158,7 @@ export function Header() {
           {/* Auth-dependent actions */}
           {_hasHydrated && isAuthenticated ? (
             <>
+              <NotificationBell />
               <span className="ml-1 text-sm text-neutral-500">
                 Hi, {user?.name.split(' ')[0]}
               </span>
@@ -244,6 +247,14 @@ export function Header() {
           {/* Auth actions */}
           {_hasHydrated && isAuthenticated ? (
             <>
+              <Link
+                href="/notifications"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 border-t border-neutral-100 mt-2 pt-2"
+              >
+                <Bell className="h-4 w-4" />
+                Notifications
+              </Link>
               <div className="border-t border-neutral-100 mt-2 pt-2">
                 <span className="block px-4 py-1 text-xs text-neutral-400">
                   Signed in as {user?.name.split(' ')[0]}

@@ -11,6 +11,7 @@ import { ToastProvider } from '@/components/shared/toast'
 import { RouteProgress } from '@/components/shared/route-progress'
 import { FullScreenLoader } from '@/components/shared/full-screen-loader'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { SocketConnector } from '@/components/shared/socket-connector'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -48,6 +49,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const content = (
     <QueryClientProvider client={queryClient}>
+      <SocketConnector />
       <FullScreenLoader />
       <Suspense fallback={null}>
         <RouteProgress />
