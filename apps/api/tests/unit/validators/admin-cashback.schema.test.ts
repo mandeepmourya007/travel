@@ -73,11 +73,11 @@ describe('cashbackTripFiltersSchema', () => {
 // issueCashbackSchema
 // ═══════════════════════════════════════════════════════
 describe('issueCashbackSchema', () => {
-  const validUuid = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+  const validCuid = 'clrk00000000000000000000a'
   const validPayload = {
-    tripId: validUuid,
+    tripId: validCuid,
     items: [
-      { bookingId: validUuid, userId: validUuid, amount: 200 },
+      { bookingId: validCuid, userId: validCuid, amount: 200 },
     ],
   }
 
@@ -88,17 +88,17 @@ describe('issueCashbackSchema', () => {
 
   it('passes with multiple items', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
+      tripId: validCuid,
       items: [
-        { bookingId: validUuid, userId: validUuid, amount: 200 },
-        { bookingId: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', userId: validUuid, amount: 300 },
+        { bookingId: validCuid, userId: validCuid, amount: 200 },
+        { bookingId: 'clrk00000000000000000000b', userId: validCuid, amount: 300 },
       ],
     })
     expect(result.success).toBe(true)
   })
 
   it('rejects empty items array', () => {
-    const result = issueCashbackSchema.safeParse({ tripId: validUuid, items: [] })
+    const result = issueCashbackSchema.safeParse({ tripId: validCuid, items: [] })
     expect(result.success).toBe(false)
   })
 
@@ -107,63 +107,63 @@ describe('issueCashbackSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects non-UUID tripId', () => {
-    const result = issueCashbackSchema.safeParse({ ...validPayload, tripId: 'not-a-uuid' })
+  it('rejects non-CUID tripId', () => {
+    const result = issueCashbackSchema.safeParse({ ...validPayload, tripId: 'not-a-cuid' })
     expect(result.success).toBe(false)
   })
 
-  it('rejects non-UUID bookingId', () => {
+  it('rejects non-CUID bookingId', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: 'bad', userId: validUuid, amount: 100 }],
+      tripId: validCuid,
+      items: [{ bookingId: 'bad', userId: validCuid, amount: 100 }],
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects non-UUID userId', () => {
+  it('rejects non-CUID userId', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid, userId: 'bad', amount: 100 }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid, userId: 'bad', amount: 100 }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects zero amount', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid, userId: validUuid, amount: 0 }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid, userId: validCuid, amount: 0 }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects negative amount', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid, userId: validUuid, amount: -100 }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid, userId: validCuid, amount: -100 }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects non-integer amount (decimal)', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid, userId: validUuid, amount: 99.5 }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid, userId: validCuid, amount: 99.5 }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects missing amount field', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid, userId: validUuid }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid, userId: validCuid }],
     })
     expect(result.success).toBe(false)
   })
 
   it('rejects items without required fields', () => {
     const result = issueCashbackSchema.safeParse({
-      tripId: validUuid,
-      items: [{ bookingId: validUuid }],
+      tripId: validCuid,
+      items: [{ bookingId: validCuid }],
     })
     expect(result.success).toBe(false)
   })
