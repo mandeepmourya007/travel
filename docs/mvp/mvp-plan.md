@@ -1282,6 +1282,285 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 #### ⬜ Not Started — Remaining Features
 - [ ] **Email notifications** — booking confirmation, trip updates, organizer approval/rejection (providers built, templates pending)
 
+#### ⬜ Not Started — Viral & Differentiator Features
+
+> These 8 features transform TripCompare from "a well-built aggregator" into **"the only safe, transparent, and community-driven way to book group trips in India."** No competitor — MakeMyTrip, Tripoto, GoGaffl, Zostel — offers ANY of these. Each feature solves a real pain point AND has a built-in sharing/growth mechanic.
+
+---
+
+##### 1. Destination Pages (`/destinations/[slug]`)
+
+**What:** Rich, SEO-optimized landing pages for each destination — showing all trips to that destination, aggregated reviews, average pricing, best time to visit, and (future) Local Intel tips.
+
+**Why we need it:**
+- Destinations are our **primary SEO entry points** — travelers Google "Goa trips from Pune", not "TripCompare.com"
+- We already have the `Destination` model with data, but **zero public-facing pages** for it
+- Every competitor that grew organically (Tripoto: ₹7.9 Cr, Thrillophilia: 194+ packages) did it through destination pages
+- Each destination page becomes a **permanent indexed asset** that compounds traffic over time
+
+**How it makes us stand out:**
+- `/destinations/goa` shows 15 trips side-by-side with price comparison — Instagram can't do this
+- Aggregated stats: "Average Goa trip: ₹4,800 | 3D/2N | 142 verified reviews" — builds instant trust
+- Future-ready for Local Intel tab (community tips) and Trip Replays (social proof photos)
+- **Structured data (Schema.org)** → rich snippets in Google search results
+
+**Scope:**
+- [ ] BE: `DestinationService.getBySlug()` with trip count, avg price, avg rating aggregation
+- [ ] BE: `GET /api/v1/destinations/:slug` endpoint with trip listing + stats
+- [ ] FE: `/destinations/[slug]/page.tsx` — SSR with `generateMetadata()` for SEO
+- [ ] FE: Hero section (destination image, name, state, stats)
+- [ ] FE: Trips tab (reuse existing TripGrid with destination filter pre-applied)
+- [ ] FE: Reviews tab (aggregated reviews from all trips to this destination)
+- [ ] FE: "Best Time to Visit" + "Average Price" info cards
+- [ ] FE: "Trips to Goa" CTA section at bottom → conversion funnel
+- [ ] SEO: Canonical URLs, OG images, breadcrumbs, JSON-LD (TouristDestination schema)
+
+---
+
+##### 2. Organizer Public Profile (`/organizers/[id]`)
+
+**What:** A public-facing profile page for each verified organizer — showing their bio, completed trips, ratings, reviews, response time, and trust metrics. The organizer's **portable reputation** on the platform.
+
+**Why we need it:**
+- Organizers currently have **no public presence** on the platform — travelers can't evaluate who they're booking with
+- Instagram organizers have profiles with followers/posts — we need an equivalent that's **trust-verified**
+- Organizer profiles are the foundation for the future Trust Score feature
+- Good organizers will **share their profile link** as social proof: "Check my 4.8★ rating on TripCompare"
+
+**How it makes us stand out:**
+- **Verified badge** — Aadhaar verified, bank linked, admin-approved. Instagram has blue ticks for celebrities; we have verified badges for trip organizers
+- **Data-driven trust** — "47 trips completed, 98% on-time, 182 reviews, < 2h response time" — this level of transparency doesn't exist anywhere
+- **Review moat** — organizers invest years building reputation here → can't leave the platform (like restaurants staying on Zomato for reviews)
+- **SEO indexed** — `/organizers/tripvibes` ranks for "TripVibes reviews", "TripVibes trips"
+
+**Scope:**
+- [ ] BE: `OrganizerProfileService.getPublicProfile()` — aggregates stats from trips, bookings, reviews, chat response time
+- [ ] BE: `GET /api/v1/organizers/:id/public` endpoint
+- [ ] FE: `/organizers/[id]/page.tsx` — SSR with `generateMetadata()`
+- [ ] FE: Profile header (avatar, business name, verified badge, rating, member since)
+- [ ] FE: Stats grid (trips completed, total travelers, avg rating, response time)
+- [ ] FE: Active trips tab (upcoming trips by this organizer)
+- [ ] FE: Reviews tab (all reviews across their trips, sorted by newest)
+- [ ] FE: "Chat with Organizer" CTA (reuse existing ChatWithOrganizerButton)
+- [ ] SEO: JSON-LD (Organization/LocalBusiness schema), OG image
+
+---
+
+##### 3. Wishlist / Save Trips
+
+**What:** Heart icon on every trip card and detail page. Travelers save trips to a personal wishlist (`/wishlist`). Enables "browse now, book later" behavior and creates re-engagement loops.
+
+**Why we need it:**
+- **70%+ of travelers browse multiple times before booking** — without save, they leave and forget
+- Currently there's **no way to bookmark** a trip — travelers are forced to screenshot or remember URLs
+- Wishlist creates a **natural re-engagement trigger**: "Your saved Goa trip has only 3 seats left!"
+- It's **table stakes** — Airbnb, MakeMyTrip, Amazon all have it. Missing it feels broken.
+
+**How it makes us stand out:**
+- **FOMO notifications on saved trips:** "Price dropped on your saved trip!" / "Only 2 seats left!" → drives conversion
+- **Social wishlist sharing:** "Check out the trips I'm considering for December" → friends discover platform
+- **Data goldmine:** Wishlist data reveals demand → show organizers "200 people saved Goa trips for December" → they create supply
+- **Conversion funnel:** Browse → Save → Get notified → Book (reduces the drop-off gap)
+
+**Scope:**
+- [ ] DB: `Wishlist` model (userId, tripId, createdAt) with `@@unique([userId, tripId])`
+- [ ] BE: `WishlistRepository` — add, remove, findByUser (paginated), isWishlisted (batch check)
+- [ ] BE: `WishlistService` — toggle, getMyWishlist, isWishlisted
+- [ ] BE: `WishlistController` — `POST /wishlist/:tripId/toggle`, `GET /wishlist`, `GET /wishlist/check?tripIds=...`
+- [ ] Shared: `WishlistItem` type, validators
+- [ ] FE: `WishlistButton` component (heart icon, optimistic toggle, auth check)
+- [ ] FE: Integrate into `TripCard` and `TripBookingCard` (trip detail page)
+- [ ] FE: `/wishlist` page with saved trip grid, remove button, empty state
+- [ ] FE: `useWishlist` hook (list + toggle mutation + batch check query)
+- [ ] FE: Query key factory: `wishlistKeys`
+
+---
+
+##### 4. Transparent Price Breakdown
+
+**What:** Every trip listing shows a clear, structured cost breakdown — exactly where the traveler's money goes (transport, stay, meals, activities, organizer fee, platform fee). Plus comparison against average prices for similar trips.
+
+**Why we need it:**
+- **#3 pain point in our research:** "Is ₹5,000 fair? Am I overpaying?" — travelers suspect organizers overcharge
+- **No travel platform in India shows this.** Not MakeMyTrip, not Tripoto, not GoGaffl. First-mover advantage.
+- Comparison feature becomes 10x more meaningful — "Trip A charges ₹1,500 for hotel, Trip B charges ₹800. Now I know why."
+- Builds **radical transparency** that media will cover: "This startup shows where every rupee of your trip goes"
+
+**How it makes us stand out:**
+- **Instant trust:** Travelers see ₹5,000 = transport ₹1,200 + hotel ₹1,500 + meals ₹800 + activities ₹500 + organizer fee ₹600 + platform fee ₹400
+- **Comparison stat:** "📊 Compared to average: ₹4,800 for similar Goa 3D/2N trips" — validates or questions the price
+- **WhatsApp shareable:** "Look at this — they actually show where your money goes!" → organic forwards
+- **Organizer pitch:** "Good organizers benefit from transparency. Only overchargers fear it." → attracts quality supply
+- **PR angle:** "First travel platform in India to guarantee price transparency" → free media coverage
+
+**Scope:**
+- [ ] DB: `PriceBreakdown` JSON field on Trip model (or structured fields: transportCost, stayCost, mealsCost, activityCost, organizerFee, platformFee)
+- [ ] BE: Add price breakdown fields to `CreateTripDto` / `UpdateTripDto`
+- [ ] BE: `TripService` — compute average prices for similar trips (same destination + duration + trip type)
+- [ ] BE: Include price breakdown in trip detail response
+- [ ] Shared: `PriceBreakdownItem` type, Zod validator for breakdown fields
+- [ ] FE: Trip creation form — optional price breakdown section (organizer fills during listing)
+- [ ] FE: `PriceBreakdownCard` component on trip detail page (visual bar chart or pie)
+- [ ] FE: "Compared to average" stat line
+- [ ] FE: Price breakdown row in comparison table (`/trips/compare`)
+
+---
+
+##### 5. Local Intel (Community Tips — SEO & Content Flywheel)
+
+**What:** Crowd-sourced, category-organized destination tips from **verified travelers** — a community wiki per destination. 8 fixed categories: Places to Visit, Places to Eat, Local Transport, Hidden Gems, Safety Tips, Money Hacks, Accommodation, Pro Tips. Upvotes (no downvotes), 1-level threaded comments, report-based moderation.
+
+> Full design in [`docs/rnd/local-intel-rnd.md`](../rnd/local-intel-rnd.md)
+
+**Why we need it:**
+- **This is how Tripoto grew** — 90% UGC → massive long-tail SEO → organic traffic → bookings → ₹7.9 Cr revenue
+- 50 destinations × 8 categories = **400 indexed SEO pages from day one**, growing with every contribution
+- Travelers come back **between bookings** to read tips → solves the "only visit when booking" retention problem
+- Post-trip is the highest-intent moment for UGC — travelers WANT to share fresh memories
+- Creates a **content → booking flywheel**: read tip about Goa → see "Trips to Goa" → book → complete → write tips → ∞
+
+**How it makes us stand out:**
+- **No group travel aggregator has this** — Tripoto has long blogs (30-min write, low contribution rate), we have short 2-min tips (high contribution rate)
+- **Verified-only contributions** — only travelers with COMPLETED bookings can post. Every tip is backed by a real trip. This destroys fake/sponsored content.
+- **SEO moat:** `/destinations/goa/tips/hidden-gems` ranks for "hidden places in Goa", `/destinations/goa/tips/places-to-eat` ranks for "best food in Goa"
+- **Community stickiness:** Upvotes + comments + author badges + leaderboard ("Goa's Top Contributors") → users invest identity on the platform
+- **Shareable tip cards:** Auto-generated OG images when sharing on WhatsApp/Instagram → free marketing with platform branding
+
+**Scope (MVP):**
+- [ ] DB: `DestinationTip` (title, content, category, photos, destinationId, userId, bookingId, upvoteCount)
+- [ ] DB: `TipVote` (tipId, userId — unique) — also used for comment upvotes
+- [ ] DB: `TipComment` (tipId, userId, parentCommentId for 1-level threading, upvoteCount)
+- [ ] DB: `TipReport` (tipId, userId, reason, status)
+- [ ] BE: `TipRepository`, `TipService`, `TipController`
+- [ ] BE: CRUD endpoints for tips, votes, comments, reports
+- [ ] BE: Authorization — only verified travelers (COMPLETED booking to destination) can post
+- [ ] BE: Auto-hide on 3+ reports → admin moderation queue
+- [ ] Shared: Tip types, category enum, validators
+- [ ] FE: `/destinations/[slug]/tips` page — category filter tabs, sort (Most Helpful/Newest/Most Discussed)
+- [ ] FE: `TipCard` component (title, content, photos, author + trip name, upvote count, comments)
+- [ ] FE: `TipComments` — 1-level threading, author badge, upvotable comments
+- [ ] FE: "Share Intel" modal/form (category, title, content, photos)
+- [ ] FE: Post-trip nudge: "You visited Goa! Share your intel for others 🎉"
+- [ ] FE: WhatsApp share button on every tip
+- [ ] FE: "Top Contributors" leaderboard per destination
+- [ ] FE: Trip detail page → "Local Intel for Goa" section at bottom
+- [ ] SEO: Category-level pages indexed, meta tags, structured data
+
+---
+
+##### 6. Solo → Squad (Travel Buddy Matching)
+
+**What:** Vibe-based travel buddy matching system. 5-question vibe profile during onboarding (travel pace, energy, interests, budget, social style). Trip listings show "Who's Going" social proof (4 solo travelers, 2 couples, age range 22-31). Vibe Match % score. Pre-trip group chat unlocks after booking.
+
+> Full design in [`docs/rnd/viral-features-rnd.md`](../rnd/viral-features-rnd.md) — Feature 3
+
+**Why we need it:**
+- **65% of urban Indian women feel unsafe traveling alone** — this is the single biggest barrier to solo group trip bookings
+- Solo travelers want to join groups but feel awkward being "the one who doesn't know anyone"
+- No platform solves the **"who will I be traveling with?"** anxiety — travelers book blind and hope for the best
+- Pre-trip chat builds bonds → travelers post trip photos tagging the platform → organic social media content
+
+**How it makes us stand out:**
+- **Social proof on listings:** "4 solo travelers already booked" → removes "am I the only solo person?" anxiety. No other platform shows this.
+- **Gender ratio + age range** on listings → women can make informed safety decisions before booking
+- **Vibe Match %** is inherently shareable — "I'm 92% vibe match with this Goa trip 🎯" → Instagram stories, WhatsApp
+- **Pre-trip group chat** → travelers meet before traveling → builds excitement + coordinates logistics → makes the trip itself better
+- **Word of mouth:** "I went solo and made 5 friends through TripCompare" — the best marketing story possible
+- **Retention hook:** Solo travelers come back because they had a great social experience, not just a great trip
+
+**Scope:**
+- [ ] DB: `VibeProfile` on User model (travelPace, energy, interests[], budget, socialStyle)
+- [ ] DB: Extend Booking/TripRequest to track solo vs group booking type
+- [ ] BE: `VibeProfileService` — save/update profile, compute match % between user and trip's existing bookers
+- [ ] BE: `GET /api/v1/trips/:id/whos-going` — anonymized demographic summary (solo count, couple count, age range, gender split)
+- [ ] BE: Vibe match algorithm (weighted similarity on 5 dimensions)
+- [ ] Shared: `VibeProfile` type, quiz question schema
+- [ ] FE: Vibe quiz during onboarding (5 fun visual questions, skippable)
+- [ ] FE: Profile page → edit vibe profile
+- [ ] FE: Trip detail page → "Who's Going" section (demographics, vibe match badge)
+- [ ] FE: Pre-trip group chat (extend existing Socket.IO chat → `ConversationType.TRIP_GROUP`)
+- [ ] FE: Solo buddy match suggestion card (optional, same gender + similar vibe)
+
+---
+
+##### 7. Trip Replay (Social Proof Wall)
+
+**What:** After trip completion, all travelers are prompted to upload photos/short captions to a shared **Trip Replay** page — a chronological photo timeline of the real trip experience. Shareable link with auto-generated OG image.
+
+> Full design in [`docs/rnd/viral-features-rnd.md`](../rnd/viral-features-rnd.md) — Feature 6
+
+**Why we need it:**
+- **"What will this trip actually be like?"** — listings show promise, travelers want to see the REAL experience from REAL people
+- Stock photos and organizer-curated images → low trust. Traveler-uploaded photos from actual trips → high trust.
+- Trip Replays give future bookers **social proof on steroids** — 18 real travelers, real photos, real captions
+- Post-trip engagement keeps travelers on the platform AFTER the trip (most platforms lose users here)
+- Each Trip Replay becomes an **indexed SEO page** with authentic content — Google loves UGC
+
+**How it makes us stand out:**
+- **Travelers share THEIR photos from Trip Replay** → friends see platform branding → free marketing
+- **Shareable Trip Replay links:** "Check out my trip! [link]" → friends discover platform, see trip details, book the next one
+- **Organizer marketing:** "Look at my last 10 Trip Replays" → builds reputation better than any bio or Instagram post
+- **Social proof pipeline:** Trip Replay → future traveler sees real photos → books confidently → completes trip → adds to Replay → ∞
+- **No competitor has this** — GoGaffl has no post-trip UGC, Tripoto has blogs (long-form, low participation), Instagram is fragmented
+
+**Scope:**
+- [ ] DB: `TripReplay` (tripId, userId, bookingId, photos[], caption, dayNumber, createdAt)
+- [ ] BE: `TripReplayService` — submit replay entry (only COMPLETED booking travelers), get replay by tripId
+- [ ] BE: `GET /api/v1/trips/:id/replay` — chronological photo timeline, `POST /api/v1/trips/:id/replay`
+- [ ] BE: Post-trip notification nudge (24h after trip completion)
+- [ ] Shared: `TripReplayEntry` type, validators
+- [ ] FE: `/trips/[slug]/replay` page — photo timeline grouped by day, traveler avatars + captions
+- [ ] FE: "Add to Trip Replay" modal (select day, upload photos, write caption)
+- [ ] FE: Trip detail page → "Trip Replay" tab/section (if replay entries exist)
+- [ ] FE: Post-trip prompt in My Bookings: "Share your trip photos! 📸"
+- [ ] FE: WhatsApp/social share button with auto-generated OG image
+- [ ] SEO: Trip Replay pages indexed with `generateMetadata()`, real traveler photos as OG images
+
+---
+
+##### 8. Organizer Trust Score (Multi-Dimensional)
+
+**What:** A computed, multi-dimensional trust score (0-100) for each organizer — not just a star rating, but a **transparent breakdown** of exactly why you should (or shouldn't) trust them. Components: identity verification, track record, listing accuracy, responsiveness, financials, community rating.
+
+> Full design in [`docs/rnd/viral-features-rnd.md`](../rnd/viral-features-rnd.md) — Feature 8
+
+**Why we need it:**
+- **"Can I trust this organizer?"** is the #1 booking anxiety — Instagram followers ≠ trustworthiness
+- A 4.7★ rating tells you something, but a **94/100 Trust Score** with 9 visible dimensions tells you everything
+- Good organizers invest years building their Trust Score → **can't leave the platform** (competitive moat, like Zomato restaurant ratings)
+- Computed from **existing data** — reviews, bookings, disputes, chat response time, verification status. Low build cost, high trust impact.
+
+**How it makes us stand out:**
+- **Good organizers WANT this** — it's free marketing: "I have a 94/100 Trust Score on TripCompare" → they share it
+- **Travelers share the standard:** "Only book organizers with 90+ Trust Score" → creates a platform-native trust benchmark
+- **Media angle:** "This platform makes trip organizer accountability transparent" → PR coverage
+- **Competitive moat:** Once organizers have a high Trust Score, switching cost is enormous — their reputation lives here
+- **Beyond star ratings:** Breakdown shows Aadhaar verified ✅, 47 trips completed, 98% listing accuracy, 96% on-time, 0 disputes, < 2h response time → travelers see the FULL picture
+
+**Score Components (computed, not self-reported):**
+
+| Component | Source | Weight |
+|-----------|--------|--------|
+| Identity verified (Aadhaar + PAN + bank) | OrganizerProfile.verificationStatus | 15% |
+| Trips completed | Trip.status = COMPLETED count | 15% |
+| Listing accuracy | TripShield dispute rate (future) | 10% |
+| On-time record | Traveler review accuracy ratings | 10% |
+| Average rating | Review.overallRating avg | 20% |
+| Review volume | Review count (log-scaled) | 10% |
+| Chat response time | Message response time avg | 10% |
+| Dispute/cancellation rate | Cancelled trips + refund requests / total | 10% |
+
+**Scope:**
+- [ ] BE: `TrustScoreService` — compute score from existing repos (reviews, bookings, trips, chat, organizer profile)
+- [ ] BE: `GET /api/v1/organizers/:id/trust-score` endpoint
+- [ ] BE: Cache score in Redis (recompute daily via cron or on-demand with TTL)
+- [ ] Shared: `TrustScore` type (overall score + component breakdown)
+- [ ] FE: `TrustScoreBadge` component (circular score indicator, used on trip cards + organizer profile)
+- [ ] FE: `TrustScoreBreakdown` component (full breakdown card on organizer profile page)
+- [ ] FE: Trip detail → organizer section shows Trust Score badge
+- [ ] FE: Trip card → optional Trust Score mini-badge
+- [ ] FE: Comparison table → Trust Score row
+
 ---
 
 ## 11. MVP Success Metrics

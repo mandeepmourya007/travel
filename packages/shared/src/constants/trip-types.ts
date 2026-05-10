@@ -9,15 +9,30 @@ export const TRIP_TYPES = [
 
 export const BOOKING_MODES = ['INSTANT', 'REQUEST_BASED'] as const
 
+type BookingModeConst = (typeof BOOKING_MODES)[number]
+/** Object form for dot-access: BOOKING_MODE.REQUEST_BASED — derived from array */
+export const BOOKING_MODE = Object.fromEntries(
+  BOOKING_MODES.map((s) => [s, s]),
+) as { readonly [K in BookingModeConst]: K }
+
 export const CANCELLATION_POLICIES = ['FLEXIBLE', 'MODERATE', 'STRICT'] as const
+
+type CancellationPolicyConst = (typeof CANCELLATION_POLICIES)[number]
+/** Object form for dot-access: CANCELLATION_POLICY.FLEXIBLE — derived from array */
+export const CANCELLATION_POLICY = Object.fromEntries(
+  CANCELLATION_POLICIES.map((s) => [s, s]),
+) as { readonly [K in CancellationPolicyConst]: K }
+
+/** Transfer point type constants */
+export const TRANSFER_POINT_TYPE = {
+  PICKUP: 'PICKUP',
+  DROP: 'DROP',
+} as const
 
 export const TRIP_STATUSES = ['DRAFT', 'ACTIVE', 'FULL', 'COMPLETED', 'CANCELLED'] as const
 
-/** Object form for dot-access: TRIP_STATUS.COMPLETED */
-export const TRIP_STATUS = {
-  DRAFT: 'DRAFT',
-  ACTIVE: 'ACTIVE',
-  FULL: 'FULL',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED',
-} as const
+type TripStatusConst = (typeof TRIP_STATUSES)[number]
+/** Object form for dot-access: TRIP_STATUS.COMPLETED — derived from array */
+export const TRIP_STATUS = Object.fromEntries(
+  TRIP_STATUSES.map((s) => [s, s]),
+) as { readonly [K in TripStatusConst]: K }
