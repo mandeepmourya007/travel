@@ -21,7 +21,7 @@ export class BookingService {
     private paymentTxRepo: PaymentTransactionRepository,
     private paymentService: PaymentService,
     private logger: Logger,
-    private notificationService?: NotificationService,
+    private notificationService: NotificationService,
   ) {}
 
   /** Guards against calling payment methods when Razorpay is not configured */
@@ -187,12 +187,12 @@ export class BookingService {
     }
 
     // Fire-and-forget: notify traveler of cancellation
-    this.notificationService?.send({
+    this.notificationService.send({
       userId: booking.userId,
       type: NOTIFICATION_TYPE.BOOKING_CANCELLED,
       title: 'Booking Cancelled',
       body: `Your booking for ${booking.trip.title} has been cancelled. Refund: ₹${refundAmount} (${refundPercent}%).`,
-      data: { bookingId: booking.id, tripId: booking.trip.id, tripName: booking.trip.title, refundAmount, refundPercent },
+      data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title, refundAmount, refundPercent },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking cancellation notification'))
 
     return {
@@ -450,12 +450,12 @@ export class BookingService {
     this.logger.info({ bookingId }, 'Booking confirmed')
 
     // Fire-and-forget: notify traveler of booking confirmation
-    this.notificationService?.send({
+    this.notificationService.send({
       userId: booking.userId,
       type: NOTIFICATION_TYPE.BOOKING_CONFIRMED,
       title: 'Booking Confirmed!',
       body: `Your booking for ${booking.trip.title} has been confirmed.`,
-      data: { bookingId: booking.id, tripId: booking.trip.id, tripName: booking.trip.title },
+      data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking confirmation notification'))
 
     return {

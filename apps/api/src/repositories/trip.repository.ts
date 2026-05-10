@@ -248,7 +248,9 @@ export class TripRepository {
         currentBookings: true,
         version: true,
         title: true,
+        slug: true,
         pricePerPerson: true,
+        organizer: { select: { userId: true } },
       },
     })
   }

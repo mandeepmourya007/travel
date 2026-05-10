@@ -29,7 +29,7 @@ export class AdminService {
     private walletRepo: WalletRepository,
     private walletService: WalletService,
     private logger: Logger,
-    private notificationService?: NotificationService,
+    private notificationService: NotificationService,
   ) {}
 
   // ─── Organizer Approvals ──────────────────────────────
@@ -93,7 +93,7 @@ export class AdminService {
         ? `Your organizer application was rejected. Reason: ${dto.reason}`
         : 'Your organizer application was rejected. Please contact support for details.'
 
-    this.notificationService?.send({
+    this.notificationService.send({
       userId: profile.userId,
       type: isApproved ? NOTIFICATION_TYPE.ORGANIZER_APPROVED : NOTIFICATION_TYPE.ORGANIZER_REJECTED,
       title,

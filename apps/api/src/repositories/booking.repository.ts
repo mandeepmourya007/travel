@@ -203,7 +203,7 @@ export class BookingRepository {
       include: {
         trip: {
           select: {
-            id: true, title: true, startDate: true, status: true,
+            id: true, title: true, slug: true, startDate: true, status: true,
             cancellationPolicy: true, currentBookings: true, version: true,
           },
         },
@@ -350,6 +350,7 @@ export class BookingRepository {
           select: {
             id: true,
             title: true,
+            slug: true,
             startDate: true,
             endDate: true,
             maxGroupSize: true,

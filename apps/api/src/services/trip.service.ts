@@ -26,7 +26,7 @@ export class TripService {
     private tripRequestRepo: TripRequestRepository,
     private reviewRepo: ReviewRepository,
     private logger: Logger,
-    private notificationService?: NotificationService,
+    private notificationService: NotificationService,
   ) {}
 
   async searchTrips(filters: TripFilters) {
@@ -541,12 +541,12 @@ export class TripService {
       ? 'You have 48 hours to complete your payment and secure your spot.'
       : responseNote || 'The organizer has declined your request.'
 
-    this.notificationService?.send({
+    this.notificationService.send({
       userId: request.userId,
       type: notifType,
       title,
       body,
-      data: { tripId, requestId, tripName: trip.title },
+      data: { tripId, requestId, tripSlug: trip.slug, tripName: trip.title },
     }).catch((err) => this.logger.error({ err, requestId }, 'Failed to send trip request response notification'))
 
     return this.toRequestListItem(updated)
@@ -632,12 +632,12 @@ export class TripService {
       this.logger.info({ tripId, userId, requestId: request.id }, 'Trip request created')
 
       // Fire-and-forget: notify organizer of new request
-      this.notificationService?.send({
+      this.notificationService.send({
         userId: trip.organizer.userId,
         type: NOTIFICATION_TYPE.TRIP_REQUEST_RECEIVED,
         title: 'New Trip Request',
         body: `A traveler has requested to join "${trip.title}" (${dto.numTravelers} traveler${dto.numTravelers > 1 ? 's' : ''}).`,
-        data: { tripId, requestId: request.id, tripName: trip.title, numTravelers: dto.numTravelers },
+        data: { tripId, requestId: request.id, tripSlug: trip.slug, tripName: trip.title, numTravelers: dto.numTravelers },
       }).catch((err) => this.logger.error({ err, tripId }, 'Failed to send trip request notification to organizer'))
 
       return this.toRequestListItem(request)
