@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client'
+import { feLogger } from '@/lib/logger'
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000'
 
@@ -21,22 +22,17 @@ export function connectSocket(token: string): Socket {
     timeout: 20000,
   })
 
-  if (process.env.NODE_ENV === 'development') {
-    socket.on('connect', () => {
-      // eslint-disable-next-line no-console
-      console.debug('[Socket] Connected:', socket?.id)
-    })
+  socket.on('connect', () => {
+    feLogger.debug('Socket connected', { socketId: socket?.id })
+  })
 
-    socket.on('disconnect', (reason) => {
-      // eslint-disable-next-line no-console
-      console.debug('[Socket] Disconnected:', reason)
-    })
+  socket.on('disconnect', (reason) => {
+    feLogger.debug('Socket disconnected', { reason })
+  })
 
-    socket.on('connect_error', (error) => {
-      // eslint-disable-next-line no-console
-      console.debug('[Socket] Connection error:', error.message)
-    })
-  }
+  socket.on('connect_error', (error) => {
+    feLogger.warn('Socket connection error', { message: error.message })
+  })
 
   return socket
 }

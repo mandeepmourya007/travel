@@ -3,6 +3,7 @@ import type { ApiError } from '@shared/types/api-response.types'
 import { useLoadingStore } from '@/store/loading.store'
 import { useAuthStore } from '@/store/auth.store'
 import { getAppRouter } from '@/lib/app-router'
+import { feLogger } from '@/lib/logger'
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -60,12 +61,20 @@ apiClient.interceptors.request.use((config) => {
     config._showLoader = true
   }
 
+  // Correlation ID — links FE logs with BE request-scoped logs
+  const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2)
+  config.headers['X-Request-Id'] = requestId
+
   // Read from Zustand-persisted auth store
   const stored = typeof window !== 'undefined' ? localStorage.getItem('travel-auth') : null
   const token = stored ? JSON.parse(stored)?.state?.accessToken : null
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  feLogger.debug('API Request', { method, url: config.url, requestId })
   return config
 })
 
@@ -99,6 +108,7 @@ function doRefresh(): Promise<string | null> {
 apiClient.interceptors.response.use(
   (response) => {
     if (response.config._showLoader) decrementLoader()
+    feLogger.debug('API Response', { status: response.status, url: response.config.url })
     return response
   },
   async (error) => {
@@ -129,6 +139,13 @@ apiClient.interceptors.response.use(
         appRouter.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`)
       }
     }
+
+    // Log API errors at warn level (not error — those are for unhandled exceptions)
+    feLogger.warn('API Error', {
+      status: error.response?.status,
+      url: error.config?.url,
+      code: error.response?.data?.error?.code,
+    })
 
     // Extract user-friendly message from API response
     const apiError: ApiError = error.response?.data || {
