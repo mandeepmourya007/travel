@@ -4,16 +4,27 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useCreateTrip } from '@/hooks/use-create-trip'
+import { createVehiclesForTrip } from '@/hooks/use-sync-vehicles'
 import { TripForm } from '@/components/trips/trip-form/trip-form'
+import { useToast } from '@/components/shared/toast'
 import type { CreateTripDto } from '@shared/types/trip.types'
+import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 
 export default function CreateTripPage() {
   const router = useRouter()
   const createTrip = useCreateTrip()
+  const { toast } = useToast()
 
-  const handleSubmit = (data: CreateTripDto) => {
+  const handleSubmit = (data: CreateTripDto, vehicleData?: CreateVehicleDto[]) => {
     createTrip.mutate(data, {
-      onSuccess: () => {
+      onSuccess: async (trip) => {
+        if (vehicleData && vehicleData.length > 0 && trip.id) {
+          try {
+            await createVehiclesForTrip(trip.id, vehicleData)
+          } catch {
+            toast({ variant: 'error', title: 'Trip created but vehicle setup failed. Configure it from the Seats tab.' })
+          }
+        }
         router.push('/dashboard/trips')
       },
     })

@@ -7,15 +7,28 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { tripKeys } from '@/lib/query-keys'
 import { useUpdateTrip } from '@/hooks/use-update-trip'
+import { useOrganizerVehicles } from '@/hooks/use-vehicle'
+import { useSyncVehicles } from '@/hooks/use-sync-vehicles'
 import { TripForm } from '@/components/trips/trip-form/trip-form'
 import { Spinner } from '@/components/shared/spinner'
 import { ErrorState } from '@/components/shared/data-states'
 import type { CreateTripDto, TripDetail } from '@shared/types/trip.types'
+import type { CreateVehicleDto } from '@shared/types/vehicle.types'
+
+function toDateTimeLocal(iso: string | null | undefined): string | undefined {
+  if (!iso) return undefined
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return undefined
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export default function EditTripPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const updateTrip = useUpdateTrip(id)
+  const { data: existingVehicles } = useOrganizerVehicles(id)
+  const { syncVehicles } = useSyncVehicles({ tripId: id, existingVehicles })
 
   const { data: trip, isLoading, error, refetch } = useQuery({
     queryKey: tripKeys.detail(id),
@@ -43,10 +56,12 @@ export default function EditTripPage() {
     tripType: trip.tripType,
     bookingMode: trip.bookingMode,
     description: trip.description,
-    startDate: trip.startDate,
-    endDate: trip.endDate,
+    startDate: toDateTimeLocal(trip.startDate) ?? '',
+    endDate: toDateTimeLocal(trip.endDate) ?? '',
     pricePerPerson: trip.pricePerPerson,
     earlyBirdPrice: trip.earlyBirdPrice ?? undefined,
+    earlyBirdDeadline: toDateTimeLocal(trip.earlyBirdDeadline),
+    bookingDeadline: toDateTimeLocal(trip.bookingDeadline),
     minGroupSize: trip.minGroupSize,
     maxGroupSize: trip.maxGroupSize,
     cancellationPolicy: trip.cancellationPolicy,
@@ -54,11 +69,24 @@ export default function EditTripPage() {
     exclusions: trip.exclusions,
     itinerary: trip.itinerary,
     photos: trip.photos,
+    pickupPoints: trip.pickupPoints.map((p) => ({
+      label: p.label,
+      address: p.address ?? undefined,
+      time: p.time ?? undefined,
+      extraCharge: p.extraCharge,
+    })),
+    dropPoints: trip.dropPoints.map((p) => ({
+      label: p.label,
+      address: p.address ?? undefined,
+      time: p.time ?? undefined,
+      extraCharge: p.extraCharge,
+    })),
   }
 
-  const handleSubmit = (data: CreateTripDto) => {
+  const handleSubmit = (data: CreateTripDto, newVehicleData?: CreateVehicleDto[]) => {
     updateTrip.mutate(data, {
-      onSuccess: () => {
+      onSuccess: async () => {
+        await syncVehicles(newVehicleData)
         router.push('/dashboard/trips')
       },
     })
@@ -83,6 +111,15 @@ export default function EditTripPage() {
           isSubmitting={updateTrip.isPending}
           submitError={updateTrip.error?.message ?? null}
           submitLabel="Save Changes"
+          initialVehicleData={existingVehicles && existingVehicles.length > 0
+            ? existingVehicles.map((v) => ({
+                label: v.label,
+                vehicleType: v.vehicleType as CreateVehicleDto['vehicleType'],
+                layoutConfig: v.layoutConfig,
+                layout: v.layout,
+              }))
+            : null
+          }
         />
       </div>
     </div>

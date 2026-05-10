@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
+import { SeatSelectionCard } from '@/components/booking/seat-selection-card'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { ErrorState } from '@/components/shared/data-states'
 import { useToast } from '@/components/shared/toast'
@@ -21,6 +22,7 @@ import { formatCurrency } from '@/lib/format'
 import type { TripRequestTraveler } from '@shared/types/trip-request.types'
 
 type BookingRenderState = 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed' | 'notAccepting' | 'success' | 'alreadyBooked' | 'form'
+
 
 interface BookingResult {
   bookingRef: string
@@ -65,6 +67,25 @@ export default function BookingPage({
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Seat selection state
+  const showSeatStep = !!trip?.seatSelectionEnabled
+  const [bookingStep, setBookingStep] = useState<'travelers' | 'seats'>('travelers')
+  const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([])
+  const [pendingTravelerData, setPendingTravelerData] = useState<{
+    travelers: TravelerFormValues['travelers']
+    pickupPointId?: string
+    dropPointId?: string
+  } | null>(null)
+
+  const handleSeatSelectionChange = useCallback((ids: string[]) => {
+    setSelectedSeatIds(ids)
+  }, [])
+
+  // H3: Reset seat selection when traveler count changes
+  useEffect(() => {
+    setSelectedSeatIds([])
+  }, [numTravelers])
+
   // H4: Derive render state to avoid complex inline conditions
   const seatsLeft = trip ? Math.max(0, trip.maxGroupSize - trip.currentBookings) : 0
   const deadlinePassed = trip?.bookingDeadline ? new Date(trip.bookingDeadline) < new Date() : false
@@ -78,6 +99,15 @@ export default function BookingPage({
     : !trip.acceptingBookings ? 'notAccepting'
     : 'form'
 
+  function handleTravelerFormSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
+    if (showSeatStep) {
+      setPendingTravelerData({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
+      setBookingStep('seats')
+    } else {
+      startPayment(data.travelers, data.pickupPointId, data.dropPointId)
+    }
+  }
+
   async function startPayment(travelers: TravelerFormValues['travelers'], pickupPointId?: string, dropPointId?: string) {
     if (!trip || !user) return
     setIsProcessing(true)
@@ -89,6 +119,7 @@ export default function BookingPage({
         travelers,
         pickupPointId: pickupPointId || undefined,
         dropPointId: dropPointId || undefined,
+        seatIds: selectedSeatIds.length > 0 ? selectedSeatIds : undefined,
       })
 
       if (!result.razorpayKeyId) {
@@ -281,6 +312,14 @@ export default function BookingPage({
                       <PriceSummary trip={trip} numTravelers={numTravelers} />
                     </div>
 
+                    {showSeatStep && (
+                      <SeatSelectionCard
+                        tripId={trip.id}
+                        numTravelers={numTravelers}
+                        onSelectionChange={handleSeatSelectionChange}
+                      />
+                    )}
+
                     <button
                       type="button"
                       onClick={() => startPayment(
@@ -294,7 +333,7 @@ export default function BookingPage({
                           emergencyContactPhone: t.emergencyContactPhone ?? '',
                         })),
                       )}
-                      disabled={isProcessing}
+                      disabled={isProcessing || (showSeatStep && selectedSeatIds.length !== numTravelers)}
                       className="btn-primary w-full flex items-center justify-center gap-2"
                     >
                       {isProcessing ? (
@@ -307,13 +346,53 @@ export default function BookingPage({
                       )}
                     </button>
                   </div>
+                ) : bookingStep === 'seats' && pendingTravelerData ? (
+                  /* ── Seat selection step ── */
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-neutral-500">
+                      <button
+                        type="button"
+                        onClick={() => setBookingStep('travelers')}
+                        className="inline-flex items-center gap-1 hover:text-neutral-700"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to traveler details
+                      </button>
+                    </div>
+
+                    <SeatSelectionCard
+                      tripId={trip.id}
+                      numTravelers={numTravelers}
+                      onSelectionChange={handleSeatSelectionChange}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => startPayment(
+                        pendingTravelerData.travelers,
+                        pendingTravelerData.pickupPointId,
+                        pendingTravelerData.dropPointId,
+                      )}
+                      disabled={isProcessing || selectedSeatIds.length !== numTravelers}
+                      className="btn-primary w-full flex items-center justify-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Continue to Payment — ${formatCurrency(trip.pricePerPerson * numTravelers)}`
+                      )}
+                    </button>
+                  </div>
                 ) : (
                   /* ── Standard form mode ── */
                   <TravelerForm
                     trip={trip}
                     numTravelers={numTravelers}
                     onNumTravelersChange={setNumTravelers}
-                    onSubmit={(data) => startPayment(data.travelers, data.pickupPointId, data.dropPointId)}
+                    onSubmit={handleTravelerFormSubmit}
                     isPending={isProcessing}
                     lockedTravelers={lockedTravelers}
                   />
