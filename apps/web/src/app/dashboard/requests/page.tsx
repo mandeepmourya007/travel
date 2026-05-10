@@ -91,7 +91,7 @@ export default function PendingRequestsPage() {
           ))}
         </div>
       ) : error ? (
-        <ErrorState onRetry={() => refetch()} />
+        <ErrorState title="Failed to load requests" message={error?.message || 'Something went wrong. Please try again.'} onRetry={() => refetch()} />
       ) : !data || data.length === 0 ? (
         <EmptyState message="No pending requests. You're all caught up!" />
       ) : (

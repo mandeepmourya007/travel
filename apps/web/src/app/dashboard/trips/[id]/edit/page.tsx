@@ -34,7 +34,7 @@ export default function EditTripPage() {
   }
 
   if (error || !trip) {
-    return <ErrorState onRetry={() => refetch()} />
+    return <ErrorState title="Failed to load trip" message={error?.message || 'Could not load trip details for editing. Please try again.'} onRetry={() => refetch()} />
   }
 
   const defaultValues: Partial<CreateTripDto> = {
