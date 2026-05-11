@@ -42,7 +42,8 @@ let activeRequests = 0
 function incrementLoader() {
   activeRequests++
   if (activeRequests === 1) {
-    useLoadingStore.getState().show()
+    const { _pinned, show } = useLoadingStore.getState()
+    if (!_pinned) show()
   }
 }
 
@@ -136,7 +137,7 @@ apiClient.interceptors.response.use(
       const appRouter = getAppRouter()
       if (appRouter) {
         const returnTo = window.location.pathname + window.location.search
-        appRouter.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`)
+        appRouter.replace(`/login/phone?returnTo=${encodeURIComponent(returnTo)}`)
       }
     }
 
