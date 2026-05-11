@@ -5,23 +5,12 @@ import { SeatGrid } from './seat-grid'
 import { SeatLegend } from './seat-legend'
 import { AlertCircle, RefreshCw, Users } from 'lucide-react'
 import type { SeatMapResponse } from '@shared/types/vehicle.types'
+import { VEHICLE_ICONS } from '@shared/constants/vehicle'
 
 // ─── Props ──────────────────────────────────────────
 
 interface SeatMapViewerProps {
   tripId: string
-}
-
-// ─── Vehicle icon mapping ───────────────────────────
-
-const VEHICLE_ICONS: Record<string, string> = {
-  SEDAN: '🚗',
-  ERTIGA: '🚙',
-  INNOVA: '🚙',
-  TEMPO: '🚐',
-  MINIBUS: '🚌',
-  BUS: '🚌',
-  CUSTOM: '🚗',
 }
 
 // ─── Skeleton ───────────────────────────────────────

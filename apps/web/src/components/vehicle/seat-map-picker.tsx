@@ -7,6 +7,7 @@ import { SeatLegend } from './seat-legend'
 import { AlertCircle, RefreshCw, Car } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { VehicleSeatItem, SeatMapResponse } from '@shared/types/vehicle.types'
+import { VEHICLE_ICONS } from '@shared/constants/vehicle'
 
 // ─── Props ──────────────────────────────────────────
 
@@ -14,18 +15,6 @@ interface SeatMapPickerProps {
   tripId: string
   maxSeats: number
   onSelectionChange: (seatIds: string[]) => void
-}
-
-// ─── Vehicle icon mapping ───────────────────────────
-
-const VEHICLE_ICONS: Record<string, string> = {
-  SEDAN: '🚗',
-  ERTIGA: '🚙',
-  INNOVA: '🚙',
-  TEMPO: '🚐',
-  MINIBUS: '🚌',
-  BUS: '🚌',
-  CUSTOM: '🚗',
 }
 
 // ─── Skeleton ───────────────────────────────────────
