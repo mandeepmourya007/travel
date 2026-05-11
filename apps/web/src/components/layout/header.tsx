@@ -61,7 +61,7 @@ export function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, user, _hasHydrated } = useAuthStore()
-  const { logout: handleLogout, loggingOut } = useLogout('/login')
+  const { logout: handleLogout, loggingOut } = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -174,7 +174,7 @@ export function Header() {
           ) : _hasHydrated ? (
             <>
               <Link
-                href="/login"
+                href="/login/phone"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
               >
                 Sign in
@@ -272,7 +272,7 @@ export function Header() {
           ) : _hasHydrated ? (
             <div className="flex gap-2 border-t border-neutral-100 mt-2 pt-3">
               <Link
-                href="/login"
+                href="/login/phone"
                 onClick={closeMobileMenu}
                 className="btn-secondary flex-1 text-center text-sm"
               >
