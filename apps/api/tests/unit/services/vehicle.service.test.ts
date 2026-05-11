@@ -388,7 +388,7 @@ describe('VehicleService', () => {
       mockVehicleRepo.findByTripId.mockResolvedValue([])
 
       await expect(service.getSeatMap(MOCK_TRIP_ID))
-        .rejects.toThrow('No vehicle configured for this trip')
+        .rejects.toThrow('Vehicle for this trip')
     })
   })
 
@@ -530,10 +530,132 @@ describe('VehicleService', () => {
     })
   })
 
-  // ── generateSeatLabel ──────────────────────────────
+  // ── checkSeatsAvailable ───────────────────────────
 
-  describe('generateSeatLabel (private, tested via createVehicle)', () => {
-    it('should generate sequential seat labels from layout', async () => {
+  describe('checkSeatsAvailable', () => {
+    it('should return true when all requested seats are AVAILABLE', async () => {
+      mockVehicleRepo.findSeatsByIds.mockResolvedValue([
+        createMockSeat({ id: 's1', status: 'AVAILABLE' }),
+        createMockSeat({ id: 's2', status: 'AVAILABLE' }),
+      ])
+
+      const result = await service.checkSeatsAvailable(['s1', 's2'])
+
+      expect(result).toBe(true)
+      expect(mockVehicleRepo.findSeatsByIds).toHaveBeenCalledWith(['s1', 's2'])
+    })
+
+    it('should return false when some seats are not AVAILABLE', async () => {
+      mockVehicleRepo.findSeatsByIds.mockResolvedValue([
+        createMockSeat({ id: 's1', status: 'AVAILABLE' }),
+        createMockSeat({ id: 's2', status: 'HELD' }),
+      ])
+
+      const result = await service.checkSeatsAvailable(['s1', 's2'])
+
+      expect(result).toBe(false)
+    })
+
+    it('should return false when some seat IDs are not found in DB', async () => {
+      mockVehicleRepo.findSeatsByIds.mockResolvedValue([
+        createMockSeat({ id: 's1', status: 'AVAILABLE' }),
+      ])
+
+      const result = await service.checkSeatsAvailable(['s1', 's2', 's3'])
+
+      expect(result).toBe(false)
+    })
+  })
+
+  // ── holdSeats (rollback) ─────────────────────────
+
+  describe('holdSeats — rollback on partial hold', () => {
+    it('should release partially held seats before throwing ConflictError', async () => {
+      mockVehicleRepo.holdSeats.mockResolvedValue(2) // Only 2 of 3 updated
+      mockVehicleRepo.releaseSeatsByBookingId.mockResolvedValue(2)
+
+      await expect(service.holdSeats(['s1', 's2', 's3'], MOCK_USER_ID, MOCK_BOOKING_ID))
+        .rejects.toThrow('no longer available')
+
+      expect(mockVehicleRepo.releaseSeatsByBookingId).toHaveBeenCalledWith(MOCK_BOOKING_ID)
+    })
+  })
+
+  // ── getSeatMap — privacy ─────────────────────────
+
+  describe('getSeatMap — privacy guarantees', () => {
+    it('should NOT include travelerName or bookingRef in traveler view', async () => {
+      const seats = [
+        createMockSeat({
+          id: 's1',
+          status: 'BOOKED',
+          seatNumber: 1,
+          travelerDetail: { name: 'Secret Name' },
+          booking: { bookingRef: 'TRP-2025-SECRET' },
+        }),
+      ]
+      const vehicle = createMockVehicle({ seats })
+      mockVehicleRepo.findByTripId.mockResolvedValue([vehicle])
+
+      const result = await service.getSeatMap(MOCK_TRIP_ID)
+      const seatItem = result.vehicles[0].seats[0]
+
+      expect(seatItem.travelerName).toBeUndefined()
+      expect(seatItem.bookingRef).toBeUndefined()
+      expect(seatItem.status).toBe('BOOKED')
+      expect(seatItem.seatNumber).toBe(1)
+    })
+
+    it('should return multiple vehicles in seat map', async () => {
+      const vehicle1 = createMockVehicle({
+        id: 'v1',
+        label: 'Vehicle 1',
+        seats: [createMockSeat({ id: 's1', status: 'AVAILABLE', seatNumber: 1 })],
+      })
+      const vehicle2 = createMockVehicle({
+        id: 'v2',
+        label: 'Vehicle 2',
+        seats: [createMockSeat({ id: 's2', status: 'AVAILABLE', seatNumber: 1 })],
+      })
+      mockVehicleRepo.findByTripId.mockResolvedValue([vehicle1, vehicle2])
+
+      const result = await service.getSeatMap(MOCK_TRIP_ID)
+
+      expect(result.vehicles).toHaveLength(2)
+      expect(result.vehicles[0].vehicle.id).toBe('v1')
+      expect(result.vehicles[1].vehicle.id).toBe('v2')
+    })
+  })
+
+  // ── getOrganizerSeatMap — empty state ────────────
+
+  describe('getOrganizerSeatMap — empty vehicle state', () => {
+    it('should return empty vehicles array when no vehicle configured (no throw)', async () => {
+      mockTripRepo.findById.mockResolvedValue(createMockTrip())
+      mockVehicleRepo.findByTripId.mockResolvedValue([])
+
+      const result = await service.getOrganizerSeatMap(MOCK_TRIP_ID, MOCK_USER_ID)
+
+      expect(result.vehicles).toEqual([])
+    })
+  })
+
+  // ── deleteVehicle — wrong trip ───────────────────
+
+  describe('deleteVehicle — trip mismatch', () => {
+    it('should throw ValidationError when vehicle belongs to a different trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(createMockTrip())
+      mockVehicleRepo.findById.mockResolvedValue(createMockVehicle({ tripId: 'other_trip' }))
+
+      await expect(service.deleteVehicle(MOCK_TRIP_ID, MOCK_VEHICLE_ID, MOCK_USER_ID))
+        .rejects.toThrow('Vehicle does not belong to this trip')
+    })
+  })
+
+  // ── generateSeatsFromLayout ──────────────────────
+
+  describe('generateSeatsFromLayout (private, tested via createVehicle)', () => {
+    it('should generate sequential seat numbers from layout', async () => {
       const trip = createMockTrip()
       mockTripRepo.findById.mockResolvedValue(trip)
       mockVehicleRepo.findByTripId.mockResolvedValue([])
@@ -561,6 +683,37 @@ describe('VehicleService', () => {
       expect(seatsArg[1]).toMatchObject({ row: 1, col: 0, seatNumber: 2 })
       expect(seatsArg[2]).toMatchObject({ row: 1, col: 1, seatNumber: 3 })
       expect(seatsArg[3]).toMatchObject({ row: 1, col: 2, seatNumber: 4 })
+    })
+
+    it('should generate correct seat labels in row-col format', async () => {
+      mockTripRepo.findById.mockResolvedValue(createMockTrip())
+      mockVehicleRepo.findByTripId.mockResolvedValue([])
+      mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
+      mockVehicleRepo.createSeats.mockResolvedValue([])
+      mockTripRepo.update.mockResolvedValue({})
+
+      const layout: SeatCellTypeConst[][] = [
+        ['SEAT', 'SEAT', 'DRIVER'],
+        ['SEAT', 'EMPTY', 'SEAT'],
+        ['SEAT', 'SEAT', 'SEAT'],
+      ]
+
+      await service.createVehicle(MOCK_TRIP_ID, MOCK_USER_ID, {
+        label: 'Test',
+        vehicleType: 'tempo',
+        layoutConfig: { rows: 3, cols: 3, aisleAfterCol: 0, driverPos: [0, 2] },
+        layout,
+      })
+
+      const seatsArg = mockVehicleRepo.createSeats.mock.calls[0][1]
+      // seatLabel = "${row+1}${String.fromCharCode(65+col)}"
+      expect(seatsArg[0]).toMatchObject({ row: 0, col: 0, seatLabel: '1A' })
+      expect(seatsArg[1]).toMatchObject({ row: 0, col: 1, seatLabel: '1B' })
+      expect(seatsArg[2]).toMatchObject({ row: 1, col: 0, seatLabel: '2A' })
+      expect(seatsArg[3]).toMatchObject({ row: 1, col: 2, seatLabel: '2C' })
+      expect(seatsArg[4]).toMatchObject({ row: 2, col: 0, seatLabel: '3A' })
+      expect(seatsArg[5]).toMatchObject({ row: 2, col: 1, seatLabel: '3B' })
+      expect(seatsArg[6]).toMatchObject({ row: 2, col: 2, seatLabel: '3C' })
     })
   })
 })
