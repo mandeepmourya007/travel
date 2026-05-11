@@ -32,6 +32,17 @@ export const VEHICLE_TYPES = [
 ] as const
 export type VehicleTypeConst = (typeof VEHICLE_TYPES)[number]
 
+// ─── Vehicle Icons ─────────────────────────────────
+export const VEHICLE_ICONS: Record<string, string> = {
+  sedan: '🚗',
+  ertiga: '🚙',
+  innova: '🚙',
+  tempo: '🚐',
+  minibus: '🚌',
+  bus: '🚌',
+  custom: '🚗',
+} as const
+
 // ─── Vehicle Grid Constraints ───────────────────────
 export const VEHICLE_GRID = {
   MIN_ROWS: 2,
