@@ -52,7 +52,7 @@ describe('AuthGuard', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('redirects to /login when hydrated but not authenticated', () => {
+  it('redirects to /login/phone when hydrated but not authenticated', () => {
     setAuthState({ isAuthenticated: false, _hasHydrated: true })
 
     render(
@@ -61,7 +61,7 @@ describe('AuthGuard', () => {
       </AuthGuard>,
     )
 
-    expect(mockReplace).toHaveBeenCalledWith('/login')
+    expect(mockReplace).toHaveBeenCalledWith('/login/phone')
     expect(screen.queryByText('Protected')).not.toBeInTheDocument()
   })
 
