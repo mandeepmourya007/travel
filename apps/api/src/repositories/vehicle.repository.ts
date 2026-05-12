@@ -13,6 +13,7 @@ interface CreateVehicleData {
   driverRow: number
   driverCol: number
   layout: SeatCellTypeConst[][]
+  photos: string[]
 }
 
 interface SeatData {
@@ -77,6 +78,7 @@ export class VehicleRepository {
         driverRow: data.driverRow,
         driverCol: data.driverCol,
         layout: data.layout as Prisma.InputJsonArray,
+        photos: data.photos,
       },
     })
   }
@@ -92,6 +94,7 @@ export class VehicleRepository {
     if (data.driverRow !== undefined) updateData.driverRow = data.driverRow
     if (data.driverCol !== undefined) updateData.driverCol = data.driverCol
     if (data.layout !== undefined) updateData.layout = data.layout as Prisma.InputJsonArray
+    if (data.photos !== undefined) updateData.photos = data.photos
 
     return this.prisma.tripVehicle.update({
       where: { id: vehicleId },

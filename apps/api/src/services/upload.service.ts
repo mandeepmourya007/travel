@@ -10,7 +10,7 @@ export interface CloudinarySignature {
   folder: string
 }
 
-const ALLOWED_FOLDERS = ['trips', 'itinerary-docs'] as const
+const ALLOWED_FOLDERS = ['trips', 'itinerary-docs', 'vehicles'] as const
 type UploadFolder = (typeof ALLOWED_FOLDERS)[number]
 
 export class UploadService {

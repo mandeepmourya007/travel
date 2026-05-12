@@ -67,6 +67,7 @@ export class VehicleService {
       driverRow: layoutConfig.driverPos[0],
       driverCol: layoutConfig.driverPos[1],
       layout,
+      photos: dto.photos ?? [],
     })
 
     // Generate seat records from layout
@@ -116,9 +117,20 @@ export class VehicleService {
       await this.recalcTripSeats(tripId)
     }
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: Partial<{
+      label: string
+      vehicleType: string
+      photos: string[]
+      rows: number
+      cols: number
+      aisleAfterCol: number | null
+      driverRow: number
+      driverCol: number
+      layout: SeatCellTypeConst[][]
+    }> = {}
     if (dto.label !== undefined) updateData.label = dto.label
     if (dto.vehicleType !== undefined) updateData.vehicleType = dto.vehicleType
+    if (dto.photos !== undefined) updateData.photos = dto.photos
     if (dto.layoutConfig) {
       updateData.rows = dto.layoutConfig.rows
       updateData.cols = dto.layoutConfig.cols
@@ -197,6 +209,7 @@ export class VehicleService {
             driverPos: [vehicle.driverRow, vehicle.driverCol],
           },
           layout: vehicle.layout as SeatCellTypeConst[][],
+          photos: vehicle.photos ?? [],
         },
         seats,
         summary: this.buildSummary(seats),
@@ -246,6 +259,7 @@ export class VehicleService {
             driverPos: [vehicle.driverRow, vehicle.driverCol],
           },
           layout: vehicle.layout as SeatCellTypeConst[][],
+          photos: vehicle.photos ?? [],
         },
         seats,
         summary: this.buildSummary(seats),
@@ -279,6 +293,7 @@ export class VehicleService {
           driverPos: [v.driverRow, v.driverCol] as [number, number],
         },
         layout: v.layout as SeatCellTypeConst[][],
+        photos: v.photos ?? [],
         seatCount: v.seats.filter((s: { isDeleted: boolean }) => !s.isDeleted).length,
       })
     }
