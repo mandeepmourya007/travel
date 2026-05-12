@@ -1,19 +1,23 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { useOrganizerSeatMap, useCreateVehicle, useDeleteVehicle } from '@/hooks/use-vehicle'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useOrganizerSeatMap, useCreateVehicle, useDeleteVehicle, useUpdateVehicle } from '@/hooks/use-vehicle'
 import { SeatLayoutBuilder } from '@/components/vehicle/seat-layout-builder'
 import { SeatMapViewer } from '@/components/vehicle/seat-map-viewer'
-import { ArrowLeft, Trash2, AlertCircle, RefreshCw, Truck } from 'lucide-react'
+import { VehicleImageGallery } from '@/components/vehicle/vehicle-image-gallery'
+import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
+import { useToast } from '@/components/shared/toast'
+import { ArrowLeft, Trash2, AlertCircle, RefreshCw, Truck, ImageIcon } from 'lucide-react'
 import { useLogError } from '@/hooks/use-log-error'
+import { MAX_VEHICLE_PHOTOS } from '@shared/constants/vehicle'
 import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 
 // ─── Skeleton ───────────────────────────────────────
 
 function PageSkeleton() {
   return (
-    <div className="space-y-6 animate-pulse">
+    <div className="space-y-6">
       <div className="h-7 w-48 skeleton rounded" />
       <div className="h-64 skeleton rounded-xl" />
     </div>
@@ -51,10 +55,62 @@ function NoVehicle({ onAdd }: { onAdd: () => void }) {
       </div>
       <button
         onClick={onAdd}
-        className="rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+        className="btn-primary"
       >
         Add Vehicle Layout
       </button>
+    </div>
+  )
+}
+
+// ─── Vehicle Photo Manager (only mounts when vehicle exists) ─────
+
+function VehiclePhotoManager({ tripId, vehicleId, photos }: { tripId: string; vehicleId: string; photos: string[] }) {
+  const updateVehicle = useUpdateVehicle(tripId, vehicleId)
+  const { uploadMany, isUploading, uploadProgress } = useCloudinaryUpload()
+  const { toast } = useToast()
+
+  const photosRef = useRef(photos)
+  useEffect(() => { photosRef.current = photos }, [photos])
+
+  const handleFileSelect = useCallback(
+    async (files: File[]) => {
+      const current = photosRef.current
+      const remaining = MAX_VEHICLE_PHOTOS - current.length
+      if (remaining <= 0) return
+      const toUpload = files.slice(0, remaining)
+      try {
+        const urls = await uploadMany(toUpload, 'vehicles')
+        const updated = [...photosRef.current, ...urls]
+        updateVehicle.mutate({ photos: updated })
+      } catch {
+        toast({ variant: 'error', title: 'Failed to upload vehicle photos.' })
+      }
+    },
+    [uploadMany, updateVehicle, toast],
+  )
+
+  const handleRemove = useCallback(
+    (index: number) => {
+      const updated = photosRef.current.filter((_, i) => i !== index)
+      updateVehicle.mutate({ photos: updated })
+    },
+    [updateVehicle],
+  )
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
+      <div className="mb-3 flex items-center gap-2">
+        <ImageIcon className="h-5 w-5 text-neutral-500" />
+        <h2 className="text-base font-bold text-neutral-800 font-display">Vehicle Photos</h2>
+      </div>
+      <VehicleImageGallery
+        photos={photos}
+        onRemove={handleRemove}
+        isUploading={isUploading}
+        uploadProgress={uploadProgress}
+        onFileSelect={handleFileSelect}
+      />
     </div>
   )
 }
@@ -137,9 +193,18 @@ export default function VehicleManagePage() {
           </div>
         )
       ) : (
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
-          <SeatMapViewer tripId={tripId} />
-        </div>
+        <>
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
+            <SeatMapViewer tripId={tripId} />
+          </div>
+
+          {/* Vehicle Photos Management */}
+          <VehiclePhotoManager
+            tripId={tripId}
+            vehicleId={data.vehicles[0].vehicle.id}
+            photos={data.vehicles[0].vehicle.photos ?? []}
+          />
+        </>
       )}
     </div>
   )
