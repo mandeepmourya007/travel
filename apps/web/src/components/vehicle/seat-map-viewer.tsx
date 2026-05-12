@@ -67,6 +67,7 @@ function SeatMapViewerEmpty() {
 function VehicleViewerPanel({ entry }: { entry: SeatMapResponse }) {
   const { vehicle, seats, summary } = entry
   const icon = VEHICLE_ICONS[vehicle.vehicleType] ?? '🚗'
+  const photos = vehicle.photos ?? []
 
   return (
     <div className="space-y-4">
@@ -82,6 +83,24 @@ function VehicleViewerPanel({ entry }: { entry: SeatMapResponse }) {
           <span className="text-highlight-700">{summary.held} held</span>
         </div>
       </div>
+
+      {/* Vehicle photo thumbnails */}
+      {photos.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {photos.map((url, idx) => (
+            <div
+              key={url}
+              className="h-14 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100"
+            >
+              <img
+                src={url}
+                alt={`${vehicle.label} photo ${idx + 1}`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Grid */}
       <div className="overflow-x-auto py-2">

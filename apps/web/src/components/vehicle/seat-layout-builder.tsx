@@ -4,6 +4,9 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import type { SeatCellTypeConst, VehicleTypeConst } from '@shared/constants/vehicle'
 import type { CreateVehicleDto, LayoutConfig } from '@shared/types/vehicle.types'
+import { VehicleImageGallery } from './vehicle-image-gallery'
+import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
+import { useToast } from '@/components/shared/toast'
 
 // ─── Props ──────────────────────────────────────────
 
@@ -12,6 +15,7 @@ interface SeatLayoutBuilderProps {
   initialConfig?: LayoutConfig
   initialVehicleType?: VehicleTypeConst
   initialLabel?: string
+  initialPhotos?: string[]
   onSave: (dto: CreateVehicleDto) => void
   isSaving?: boolean
 }
@@ -153,6 +157,7 @@ export function SeatLayoutBuilder({
   initialConfig,
   initialVehicleType,
   initialLabel,
+  initialPhotos,
   onSave,
   isSaving = false,
 }: SeatLayoutBuilderProps) {
@@ -164,8 +169,11 @@ export function SeatLayoutBuilder({
   const [layout, setLayout] = useState<SeatCellTypeConst[][]>(
     initialLayout ?? buildTemplateLayout('innova'),
   )
+  const [photos, setPhotos] = useState<string[]>(initialPhotos ?? [])
   const [dropdown, setDropdown] = useState<{ row: number; col: number; x: number; y: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const { uploadMany, isUploading: isUploadingPhotos, uploadProgress } = useCloudinaryUpload()
+  const { toast } = useToast()
 
   // Derived state
   const driverPos: [number, number] = useMemo(() => [0, gridCols - 1], [gridCols])
@@ -273,6 +281,22 @@ export function SeatLayoutBuilder({
     setDropdown(null)
   }, [dropdown])
 
+  const handlePhotoFileSelect = useCallback(
+    async (files: File[]) => {
+      try {
+        const urls = await uploadMany(files, 'vehicles')
+        setPhotos((prev) => [...prev, ...urls])
+      } catch {
+        toast({ variant: 'error', title: 'Failed to upload vehicle photos.' })
+      }
+    },
+    [uploadMany, toast],
+  )
+
+  const handlePhotoRemove = useCallback((index: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }, [])
+
   const handleSave = () => {
     const config: LayoutConfig = {
       rows: gridRows,
@@ -285,6 +309,7 @@ export function SeatLayoutBuilder({
       vehicleType: tpl.vehicleType,
       layoutConfig: config,
       layout,
+      photos,
     })
   }
 
@@ -406,6 +431,20 @@ export function SeatLayoutBuilder({
           Grid: {gridRows} × {gridCols}
           {aisleAfterCol !== null && ` (aisle after col ${aisleAfterCol + 1})`}
         </span>
+      </div>
+
+      {/* Vehicle Photos */}
+      <div className="space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          Vehicle Photos
+        </div>
+        <VehicleImageGallery
+          photos={photos}
+          onRemove={handlePhotoRemove}
+          isUploading={isUploadingPhotos}
+          uploadProgress={uploadProgress}
+          onFileSelect={handlePhotoFileSelect}
+        />
       </div>
 
       {/* Save */}

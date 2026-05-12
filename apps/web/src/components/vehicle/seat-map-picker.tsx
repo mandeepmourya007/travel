@@ -4,7 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSeatMap } from '@/hooks/use-vehicle'
 import { SeatGrid } from './seat-grid'
 import { SeatLegend } from './seat-legend'
-import { AlertCircle, RefreshCw, Car } from 'lucide-react'
+import { VehicleImageLightbox } from './vehicle-image-lightbox'
+import { AlertCircle, RefreshCw, Car, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { VehicleSeatItem, SeatMapResponse } from '@shared/types/vehicle.types'
 import { VEHICLE_ICONS } from '@shared/constants/vehicle'
@@ -90,6 +91,9 @@ interface VehicleSeatPanelProps {
 function VehicleSeatPanel({ entry, selectedIds, selectionOrder, onSeatClick }: VehicleSeatPanelProps) {
   const { vehicle, seats, summary } = entry
   const icon = VEHICLE_ICONS[vehicle.vehicleType] ?? '🚗'
+  const photos = vehicle.photos ?? []
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIdx, setLightboxIdx] = useState(0)
 
   return (
     <div className="space-y-3">
@@ -103,6 +107,40 @@ function VehicleSeatPanel({ entry, selectedIds, selectionOrder, onSeatClick }: V
           {summary.available} available
         </span>
       </div>
+
+      {/* Vehicle photo thumbnails */}
+      {photos.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {photos.map((url, idx) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => { setLightboxIdx(idx); setLightboxOpen(true) }}
+              className="group relative h-16 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 transition-all hover:ring-2 hover:ring-primary-400"
+            >
+              <img
+                src={url}
+                alt={`${vehicle.label} photo ${idx + 1}`}
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
+                <ImageIcon className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {photos.length > 0 && (
+        <VehicleImageLightbox
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+          photos={photos}
+          initialIndex={lightboxIdx}
+          vehicleName={vehicle.label}
+        />
+      )}
 
       {/* Grid */}
       <SeatGrid
