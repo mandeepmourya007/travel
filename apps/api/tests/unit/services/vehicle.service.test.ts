@@ -52,6 +52,7 @@ function createMockVehicle(overrides?: Record<string, unknown>) {
     driverRow: 0,
     driverCol: 2,
     layout: createMockLayout(),
+    photos: [],
     isActive: true,
     isDeleted: false,
     createdAt: new Date(),
@@ -164,6 +165,7 @@ describe('VehicleService', () => {
       vehicleType: 'innova' as const,
       layoutConfig: { rows: 3, cols: 3, aisleAfterCol: 0, driverPos: [0, 2] as [number, number] },
       layout: createMockLayout(),
+      photos: ['https://res.cloudinary.com/demo/image/upload/v1/vehicles/bus1.jpg'],
     }
 
     it('should create vehicle with seats and enable seat selection on trip', async () => {
@@ -186,6 +188,7 @@ describe('VehicleService', () => {
           rows: 3,
           cols: 3,
           driverCol: 2,
+          photos: ['https://res.cloudinary.com/demo/image/upload/v1/vehicles/bus1.jpg'],
         }),
       )
       // Should create seats for each SEAT cell (7 SEAT cells in the mock layout)
@@ -316,6 +319,24 @@ describe('VehicleService', () => {
 
       await expect(service.updateVehicle(MOCK_TRIP_ID, MOCK_VEHICLE_ID, MOCK_USER_ID, updateDto))
         .rejects.toThrow('Vehicle does not belong to this trip')
+    })
+
+    it('should update photos without touching layout or seats', async () => {
+      const photosDto = { photos: ['https://example.com/bus1.jpg', 'https://example.com/bus2.jpg'] }
+      mockTripRepo.findById.mockResolvedValue(createMockTrip())
+      mockVehicleRepo.findById.mockResolvedValue(createMockVehicle())
+      mockVehicleRepo.update.mockResolvedValue(createMockVehicle({ photos: photosDto.photos }))
+
+      const result = await service.updateVehicle(MOCK_TRIP_ID, MOCK_VEHICLE_ID, MOCK_USER_ID, photosDto)
+
+      expect(result.photos).toEqual(photosDto.photos)
+      expect(mockVehicleRepo.update).toHaveBeenCalledWith(
+        MOCK_VEHICLE_ID,
+        expect.objectContaining({ photos: photosDto.photos }),
+      )
+      expect(mockVehicleRepo.deleteSeatsForVehicle).not.toHaveBeenCalled()
+      expect(mockVehicleRepo.createSeats).not.toHaveBeenCalled()
+      expect(mockVehicleRepo.countBookedSeats).not.toHaveBeenCalled()
     })
   })
 
@@ -624,6 +645,49 @@ describe('VehicleService', () => {
       expect(result.vehicles).toHaveLength(2)
       expect(result.vehicles[0].vehicle.id).toBe('v1')
       expect(result.vehicles[1].vehicle.id).toBe('v2')
+    })
+  })
+
+  // ── photos in seat map responses ─────────────────
+
+  describe('photos in seat map responses', () => {
+    it('should include photos array in traveler seat map response', async () => {
+      const photos = ['https://example.com/photo1.jpg', 'https://example.com/photo2.jpg']
+      const vehicle = createMockVehicle({
+        photos,
+        seats: [createMockSeat({ id: 's1', status: 'AVAILABLE', seatNumber: 1 })],
+      })
+      mockVehicleRepo.findByTripId.mockResolvedValue([vehicle])
+
+      const result = await service.getSeatMap(MOCK_TRIP_ID)
+
+      expect(result.vehicles[0].vehicle.photos).toEqual(photos)
+    })
+
+    it('should default to empty array when photos is undefined', async () => {
+      const vehicle = createMockVehicle({
+        photos: undefined,
+        seats: [createMockSeat({ id: 's1', status: 'AVAILABLE', seatNumber: 1 })],
+      })
+      mockVehicleRepo.findByTripId.mockResolvedValue([vehicle])
+
+      const result = await service.getSeatMap(MOCK_TRIP_ID)
+
+      expect(result.vehicles[0].vehicle.photos).toEqual([])
+    })
+
+    it('should include photos in organizer seat map response', async () => {
+      const photos = ['https://example.com/photo1.jpg']
+      const vehicle = createMockVehicle({
+        photos,
+        seats: [createMockSeat({ id: 's1', status: 'AVAILABLE', seatNumber: 1 })],
+      })
+      mockTripRepo.findById.mockResolvedValue(createMockTrip())
+      mockVehicleRepo.findByTripId.mockResolvedValue([vehicle])
+
+      const result = await service.getOrganizerSeatMap(MOCK_TRIP_ID, MOCK_USER_ID)
+
+      expect(result.vehicles[0].vehicle.photos).toEqual(photos)
     })
   })
 
