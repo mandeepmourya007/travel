@@ -8,6 +8,7 @@ import { TripBookingCard } from '@/components/trips/trip-booking-card'
 import { TripStickyBookBar } from '@/components/trips/trip-sticky-book-bar'
 import { TripReviews } from '@/components/trips/trip-reviews'
 import { TransferPointsTable } from '@/components/trips/transfer-points-table'
+import { TripVehiclePreview } from '@/components/trips/trip-vehicle-preview'
 import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
 import { ChatWithOrganizerButton } from '@/components/chat'
 import { ArrowLeft } from 'lucide-react'
@@ -61,6 +62,7 @@ export function TripDetailClient({ trip: initialTrip, slug }: TripDetailClientPr
         <div className="lg:col-span-2 space-y-10">
           <TripDetailHeader trip={trip} />
           <TripItinerary itinerary={trip.itinerary} />
+          {trip.seatSelectionEnabled && <TripVehiclePreview tripId={trip.id} />}
           <TransferPointsTable pickupPoints={trip.pickupPoints} dropPoints={trip.dropPoints} />
           <TripOrganizerCard organizer={trip.organizer} />
           <ChatWithOrganizerButton tripId={trip.id} />

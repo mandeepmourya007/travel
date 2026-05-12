@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Calendar, Users, CheckCircle, Share2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MapPin, Calendar, Users, CheckCircle, Share2, ChevronLeft, ChevronRight, Armchair } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Autoplay from 'embla-carousel-autoplay'
 import {
@@ -146,6 +146,12 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
           >
             {trip.bookingMode === 'INSTANT' ? 'Instant Book' : 'Request to Book'}
           </span>
+          {trip.seatSelectionEnabled && (
+            <span className="badge bg-primary-50 text-primary-700 text-xs font-semibold inline-flex items-center gap-1">
+              <Armchair className="h-3 w-3" />
+              Seat Selection
+            </span>
+          )}
           {seatsLeft > 0 && seatsLeft <= 5 && (
             <span className="badge bg-accent-50 text-accent-700 text-xs font-semibold">
               Only {seatsLeft} seats left!
