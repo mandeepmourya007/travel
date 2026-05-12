@@ -17,6 +17,7 @@ export interface CreateVehicleDto {
   vehicleType: VehicleTypeConst
   layoutConfig: LayoutConfig
   layout: SeatCellTypeConst[][]
+  photos?: string[]
 }
 
 export interface UpdateVehicleDto {
@@ -24,6 +25,7 @@ export interface UpdateVehicleDto {
   vehicleType?: VehicleTypeConst
   layoutConfig?: LayoutConfig
   layout?: SeatCellTypeConst[][]
+  photos?: string[]
 }
 
 // ─── API Response Types ─────────────────────────────
@@ -36,6 +38,7 @@ export interface TripVehicleItem {
   sortOrder: number
   layoutConfig: LayoutConfig
   layout: SeatCellTypeConst[][]
+  photos: string[]
 }
 
 /** Single seat in the seat map */
@@ -78,6 +81,7 @@ export interface OrganizerVehicleListItem {
   sortOrder: number
   layoutConfig: LayoutConfig
   layout: SeatCellTypeConst[][]
+  photos: string[]
   seatCount: number
 }
 

@@ -43,6 +43,9 @@ export const VEHICLE_ICONS: Record<string, string> = {
   custom: '🚗',
 } as const
 
+// ─── Vehicle Photo Constraints ─────────────────────
+export const MAX_VEHICLE_PHOTOS = 4
+
 // ─── Vehicle Grid Constraints ───────────────────────
 export const VEHICLE_GRID = {
   MIN_ROWS: 2,

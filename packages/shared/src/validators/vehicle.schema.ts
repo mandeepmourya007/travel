@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { SEAT_CELL_TYPES, VEHICLE_TYPES, VEHICLE_GRID } from '../constants/vehicle'
+import { SEAT_CELL_TYPES, VEHICLE_TYPES, VEHICLE_GRID, MAX_VEHICLE_PHOTOS } from '../constants/vehicle'
 
 // ─── Layout Config ──────────────────────────────────
 
@@ -18,6 +18,7 @@ export const createVehicleSchema = z
     vehicleType: z.enum(VEHICLE_TYPES),
     layoutConfig: layoutConfigSchema,
     layout: z.array(z.array(z.enum(SEAT_CELL_TYPES))).min(VEHICLE_GRID.MIN_ROWS),
+    photos: z.array(z.string().url()).max(MAX_VEHICLE_PHOTOS).default([]),
   })
   .refine(
     (data) => {
@@ -66,6 +67,7 @@ export const updateVehicleSchema = z
     vehicleType: z.enum(VEHICLE_TYPES).optional(),
     layoutConfig: layoutConfigSchema.optional(),
     layout: z.array(z.array(z.enum(SEAT_CELL_TYPES))).min(VEHICLE_GRID.MIN_ROWS).optional(),
+    photos: z.array(z.string().url()).max(MAX_VEHICLE_PHOTOS).optional(),
   })
   .refine(
     (data) => {
