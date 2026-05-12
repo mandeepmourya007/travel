@@ -32,21 +32,24 @@
                          └────┬─────┘
               ┌───────────────┼───────────────┐
               │               │               │
-       ┌──────▼─────┐  ┌─────▼──────┐  ┌─────▼────┐
+       ┌──────┴─────┐  ┌─────┴──────┐  ┌─────┴────┐
        │  TRAVELER   │  │ ORGANIZER  │  │  ADMIN   │
        └──────┬──────┘  └─────┬──────┘  └─────┬────┘
               │               │               │
-  ┌───────────┤     ┌─────────┤      ┌────────┤
-  │ Browse    │     │ Create  │      │ Flag   │
-  │ Book      │     │  Trips  │      │  Chats │
-  │ Pay       │     │ Manage  │      │ View   │
-  │ Review    │     │ Bookings│      │  All   │
-  │ Chat      │     │ Respond │      │ Payments│
-  │ Wallet    │     │  Reqs   │      │ Verify │
-  │ Compare   │     │ Reply   │      │  Orgs  │
-  └───────────┘     │ Reviews │      └────────┘
-                    │ Chat    │
-                    │ Payments│
+  ┌───────────┤     ┌─────────┤      ┌──────────┤
+  │ Browse    │     │ Create  │      │ Dashboard │
+  │ Book +    │     │  Trips  │      │  (stats   │
+  │  Seats    │     │ Vehicle/│      │  +charts) │
+  │ Pay       │     │  Seats  │      │ Approve/  │
+  │ Review    │     │ Manage  │      │  Reject   │
+  │ Chat      │     │ Bookings│      │  Orgs     │
+  │ Wallet    │     │ Respond │      │ Bookings  │
+  │ Compare   │     │  Reqs   │      │ Cashback  │
+  │ Notify    │     │ Reply   │      │ Flag Chats│
+  └───────────┘     │ Reviews │      │ Payments  │
+                    │ Chat    │      │ Notify    │
+                    │ Payments│      └──────────┘
+                    │ Notify  │
                     └─────────┘
 ```
 
@@ -65,9 +68,10 @@
 │       └──────────────┴──────────────┴──────────────┘                │
 │                            │                                        │
 │  ┌─────────────────────────▼─────────────────────────────────────┐  │
-│  │                    ROUTE LAYER (12 routes)                    │  │
+│  │                    ROUTE LAYER (15 routes)                    │  │
 │  │  auth • trips • bookings • payments • wallet • reviews       │  │
 │  │  chat • destinations • uploads • webhooks • health           │  │
+│  │  admin • notifications • vehicle                             │  │
 │  └─────────────────────────┬─────────────────────────────────────┘  │
 │                            │                                        │
 │  ┌─────────────────────────▼─────────────────────────────────────┐  │
@@ -76,19 +80,20 @@
 │  └─────────────────────────┬─────────────────────────────────────┘  │
 │                            │                                        │
 │  ┌─────────────────────────▼─────────────────────────────────────┐  │
-│  │                 CONTROLLER LAYER (12 controllers)             │  │
+│  │                 CONTROLLER LAYER (15 controllers)             │  │
 │  │  Thin: parse request → call service → send response          │  │
 │  └─────────────────────────┬─────────────────────────────────────┘  │
 │                            │                                        │
 │  ┌─────────────────────────▼─────────────────────────────────────┐  │
-│  │                  SERVICE LAYER (13 services)                  │  │
+│  │                  SERVICE LAYER (17 services)                  │  │
 │  │  ALL business logic lives here                                │  │
 │  │  auth • trip • booking • payment • wallet • review • chat    │  │
 │  │  otp • destination • upload • payment-history • firebase     │  │
+│  │  admin • notification • trip-lifecycle • vehicle              │  │
 │  └─────────────────────────┬─────────────────────────────────────┘  │
 │                            │                                        │
 │  ┌─────────────────────────▼─────────────────────────────────────┐  │
-│  │               REPOSITORY LAYER (15 repositories)              │  │
+│  │               REPOSITORY LAYER (17 repositories)              │  │
 │  │  ALL DB queries (Prisma only) — never in services             │  │
 │  └─────────────────────────┬─────────────────────────────────────┘  │
 │                            │                                        │
@@ -97,10 +102,12 @@
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                     │
 │  ┌─────────────────────┐  ┌────────────────┐  ┌─────────────────┐  │
-│  │  Socket.IO Server   │  │  Cron Jobs (4) │  │   Providers     │  │
+│  │  Socket.IO Server   │  │  Cron Jobs (6) │  │   Providers     │  │
 │  │  Chat + Presence    │  │  Expire stale  │  │  OTP (MSG91)    │  │
 │  │  JWT auth           │  │  bookings/reqs │  │  Email (SMTP)   │  │
 │  │                     │  │  Cleanup tokens│  │  Payment (Rzp)  │  │
+│  │                     │  │  Complete trips│  │                 │  │
+│  │                     │  │  Expire seats  │  │                 │  │
 │  └─────────────────────┘  └────────────────┘  └─────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -121,38 +128,45 @@
 │  ┌────────────────────────▼───────────────────────────────────┐  │
 │  │                     PAGE ROUTES                             │  │
 │  │                                                             │  │
-│  │  PUBLIC              TRAVELER           ORGANIZER   ADMIN   │  │
-│  │  ─────              ────────           ─────────   ─────   │  │
-│  │  /                  /my-bookings       /dashboard  /admin/  │  │
-│  │  /trips             /my-payments       /dashboard/  chat   │  │
-│  │  /trips/[slug]      /wallet             trips      /admin/  │  │
-│  │  /trips/compare     /messages          /dashboard/  payments│  │
-│  │  /login             /profile            trips/              │  │
-│  │  /signup                                create              │  │
-│  │  /onboarding                           /dashboard/          │  │
-│  │  /organizers/[id]                       requests            │  │
+│  │  PUBLIC              TRAVELER           ORGANIZER       ADMIN       │  │
+│  │  ─────              ────────           ─────────       ─────       │  │
+│  │  /                  /my-bookings       /dashboard      /admin       │  │
+│  │  /trips             /my-payments       /dashboard/     /admin/      │  │
+│  │  /trips/[slug]      /wallet             trips           organizers  │  │
+│  │  /trips/compare     /messages          /dashboard/     /admin/      │  │
+│  │  /destinations/     /profile            trips/[id]/      bookings   │  │
+│  │   [slug]                                 vehicle        /admin/      │  │
+│  │  /login                                /dashboard/      cashback    │  │
+│  │  /signup                                requests       /admin/      │  │
+│  │  /onboarding                                            chat        │  │
+│  │  /organizers/[id]                                      /admin/      │  │
+│  │                                                         payments    │  │
 │  └────────────────────────┬───────────────────────────────────┘  │
 │                           │                                      │
 │  ┌────────────────────────▼───────────────────────────────────┐  │
 │  │                    COMPONENTS                               │  │
 │  │                                                             │  │
-│  │  ui/ (29)        shared/ (24)      domain/                  │  │
-│  │  ────────        ──────────        ────────                 │  │
-│  │  Button          AuthGuard         trips/ (31)              │  │
-│  │  Card            RoleGuard         booking/ (4)             │  │
+│  │  ui/ (29)        shared/ (~30)     domain/                  │  │
+│  │  ────────        ───────────       ────────                 │  │
+│  │  Button          AuthGuard         trips/ (34)              │  │
+│  │  Card            RoleGuard         booking/ (5)             │  │
 │  │  Dialog          DataStates        bookings/ (9)            │  │
 │  │  Select          Pagination        chat/ (12)               │  │
-│  │  Tabs            Modal             dashboard/ (9)           │  │
+│  │  Tabs            Modal             dashboard/ (10)          │  │
 │  │  Form            Toast             payments/ (9)            │  │
 │  │  ...             Spinner           wallet/ (6)              │  │
 │  │                  PhoneInput        profile/ (5)             │  │
 │  │                  StarRating        auth/ (10)               │  │
-│  │                                    home/ (4)                │  │
-│  │                                    layout/ (3)              │  │
+│  │                  Socket            home/ (4)                │  │
+│  │                  Notify Bell       layout/ (3)              │  │
+│  │                                    vehicle/ (7)             │  │
+│  │                                    admin/ (6)               │  │
+│  │                                    notifications/ (1)       │  │
+│  │                                    destinations/ (1)        │  │
 │  └────────────────────────┬───────────────────────────────────┘  │
 │                           │                                      │
 │  ┌────────────────────────▼───────────────────────────────────┐  │
-│  │                   HOOKS (43 custom)                         │  │
+│  │                   HOOKS (50 custom)                         │  │
 │  │  Every hook wraps apiClient + TanStack Query               │  │
 │  │  Components NEVER call apiClient directly                   │  │
 │  └────────────────────────┬───────────────────────────────────┘  │
@@ -219,10 +233,16 @@
 │  └──────────────────┘  └────────────────┘  └──────────────────────┘  │
 │                                                                       │
 │  ┌──────────────────┐  ┌────────────────┐  ┌──────────────────────┐  │
-│  │ RefreshToken     │  │VerificationCode│  │  TripEditHistory    │  │
-│  │ (hashed)         │  │ (OTP, hashed)  │  │  (snapshot audit)   │  │
-│  └──────────────────┘  └────────────────┘  └──────────────────────┘  │
-└───────────────────────────────────────────────────────────────────────┘
+│  │ TripVehicle      │  │  VehicleSeat  │  │  TripEditHistory    │  │
+│  │ layout+grid JSON │──│ AVAIL|HELD   │  │  (snapshot audit)   │  │
+│  │ vehicleType/name │  │ BOOKED|BLOCKED│  └──────────────────────┘  │
+│  └──────────────────┘  └────────────────┘                          │
+│                                                                       │
+│  ┌──────────────────┐  ┌────────────────┐                          │
+│  │ RefreshToken     │  │VerificationCode│                          │
+│  │ (hashed)         │  │ (OTP, hashed)  │                          │
+│  └──────────────────┘  └────────────────┘                          │
+└─────────────────────────────────────────────────────────────────────┘──┘
 ```
 
 ---
@@ -251,10 +271,11 @@
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                      BOOKINGS                                 │   │
 │  │  Instant booking • Request-based booking                      │   │
-│  │  Traveler details form • Payment flow (Razorpay)             │   │
-│  │  Wallet deduction • Trip protection option                    │   │
-│  │  Cancel with refund (per cancellation policy)                 │   │
+│  │  Traveler details form • Seat selection (multi-vehicle)       │   │
+│  │  Payment flow (Razorpay) • Wallet deduction                   │   │
+│  │  Cancel with refund (per policy) + seat release               │   │
 │  │  Expiry cron (5min) with Razorpay poll safety net             │   │
+│  │  Auto: ACTIVE → FULL → COMPLETED lifecycle transitions       │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
@@ -263,14 +284,16 @@
 │  │  Webhook processing (HMAC verified, idempotent)              │   │
 │  │  MockPaymentService for development                           │   │
 │  │  Payment history (traveler/organizer/admin views)            │   │
-│  │  Escrow: hold → release after trip completion                 │   │
+│  │  Escrow: hold → release after trip completion (90-day buffer)│   │
+│  │  Fire-and-forget transfer ID fetch on webhook                 │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │                       WALLET                                  │   │
-│  │  Refund credits • Cashback • Booking deduction               │   │
+│  │  Refund credits • Cashback (admin-issued) • Booking deduction │   │
 │  │  Admin credit/debit • Promotional credits • Expiry           │   │
 │  │  Balance (non-negative constraint) • Transaction ledger      │   │
+│  │  Cashback dedup: @@unique([type, referenceModel, referenceId])│   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
@@ -289,31 +312,67 @@
 │  │  Reactions • Message search • Read receipts • Unread count   │   │
 │  │  Admin: flag messages, close conversations                    │   │
 │  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                  VEHICLE / SEATS                               │   │
+│  │  Multi-vehicle per trip • Template-based layout builder       │   │
+│  │  Seat types: SEAT, DRIVER, EMPTY, BLOCKED                     │   │
+│  │  Seat status: AVAILABLE → HELD → BOOKED (atomic SQL)         │   │
+│  │  Hold/confirm/release/expire lifecycle                        │   │
+│  │  Integrated into booking flow (seat selection step)           │   │
+│  │  Organizer: SeatLayoutBuilder • SeatMapViewer                 │   │
+│  │  Traveler: SeatMapPicker (cross-vehicle selection)            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    ADMIN PANEL                                 │   │
+│  │  Dashboard: platform stats + Recharts (line/bar/pie)         │   │
+│  │  Organizer approval queue (approve/reject + notification)    │   │
+│  │  Booking management (search, filter, detail view)            │   │
+│  │  Cashback: issue per trip, by-user/by-trip views             │   │
+│  │  Flagged messages + close conversations                      │   │
+│  │  Payment dashboard                                            │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                    NOTIFICATIONS                               │   │
+│  │  In-app notifications • Bell dropdown with unread badge      │   │
+│  │  Mark read (single + all) • Filtered list with pagination    │   │
+│  │  Triggered by: booking confirm/cancel, organizer approval,   │   │
+│  │    payment received, trip updates, system alerts              │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │                   TRIP LIFECYCLE                               │   │
+│  │  ACTIVE → FULL (auto when capacity reached)                  │   │
+│  │  FULL → ACTIVE (auto when booking cancelled)                 │   │
+│  │  ACTIVE/FULL → COMPLETED (cron, 30min, past endDate)        │   │
+│  │  Escrow release: 90-day buffer, lazy transfer ID fetch       │   │
+│  │  Crash-recovery sweep for failed escrow releases              │   │
+│  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Data Flow: Booking + Payment
 
 ```
 ┌──────────┐     ┌──────────┐     ┌───────────┐     ┌──────────────┐
 │ Traveler │────▶│ Booking  │────▶│ Razorpay  │────▶│   Webhook    │
-│ clicks   │     │ Service  │     │ Order     │     │  /razorpay   │
-│ "Book"   │     │ creates  │     │ created   │     │  (HMAC)      │
-└──────────┘     │ booking  │     └───────────┘     └──────┬───────┘
-                 │(PENDING) │                              │
-                 └──────────┘     ┌───────────┐     ┌──────▼───────┐
-                                  │ FE opens  │     │ Payment Svc  │
-                                  │ Razorpay  │────▶│ confirms     │
-                                  │ Checkout  │     │ booking =    │
-                                  └───────────┘     │ CONFIRMED    │
-                                                    └──────────────┘
+│ fills    │     │ Service  │     │ Order     │     │  /razorpay   │
+│ form +   │     │ creates  │     │ created   │     │  (HMAC)      │
+│ selects  │     │ booking  │     └───────────┘     └──────┬───────┘
+│ seats    │     │(PENDING) │                              │
+└──────────┘     │+ hold    │     ┌───────────┐     ┌──────▼───────┐
+                 │ seats    │     │ FE opens  │     │ Payment Svc  │
+                 └──────────┘     │ Razorpay  │────▶│ confirms     │
+                                  │ Checkout  │     │ booking +    │
+                                  └───────────┘     │ assigns seats│
+                                                    │ CONFIRMED    │
+                                                    └──────┬───────┘
                                                            │
-                                                    ┌──────▼───────┐
-                                                    │ Wallet deduct│
-                                                    │ (if used)    │
-                                                    └──────────────┘
+                                  ┌───────────┐     ┌──────▼───────┐
+                                  │ Trip auto │     │ Wallet deduct│
+                                  │ ACTIVE→   │     │ (if used)    │
+                                  │ FULL if   │     └──────────────┘
+                                  │ at capacity│
+                                  └───────────┘
 ```
 
 ---
@@ -370,18 +429,18 @@
 
 | Area | Files | Tests |
 |------|-------|-------|
-| Backend controllers | 12 | — |
-| Backend services | 13 | 13 test files (~490+ tests) |
-| Backend repositories | 15 | 2 test files |
+| Backend controllers | 15 | — |
+| Backend services | 17 | 18 test files (~720+ tests) |
+| Backend repositories | 17 | 2 test files |
 | Backend middleware | 8 | 2 test files |
-| Backend routes | 12 | — |
-| Backend utils | 8 | 5 test files |
-| Frontend pages | ~20 routes | — |
-| Frontend components | ~160 files | ~20 test files |
-| Frontend hooks | 43 | 2 test files |
-| Shared types | 15 | — |
-| Shared validators | 11 | 1 test file |
-| Shared constants | 5 | — |
+| Backend routes | 15 | — |
+| Backend utils | 8 | 7 test files |
+| Frontend pages | ~35 routes | — |
+| Frontend components | ~180 files | ~20 test files |
+| Frontend hooks | 50 | 2 test files |
+| Shared types | 17 | — |
+| Shared validators | 14 | 2 test files |
+| Shared constants | 9 | — |
 
 ---
 
@@ -406,4 +465,4 @@
 
 ---
 
-*Last updated: 2026-05-07*
+*Last updated: 2026-05-12*

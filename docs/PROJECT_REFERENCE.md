@@ -19,9 +19,9 @@ A **group travel aggregator** (brand: *TripCompare*) built for the Indian market
 
 | Role | Capabilities |
 |------|-------------|
-| **TRAVELER** | Browse trips, book, pay, review, chat with organizer, wallet |
-| **ORGANIZER** | Create/manage trips, approve requests, view bookings/payments, reply to reviews, chat |
-| **ADMIN** | Flag/close chats, view all payments, manage organizer verification |
+| **TRAVELER** | Browse trips, book (with seat selection), pay, review, chat with organizer, wallet, notifications |
+| **ORGANIZER** | Create/manage trips, vehicle/seat layouts, approve requests, view bookings/payments, reply to reviews, chat, notifications |
+| **ADMIN** | Dashboard (stats + charts), approve/reject organizers, manage bookings, issue cashback, flag/close chats, view all payments, notifications |
 
 ---
 
@@ -97,9 +97,9 @@ travel/                          ← Root (npm workspaces + Turborepo)
 
 ### Shared (`packages/shared`)
 
-- **Types** (`src/types/`): 15 type files — auth, user, trip, booking, payment, wallet, review, chat, destination, notification, organizer, trip-request, upload, api-response
-- **Validators** (`src/validators/`): 11 Zod schema files — one per domain + common
-- **Constants** (`src/constants/`): roles, booking-status, review, trip-types
+- **Types** (`src/types/`): 17 type files — auth, user, trip, booking, payment, wallet, review, chat, destination, notification, organizer, trip-request, upload, api-response, **vehicle**, **admin**
+- **Validators** (`src/validators/`): 14 Zod schema files — one per domain + common, **vehicle**, **admin**, **notification**
+- **Constants** (`src/constants/`): 9 files — roles, booking-status, review, trip-types, **vehicle**, **notification**, **verification-status**, **wallet**
 
 ---
 
@@ -142,7 +142,7 @@ apps/api/src/
 │   ├── firebase.ts             ← Firebase Admin SDK init
 │   ├── razorpay.ts             ← Razorpay client init
 │   └── redis.ts                ← Redis connection
-├── controllers/                ← 12 controllers
+├── controllers/                ← 15 controllers
 │   ├── auth.controller.ts      ← Login, signup, refresh, logout, google-auth, me
 │   ├── otp.controller.ts       ← Send OTP, verify OTP
 │   ├── firebase-auth.controller.ts ← Firebase phone auth
@@ -151,25 +151,32 @@ apps/api/src/
 │   ├── booking.controller.ts   ← Create booking, cancel, list for trip
 │   ├── chat.controller.ts      ← Conversations, messages, reactions, flagged
 │   ├── review.controller.ts    ← Create/edit review, organizer reply
-│   ├── wallet.controller.ts    ← Balance, transactions
+│   ├── wallet.controller.ts    ← Balance, transactions, cashback history
 │   ├── payment-history.controller.ts ← Payment history for traveler/organizer/admin
 │   ├── upload.controller.ts    ← Cloudinary signature
-│   └── webhook.controller.ts   ← Razorpay webhook handler
-├── services/                   ← 13 services (all business logic)
+│   ├── webhook.controller.ts   ← Razorpay webhook handler
+│   ├── admin.controller.ts     ← Organizer approvals, stats, bookings, cashback
+│   ├── notification.controller.ts ← List, unread count, mark read
+│   └── vehicle.controller.ts   ← Vehicle CRUD, seat maps, hold seats
+├── services/                   ← 17 services (all business logic)
 │   ├── auth.service.ts         ← Register, login, JWT issue/verify, Google OAuth
 │   ├── otp.service.ts          ← OTP generation, verification, rate limiting
 │   ├── firebase-auth.service.ts
 │   ├── trip.service.ts         ← Trip CRUD, filters, publish, booking toggle, edit history
 │   ├── destination.service.ts
-│   ├── booking.service.ts      ← Create booking (escrow), cancel with refund policy, confirm
+│   ├── booking.service.ts      ← Create booking (escrow + seat hold), cancel with refund, confirm (seat assign)
 │   ├── chat.service.ts         ← Conversation creation, messaging, anti-leakage filter, reactions
 │   ├── review.service.ts       ← Create/edit review, organizer reply, rating aggregation
-│   ├── wallet.service.ts       ← Balance, credit, debit, transaction history
-│   ├── payment.service.ts      ← Razorpay order creation, webhook processing, refund
+│   ├── wallet.service.ts       ← Balance, credit, debit, transaction history, cashback
+│   ├── payment.service.ts      ← Razorpay order creation, webhook processing, refund, escrow release
 │   ├── mock-payment.service.ts ← Dev-mode payment simulation
 │   ├── payment-history.service.ts
-│   └── upload.service.ts       ← Cloudinary signature generation
-├── repositories/               ← 15 repositories (Prisma queries only)
+│   ├── upload.service.ts       ← Cloudinary signature generation
+│   ├── admin.service.ts        ← Organizer approvals, platform stats, bookings, cashback issuance
+│   ├── notification.service.ts ← Create/list/mark-read in-app notifications
+│   ├── trip-lifecycle.service.ts ← Auto-complete trips, escrow release (cron-driven)
+│   └── vehicle.service.ts      ← Vehicle CRUD, seat hold/confirm/release/expire
+├── repositories/               ← 17 repositories (Prisma queries only)
 │   ├── user.repository.ts
 │   ├── refresh-token.repository.ts
 │   ├── trip.repository.ts
@@ -184,8 +191,10 @@ apps/api/src/
 │   ├── wallet.repository.ts
 │   ├── conversation.repository.ts
 │   ├── message.repository.ts
-│   └── trip-edit-history.repository.ts
-├── routes/                     ← 12 route files (Express Router factories)
+│   ├── trip-edit-history.repository.ts
+│   ├── notification.repository.ts  ← In-app notification CRUD
+│   └── vehicle.repository.ts       ← TripVehicle + VehicleSeat CRUD, atomic seat status SQL
+├── routes/                     ← 15 route files (Express Router factories)
 │   ├── auth.routes.ts
 │   ├── firebase-auth.routes.ts
 │   ├── health.routes.ts        ← GET /health, GET /health/db, GET /health/redis
@@ -197,7 +206,10 @@ apps/api/src/
 │   ├── wallet.routes.ts
 │   ├── payment.routes.ts
 │   ├── upload.routes.ts
-│   └── webhook.routes.ts       ← Raw body, HMAC verification, no auth
+│   ├── webhook.routes.ts       ← Raw body, HMAC verification, no auth
+│   ├── admin.routes.ts         ← All behind authMiddleware + requireRole('ADMIN')
+│   ├── notification.routes.ts  ← Authenticated notification endpoints
+│   └── vehicle.routes.ts       ← Organizer vehicle CRUD + traveler seat selection
 ├── middleware/
 │   ├── auth.middleware.ts       ← JWT verification → req.user
 │   ├── role.middleware.ts       ← Role-based access control
@@ -224,7 +236,7 @@ apps/api/src/
 │   ├── async-handler.ts        ← Wraps async route handlers (no try-catch in controllers)
 │   ├── chat-filter.ts          ← Anti-leakage regex filter
 │   ├── constants.ts            ← Business constants (escrow days, max group size, etc.)
-│   ├── cron-jobs.ts            ← 4 background jobs (expire bookings/requests, cleanup tokens/codes)
+│   ├── cron-jobs.ts            ← 6 background jobs (see table below)
 │   ├── email.ts
 │   ├── logger.ts               ← Pino logger instance
 │   ├── phone.ts                ← Phone number normalization
@@ -233,7 +245,8 @@ apps/api/src/
 ├── lib/
 │   └── prisma.ts               ← Prisma client singleton
 └── types/
-    └── express.d.ts            ← Express Request augmentation (req.user)
+    ├── express.d.ts            ← Express Request augmentation (req.user)
+    └── razorpay.types.ts       ← RazorpayPaymentEntity, RazorpayWebhookPayload, StoredWebhookEvent
 ```
 
 ### Background Jobs (`utils/cron-jobs.ts`)
@@ -244,6 +257,8 @@ apps/api/src/
 | `expireStaleRequests` | 5 min | Expire APPROVED trip requests past approval window |
 | `cleanupExpiredCodes` | 1 hour | Delete verification codes expired > 24h |
 | `cleanupStaleTokens` | 1 hour | Delete refresh tokens expired > 30 days |
+| `completeTripsAndReleaseEscrow` | 30 min | Auto-complete ACTIVE/FULL trips past endDate → COMPLETED, release escrow holds |
+| `expireHeldSeats` | 1 min | Expire HELD vehicle seats whose hold window has passed |
 
 ---
 
@@ -318,8 +333,11 @@ apps/api/src/
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/balance` | Yes | Wallet balance + stats |
+| GET | `/` | Yes | Wallet balance + stats |
 | GET | `/transactions` | Yes | Transaction history (filtered, paginated) |
+| GET | `/cashback` | Yes | Cashback history with trip names |
+| POST | `/admin/:userId/credit` | Admin | Admin credit to user wallet |
+| POST | `/admin/:userId/debit` | Admin | Admin debit from user wallet |
 
 ### Reviews (`/api/v1/reviews`)
 
@@ -366,6 +384,46 @@ apps/api/src/
 |--------|------|------|-------------|
 | GET | `/signature` | Yes | Get Cloudinary upload signature |
 
+### Admin (`/api/v1/admin`)
+
+All routes require `authMiddleware` + `requireRole('ADMIN')`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/organizers` | Paginated organizer approval queue (filterable) |
+| GET | `/organizers/:id` | Organizer detail |
+| PATCH | `/organizers/:id/status` | Approve/reject organizer (sends notification) |
+| GET | `/stats` | Platform overview stats + chart data |
+| GET | `/bookings` | Admin booking list (search + filter) |
+| GET | `/bookings/:id` | Booking detail with travelers + payments |
+| GET | `/cashback/trips` | Completed trips with cashback stats |
+| GET | `/cashback/trips/:tripId` | Trip travelers with cashback status |
+| POST | `/cashback/issue` | Issue cashback (validates trip COMPLETED, no duplicate, amount cap) |
+| GET | `/cashback/by-user` | Cashback grouped by user |
+| GET | `/cashback/by-user/:userId` | Per-user cashback detail |
+| GET | `/cashback/by-trip` | Cashback grouped by trip |
+
+### Vehicle & Seats (`/api/v1/trips`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/:tripId/vehicle` | Organizer | Create vehicle with seat layout |
+| PUT | `/:tripId/vehicle/:vehicleId` | Organizer | Update vehicle |
+| DELETE | `/:tripId/vehicle/:vehicleId` | Organizer | Delete vehicle |
+| GET | `/:tripId/vehicle` | Organizer | Organizer seat map (multi-vehicle) |
+| GET | `/:tripId/vehicles` | Organizer | List all vehicles for trip |
+| GET | `/:tripId/seats` | No | Traveler seat map (public, multi-vehicle) |
+| POST | `/:tripId/seats/hold` | Yes | Hold seats for booking |
+
+### Notifications (`/api/v1/notifications`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | Yes | List notifications (filtered, paginated) |
+| GET | `/unread-count` | Yes | Unread notification count |
+| PATCH | `/read-all` | Yes | Mark all notifications as read |
+| PATCH | `/:id/read` | Yes | Mark single notification as read |
+
 ### Health
 
 | Method | Path | Description |
@@ -373,29 +431,32 @@ apps/api/src/
 | GET | `/health` | Basic health check |
 | GET | `/health/db` | Database connectivity |
 | GET | `/health/redis` | Redis connectivity |
+| GET | `/api/v1/sitemap-data` | Trip slugs, destination slugs, organizer IDs for sitemap |
 
 ---
 
 ## 6. Database Schema (Prisma)
 
-### Models (20 tables)
+### Models (22 tables)
 
 | Model | Purpose |
-|-------|---------|
+|-------|--------|
 | `User` | All users (TRAVELER, ORGANIZER, ADMIN) |
 | `OrganizerProfile` | Business profile for organizers (linked 1:1 to User) |
 | `Destination` | Trip destinations (name, state, slug) |
-| `Trip` | Group trips with full details (itinerary, pricing, photos) |
+| `Trip` | Group trips with full details (itinerary, pricing, photos, seatSelectionEnabled) |
 | `TripTransferPoint` | Pickup/drop points per trip |
-| `Booking` | Trip bookings (with escrow, wallet deduction) |
-| `TravelerDetail` | Traveler info per booking/request |
+| `TripVehicle` | Vehicle per trip (layout JSON + grid config, vehicle type/name) |
+| `VehicleSeat` | Individual seat per vehicle (status, seatNumber, booking link) |
+| `Booking` | Trip bookings (with escrow, wallet deduction, vehicleSeats relation) |
+| `TravelerDetail` | Traveler info per booking/request (assignedSeat optional) |
 | `TripRequest` | Request-based booking requests |
-| `PaymentTransaction` | Razorpay payment/refund records |
+| `PaymentTransaction` | Razorpay payment/refund/escrow records |
 | `Review` | Trip reviews with multi-dimension ratings |
 | `Conversation` | Chat conversations (TRIP_CHAT, ADMIN_SUPPORT) |
 | `Message` | Chat messages (text, image, file, system) |
 | `Wallet` | User wallet with balance |
-| `WalletTransaction` | Wallet credit/debit ledger |
+| `WalletTransaction` | Wallet credit/debit ledger (unique constraint for cashback dedup) |
 | `RefreshToken` | JWT refresh tokens (hashed) |
 | `VerificationCode` | OTP/email verification codes (hashed) |
 | `Notification` | Push/email/SMS/in-app notifications |
@@ -407,6 +468,7 @@ apps/api/src/
 | Enum | Values |
 |------|--------|
 | `UserRole` | TRAVELER, ORGANIZER, ADMIN |
+| `VerificationStatus` | PENDING, APPROVED, REJECTED |
 | `TripStatus` | DRAFT, ACTIVE, FULL, COMPLETED, CANCELLED |
 | `TripType` | ADVENTURE, WEEKEND, TREKKING, BEACH, CULTURAL, ROAD_TRIP |
 | `BookingStatus` | PENDING_PAYMENT, CONFIRMED, CANCELLED, COMPLETED, REFUNDED, EXPIRED |
@@ -415,9 +477,13 @@ apps/api/src/
 | `PaymentStatus` | INITIATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED |
 | `PaymentType` | PAYMENT, REFUND, ESCROW_RELEASE |
 | `CancellationPolicy` | FLEXIBLE, MODERATE, STRICT |
+| `Gender` | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY |
 | `ConversationType` | TRIP_CHAT, ADMIN_SUPPORT |
 | `MessageType` | TEXT, IMAGE, FILE, SYSTEM |
 | `ConversationStatus` | ACTIVE, ARCHIVED, CLOSED |
+| `SeatCellType` | SEAT, DRIVER, EMPTY, BLOCKED |
+| `SeatStatus` | AVAILABLE, HELD, BOOKED, BLOCKED |
+| `NotificationType` | BOOKING_CONFIRMED, BOOKING_CANCELLED, PAYMENT_RECEIVED, ... SYSTEM_ALERT |
 | `WalletTransactionType` | REFUND, CASHBACK, BOOKING_DEDUCTION, ADMIN_CREDIT, ADMIN_DEBIT, PROMOTIONAL_CREDIT, EXPIRY |
 
 ### Key Relationships
@@ -427,9 +493,10 @@ User 1:1 OrganizerProfile
 User 1:1 Wallet
 User 1:N Booking, Review, TripRequest, Message, Notification
 OrganizerProfile 1:N Trip, Conversation
-Trip 1:N Booking, Review, TripRequest, TripTransferPoint, Conversation, TripEditHistory
+Trip 1:N Booking, Review, TripRequest, TripTransferPoint, Conversation, TripEditHistory, TripVehicle
 Trip N:1 Destination
-Booking 1:N PaymentTransaction, TravelerDetail
+TripVehicle 1:N VehicleSeat
+Booking 1:N PaymentTransaction, TravelerDetail, VehicleSeat
 Booking 1:1 Review, TripRequest (optional)
 Wallet 1:N WalletTransaction
 Conversation 1:N Message
@@ -452,6 +519,11 @@ apps/web/src/app/
 ├── layout.tsx                   ← Root layout (fonts, Providers)
 ├── providers.tsx                ← QueryClient, GoogleOAuth, CompareQueue, Toast, RouteProgress
 ├── globals.css                  ← Design tokens, base styles, skeleton shimmer
+├── sitemap.ts                   ← Dynamic sitemap generation (SEO)
+├── robots.ts                    ← Robots.txt config (SEO)
+├── icon.tsx / apple-icon.tsx    ← App icons (SEO)
+├── global-error.tsx             ← Root error boundary
+├── not-found.tsx                ← 404 page
 ├── (auth)/
 │   ├── login/page.tsx           ← Login (phone OTP + email OTP + Google)
 │   ├── signup/page.tsx          ← Signup
@@ -460,9 +532,11 @@ apps/web/src/app/
 │   ├── page.tsx                 ← Trip listing (filters, grid, pagination)
 │   ├── [slug]/
 │   │   ├── page.tsx             ← Trip detail (header, itinerary, booking card, reviews, organizer)
-│   │   └── book/page.tsx        ← Booking flow (traveler form, payment)
+│   │   └── book/page.tsx        ← Booking flow (traveler form → seat selection → payment)
 │   ├── compare/page.tsx         ← Side-by-side trip comparison
 │   └── organizers/[id]/page.tsx ← Public organizer profile
+├── destinations/
+│   └── [slug]/page.tsx          ← Destination detail (trips by destination)
 ├── dashboard/                   ← Organizer dashboard
 │   ├── page.tsx                 ← Stats overview
 │   ├── trips/
@@ -470,14 +544,27 @@ apps/web/src/app/
 │   │   ├── create/page.tsx      ← Create trip form
 │   │   └── [id]/
 │   │       ├── page.tsx         ← Trip detail (bookings, requests, payments)
-│   │       └── edit/page.tsx    ← Edit trip
+│   │       ├── edit/page.tsx    ← Edit trip
+│   │       ├── vehicle/page.tsx ← Vehicle/seat layout management
+│   │       ├── history/page.tsx ← Trip edit history
+│   │       ├── payments/page.tsx← Trip payments
+│   │       ├── reviews/page.tsx ← Trip reviews
+│   │       └── users/page.tsx   ← Trip users/travelers
 │   └── requests/page.tsx        ← All pending requests
 ├── my-bookings/page.tsx         ← Traveler's bookings list
 ├── my-payments/page.tsx         ← Payment history
 ├── wallet/page.tsx              ← Wallet balance + transactions
 ├── profile/page.tsx             ← User profile editor
 ├── messages/page.tsx            ← Chat interface (conversations + messages)
-├── admin/
+├── admin/                       ← Full admin panel
+│   ├── page.tsx                 ← Dashboard (stats, charts, quick actions)
+│   ├── layout.tsx               ← AuthGuard ADMIN + AdminSidebar
+│   ├── organizers/page.tsx      ← Organizer approval queue (tabs: pending/approved/rejected)
+│   ├── bookings/page.tsx        ← Admin booking list (search + filter)
+│   ├── bookings/[id]/page.tsx   ← Booking detail (travelers + payments)
+│   ├── cashback/page.tsx        ← Cashback management (3 tabs: issue, by user, by trip)
+│   ├── cashback/[tripId]/page.tsx ← Issue cashback per trip
+│   ├── cashback/user/[userId]/page.tsx ← Per-user cashback drill-down
 │   ├── chat/page.tsx            ← Flagged messages management
 │   └── payments/page.tsx        ← Admin payment dashboard
 └── preview/                     ← Trip preview (organizer)
@@ -488,48 +575,56 @@ apps/web/src/app/
 ```
 apps/web/src/components/
 ├── ui/                          ← 29 shadcn/ui primitives (Button, Card, Dialog, etc.)
-├── shared/                      ← 24 reusable components
+├── shared/                      ← ~30 reusable components
 │   ├── auth-guard.tsx           ← Route protection (role-based)
 │   ├── role-guard.tsx           ← Conditional render by role
 │   ├── data-states.tsx          ← ErrorState, EmptyState components
 │   ├── pagination.tsx           ← Pagination with page numbers
-│   ├── modal.tsx                ← Reusable modal
+│   ├── modal.tsx                ← Reusable modal (SSR-safe createPortal)
 │   ├── toast.tsx                ← Toast provider (Sonner wrapper)
+│   ├── socket-connector.tsx     ← Socket.IO auto-connect component
 │   ├── spinner.tsx, full-screen-loader.tsx, route-progress.tsx
 │   ├── phone-input.tsx, email-input.tsx, number-input.tsx
 │   ├── star-rating.tsx, star-rating-input.tsx
-│   └── image-lightbox.tsx
+│   └── image-lightbox.tsx, avatar.tsx, alert.tsx, tooltip.tsx, tabs.tsx, progress-bar.tsx
 ├── layout/                      ← AppShell, Header, Footer
 ├── home/                        ← HeroSection, PopularDestinations, TrendingTrips, WhyBookSection
 ├── auth/                        ← Login/signup forms, OTP, Google auth, onboarding
 ├── trips/                       ← TripCard, TripGrid, TripFilters, TripDetailHeader, TripForm/*, CompareBar, ReviewCard, etc.
-├── booking/                     ← TravelerForm, PriceSummary, BookingSuccess
+├── booking/                     ← TravelerForm, PriceSummary, BookingSuccess, SeatSelectionCard
 ├── bookings/                    ← MyBookingCard, MyBookingsList, CancelBookingModal, ReviewFormModal, PendingPaymentCard
 ├── dashboard/                   ← DashboardSidebar, StatCard, TripListCard, TripUsers/*
 ├── chat/                        ← ChatLayout, ChatWindow, ChatHeader, ConversationSidebar, MessageBubble, MessageInput, TypingIndicator, OnlineIndicator
 ├── payments/                    ← PaymentFilters, PaymentTransactionList, PaymentSummaryCards, StatusBadge, TypeBadge
 ├── wallet/                      ← WalletFilters, WalletTransactionList, WalletTxTypeBadge
-└── profile/                     ← ProfileHeader, EditUserProfileForm, OrganizerProfileCard
+├── profile/                     ← ProfileHeader, EditUserProfileForm, OrganizerProfileCard
+├── vehicle/                     ← SeatCell, SeatGrid, SeatLegend, SeatMapPicker, SeatMapViewer, SeatLayoutBuilder
+├── admin/                       ← AdminSidebar, ApprovalActionDialog, OrganizerApprovalCard, RevenueChart, BookingsChart, TripTypeChart
+├── notifications/               ← NotificationBell (header dropdown with unread badge)
+└── destinations/                ← DestinationDetailClient
 ```
 
 ### Custom Hooks (`apps/web/src/hooks/`)
 
-43 custom hooks. Pattern: `useXxx()` wraps `apiClient` + TanStack Query. Components never call `apiClient` directly.
+50 custom hooks. Pattern: `useXxx()` wraps `apiClient` + TanStack Query. Components never call `apiClient` directly.
 
 **Key hooks by domain:**
 - **Auth:** `use-otp`, `use-email-otp`, `use-google-auth`, `use-firebase-phone-auth`, `use-logout`
-- **Trips:** `use-trips`, `use-trip-detail`, `use-my-trips`, `use-create-trip`, `use-update-trip`, `use-delete-trip`, `use-publish-trip`, `use-toggle-bookings`
+- **Trips:** `use-trips`, `use-trip-detail`, `use-trip-summary`, `use-my-trips`, `use-create-trip`, `use-update-trip`, `use-delete-trip`, `use-publish-trip`, `use-toggle-bookings`
 - **Bookings:** `use-create-booking`, `use-my-bookings`, `use-my-booking-summary`, `use-cancel-booking`, `use-trip-bookings`, `use-my-trip-booking-status`
 - **Payments:** `use-payments` (my, trip, admin), `use-verify-payment`
-- **Wallet:** `use-wallet` (balance + transactions)
+- **Wallet:** `use-wallet` (balance + transactions + cashback)
 - **Reviews:** `use-reviews` (list, create, edit, reply)
 - **Chat:** `use-chat` (conversations, messages, send, typing, read, presence, reactions), `use-admin-chat`
 - **Trip Requests:** `use-create-trip-request`, `use-trip-requests`, `use-respond-request`, `use-my-pending-requests`, `use-all-pending-requests`
+- **Vehicle:** `use-vehicle` (seat maps, CRUD), `use-sync-vehicles`
+- **Admin:** `use-admin-stats`, `use-admin-organizers` (list + approve/reject), `use-admin-bookings` (list + detail), `use-admin-cashback` (5 queries + issue mutation)
+- **Notifications:** `use-notifications` (list, unread count, mark read)
+- **Destinations:** `use-destinations`, `use-destination-detail`
 - **Compare:** `use-compare-queue`, `use-compare-trips`
 - **Upload:** `use-cloudinary-upload`, `use-upload-signature`
 - **Profile:** `use-profile`, `use-organizer-stats`, `use-organizer-public-profile`
-- **Destinations:** `use-destinations`
-- **Utility:** `use-debounce`, `use-blocking-mutation`
+- **Utility:** `use-debounce`, `use-blocking-mutation`, `use-log-error`
 
 ### State Management
 
@@ -549,7 +644,7 @@ Component → useXxx() hook → apiClient.get/post() → Axios interceptors → 
          Query key factory (lib/query-keys.ts)
 ```
 
-**Query key factories** in `lib/query-keys.ts`: `tripKeys`, `bookingKeys`, `tripRequestKeys`, `paymentKeys`, `walletKeys`, `reviewKeys`, `chatKeys`, `destinationKeys`, `organizerKeys`, `profileKeys`, `uploadKeys`, `notificationKeys`
+**Query key factories** in `lib/query-keys.ts`: `tripKeys`, `bookingKeys`, `tripRequestKeys`, `paymentKeys`, `walletKeys`, `reviewKeys`, `chatKeys`, `destinationKeys`, `organizerKeys`, `profileKeys`, `uploadKeys`, `notificationKeys`, **`vehicleKeys`**, **`adminKeys`**
 
 ### API Client (`lib/api-client.ts`)
 
@@ -633,21 +728,30 @@ Adds Nginx reverse proxy with SSL termination (Let's Encrypt certbot).
 tests/
 ├── setup.ts                    ← Vitest global setup
 ├── unit/
-│   ├── services/               ← 13 service test files (~490+ tests)
+│   ├── services/               ← 18 service test files (~720+ tests)
 │   │   ├── auth.service.test.ts
 │   │   ├── booking.service.test.ts
+│   │   ├── booking-lifecycle.test.ts     ← Seat hold + cancel + lifecycle tests
 │   │   ├── chat.service.test.ts
 │   │   ├── trip.service.test.ts
+│   │   ├── trip-users.service.test.ts
+│   │   ├── trip-request-create.test.ts
+│   │   ├── trip-lifecycle.service.test.ts ← Auto-complete + escrow release tests
 │   │   ├── payment.service.test.ts
+│   │   ├── payment-history.service.test.ts
 │   │   ├── wallet.service.test.ts
 │   │   ├── review.service.test.ts
 │   │   ├── otp.service.test.ts
-│   │   └── ... (13 files)
-│   ├── middleware/              ← Middleware tests
-│   ├── repositories/           ← Repository tests
-│   ├── utils/                  ← Utility tests (chat filter, etc.)
-│   ├── validators/             ← Schema validation tests
-│   └── config/                 ← Config tests
+│   │   ├── destination.service.test.ts
+│   │   ├── firebase-auth.service.test.ts
+│   │   ├── admin.service.test.ts          ← Approvals + stats + cashback tests
+│   │   ├── notification.service.test.ts
+│   │   └── vehicle.service.test.ts        ← Vehicle CRUD + seat hold/confirm/release
+│   ├── middleware/              ← Middleware tests (2 files)
+│   ├── repositories/           ← Repository tests (2 files)
+│   ├── utils/                  ← Utility tests (7 files — chat filter, etc.)
+│   ├── validators/             ← Schema validation tests (2 files)
+│   └── config/                 ← Config tests (1 file)
 └── integration/                ← Integration tests
 ```
 
@@ -767,4 +871,4 @@ npm run deploy:prod            # Full production deployment
 
 ---
 
-*Last updated: 2026-05-07*
+*Last updated: 2026-05-12*
