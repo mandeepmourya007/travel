@@ -9,7 +9,7 @@ import type { CloudinarySignature } from '@shared/types/upload.types'
  */
 export function useUploadSignature() {
   return useMutation({
-    mutationFn: async (folder: 'trips' | 'itinerary-docs') => {
+    mutationFn: async (folder: 'trips' | 'itinerary-docs' | 'vehicles') => {
       const res = await apiClient.post<{ success: true; data: CloudinarySignature }>(
         '/uploads/signature',
         { folder },
