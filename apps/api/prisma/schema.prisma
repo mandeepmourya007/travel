@@ -417,6 +417,7 @@ model TripVehicle {
   driverCol     Int
 
   layout        Json
+  photos        String[]
 
   isActive      Boolean  @default(true)
   isDeleted     Boolean  @default(false)
