@@ -1,4 +1,4 @@
-import { PrismaClient, Gender, NotificationType, Prisma } from '@prisma/client'
+import { PrismaClient, Gender, NotificationType, Prisma, TransferPointType } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 
 const prisma = new PrismaClient()
@@ -6,32 +6,75 @@ const prisma = new PrismaClient()
 // Fixed date helper — not relative to "now"
 const d = (y: number, m: number, day: number) => new Date(y, m - 1, day)
 
+// ── Idempotent upsert helpers ─────────────────────────────
+
+async function upsertUser(email: string, data: Omit<Prisma.UserCreateInput, 'email'>) {
+  return prisma.user.upsert({
+    where: { email },
+    create: { email, ...data },
+    update: { name: data.name, phone: data.phone, role: data.role, avatarUrl: data.avatarUrl },
+  })
+}
+
+async function upsertDestination(slug: string, data: Omit<Prisma.DestinationCreateInput, 'slug'>) {
+  return prisma.destination.upsert({
+    where: { slug },
+    create: { slug, ...data },
+    update: { name: data.name, state: data.state, photoUrl: data.photoUrl, description: data.description, isPopular: data.isPopular },
+  })
+}
+
+async function upsertOrgProfile(userId: string, data: Omit<Prisma.OrganizerProfileCreateInput, 'user'>) {
+  return prisma.organizerProfile.upsert({
+    where: { userId },
+    create: { user: { connect: { id: userId } }, ...data },
+    update: { businessName: data.businessName, slug: data.slug, description: data.description, commissionRate: data.commissionRate, razorpayAccountId: data.razorpayAccountId },
+  })
+}
+
+async function upsertTrip(
+  slug: string,
+  data: Omit<Prisma.TripCreateInput, 'slug' | 'organizer' | 'destination' | 'transferPoints'> & { organizerId: string; destinationId: string },
+  transferPoints?: { type: TransferPointType; label: string; address?: string; time?: string; extraCharge?: number; sortOrder: number }[],
+) {
+  const { organizerId, destinationId, ...rest } = data
+  const trip = await prisma.trip.upsert({
+    where: { slug },
+    create: {
+      slug,
+      organizer: { connect: { id: organizerId } },
+      destination: { connect: { id: destinationId } },
+      ...rest,
+    },
+    update: {
+      title: rest.title, description: rest.description, tripType: rest.tripType,
+      bookingMode: rest.bookingMode, startDate: rest.startDate, endDate: rest.endDate,
+      pricePerPerson: rest.pricePerPerson, earlyBirdPrice: rest.earlyBirdPrice,
+      earlyBirdDeadline: rest.earlyBirdDeadline, minGroupSize: rest.minGroupSize,
+      maxGroupSize: rest.maxGroupSize, inclusions: rest.inclusions, exclusions: rest.exclusions,
+      cancellationPolicy: rest.cancellationPolicy, photos: rest.photos, itinerary: rest.itinerary,
+    },
+  })
+
+  if (transferPoints && transferPoints.length > 0) {
+    const existing = await prisma.tripTransferPoint.findMany({ where: { tripId: trip.id } })
+    for (const tp of transferPoints) {
+      const match = existing.find(e => e.type === tp.type && e.label === tp.label)
+      if (match) {
+        await prisma.tripTransferPoint.update({ where: { id: match.id }, data: { address: tp.address, time: tp.time, extraCharge: tp.extraCharge, sortOrder: tp.sortOrder } })
+      } else {
+        await prisma.tripTransferPoint.create({ data: { tripId: trip.id, ...tp } })
+      }
+    }
+  }
+
+  return trip
+}
+
 async function main() {
   console.log('🌱 Seeding PRODUCTION database...\n')
 
-  // ── Clean existing data (reverse FK order) ──────────
-  await prisma.walletTransaction.deleteMany()
-  await prisma.wallet.deleteMany()
-  await prisma.message.deleteMany()
-  await prisma.conversation.deleteMany()
-  await prisma.notification.deleteMany()
-  await prisma.travelerDetail.deleteMany()
-  await prisma.paymentTransaction.deleteMany()
-  await prisma.review.deleteMany()
-  await prisma.tripRequest.deleteMany()
-  await prisma.vehicleSeat.deleteMany()
-  await prisma.tripVehicle.deleteMany()
-  await prisma.booking.deleteMany()
-  await prisma.tripTransferPoint.deleteMany()
-  await prisma.tripEditHistory.deleteMany()
-  await prisma.trip.deleteMany()
-  await prisma.destination.deleteMany()
-  await prisma.refreshToken.deleteMany()
-  await prisma.verificationCode.deleteMany()
-  await prisma.organizerProfile.deleteMany()
-  await prisma.webhookEvent.deleteMany()
-  await prisma.user.deleteMany()
-  console.log('  ✓ Cleaned existing data')
+  // ── Idempotent seed — no deleteMany, upserts + guards ──
 
   const passwordHash = await bcrypt.hash('Test@1234', 12)
 
@@ -39,51 +82,31 @@ async function main() {
   // ── USERS ─────────────────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const admin = await prisma.user.create({
-    data: { name: 'Mandeep Mourya', email: 'mandeep@safarnama.in', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000001', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MM' },
-  })
-  await prisma.user.create({
-    data: { name: 'Admin', email: 'admin@safarnama.in', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000002', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AD' },
-  })
+  const admin = await upsertUser('mandeep@safarnama.in', { name: 'Mandeep Mourya', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000001', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MM' })
+  await upsertUser('admin@safarnama.in', { name: 'Admin', passwordHash, role: 'ADMIN', emailVerified: true, phoneVerified: true, phone: '+919876000002', avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AD' })
 
-  const org1User = await prisma.user.create({
-    data: { name: 'Rajesh Khanna', email: 'rajesh@desiexplorers.in', passwordHash, role: 'ORGANIZER', phone: '+919820145678', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RK' },
-  })
-  const org2User = await prisma.user.create({
-    data: { name: 'Deepa Nair', email: 'deepa@summitshore.in', passwordHash, role: 'ORGANIZER', phone: '+919845098765', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DN' },
-  })
-  const org3User = await prisma.user.create({
-    data: { name: 'Arjun Mehta', email: 'arjun@nomadtrails.in', passwordHash, role: 'ORGANIZER', phone: '+919871023456', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AM' },
-  })
-  const org4User = await prisma.user.create({
-    data: { name: 'Priya Sharma', email: 'priya@backpackbharat.com', passwordHash, role: 'ORGANIZER', phone: '+919890123400', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PS' },
-  })
-  const org5User = await prisma.user.create({
-    data: { name: 'Vikram Desai', email: 'vikram@sahyadriadventures.com', passwordHash, role: 'ORGANIZER', phone: '+919823456700', emailVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=VD' },
-  })
-  const org6User = await prisma.user.create({
-    data: { name: 'Neha Gupta', email: 'neha@budgettrails.in', passwordHash, role: 'ORGANIZER', phone: '+919812345600', emailVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=NG' },
-  })
-  const org7User = await prisma.user.create({
-    data: { name: 'Kavya Nair', email: 'kavya@shetravelsindia.com', passwordHash, role: 'ORGANIZER', phone: '+919845671230', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KN' },
-  })
-  const org8User = await prisma.user.create({
-    data: { name: 'Rahul Kapoor', email: 'rahul@corporateescapes.in', passwordHash, role: 'ORGANIZER', phone: '+919867453210', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RK' },
-  })
+  const org1User = await upsertUser('rajesh@desiexplorers.in', { name: 'Rajesh Khanna', passwordHash, role: 'ORGANIZER', phone: '+919820145678', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RK' })
+  const org2User = await upsertUser('deepa@summitshore.in', { name: 'Deepa Nair', passwordHash, role: 'ORGANIZER', phone: '+919845098765', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DN' })
+  const org3User = await upsertUser('arjun@nomadtrails.in', { name: 'Arjun Mehta', passwordHash, role: 'ORGANIZER', phone: '+919871023456', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AM' })
+  const org4User = await upsertUser('priya@backpackbharat.com', { name: 'Priya Sharma', passwordHash, role: 'ORGANIZER', phone: '+919890123400', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PS' })
+  const org5User = await upsertUser('vikram@sahyadriadventures.com', { name: 'Vikram Desai', passwordHash, role: 'ORGANIZER', phone: '+919823456700', emailVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=VD' })
+  const org6User = await upsertUser('neha@budgettrails.in', { name: 'Neha Gupta', passwordHash, role: 'ORGANIZER', phone: '+919812345600', emailVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=NG' })
+  const org7User = await upsertUser('kavya@shetravelsindia.com', { name: 'Kavya Nair', passwordHash, role: 'ORGANIZER', phone: '+919845671230', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KN' })
+  const org8User = await upsertUser('rahul@corporateescapes.in', { name: 'Rahul Kapoor', passwordHash, role: 'ORGANIZER', phone: '+919867453210', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RK' })
 
   // 12 Travelers
-  const t1 = await prisma.user.create({ data: { name: 'Amit Kulkarni', email: 'amit.kulkarni@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543210', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AK' } })
-  const t2 = await prisma.user.create({ data: { name: 'Sneha Deshmukh', email: 'sneha.deshmukh@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543211', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SD' } })
-  const t3 = await prisma.user.create({ data: { name: 'Rohan Joshi', email: 'rohan.joshi@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543212', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RJ' } })
-  const t4 = await prisma.user.create({ data: { name: 'Kavita Reddy', email: 'kavita.reddy@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543213', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KR' } })
-  const t5 = await prisma.user.create({ data: { name: 'Saurabh Patil', email: 'saurabh.patil@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543214', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SP' } })
-  const t6 = await prisma.user.create({ data: { name: 'Ananya Iyer', email: 'ananya.iyer@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543215', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AI' } })
-  const t7 = await prisma.user.create({ data: { name: 'Karan Singh', email: 'karan.singh@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543216', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KS' } })
-  const t8 = await prisma.user.create({ data: { name: 'Meera Bhat', email: 'meera.bhat@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543217', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MB' } })
-  const t9 = await prisma.user.create({ data: { name: 'Nikhil Verma', email: 'nikhil.verma@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543218', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=NV' } })
-  const t10 = await prisma.user.create({ data: { name: 'Pooja Agarwal', email: 'pooja.agarwal@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543219', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PA' } })
-  const t11 = await prisma.user.create({ data: { name: 'Rahul Tiwari', email: 'rahul.tiwari@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543220', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RT' } })
-  const t12 = await prisma.user.create({ data: { name: 'Divya Menon', email: 'divya.menon@gmail.com', passwordHash, role: 'TRAVELER', phone: '+919876543221', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DM' } })
+  const t1 = await upsertUser('amit.kulkarni@gmail.com', { name: 'Amit Kulkarni', passwordHash, role: 'TRAVELER', phone: '+919876543210', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AK' })
+  const t2 = await upsertUser('sneha.deshmukh@gmail.com', { name: 'Sneha Deshmukh', passwordHash, role: 'TRAVELER', phone: '+919876543211', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SD' })
+  const t3 = await upsertUser('rohan.joshi@gmail.com', { name: 'Rohan Joshi', passwordHash, role: 'TRAVELER', phone: '+919876543212', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RJ' })
+  const t4 = await upsertUser('kavita.reddy@gmail.com', { name: 'Kavita Reddy', passwordHash, role: 'TRAVELER', phone: '+919876543213', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KR' })
+  const t5 = await upsertUser('saurabh.patil@gmail.com', { name: 'Saurabh Patil', passwordHash, role: 'TRAVELER', phone: '+919876543214', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SP' })
+  const t6 = await upsertUser('ananya.iyer@gmail.com', { name: 'Ananya Iyer', passwordHash, role: 'TRAVELER', phone: '+919876543215', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AI' })
+  const t7 = await upsertUser('karan.singh@gmail.com', { name: 'Karan Singh', passwordHash, role: 'TRAVELER', phone: '+919876543216', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KS' })
+  const t8 = await upsertUser('meera.bhat@gmail.com', { name: 'Meera Bhat', passwordHash, role: 'TRAVELER', phone: '+919876543217', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=MB' })
+  const t9 = await upsertUser('nikhil.verma@gmail.com', { name: 'Nikhil Verma', passwordHash, role: 'TRAVELER', phone: '+919876543218', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=NV' })
+  const t10 = await upsertUser('pooja.agarwal@gmail.com', { name: 'Pooja Agarwal', passwordHash, role: 'TRAVELER', phone: '+919876543219', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=PA' })
+  const t11 = await upsertUser('rahul.tiwari@gmail.com', { name: 'Rahul Tiwari', passwordHash, role: 'TRAVELER', phone: '+919876543220', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=RT' })
+  const t12 = await upsertUser('divya.menon@gmail.com', { name: 'Divya Menon', passwordHash, role: 'TRAVELER', phone: '+919876543221', emailVerified: true, phoneVerified: true, avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=DM' })
 
   // 38 additional travelers for realistic variety (total 50)
   const EXTRA_TRAVELER_NAMES = [
@@ -101,13 +124,11 @@ async function main() {
     const name = EXTRA_TRAVELER_NAMES[i]
     const slug = name.toLowerCase().replace(' ', '.')
     const initials = name.split(' ').map(n => n[0]).join('')
-    const t = await prisma.user.create({
-      data: {
-        name, email: `${slug}@gmail.com`, passwordHash, role: 'TRAVELER',
-        phone: `+9198765${String(43222 + i).padStart(5, '0')}`,
-        emailVerified: true, phoneVerified: i % 3 === 0,
-        avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${initials}`,
-      },
+    const t = await upsertUser(`${slug}@gmail.com`, {
+      name, passwordHash, role: 'TRAVELER',
+      phone: `+9198765${String(43222 + i).padStart(5, '0')}`,
+      emailVerified: true, phoneVerified: i % 3 === 0,
+      avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${initials}`,
     })
     extraTravelers.push(t)
   }
@@ -118,37 +139,37 @@ async function main() {
   // ── ORGANIZER PROFILES ────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const org1 = await prisma.organizerProfile.create({ data: { userId: org1User.id, businessName: 'Desi Explorers', slug: 'desi-explorers', description: 'India\'s #1 rated group travel community for young travelers — trusted by 15,000+ explorers (mostly 20s-30s) since 2018. Curated group trips from Pune and Mumbai to 40+ destinations: Goa beach parties, Himalayan adventure treks, Rajasthan heritage tours, and Andaman island getaways. Travel solo, leave with a squad — our groups are designed for people in their 20s and 30s who want to meet like-minded travelers. IATO certified, travel insurance included, all-inclusive packages. Perfect for your first salary trip, couples getaway, college reunion, or solo adventure.', verificationStatus: 'APPROVED', rating: 4.7, totalReviews: 86, totalTripsCompleted: 62, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_HjVXtlV9LdABJ0' } })
-  const org2 = await prisma.organizerProfile.create({ data: { userId: org2User.id, businessName: 'Summit & Shore Travels', slug: 'summit-shore-travels', description: 'Bangalore\'s favourite group travel company for young professionals, techies, and solo travelers in their 20s. Curated weekend getaways from Bangalore to Coorg, Hampi, and Gokarna \u2014 perfect Friday-to-Monday escapes. Pan-India adventure trips to Ladakh, Spiti, Meghalaya, and Andaman. Small groups (max 18) where you actually make real friends, not just travel buddies. 5+ years, 10,000+ travelers. Highest safety rating for solo female travelers. Come alone, leave with your new travel squad.', verificationStatus: 'APPROVED', rating: 4.5, totalReviews: 54, totalTripsCompleted: 38, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Kp3mNqR8WsYZ2x' } })
-  const org3 = await prisma.organizerProfile.create({ data: { userId: org3User.id, businessName: 'Nomad Trails India', slug: 'nomad-trails-india', description: 'Handcrafted cultural experiences that make your Instagram pop — Rajasthan palace walks, Jaipur food trails, Varanasi spiritual journeys, Meghalaya root bridge treks, and Hampi archaeology expeditions. Think beyond basic tourist spots: we take you to the real India with expert local guides, boutique stays, and authentic street food crawls. 5+ years, 8,000+ travelers (mostly Gen Z and young couples). Group tour packages from Delhi, Mumbai, and Bangalore for curious minds, photographers, and anyone who wants travel that goes deeper than surface level.', verificationStatus: 'APPROVED', rating: 4.4, totalReviews: 42, totalTripsCompleted: 28, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Tn7vBcD4FgHJ1k' } })
-  const org4 = await prisma.organizerProfile.create({ data: { userId: org4User.id, businessName: 'Backpack Bharat', slug: 'backpack-bharat', description: 'India\'s top-rated budget group travel brand — epic adventures under ₹10,000 that won\'t break a student budget. Weekend treks near Pune, budget Goa trips under ₹5,000, Rishikesh rafting from Delhi (₹2,999!), and Coorg getaways from Bangalore. Hostel vibes, local street food, bonfire nights, and maximum adventure at minimum cost. Built for college students spending their first pocket money on travel, freshers celebrating their first salary, and anyone who believes epic experiences don\'t need a fat wallet. Age group: mostly 18-28.', verificationStatus: 'APPROVED', rating: 4.3, totalReviews: 38, totalTripsCompleted: 24, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Lm9wXeF2QrST5n' } })
-  await prisma.organizerProfile.create({ data: { userId: org5User.id, businessName: 'Sahyadri Adventures Club', slug: 'sahyadri-adventures-club', description: 'Pune\'s premier Western Ghats trekking and camping community. Weekend monsoon treks to Rajmachi Fort, Harishchandragad, Kalsubai Peak, and Sahyadri ridge walks. Pawna Lake camping and Lonavala fort circuits every weekend. Certified mountaineering guides with wilderness first-aid training.', verificationStatus: 'PENDING', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 } })
-  await prisma.organizerProfile.create({ data: { userId: org6User.id, businessName: 'Budget Trails India', slug: 'budget-trails-india', description: 'Student-focused budget travel packages across India — college trip specials to Goa, Manali, and Rishikesh starting at ₹2,999 per person. Group discounts for 10+ students with hostel stays and adventure activities included.', verificationStatus: 'REJECTED', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 } })
-  const org7 = await prisma.organizerProfile.create({ data: { userId: org7User.id, businessName: 'She Travels India', slug: 'she-travels-india', description: 'India\'s first women-only group travel company — safe, empowering, and Instagram-worthy trips designed exclusively for women in their 20s and 30s. Solo female travel packages to Ladakh, Rajasthan, Kerala, Meghalaya, and Goa. Women-led guides, women-only stays, and experiences curated by women for women. 3+ years, 4,000+ happy travelers. Come solo, leave with a girl gang. Perfect for your first solo trip, bestie getaway, bachelorette trip, or just because you deserve an adventure. 24/7 safety support — your parents can relax.', verificationStatus: 'APPROVED', rating: 4.8, totalReviews: 32, totalTripsCompleted: 18, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Wx5yKnL7PqRS9m' } })
-  const org8 = await prisma.organizerProfile.create({ data: { userId: org8User.id, businessName: 'Corporate Escapes India', slug: 'corporate-escapes-india', description: 'India\'s go-to corporate offsite and team building travel company \u2014 because your startup team deserves better than another Zoom call. Curated team outing packages from Pune, Mumbai, Delhi, and Bangalore to Goa, Coorg, Lonavala, Rishikesh, and Udaipur. Adventure-first team building, NOT boring conference rooms. Trusted by 50+ startups and tech companies. Custom itineraries for 10-100 people, GST invoicing, and dedicated event managers. Average team age on our trips: 26.', verificationStatus: 'APPROVED', rating: 4.6, totalReviews: 28, totalTripsCompleted: 22, bankAccountLinked: true, commissionRate: 8.0, razorpayAccountId: 'acc_Yz8tBmH3NqFW4k' } })
+  const org1 = await upsertOrgProfile(org1User.id, { businessName: 'Desi Explorers', slug: 'desi-explorers', description: 'India\'s #1 rated group travel community for young travelers — trusted by 15,000+ explorers (mostly 20s-30s) since 2018. Curated group trips from Pune and Mumbai to 40+ destinations: Goa beach parties, Himalayan adventure treks, Rajasthan heritage tours, and Andaman island getaways. Travel solo, leave with a squad — our groups are designed for people in their 20s and 30s who want to meet like-minded travelers. IATO certified, travel insurance included, all-inclusive packages. Perfect for your first salary trip, couples getaway, college reunion, or solo adventure.', verificationStatus: 'APPROVED', rating: 4.7, totalReviews: 86, totalTripsCompleted: 62, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_HjVXtlV9LdABJ0' })
+  const org2 = await upsertOrgProfile(org2User.id, { businessName: 'Summit & Shore Travels', slug: 'summit-shore-travels', description: 'Bangalore\'s favourite group travel company for young professionals, techies, and solo travelers in their 20s. Curated weekend getaways from Bangalore to Coorg, Hampi, and Gokarna \u2014 perfect Friday-to-Monday escapes. Pan-India adventure trips to Ladakh, Spiti, Meghalaya, and Andaman. Small groups (max 18) where you actually make real friends, not just travel buddies. 5+ years, 10,000+ travelers. Highest safety rating for solo female travelers. Come alone, leave with your new travel squad.', verificationStatus: 'APPROVED', rating: 4.5, totalReviews: 54, totalTripsCompleted: 38, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Kp3mNqR8WsYZ2x' })
+  const org3 = await upsertOrgProfile(org3User.id, { businessName: 'Nomad Trails India', slug: 'nomad-trails-india', description: 'Handcrafted cultural experiences that make your Instagram pop — Rajasthan palace walks, Jaipur food trails, Varanasi spiritual journeys, Meghalaya root bridge treks, and Hampi archaeology expeditions. Think beyond basic tourist spots: we take you to the real India with expert local guides, boutique stays, and authentic street food crawls. 5+ years, 8,000+ travelers (mostly Gen Z and young couples). Group tour packages from Delhi, Mumbai, and Bangalore for curious minds, photographers, and anyone who wants travel that goes deeper than surface level.', verificationStatus: 'APPROVED', rating: 4.4, totalReviews: 42, totalTripsCompleted: 28, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Tn7vBcD4FgHJ1k' })
+  const org4 = await upsertOrgProfile(org4User.id, { businessName: 'Backpack Bharat', slug: 'backpack-bharat', description: 'India\'s top-rated budget group travel brand — epic adventures under ₹10,000 that won\'t break a student budget. Weekend treks near Pune, budget Goa trips under ₹5,000, Rishikesh rafting from Delhi (₹2,999!), and Coorg getaways from Bangalore. Hostel vibes, local street food, bonfire nights, and maximum adventure at minimum cost. Built for college students spending their first pocket money on travel, freshers celebrating their first salary, and anyone who believes epic experiences don\'t need a fat wallet. Age group: mostly 18-28.', verificationStatus: 'APPROVED', rating: 4.3, totalReviews: 38, totalTripsCompleted: 24, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Lm9wXeF2QrST5n' })
+  await upsertOrgProfile(org5User.id, { businessName: 'Sahyadri Adventures Club', slug: 'sahyadri-adventures-club', description: 'Pune\'s premier Western Ghats trekking and camping community. Weekend monsoon treks to Rajmachi Fort, Harishchandragad, Kalsubai Peak, and Sahyadri ridge walks. Pawna Lake camping and Lonavala fort circuits every weekend. Certified mountaineering guides with wilderness first-aid training.', verificationStatus: 'PENDING', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 })
+  await upsertOrgProfile(org6User.id, { businessName: 'Budget Trails India', slug: 'budget-trails-india', description: 'Student-focused budget travel packages across India — college trip specials to Goa, Manali, and Rishikesh starting at ₹2,999 per person. Group discounts for 10+ students with hostel stays and adventure activities included.', verificationStatus: 'REJECTED', rating: 0, totalReviews: 0, totalTripsCompleted: 0, bankAccountLinked: false, commissionRate: 10.0 })
+  const org7 = await upsertOrgProfile(org7User.id, { businessName: 'She Travels India', slug: 'she-travels-india', description: 'India\'s first women-only group travel company — safe, empowering, and Instagram-worthy trips designed exclusively for women in their 20s and 30s. Solo female travel packages to Ladakh, Rajasthan, Kerala, Meghalaya, and Goa. Women-led guides, women-only stays, and experiences curated by women for women. 3+ years, 4,000+ happy travelers. Come solo, leave with a girl gang. Perfect for your first solo trip, bestie getaway, bachelorette trip, or just because you deserve an adventure. 24/7 safety support — your parents can relax.', verificationStatus: 'APPROVED', rating: 4.8, totalReviews: 32, totalTripsCompleted: 18, bankAccountLinked: true, commissionRate: 10.0, razorpayAccountId: 'acc_Wx5yKnL7PqRS9m' })
+  const org8 = await upsertOrgProfile(org8User.id, { businessName: 'Corporate Escapes India', slug: 'corporate-escapes-india', description: 'India\'s go-to corporate offsite and team building travel company \u2014 because your startup team deserves better than another Zoom call. Curated team outing packages from Pune, Mumbai, Delhi, and Bangalore to Goa, Coorg, Lonavala, Rishikesh, and Udaipur. Adventure-first team building, NOT boring conference rooms. Trusted by 50+ startups and tech companies. Custom itineraries for 10-100 people, GST invoicing, and dedicated event managers. Average team age on our trips: 26.', verificationStatus: 'APPROVED', rating: 4.6, totalReviews: 28, totalTripsCompleted: 22, bankAccountLinked: true, commissionRate: 8.0, razorpayAccountId: 'acc_Yz8tBmH3NqFW4k' })
   console.log('  ✓ Created 8 organizer profiles (6 APPROVED, 1 PENDING, 1 REJECTED)')
 
   // ══════════════════════════════════════════════════════
   // ── DESTINATIONS ──────────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const goa = await prisma.destination.create({ data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', description: 'India\'s #1 party and beach destination — every college student\'s first trip and every young couple\'s favourite escape. North Goa buzzes with beach parties at Baga, Anjuna flea market, and Calangute nightlife. South Goa offers Instagram-worthy shores at Palolem, Agonda, and Cola Beach. Dudhsagar waterfalls, Fontainhas Latin Quarter, and water sports galore. The vibe is unmatched: sunsets, bonfires, new friends, and memories that become your best stories. Group trip packages from Pune (6 hrs), Mumbai (10 hrs), and Bangalore starting at ₹3,999. Best time: October to March.' } })
-  const manali = await prisma.destination.create({ data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800', description: 'Every young Indian\'s dream destination — snow-capped peaks, Solang Valley paragliding that\'ll make your reels go viral, and Old Manali cafe culture that feels like a different country. River rafting on the Beas, Atal Tunnel road trips, Vashisht hot springs after a cold trek, and cherry blossom season (Mar-Apr) for couples. The Volvo night bus from Delhi is practically a rite of passage for every 20-something. Group trip packages from Delhi (12 hrs) starting at ₹6,999. Best time: year-round.' } })
-  const ladakh = await prisma.destination.create({ data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'The ultimate bucket-list road trip for every young Indian — if you haven\'t dreamed of biking Manali to Leh, are you even in your 20s? Dramatic lunar landscapes, the iconic Pangong Tso lake (3 Idiots fame), Nubra Valley sand dunes, Khardung La selfie at 18,380 ft, and ancient Buddhist monasteries. Whether you ride a Royal Enfield or go by SUV, this trip changes you. Group packages starting at ₹14,999 with bike rental options. Best time: June to September.' } })
-  const rishikesh = await prisma.destination.create({ data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800', description: 'The adrenaline capital of India and the cheapest adventure trip from Delhi (just 5 hrs!). 16 km white-water rafting for ₹2,999, India\'s highest bungee jump (83m at Jumpin Heights), cliff jumping into the Ganges, and riverside camping with bonfire nights. Also the yoga capital of the world with ashrams and the mesmerizing Ganga Aarti. The ultimate weekend escape for college students, young couples, and friend groups. Most bookings are 20-30 year olds travelling in groups of 4-8. Best time: September to June.' } })
-  const jaipur = await prisma.destination.create({ data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800', description: 'The Pink City of Rajasthan — a royal blend of UNESCO-worthy forts, vibrant bazaars, and legendary Rajasthani cuisine. Explore Amber Fort by elephant ride, photograph Hawa Mahal\'s honeycomb facade, shop at Johari Bazaar, and savour dal baati churma at Chokhi Dhani. Hot-air balloon rides, block printing workshops, and camel safaris. Heritage trip packages from Delhi (5 hrs) starting at ₹5,999. Best time to visit: October to March.' } })
-  const kasol = await prisma.destination.create({ data: { name: 'Kasol', slug: 'kasol', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'India\'s backpacker capital and Gen Z\'s favourite mountain escape — if you know, you know. Pine forest treks to Kheerganga hot springs (12 km), riverside Israeli cafes where time stops, Tosh village camping with mountain views, and the legendary Malana trail. The vibe is unmatched: cheap stays, great food, bonfire jam sessions, and strangers who become friends. Budget trip packages from Delhi starting at ₹3,999. Best time: March to June and September to November.' } })
-  const udaipur = await prisma.destination.create({ data: { name: 'Udaipur', slug: 'udaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800', description: 'India\'s most romantic city and the #1 couples destination — floating lake palaces, sunset boat rides on Lake Pichola that make your partner fall in love all over again, the majestic City Palace, and old-world Rajasthani charm. Perfect for anniversary trips, pre-wedding photoshoots, and young couples who want luxury without burning their savings. Nearby Kumbhalgarh Fort and Mount Abu hill station. Group trip packages starting at ₹8,499. Best time: September to March.' } })
-  const meghalaya = await prisma.destination.create({ data: { name: 'Meghalaya', slug: 'meghalaya', state: 'Meghalaya', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1598091383021-15ddea10925d?w=800', description: 'The offbeat flex every young traveler wants on their feed — double-decker living root bridges (3,500-step trek), the crystal-clear Dawki river where boats look like they\'re floating in air (yes, that viral reel is real), Asia\'s cleanest village Mawlynnong, and Shillong\'s Scotland-like cafe culture. If you\'ve done Goa and Manali and want something different, Meghalaya is your answer. Group adventure packages from Guwahati starting at ₹11,999. Best time: October to May.' } })
-  const hampi = await prisma.destination.create({ data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800', description: 'India\'s most Instagrammable ruins and the ultimate backpacker flex — surreal boulder landscapes, 500-year-old Vijayanagara Empire ruins, Hippie Island cafe culture (the vibe is *chef\'s kiss*), coracle rides on the Tungabhadra, and Matanga Hill sunrise that\'ll blow your mind. World-class bouldering, the iconic Stone Chariot, and nights spent in riverside cafes with people from around the world. Budget backpacker packages from Bangalore (6 hrs) starting at ₹2,999. Popular with college students and young creatives. Best time: October to February.' } })
-  const lonavala = await prisma.destination.create({ data: { name: 'Lonavala', slug: 'lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800', description: 'The go-to weekend escape for Pune and Mumbai youngsters — literally 1.5 hrs from Pune! Pawna Lake camping with bonfire, guitars, and stargazing is basically a rite of passage for every college student. Monsoon waterfalls at Bhushi Dam, fort treks (Rajmachi, Lohagad, Tikona), waterfall rappelling, and firefly treks in June that look straight out of a fairy tale. Weekend packages starting at ₹999 — the cheapest adventure you can have. Best time for monsoon treks: June to September.' } })
-  const spiti = await prisma.destination.create({ data: { name: 'Spiti Valley', slug: 'spiti-valley', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'India\'s cold desert mountain valley and the ultimate high-altitude road trip — stark lunar landscapes, 1,000-year-old Key and Tabo monasteries, the world\'s highest post office at Hikkim (4,400m), and the pristine Chandratal Moon Lake. Spiti circuit from Manali to Shimla via Kunzum La and Kinnaur Valley. Winter snow leopard tracking in Kibber. Group expedition packages starting at ₹14,999. Best time: June to October (roads open).' } })
-  const coorg = await prisma.destination.create({ data: { name: 'Coorg', slug: 'coorg', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', description: 'The Scotland of India and Karnataka\'s coffee country paradise — misty hills with 200-year-old coffee plantations, Abbey Falls, Dubare Elephant Camp, and the Namdroling Tibetan Golden Temple. Summit Tadiandamol (1,748m), Coorg\'s highest peak. Barapole river rafting (Grade III) in monsoon and authentic Kodava cuisine. Perfect weekend escape from Bangalore (5 hrs). Plantation homestay packages starting at ₹3,499. Best time to visit: October to March.' } })
-  const varanasi = await prisma.destination.create({ data: { name: 'Varanasi', slug: 'varanasi', state: 'Uttar Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800', description: 'One of the world\'s oldest continuously inhabited cities and India\'s spiritual capital. The legendary Ganga Aarti at Dashashwamedh Ghat, sunrise boat rides on the Ganges, 2,000-year-old temples, silk weaving heritage, and iconic street food trails through Kachori Gali. Visit Sarnath where Buddha gave his first sermon. The Dev Deepawali festival lights up every ghat with a million diyas. Spiritual and cultural packages starting at ₹5,499.' } })
-  const andaman = await prisma.destination.create({ data: { name: 'Andaman Islands', slug: 'andaman', state: 'Andaman & Nicobar', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', description: 'India\'s tropical island paradise in the Bay of Bengal — turquoise crystal-clear waters, pristine white-sand beaches, and Asia\'s best scuba diving. Havelock Island\'s Radhanagar Beach (rated Asia\'s best), Elephant Beach snorkeling, bioluminescent kayaking at night, and PADI certification courses. Neil Island cycling, Cellular Jail heritage, and glass-bottom boat coral viewing. Honeymoon packages, scuba courses, and island-hopping trips starting at ₹14,499. Best time: November to May.' } })
-  const dharamshala = await prisma.destination.create({ data: { name: 'Dharamshala', slug: 'dharamshala', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'McLeod Ganj — the backpacker and digital nomad hub of Himachal. Tibetan momos that change your life, Triund trek with Dhauladhar mountain views (one of India\'s most Instagrammed treks), Bhagsunag waterfall chill sessions, and cafe-hopping in McLeod Ganj\'s narrow lanes. Home of the Dalai Lama with spiritual monastery visits and mountain yoga. Perfect for solo travelers, couples, and anyone who needs a mountain recharge. Weekend trip packages from Delhi (10 hrs) starting at ₹4,999. Best time: March to June and September to November.' } })
-  const ooty = await prisma.destination.create({ data: { name: 'Ooty', slug: 'ooty', state: 'Tamil Nadu', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', description: 'South India\'s favourite hill station and the go-to romantic escape for Bangalore couples — ride the UNESCO toy train through misty mountains, walk through Coonoor tea plantations, catch sunrise at Doddabetta Peak, and cozy up in colonial-era cafes. Ooty Lake boating, Pykara waterfalls, and Mudumalai Tiger Reserve safari. Just 5 hrs from Bangalore — perfect for a long weekend with your partner or friend group. Hill station packages starting at ₹4,499. Best time: October to June.' } })
-  const rannOfKutch = await prisma.destination.create({ data: { name: 'Rann of Kutch', slug: 'rann-of-kutch', state: 'Gujarat', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', description: 'India\'s surreal white salt desert — the Great Rann of Kutch stretches endlessly under full moon nights. Experience the vibrant Rann Utsav cultural festival (Nov-Feb), Kutchi handicraft villages, Banni grasslands wildlife, Dholavira archaeological site (Indus Valley Civilization), and the India-Pakistan border viewpoint at Kala Dungar. One of the most unique landscapes on Earth. Festival packages from Ahmedabad starting at ₹6,999. Best time: November to February.' } })
+  const goa = await upsertDestination('goa', { name: 'Goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', description: 'India\'s #1 party and beach destination — every college student\'s first trip and every young couple\'s favourite escape. North Goa buzzes with beach parties at Baga, Anjuna flea market, and Calangute nightlife. South Goa offers Instagram-worthy shores at Palolem, Agonda, and Cola Beach. Dudhsagar waterfalls, Fontainhas Latin Quarter, and water sports galore. The vibe is unmatched: sunsets, bonfires, new friends, and memories that become your best stories. Group trip packages from Pune (6 hrs), Mumbai (10 hrs), and Bangalore starting at ₹3,999. Best time: October to March.' })
+  const manali = await upsertDestination('manali', { name: 'Manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800', description: 'Every young Indian\'s dream destination — snow-capped peaks, Solang Valley paragliding that\'ll make your reels go viral, and Old Manali cafe culture that feels like a different country. River rafting on the Beas, Atal Tunnel road trips, Vashisht hot springs after a cold trek, and cherry blossom season (Mar-Apr) for couples. The Volvo night bus from Delhi is practically a rite of passage for every 20-something. Group trip packages from Delhi (12 hrs) starting at ₹6,999. Best time: year-round.' })
+  const ladakh = await upsertDestination('ladakh', { name: 'Ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'The ultimate bucket-list road trip for every young Indian — if you haven\'t dreamed of biking Manali to Leh, are you even in your 20s? Dramatic lunar landscapes, the iconic Pangong Tso lake (3 Idiots fame), Nubra Valley sand dunes, Khardung La selfie at 18,380 ft, and ancient Buddhist monasteries. Whether you ride a Royal Enfield or go by SUV, this trip changes you. Group packages starting at ₹14,999 with bike rental options. Best time: June to September.' })
+  const rishikesh = await upsertDestination('rishikesh', { name: 'Rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800', description: 'The adrenaline capital of India and the cheapest adventure trip from Delhi (just 5 hrs!). 16 km white-water rafting for ₹2,999, India\'s highest bungee jump (83m at Jumpin Heights), cliff jumping into the Ganges, and riverside camping with bonfire nights. Also the yoga capital of the world with ashrams and the mesmerizing Ganga Aarti. The ultimate weekend escape for college students, young couples, and friend groups. Most bookings are 20-30 year olds travelling in groups of 4-8. Best time: September to June.' })
+  const jaipur = await upsertDestination('jaipur', { name: 'Jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800', description: 'The Pink City of Rajasthan — a royal blend of UNESCO-worthy forts, vibrant bazaars, and legendary Rajasthani cuisine. Explore Amber Fort by elephant ride, photograph Hawa Mahal\'s honeycomb facade, shop at Johari Bazaar, and savour dal baati churma at Chokhi Dhani. Hot-air balloon rides, block printing workshops, and camel safaris. Heritage trip packages from Delhi (5 hrs) starting at ₹5,999. Best time to visit: October to March.' })
+  const kasol = await upsertDestination('kasol', { name: 'Kasol', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'India\'s backpacker capital and Gen Z\'s favourite mountain escape — if you know, you know. Pine forest treks to Kheerganga hot springs (12 km), riverside Israeli cafes where time stops, Tosh village camping with mountain views, and the legendary Malana trail. The vibe is unmatched: cheap stays, great food, bonfire jam sessions, and strangers who become friends. Budget trip packages from Delhi starting at ₹3,999. Best time: March to June and September to November.' })
+  const udaipur = await upsertDestination('udaipur', { name: 'Udaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800', description: 'India\'s most romantic city and the #1 couples destination — floating lake palaces, sunset boat rides on Lake Pichola that make your partner fall in love all over again, the majestic City Palace, and old-world Rajasthani charm. Perfect for anniversary trips, pre-wedding photoshoots, and young couples who want luxury without burning their savings. Nearby Kumbhalgarh Fort and Mount Abu hill station. Group trip packages starting at ₹8,499. Best time: September to March.' })
+  const meghalaya = await upsertDestination('meghalaya', { name: 'Meghalaya', state: 'Meghalaya', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1598091383021-15ddea10925d?w=800', description: 'The offbeat flex every young traveler wants on their feed — double-decker living root bridges (3,500-step trek), the crystal-clear Dawki river where boats look like they\'re floating in air (yes, that viral reel is real), Asia\'s cleanest village Mawlynnong, and Shillong\'s Scotland-like cafe culture. If you\'ve done Goa and Manali and want something different, Meghalaya is your answer. Group adventure packages from Guwahati starting at ₹11,999. Best time: October to May.' })
+  const hampi = await upsertDestination('hampi', { name: 'Hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800', description: 'India\'s most Instagrammable ruins and the ultimate backpacker flex — surreal boulder landscapes, 500-year-old Vijayanagara Empire ruins, Hippie Island cafe culture (the vibe is *chef\'s kiss*), coracle rides on the Tungabhadra, and Matanga Hill sunrise that\'ll blow your mind. World-class bouldering, the iconic Stone Chariot, and nights spent in riverside cafes with people from around the world. Budget backpacker packages from Bangalore (6 hrs) starting at ₹2,999. Popular with college students and young creatives. Best time: October to February.' })
+  const lonavala = await upsertDestination('lonavala', { name: 'Lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800', description: 'The go-to weekend escape for Pune and Mumbai youngsters — literally 1.5 hrs from Pune! Pawna Lake camping with bonfire, guitars, and stargazing is basically a rite of passage for every college student. Monsoon waterfalls at Bhushi Dam, fort treks (Rajmachi, Lohagad, Tikona), waterfall rappelling, and firefly treks in June that look straight out of a fairy tale. Weekend packages starting at ₹999 — the cheapest adventure you can have. Best time for monsoon treks: June to September.' })
+  const spiti = await upsertDestination('spiti-valley', { name: 'Spiti Valley', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'India\'s cold desert mountain valley and the ultimate high-altitude road trip — stark lunar landscapes, 1,000-year-old Key and Tabo monasteries, the world\'s highest post office at Hikkim (4,400m), and the pristine Chandratal Moon Lake. Spiti circuit from Manali to Shimla via Kunzum La and Kinnaur Valley. Winter snow leopard tracking in Kibber. Group expedition packages starting at ₹14,999. Best time: June to October (roads open).' })
+  const coorg = await upsertDestination('coorg', { name: 'Coorg', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', description: 'The Scotland of India and Karnataka\'s coffee country paradise — misty hills with 200-year-old coffee plantations, Abbey Falls, Dubare Elephant Camp, and the Namdroling Tibetan Golden Temple. Summit Tadiandamol (1,748m), Coorg\'s highest peak. Barapole river rafting (Grade III) in monsoon and authentic Kodava cuisine. Perfect weekend escape from Bangalore (5 hrs). Plantation homestay packages starting at ₹3,499. Best time to visit: October to March.' })
+  const varanasi = await upsertDestination('varanasi', { name: 'Varanasi', state: 'Uttar Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800', description: 'One of the world\'s oldest continuously inhabited cities and India\'s spiritual capital. The legendary Ganga Aarti at Dashashwamedh Ghat, sunrise boat rides on the Ganges, 2,000-year-old temples, silk weaving heritage, and iconic street food trails through Kachori Gali. Visit Sarnath where Buddha gave his first sermon. The Dev Deepawali festival lights up every ghat with a million diyas. Spiritual and cultural packages starting at ₹5,499.' })
+  const andaman = await upsertDestination('andaman', { name: 'Andaman Islands', state: 'Andaman & Nicobar', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', description: 'India\'s tropical island paradise in the Bay of Bengal — turquoise crystal-clear waters, pristine white-sand beaches, and Asia\'s best scuba diving. Havelock Island\'s Radhanagar Beach (rated Asia\'s best), Elephant Beach snorkeling, bioluminescent kayaking at night, and PADI certification courses. Neil Island cycling, Cellular Jail heritage, and glass-bottom boat coral viewing. Honeymoon packages, scuba courses, and island-hopping trips starting at ₹14,499. Best time: November to May.' })
+  const dharamshala = await upsertDestination('dharamshala', { name: 'Dharamshala', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800', description: 'McLeod Ganj — the backpacker and digital nomad hub of Himachal. Tibetan momos that change your life, Triund trek with Dhauladhar mountain views (one of India\'s most Instagrammed treks), Bhagsunag waterfall chill sessions, and cafe-hopping in McLeod Ganj\'s narrow lanes. Home of the Dalai Lama with spiritual monastery visits and mountain yoga. Perfect for solo travelers, couples, and anyone who needs a mountain recharge. Weekend trip packages from Delhi (10 hrs) starting at ₹4,999. Best time: March to June and September to November.' })
+  const ooty = await upsertDestination('ooty', { name: 'Ooty', state: 'Tamil Nadu', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', description: 'South India\'s favourite hill station and the go-to romantic escape for Bangalore couples — ride the UNESCO toy train through misty mountains, walk through Coonoor tea plantations, catch sunrise at Doddabetta Peak, and cozy up in colonial-era cafes. Ooty Lake boating, Pykara waterfalls, and Mudumalai Tiger Reserve safari. Just 5 hrs from Bangalore — perfect for a long weekend with your partner or friend group. Hill station packages starting at ₹4,499. Best time: October to June.' })
+  const rannOfKutch = await upsertDestination('rann-of-kutch', { name: 'Rann of Kutch', state: 'Gujarat', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', description: 'India\'s surreal white salt desert — the Great Rann of Kutch stretches endlessly under full moon nights. Experience the vibrant Rann Utsav cultural festival (Nov-Feb), Kutchi handicraft villages, Banni grasslands wildlife, Dholavira archaeological site (Indus Valley Civilization), and the India-Pakistan border viewpoint at Kala Dungar. One of the most unique landscapes on Earth. Festival packages from Ahmedabad starting at ₹6,999. Best time: November to February.' })
   console.log('  ✓ Created 17 destinations')
 
   // ══════════════════════════════════════════════════════
@@ -193,6 +214,12 @@ async function main() {
 
   await seedNotifications(admin.id, org1User.id, t1.id)
 
+  await seedTripCategoriesAndRequests({
+    org1, org2, org3, org4, org7, org8,
+    org1User, org2User, org3User, org4User, org7User, org8User,
+    completedTrips, upcomingTrips,
+  })
+
   // ── Recalculate destination tripCount from actual ACTIVE/FULL trips ──
   await prisma.$executeRaw`
     UPDATE "Destination" d
@@ -222,10 +249,9 @@ async function main() {
 async function seedCompletedTrips(deps: Record<string, { id: string }>) {
   const { org1, org2, org3, org4, goa, manali, ladakh, rishikesh, jaipur, hampi, lonavala, meghalaya } = deps
 
-  const tripC1 = await prisma.trip.create({
-    data: {
+  const tripC1 = await upsertTrip('goa-beach-carnival-jan-2026', {
       organizerId: org1.id, destinationId: goa.id,
-      title: 'Goa Beach Carnival — 3N/4D Fun Escape', slug: 'goa-beach-carnival-jan-2026',
+      title: 'Goa Beach Carnival — 3N/4D Fun Escape',
       tripType: 'BEACH', bookingMode: 'INSTANT',
       description: 'Kick off 2026 with the ultimate Goa experience! North Goa beaches, thrilling water sports, vibrant nightlife, and the freshest seafood. Stay at a beachfront resort in Calangute and explore hidden gems beyond the usual tourist trail. Perfect for friend groups and solo travelers looking to start the year right.',
       itinerary: [
@@ -242,17 +268,14 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '8:00 PM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '8:45 PM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '8:00 PM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '8:45 PM', sortOrder: 1 },
+    ])
 
-  const tripC2 = await prisma.trip.create({
-    data: {
+  const tripC2 = await upsertTrip('manali-snow-adventure-feb-2026', {
       organizerId: org2.id, destinationId: manali.id,
-      title: 'Manali Snow Adventure — 4N/5D Winter Special', slug: 'manali-snow-adventure-feb-2026',
+      title: 'Manali Snow Adventure — 4N/5D Winter Special',
       tripType: 'ADVENTURE', bookingMode: 'INSTANT',
       description: 'Experience Manali in peak winter! Fresh snowfall at Solang Valley, skiing, snowboarding, and cozy bonfire nights in Old Manali. Stay at a charming wooden cottage with mountain views. Perfect for first-time snow lovers and adventure seekers.',
       itinerary: [
@@ -270,16 +293,13 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', address: 'ISBT Kashmere Gate', time: '6:00 PM', sortOrder: 0 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', address: 'ISBT Kashmere Gate', time: '6:00 PM', sortOrder: 0 },
+    ])
 
-  const tripC3 = await prisma.trip.create({
-    data: {
+  const tripC3 = await upsertTrip('rishikesh-rafting-camping-feb-2026', {
       organizerId: org1.id, destinationId: rishikesh.id,
-      title: 'Rishikesh White Water Rafting & Camping Weekend', slug: 'rishikesh-rafting-camping-feb-2026',
+      title: 'Rishikesh White Water Rafting & Camping Weekend',
       tripType: 'ADVENTURE', bookingMode: 'INSTANT',
       description: '16 km of Grade III-IV rapids on the Ganges! Riverside camping under the stars, cliff jumping, and a magical Ganga Aarti. This 2-day itinerary packs maximum adventure into a weekend. Perfect for groups from Delhi/NCR.',
       itinerary: [
@@ -294,16 +314,13 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'FLEXIBLE',
       photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '5:30 AM', sortOrder: 0 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '5:30 AM', sortOrder: 0 },
+    ])
 
-  const tripC4 = await prisma.trip.create({
-    data: {
+  const tripC4 = await upsertTrip('jaipur-heritage-experience-mar-2026', {
       organizerId: org3.id, destinationId: jaipur.id,
-      title: 'Jaipur Royal Heritage Experience — 2N/3D', slug: 'jaipur-heritage-experience-mar-2026',
+      title: 'Jaipur Royal Heritage Experience — 2N/3D',
       tripType: 'CULTURAL', bookingMode: 'INSTANT',
       description: 'Step into the Pink City! Amber Fort, Hawa Mahal, City Palace, and Nahargarh Fort with authentic Rajasthani cuisine, block printing workshops, and Johari Bazaar. Stay at a heritage haveli and dine like maharajas.',
       itinerary: [
@@ -319,17 +336,14 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
-        { type: 'DROP', label: 'Jaipur Junction Railway Station', time: '3:00 PM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
+      { type: 'DROP', label: 'Jaipur Junction Railway Station', time: '3:00 PM', sortOrder: 1 },
+    ])
 
-  const tripC5 = await prisma.trip.create({
-    data: {
+  const tripC5 = await upsertTrip('ladakh-bike-expedition-aug-2025', {
       organizerId: org2.id, destinationId: ladakh.id,
-      title: 'Ladakh Bike Expedition — Manali to Leh 8N/9D', slug: 'ladakh-bike-expedition-aug-2025',
+      title: 'Ladakh Bike Expedition — Manali to Leh 8N/9D',
       tripType: 'ROAD_TRIP', bookingMode: 'REQUEST_BASED',
       description: 'The ride of a lifetime! Manali to Leh on Royal Enfields through the highest motorable passes. Cross Rohtang, Baralacha La, Tanglang La, and Khardung La. Camp at Pangong Lake under a billion stars. Small group, experienced riders, backup vehicle.',
       itinerary: [
@@ -351,13 +365,11 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'STRICT',
       photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-    },
   })
 
-  const tripC6 = await prisma.trip.create({
-    data: {
+  const tripC6 = await upsertTrip('hampi-ruins-culture-walk-jan-2026', {
       organizerId: org3.id, destinationId: hampi.id,
-      title: 'Hampi Ruins & Culture Walk — 2N/3D', slug: 'hampi-ruins-culture-walk-jan-2026',
+      title: 'Hampi Ruins & Culture Walk — 2N/3D',
       tripType: 'CULTURAL', bookingMode: 'INSTANT',
       description: 'Walk through 14th-century Vijayanagara Empire ruins, a UNESCO World Heritage Site. Boulder landscapes, ancient temples, and hippie island vibes. History, photography, and laid-back backpacker culture.',
       itinerary: [
@@ -373,13 +385,11 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'FLEXIBLE',
       photos: ['https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-    },
   })
 
-  const tripC7 = await prisma.trip.create({
-    data: {
+  const tripC7 = await upsertTrip('rajmachi-fort-monsoon-trek-sep-2025', {
       organizerId: org4.id, destinationId: lonavala.id,
-      title: 'Rajmachi Fort Monsoon Trek — 1N/2D', slug: 'rajmachi-fort-monsoon-trek-sep-2025',
+      title: 'Rajmachi Fort Monsoon Trek — 1N/2D',
       tripType: 'TREKKING', bookingMode: 'INSTANT',
       description: 'Trek through lush Western Ghats to historic Rajmachi Fort during peak monsoon. Cascading waterfalls, misty valleys, night camping near the fort with Maharashtrian food. The quintessential Sahyadri monsoon experience.',
       itinerary: [
@@ -394,17 +404,14 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'FLEXIBLE',
       photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:30 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Pune — Chandni Chowk', time: '6:00 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:30 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Pune — Chandni Chowk', time: '6:00 AM', sortOrder: 1 },
+    ])
 
-  const tripC8 = await prisma.trip.create({
-    data: {
+  const tripC8 = await upsertTrip('meghalaya-living-root-bridges-mar-2026', {
       organizerId: org2.id, destinationId: meghalaya.id,
-      title: 'Meghalaya — Caves, Waterfalls & Living Root Bridges 5N/6D', slug: 'meghalaya-living-root-bridges-mar-2026',
+      title: 'Meghalaya — Caves, Waterfalls & Living Root Bridges 5N/6D',
       tripType: 'ADVENTURE', bookingMode: 'REQUEST_BASED',
       description: 'India\'s own Scotland! Double-decker living root bridges, crystal-clear rivers, limestone caves, and Asia\'s cleanest village Mawlynnong. For those who want to go beyond the usual tourist trail.',
       itinerary: [
@@ -423,7 +430,6 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'STRICT',
       photos: ['https://images.unsplash.com/photo-1598091383021-15ddea10925d?w=800'],
       status: 'COMPLETED', acceptingBookings: false,
-    },
   })
 
   console.log('  ✓ Created 8 completed trips (before April 2026)')
@@ -437,10 +443,9 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
 async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
   const { org1, org2, org3, org4, kasol, spiti, udaipur, coorg, varanasi, andaman, goa, lonavala, manali, ladakh, rishikesh, jaipur } = deps
 
-  const tripU1 = await prisma.trip.create({
-    data: {
+  const tripU1 = await upsertTrip('kasol-kheerganga-trek-jun-2026', {
       organizerId: org1.id, destinationId: kasol.id,
-      title: 'Kasol & Kheerganga Trek — 3N/4D Backpacker Special', slug: 'kasol-kheerganga-trek-jun-2026',
+      title: 'Kasol & Kheerganga Trek — 3N/4D Backpacker Special',
       tripType: 'TREKKING', bookingMode: 'INSTANT',
       description: 'Explore the mini Israel of India! Trek through pine forests to the legendary hot springs of Kheerganga, camp under the Himalayan sky, and soak in the chill vibes of Kasol village. Stay at riverside camps, try Israeli cuisine at famous cafes, and disconnect from city life completely. Perfect for backpackers, solo travelers, and friend groups.',
       itinerary: [
@@ -457,18 +462,15 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Delhi — Majnu Ka Tila', address: 'Majnu Ka Tila Gurudwara', time: '7:00 PM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '8:00 PM', sortOrder: 1 },
-        { type: 'PICKUP', label: 'Chandigarh — Sector 43 ISBT', time: '11:30 PM', sortOrder: 2 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Delhi — Majnu Ka Tila', address: 'Majnu Ka Tila Gurudwara', time: '7:00 PM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '8:00 PM', sortOrder: 1 },
+      { type: 'PICKUP', label: 'Chandigarh — Sector 43 ISBT', time: '11:30 PM', sortOrder: 2 },
+    ])
 
-  const tripU2 = await prisma.trip.create({
-    data: {
+  const tripU2 = await upsertTrip('spiti-valley-circuit-jun-2026', {
       organizerId: org2.id, destinationId: spiti.id,
-      title: 'Spiti Valley Circuit — 6N/7D High Altitude Adventure', slug: 'spiti-valley-circuit-jun-2026',
+      title: 'Spiti Valley Circuit — 6N/7D High Altitude Adventure',
       tripType: 'ROAD_TRIP', bookingMode: 'REQUEST_BASED', seatSelectionEnabled: true,
       description: 'Journey through the cold desert mountain valley of Spiti! Epic road trip from Shimla through Kinnaur to Kaza. Visit the world\'s highest post office at Hikkim, 1000-year-old Tabo Monastery, and stunning Chandratal Lake. Some of India\'s most dramatic and remote landscapes.',
       itinerary: [
@@ -488,13 +490,11 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'STRICT',
       photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-    },
   })
 
-  const tripU3 = await prisma.trip.create({
-    data: {
+  const tripU3 = await upsertTrip('udaipur-city-of-lakes-jul-2026', {
       organizerId: org3.id, destinationId: udaipur.id,
-      title: 'Udaipur — City of Lakes Royal Getaway 2N/3D', slug: 'udaipur-city-of-lakes-jul-2026',
+      title: 'Udaipur — City of Lakes Royal Getaway 2N/3D',
       tripType: 'CULTURAL', bookingMode: 'INSTANT',
       description: 'Experience the Venice of the East! Udaipur\'s stunning lake palaces, vibrant markets, and rich Mewari culture. Heritage walks, boat rides on Lake Pichola, a Rajasthani cooking class, and mesmerizing Dharohar dance show at Bagore ki Haveli.',
       itinerary: [
@@ -510,17 +510,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Udaipur Railway Station', time: '9:30 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Udaipur Airport', time: '9:00 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Udaipur Railway Station', time: '9:30 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Udaipur Airport', time: '9:00 AM', sortOrder: 1 },
+    ])
 
-  const tripU4 = await prisma.trip.create({
-    data: {
+  const tripU4 = await upsertTrip('coorg-coffee-plantation-jul-2026', {
       organizerId: org4.id, destinationId: coorg.id,
-      title: 'Coorg Coffee Plantation Retreat — 2N/3D', slug: 'coorg-coffee-plantation-jul-2026',
+      title: 'Coorg Coffee Plantation Retreat — 2N/3D',
       tripType: 'WEEKEND', bookingMode: 'INSTANT',
       description: 'Escape to the Scotland of India! Rolling hills of coffee plantations, misty waterfalls, and spice gardens. Coffee estate tours, private waterfall hikes, and authentic Kodava cuisine. Stay at a plantation homestay surrounded by 200-year-old coffee and pepper vines.',
       itinerary: [
@@ -536,17 +533,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Bangalore — Majestic Bus Stand', time: '6:00 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Mysore — KSRTC Bus Stand', time: '8:30 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Bangalore — Majestic Bus Stand', time: '6:00 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Mysore — KSRTC Bus Stand', time: '8:30 AM', sortOrder: 1 },
+    ])
 
-  const tripU5 = await prisma.trip.create({
-    data: {
+  const tripU5 = await upsertTrip('varanasi-spiritual-immersion-aug-2026', {
       organizerId: org1.id, destinationId: varanasi.id,
-      title: 'Varanasi — Spiritual & Cultural Immersion 2N/3D', slug: 'varanasi-spiritual-immersion-aug-2026',
+      title: 'Varanasi — Spiritual & Cultural Immersion 2N/3D',
       tripType: 'CULTURAL', bookingMode: 'INSTANT',
       description: 'Witness the world\'s oldest living city! Mesmerizing Ganga Aarti, ancient ghats, narrow bylanes of silk weavers. Morning boat rides at sunrise, street food walks through Vishwanath Gali, and silk weaving workshops. This trip takes you beyond the tourist surface into the real Banaras.',
       itinerary: [
@@ -562,17 +556,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1561361513-2d000a50f0dc?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Varanasi Airport', address: 'Lal Bahadur Shastri Airport, Arrivals', time: '10:00 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Varanasi Junction Station', time: '10:30 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Varanasi Airport', address: 'Lal Bahadur Shastri Airport, Arrivals', time: '10:00 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Varanasi Junction Station', time: '10:30 AM', sortOrder: 1 },
+    ])
 
-  const tripU6 = await prisma.trip.create({
-    data: {
+  const tripU6 = await upsertTrip('andaman-beach-scuba-sep-2026', {
       organizerId: org4.id, destinationId: andaman.id,
-      title: 'Andaman Islands Beach & Scuba Expedition 4N/5D', slug: 'andaman-beach-scuba-sep-2026',
+      title: 'Andaman Islands Beach & Scuba Expedition 4N/5D',
       tripType: 'BEACH', bookingMode: 'REQUEST_BASED',
       description: 'Crystal clear turquoise waters, pristine white sand beaches, and vibrant coral reefs — welcome to Andaman! Covers Havelock Island (Swaraj Dweep) and Neil Island (Shaheed Dweep). Scuba diving at Asia\'s best dive sites, mangrove kayaking, and bioluminescence at night. Limited group for an exclusive experience.',
       itinerary: [
@@ -590,15 +581,13 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'STRICT',
       photos: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-    },
   })
 
   // ── Popular Destinations from Pune ───────────────────
 
-  const tripU7 = await prisma.trip.create({
-    data: {
+  const tripU7 = await upsertTrip('goa-monsoon-beach-escape-jul-2026', {
       organizerId: org1.id, destinationId: goa.id,
-      title: 'Goa Monsoon Beach Escape — 3N/4D from Pune', slug: 'goa-monsoon-beach-escape-jul-2026',
+      title: 'Goa Monsoon Beach Escape — 3N/4D from Pune',
       tripType: 'BEACH', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Experience Goa like never before — in the magical monsoon! Lush green landscapes, empty beaches, dramatic waterfalls, and the freshest seafood of the year. Stay at a boutique resort in South Goa, explore the lesser-known Divar Island, kayak through mangroves, and enjoy Goan feni-tasting sessions. Perfect for those who want Goa without the tourist crowds.',
       itinerary: [
@@ -615,18 +604,15 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '10:00 PM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '10:30 PM', sortOrder: 1 },
-        { type: 'PICKUP', label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '11:00 PM', sortOrder: 2 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '10:00 PM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '10:30 PM', sortOrder: 1 },
+      { type: 'PICKUP', label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '11:00 PM', sortOrder: 2 },
+    ])
 
-  const tripU8 = await prisma.trip.create({
-    data: {
+  const tripU8 = await upsertTrip('lonavala-monsoon-trek-camping-jul-2026', {
       organizerId: org4.id, destinationId: lonavala.id,
-      title: 'Lonavala Monsoon Trek & Camping — 1N/2D from Pune', slug: 'lonavala-monsoon-trek-camping-jul-2026',
+      title: 'Lonavala Monsoon Trek & Camping — 1N/2D from Pune',
       tripType: 'TREKKING', bookingMode: 'INSTANT',
       description: 'The quintessential Sahyadri monsoon experience! Trek through mist-covered hills to Tikona Fort, chase waterfalls at Bhushi Dam, camp under the stars with a bonfire and Maharashtrian dinner. Just 2 hours from Pune — the perfect weekend escape when the Western Ghats turn emerald green.',
       itinerary: [
@@ -641,17 +627,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'FLEXIBLE',
       photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '5:30 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Pune — Chandni Chowk', address: 'Chandni Chowk, Bavdhan', time: '6:00 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '5:30 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Pune — Chandni Chowk', address: 'Chandni Chowk, Bavdhan', time: '6:00 AM', sortOrder: 1 },
+    ])
 
-  const tripU9 = await prisma.trip.create({
-    data: {
+  const tripU9 = await upsertTrip('manali-summer-adventure-jun-2026', {
       organizerId: org2.id, destinationId: manali.id,
-      title: 'Manali Summer Adventure — 5N/6D Himalayan Escape', slug: 'manali-summer-adventure-jun-2026',
+      title: 'Manali Summer Adventure — 5N/6D Himalayan Escape',
       tripType: 'ADVENTURE', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Beat the summer heat in the cool Himalayan air of Manali! Paragliding at Solang Valley, river crossing at Beas, Old Manali cafe hopping, and a day trip through the legendary Atal Tunnel to Sissu. Stay at a charming wooden cottage with apple orchard views. Includes a surprise adventure activity!',
       itinerary: [
@@ -670,17 +653,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Kullu-Manali Airport', address: 'Bhuntar Airport, Kullu', time: '9:30 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Manali Bus Stand', time: '10:00 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Kullu-Manali Airport', address: 'Bhuntar Airport, Kullu', time: '9:30 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Manali Bus Stand', time: '10:00 AM', sortOrder: 1 },
+    ])
 
-  const tripU10 = await prisma.trip.create({
-    data: {
+  const tripU10 = await upsertTrip('ladakh-bike-expedition-jul-2026', {
       organizerId: org2.id, destinationId: ladakh.id,
-      title: 'Ladakh Bike Expedition — Manali to Leh 8N/9D', slug: 'ladakh-bike-expedition-jul-2026',
+      title: 'Ladakh Bike Expedition — Manali to Leh 8N/9D',
       tripType: 'ROAD_TRIP', bookingMode: 'REQUEST_BASED',
       description: 'The ride of a lifetime returns for 2026! Manali to Leh on Royal Enfields through the highest motorable passes. Cross Rohtang, Baralacha La, Tanglang La, and Khardung La. Camp at Pangong Lake under a billion stars, ride through Nubra Valley sand dunes. Small group of experienced riders with backup vehicle and mechanic.',
       itinerary: [
@@ -702,13 +682,11 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'STRICT',
       photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-    },
   })
 
-  const tripU11 = await prisma.trip.create({
-    data: {
+  const tripU11 = await upsertTrip('rishikesh-rafting-bungee-aug-2026', {
       organizerId: org1.id, destinationId: rishikesh.id,
-      title: 'Rishikesh Rafting & Bungee Weekend — 1N/2D', slug: 'rishikesh-rafting-bungee-aug-2026',
+      title: 'Rishikesh Rafting & Bungee Weekend — 1N/2D',
       tripType: 'ADVENTURE', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'Maximum adrenaline in minimum time! 16 km Grade III-IV white water rafting on the Ganges, India\'s highest bungee jump (83m), cliff jumping, riverside camping under the stars, and a magical Ganga Aarti. Bus from Delhi on Friday night, back by Sunday afternoon. The ultimate weekend adrenaline fix.',
       itinerary: [
@@ -723,17 +701,14 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'FLEXIBLE',
       photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Delhi — Majnu Ka Tila', address: 'Majnu Ka Tila Gurudwara parking', time: '11:30 PM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Delhi — Majnu Ka Tila', address: 'Majnu Ka Tila Gurudwara parking', time: '11:30 PM', sortOrder: 1 },
+    ])
 
-  const tripU12 = await prisma.trip.create({
-    data: {
+  const tripU12 = await upsertTrip('jaipur-royal-heritage-food-trail-aug-2026', {
       organizerId: org3.id, destinationId: jaipur.id,
-      title: 'Jaipur Royal Heritage & Food Trail — 2N/3D', slug: 'jaipur-royal-heritage-food-trail-aug-2026',
+      title: 'Jaipur Royal Heritage & Food Trail — 2N/3D',
       tripType: 'CULTURAL', bookingMode: 'INSTANT', seatSelectionEnabled: true,
       description: 'The Pink City reimagined! Beyond the usual tourist trail — this trip combines iconic forts with hidden gems: secret step wells, Rajasthani cooking masterclass with a local family, sunrise hot-air balloon ride over Amber Fort, block printing workshop, and a curated street food trail through Jaipur\'s bylanes. Stay at a 200-year-old heritage haveli.',
       itinerary: [
@@ -749,12 +724,10 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       cancellationPolicy: 'MODERATE',
       photos: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800'],
       status: 'ACTIVE', acceptingBookings: true,
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Jaipur Airport', address: 'Jaipur International Airport, Arrivals', time: '9:00 AM', sortOrder: 1 },
-      ] },
-    },
-  })
+    }, [
+      { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
+      { type: 'PICKUP', label: 'Jaipur Airport', address: 'Jaipur International Airport, Arrivals', time: '9:00 AM', sortOrder: 1 },
+    ])
 
   console.log('  ✓ Created 12 upcoming trips (June-Sep 2026, ₹2.5K-23K range)')
   return { tripU1, tripU2, tripU3, tripU4, tripU5, tripU6, tripU7, tripU8, tripU9, tripU10, tripU11, tripU12 }
@@ -781,6 +754,13 @@ async function seedBookingsAndReviews(deps: {
   const org5User = deps.org5User as { id: string }
   const org6User = deps.org6User as { id: string }
   const [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12] = travelers
+
+  // ── Sentinel: skip if transactional data already exists ──
+  const sentinel = await prisma.booking.findFirst({ where: { bookingRef: 'SFN-2026-0001' } })
+  if (sentinel) {
+    console.log('  ⏭ Bookings, reviews & wallets already seeded (sentinel found)')
+    return
+  }
 
   let refNum = 0
   const nextRef = () => `SFN-2026-${String(++refNum).padStart(4, '0')}`
@@ -1099,7 +1079,7 @@ async function seedBookingsAndReviews(deps: {
 
   const allUserIds = [admin.id, org1User.id, org2User.id, org3User.id, org4User.id, org5User.id, org6User.id, ...travelers.map(t => t.id)]
   for (const uid of allUserIds) {
-    await prisma.wallet.create({ data: { userId: uid, balance: 0 } })
+    await prisma.wallet.upsert({ where: { userId: uid }, update: {}, create: { userId: uid, balance: 0 } })
   }
 
   // Amit wallet: refund + cashback
@@ -1224,15 +1204,18 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
   const { org1, org2, org3, org4, org7, org8 } = deps
   const orgs = [org1, org2, org3, org4, org7, org8]
 
-  // Counters for booking refs & payment refs (scoped to mk closure)
-  let bulkBRef = 9000
+  // bookingRef has @@unique (format: SFN-2026-XXXX) — resume counter from max existing to survive partial re-runs
+  const maxBRef = await prisma.booking.findFirst({ where: { bookingRef: { startsWith: 'SFN-2026-' } }, orderBy: { bookingRef: 'desc' }, select: { bookingRef: true } })
+  const maxBRefNum = maxBRef ? parseInt(maxBRef.bookingRef.replace('SFN-2026-', ''), 10) : 0
+  let bulkBRef = Math.max(maxBRefNum, 9000)
+  // razorpayOrderId has no unique constraint — safe to restart from 600
   let bulkPayN = 600
 
   async function mk(o: BulkOpts) {
     const photos = DEST_PHOTOS[o.dest] ?? DEST_PHOTOS.goa
-    const trip = await prisma.trip.create({ data: {
+    const trip = await upsertTrip(o.slug, {
       organizerId: orgs[o.orgIdx].id, destinationId: deps[o.dest].id,
-      title: o.title, slug: o.slug, description: o.desc,
+      title: o.title, description: o.desc,
       tripType: o.type as 'BEACH' | 'TREKKING' | 'ADVENTURE' | 'CULTURAL' | 'WEEKEND' | 'ROAD_TRIP',
       bookingMode: o.mode as 'INSTANT' | 'REQUEST_BASED',
       status: o.status as 'ACTIVE' | 'FULL' | 'COMPLETED',
@@ -1242,14 +1225,17 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
       acceptingBookings: o.status === 'ACTIVE', inclusions: o.incl, exclusions: o.excl,
       cancellationPolicy: o.cancel as 'FLEXIBLE' | 'MODERATE' | 'STRICT', photos,
       itinerary: o.itin.map((t, i) => ({ day: i + 1, title: t, description: t })),
-      transferPoints: { create: [
-        { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '06:00 AM', sortOrder: 0 },
-        { type: 'PICKUP', label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '06:30 AM', sortOrder: 1 },
-        { type: 'PICKUP', label: 'Mumbai — Dadar Station (East)', address: 'Dadar TT, Mumbai 400014', time: '10:00 PM', extraCharge: 500, sortOrder: 2 },
-        { type: 'DROP', label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '08:00 PM', sortOrder: 0 },
-        { type: 'DROP', label: 'Pune — Hinjewadi IT Park', address: 'Phase 1 Gate, Hinjewadi, Pune 411057', time: '09:00 PM', extraCharge: 200, sortOrder: 1 },
-      ] },
-    } })
+    }, [
+      { type: TransferPointType.PICKUP, label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '06:00 AM', sortOrder: 0 },
+      { type: TransferPointType.PICKUP, label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '06:30 AM', sortOrder: 1 },
+      { type: TransferPointType.PICKUP, label: 'Mumbai — Dadar Station (East)', address: 'Dadar TT, Mumbai 400014', time: '10:00 PM', extraCharge: 500, sortOrder: 2 },
+      { type: TransferPointType.DROP, label: 'Pune — Swargate ST Stand', address: 'Swargate Bus Depot, Pune 411042', time: '08:00 PM', sortOrder: 0 },
+      { type: TransferPointType.DROP, label: 'Pune — Hinjewadi IT Park', address: 'Phase 1 Gate, Hinjewadi, Pune 411057', time: '09:00 PM', extraCharge: 200, sortOrder: 1 },
+    ])
+
+    // ── Sentinel: skip bookings if already seeded for this trip ──
+    const existingBookings = await prisma.booking.count({ where: { tripId: trip.id } })
+    if (existingBookings > 0) return trip
 
     const isCompleted = o.status === 'COMPLETED'
     const isFull = o.status === 'FULL'
@@ -1913,6 +1899,13 @@ const CUSTOM_SLEEPER_LAYOUT: CellType[][] = [
 async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
   const { tripU2, tripU7, tripU9, tripU11, tripU12 } = trips
 
+  // ── Sentinel: skip if vehicles already exist ──
+  const existingCount = await prisma.tripVehicle.count({ where: { tripId: { in: [tripU2.id, tripU7.id, tripU9.id, tripU11.id, tripU12.id] } } })
+  if (existingCount > 0) {
+    console.log('  ⏭ Vehicle layouts already seeded (sentinel found)')
+    return
+  }
+
   const defs: VehicleLayoutDef[] = [
     // ── tripU2 (Spiti): 1 predefined Innova + 1 custom SUV ──
     { tripId: tripU2.id, label: 'Innova Crysta — Spiti Primary', vehicleType: 'innova', rows: 4, cols: 3, aisleAfterCol: null, layout: INNOVA_LAYOUT },
@@ -1981,6 +1974,13 @@ async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
 // ══════════════════════════════════════════════════════════
 
 async function seedNotifications(adminId: string, organizerId: string, travelerId: string) {
+  // ── Sentinel: skip if notifications already seeded ──
+  const sentinel = await prisma.notification.findFirst({ where: { title: 'Support Ticket #1042' } })
+  if (sentinel) {
+    console.log('  ⏭ Notifications already seeded (sentinel found)')
+    return
+  }
+
   const now = new Date()
   const ago = (mins: number) => new Date(now.getTime() - mins * 60_000)
 
@@ -2026,6 +2026,215 @@ async function seedNotifications(adminId: string, organizerId: string, travelerI
   const unreadOrg = notifications.filter(n => n.userId === organizerId && !n.readAt).length
   const unreadTrav = notifications.filter(n => n.userId === travelerId && !n.readAt).length
   console.log(`  ✓ Created ${notifications.length} notifications (Admin: ${unreadAdmin} unread, Organizer: ${unreadOrg} unread, Traveler: ${unreadTrav} unread)`)
+}
+
+// ══════════════════════════════════════════════════════════
+// ── TRIP CATEGORIES, TYPE REQUESTS & EDIT HISTORY ─────────
+// ══════════════════════════════════════════════════════════
+
+async function seedTripCategoriesAndRequests(deps: {
+  org1: { id: string }; org2: { id: string }; org3: { id: string }
+  org4: { id: string }; org7: { id: string }; org8: { id: string }
+  org1User: { id: string }; org2User: { id: string }; org3User: { id: string }
+  org4User: { id: string }; org7User: { id: string }; org8User: { id: string }
+  completedTrips: Record<string, { id: string }>
+  upcomingTrips: Record<string, { id: string }>
+}) {
+  // ── Sentinel: skip if categories already seeded ──
+  const sentinel = await prisma.tripCategory.findUnique({ where: { value: 'BEACH' } })
+  if (sentinel) {
+    console.log('  ⏭ Trip categories, requests & edit history already seeded (sentinel found)')
+    return
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ── 1) TRIP CATEGORIES ─────────────────────────────────
+  // ══════════════════════════════════════════════════════
+
+  const categories = [
+    { value: 'BEACH', label: 'Beach', icon: '🏖️', sortOrder: 1 },
+    { value: 'TREKKING', label: 'Trekking', icon: '🥾', sortOrder: 2 },
+    { value: 'ADVENTURE', label: 'Adventure', icon: '🧗', sortOrder: 3 },
+    { value: 'CULTURAL', label: 'Cultural', icon: '🏛️', sortOrder: 4 },
+    { value: 'WEEKEND', label: 'Weekend Getaway', icon: '⛺', sortOrder: 5 },
+    { value: 'ROAD_TRIP', label: 'Road Trip', icon: '🏍️', sortOrder: 6 },
+    { value: 'SPIRITUAL', label: 'Spiritual', icon: '🕉️', sortOrder: 7 },
+    { value: 'WILDLIFE', label: 'Wildlife Safari', icon: '🐅', sortOrder: 8 },
+  ]
+
+  for (const cat of categories) {
+    await prisma.tripCategory.create({ data: cat })
+  }
+  console.log(`  ✓ Created ${categories.length} trip categories (6 in-use + 2 new: SPIRITUAL, WILDLIFE)`)
+
+  // ══════════════════════════════════════════════════════
+  // ── 2) TRIP TYPE REQUESTS ──────────────────────────────
+  // ══════════════════════════════════════════════════════
+
+  const { org1, org2, org3, org4, org7, org8 } = deps
+
+  // ── PENDING requests (waiting for admin review) ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org1.id,
+    suggestedName: 'Camping',
+    reason: 'Many of our Lonavala and Pawna Lake trips are primarily camping experiences — tent stays, bonfires, stargazing. "Weekend Getaway" doesn\'t capture the camping essence. A dedicated Camping category would help travelers find these trips faster.',
+    status: 'PENDING',
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org7.id,
+    suggestedName: 'Women-Only',
+    reason: 'She Travels India exclusively organizes women-only group trips. Having a dedicated "Women-Only" trip type would let female solo travelers filter and discover safe, women-focused experiences instantly. Currently we tag them under various types which dilutes discoverability.',
+    status: 'PENDING',
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org8.id,
+    suggestedName: 'Corporate Offsite',
+    reason: 'Corporate Escapes India runs team building and corporate retreat packages with GST invoicing, conference rooms, and group activities. These don\'t fit under "Adventure" or "Weekend" — they need a dedicated corporate category for B2B discovery.',
+    status: 'PENDING',
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org2.id,
+    suggestedName: 'Backpacking',
+    reason: 'Budget backpacking trips across Northeast India and Himachal — hostel stays, local transport, flexible itineraries. Very different from organized group tours. A "Backpacking" category would attract the right audience who wants raw, unstructured travel.',
+    status: 'PENDING',
+  } })
+
+  // ── APPROVED requests (admin reviewed and approved) ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'Food Trail',
+    reason: 'Nomad Trails India runs dedicated food-focused trips — Jaipur street food crawls, Varanasi kachori trails, Lucknow kebab walks. The food experience IS the trip, not a side activity. A "Food Trail" category would be a huge differentiator for the platform.',
+    status: 'APPROVED',
+    adminNote: 'Great suggestion! Food tourism is a growing segment in India. We\'ll add this as a new category once we have 5+ active food trail trips on the platform.',
+    reviewedAt: d(2026, 4, 20),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org4.id,
+    suggestedName: 'Festival Special',
+    reason: 'Backpack Bharat runs special trips around Indian festivals — Holi in Mathura, Diwali in Varanasi, Rann Utsav in Kutch, Pushkar Camel Fair. These are time-sensitive, festival-themed experiences that don\'t fit existing categories.',
+    status: 'APPROVED',
+    adminNote: 'Approved! Festival tourism is huge for group travel. We\'ll create a "Festival Special" category and feature it during festival seasons.',
+    reviewedAt: d(2026, 4, 25),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org1.id,
+    suggestedName: 'Honeymoon',
+    reason: 'We get many couples requesting romantic, honeymoon-focused itineraries — Udaipur, Andaman, Kerala backwaters. Having a "Honeymoon" category would help couples find curated romantic packages without scrolling through adventure trips.',
+    status: 'APPROVED',
+    adminNote: 'Makes sense — couples are 22% of our booking base. Adding "Honeymoon / Couples" as a category.',
+    reviewedAt: d(2026, 3, 15),
+  } })
+
+  // ── REJECTED requests (admin reviewed and rejected) ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org2.id,
+    suggestedName: 'Luxury',
+    reason: 'We want to offer premium luxury group trips — 5-star hotels, business class travel, private guides. A "Luxury" category would let high-budget travelers find these easily.',
+    status: 'REJECTED',
+    adminNote: 'We prefer to use price filters rather than a separate "Luxury" category. Luxury is a price tier, not a trip type. Organizers can mention "premium" or "luxury" in trip descriptions and set appropriate pricing. This keeps the category list clean.',
+    reviewedAt: d(2026, 4, 10),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'Photography Tour',
+    reason: 'Nomad Trails runs photography-focused trips with pro photographers — golden hour shoots, composition workshops, photo walks. A dedicated category would attract photography enthusiasts.',
+    status: 'REJECTED',
+    adminNote: 'Photography can be a tag/feature on any trip type rather than a standalone category. We\'ll add a "Photography" tag system in the next update so any trip can be marked as photography-friendly.',
+    reviewedAt: d(2026, 4, 18),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org4.id,
+    suggestedName: 'Hostel Hopping',
+    reason: 'Budget travelers love hopping between hostels in different cities — Delhi to Rishikesh to Manali hostel circuit. A "Hostel Hopping" category would resonate with college students.',
+    status: 'REJECTED',
+    adminNote: 'This overlaps heavily with "Backpacking" which is already requested and under consideration. Hostel stays are an accommodation type, not a trip type. We recommend using the trip description to highlight hostel stays.',
+    reviewedAt: d(2026, 5, 2),
+  } })
+
+  console.log('  ✓ Created 10 trip type requests (4 PENDING, 3 APPROVED, 3 REJECTED) from 6 different organizers')
+
+  // ══════════════════════════════════════════════════════
+  // ── 3) TRIP EDIT HISTORY ───────────────────────────────
+  // ══════════════════════════════════════════════════════
+
+  const { completedTrips: ct, upcomingTrips: ut } = deps
+
+  // tripC1 (Goa Beach Carnival) — organizer updated price and description before trip started
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ct.tripC1.id,
+    editedById: deps.org1User.id,
+    changedFields: ['pricePerPerson', 'earlyBirdPrice'],
+    editNote: 'Reduced price from ₹7,499 to ₹6,499 for early bird promotion',
+    snapshot: { pricePerPerson: 7499, earlyBirdPrice: 5999, title: 'Goa Beach Carnival — 3N/4D Beach Party, Watersports & Dudhsagar from Pune' },
+    createdAt: d(2025, 12, 15),
+  } })
+
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ct.tripC1.id,
+    editedById: deps.org1User.id,
+    changedFields: ['description', 'inclusions'],
+    editNote: 'Added spice plantation visit to itinerary and updated description',
+    snapshot: { description: 'Original description before spice plantation was added...', inclusions: ['Resort (3N)', 'Breakfast + dinner', 'Water sports', 'North Goa tour'] },
+    createdAt: d(2025, 12, 20),
+  } })
+
+  // tripU2 (Spiti Valley Circuit) — organizer adjusted dates and max group size
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ut.tripU2.id,
+    editedById: deps.org2User.id,
+    changedFields: ['startDate', 'endDate'],
+    editNote: 'Shifted start date by 2 days to avoid overlap with another batch',
+    snapshot: { startDate: d(2026, 7, 8), endDate: d(2026, 7, 17) },
+    createdAt: d(2026, 4, 28),
+  } })
+
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ut.tripU2.id,
+    editedById: deps.org2User.id,
+    changedFields: ['maxGroupSize', 'description'],
+    editNote: 'Increased max group from 12 to 14 after securing additional vehicle',
+    snapshot: { maxGroupSize: 12, description: 'Previous description before vehicle update...' },
+    createdAt: d(2026, 5, 1),
+  } })
+
+  // tripU7 (Goa Monsoon) — organizer updated transfer points and cancellation policy
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ut.tripU7.id,
+    editedById: deps.org1User.id,
+    changedFields: ['cancellationPolicy', 'itinerary'],
+    editNote: 'Changed cancellation policy from STRICT to MODERATE based on traveler feedback',
+    snapshot: { cancellationPolicy: 'STRICT', itinerary: [{ day: 1, title: 'Arrive Goa' }, { day: 2, title: 'North Goa Tour' }] },
+    createdAt: d(2026, 5, 3),
+  } })
+
+  // tripU9 (Manali Summer) — organizer corrected pricing
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ut.tripU9.id,
+    editedById: deps.org3User.id,
+    changedFields: ['pricePerPerson'],
+    editNote: 'Price correction — was ₹12,999, should be ₹10,499 as advertised on social media',
+    snapshot: { pricePerPerson: 12999 },
+    createdAt: d(2026, 4, 15),
+  } })
+
+  // tripC3 (Rishikesh Rafting) — organizer added photos and updated itinerary after trip
+  await prisma.tripEditHistory.create({ data: {
+    tripId: ct.tripC3.id,
+    editedById: deps.org1User.id,
+    changedFields: ['photos', 'itinerary'],
+    editNote: 'Added actual trip photos from the February batch for better listing accuracy',
+    snapshot: { photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'], itinerary: [{ day: 1, title: 'Arrive Rishikesh' }] },
+    createdAt: d(2026, 3, 1),
+  } })
+
+  console.log('  ✓ Created 7 trip edit history entries across 5 trips (price changes, date shifts, policy updates)')
 }
 
 main()
