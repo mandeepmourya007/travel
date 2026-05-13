@@ -7,6 +7,7 @@ const mockDestinationRepo = {
   findById: vi.fn(),
   findBySlug: vi.fn(),
   findBySlugPublic: vi.fn(),
+  findRelated: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   softDelete: vi.fn(),
@@ -133,12 +134,16 @@ describe('DestinationService', () => {
       { id: 'trip-2', title: 'Night Life', slug: 'night-life', pricePerPerson: 8000 },
     ]
 
-    const mockStats = { avgPrice: 6500, organizerCount: 2, upcomingCount: 2 }
+    const mockStats = { avgPrice: 6500, organizerCount: 2, upcomingCount: 2, minPrice: 5000, maxPrice: 8000 }
+    const mockRelated = [
+      { id: 'dest-2', name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', photoUrl: null, description: null, tripCount: 3, isPopular: false },
+    ]
 
-    it('should return destination detail with trips and stats', async () => {
+    it('should return destination detail with trips, stats, and related destinations', async () => {
       mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
       mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: mockTrips, total: 2 })
       mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue(mockRelated)
 
       const result = await service.getBySlug('goa')
 
@@ -148,9 +153,12 @@ describe('DestinationService', () => {
       expect(result.tripsPagination.total).toBe(2)
       expect(result.tripsPagination.totalPages).toBe(1)
       expect(result.stats).toEqual(mockStats)
+      expect(result.relatedDestinations).toHaveLength(1)
+      expect(result.relatedDestinations[0].name).toBe('Manali')
       expect(mockDestinationRepo.findBySlugPublic).toHaveBeenCalledWith('goa')
-      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith('dest-1', { offset: 0, limit: 20 })
+      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith('dest-1', { offset: 0, limit: 20 }, undefined)
       expect(mockTripRepo.getDestinationStats).toHaveBeenCalledWith('dest-1')
+      expect(mockDestinationRepo.findRelated).toHaveBeenCalledWith('dest-1', 'Goa')
     })
 
     it('should throw NotFoundError when slug does not exist', async () => {
@@ -162,7 +170,8 @@ describe('DestinationService', () => {
     it('should return empty trips with zero stats when no trips exist', async () => {
       mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
       mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
-      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, organizerCount: 0, upcomingCount: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, organizerCount: 0, upcomingCount: 0, minPrice: 0, maxPrice: 0 })
+      mockDestinationRepo.findRelated.mockResolvedValue([])
 
       const result = await service.getBySlug('goa')
 
@@ -170,16 +179,90 @@ describe('DestinationService', () => {
       expect(result.tripsPagination.total).toBe(0)
       expect(result.tripsPagination.totalPages).toBe(0)
       expect(result.stats.avgPrice).toBe(0)
+      expect(result.relatedDestinations).toHaveLength(0)
     })
 
     it('should forward pagination params correctly', async () => {
       mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
       mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
-      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, organizerCount: 0, upcomingCount: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, organizerCount: 0, upcomingCount: 0, minPrice: 0, maxPrice: 0 })
+      mockDestinationRepo.findRelated.mockResolvedValue([])
 
       await service.getBySlug('goa', 3, 6)
 
-      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith('dest-1', { offset: 12, limit: 6 })
+      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith('dest-1', { offset: 12, limit: 6 }, undefined)
+    })
+
+    it('should forward tripType filter to repository', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const filters = { tripType: 'ADVENTURE' as const }
+      await service.getBySlug('goa', 1, 20, filters)
+
+      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith(
+        'dest-1',
+        { offset: 0, limit: 20 },
+        filters,
+      )
+    })
+
+    it('should forward sort filter to repository', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const filters = { sort: 'price_asc' as const }
+      await service.getBySlug('goa', 1, 20, filters)
+
+      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith(
+        'dest-1',
+        { offset: 0, limit: 20 },
+        filters,
+      )
+    })
+
+    it('should forward price range filters to repository', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const filters = { minPrice: 3000, maxPrice: 8000 }
+      await service.getBySlug('goa', 1, 20, filters)
+
+      expect(mockTripRepo.findByDestinationIdPaginated).toHaveBeenCalledWith(
+        'dest-1',
+        { offset: 0, limit: 20 },
+        filters,
+      )
+    })
+
+    it('should include price range in stats response', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: mockTrips, total: 2 })
+      mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const result = await service.getBySlug('goa')
+
+      expect(result.stats.minPrice).toBe(5000)
+      expect(result.stats.maxPrice).toBe(8000)
+    })
+
+    it('should return empty related destinations when none exist', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: mockTrips, total: 2 })
+      mockTripRepo.getDestinationStats.mockResolvedValue(mockStats)
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const result = await service.getBySlug('goa')
+
+      expect(result.relatedDestinations).toEqual([])
+      expect(mockDestinationRepo.findRelated).toHaveBeenCalledWith('dest-1', 'Goa')
     })
   })
 
