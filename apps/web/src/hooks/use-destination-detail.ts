@@ -1,12 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { destinationKeys } from '@/lib/query-keys'
-import type { DestinationDetailResponse } from '@shared/types/destination.types'
+import type { DestinationDetailResponse, DestinationTripFilters } from '@shared/types/destination.types'
 
-async function fetchDestinationDetail(slug: string, page = 1): Promise<DestinationDetailResponse> {
+async function fetchDestinationDetail(
+  slug: string,
+  page = 1,
+  filters?: DestinationTripFilters,
+): Promise<DestinationDetailResponse> {
+  const params: Record<string, string | number> = { page }
+  if (filters?.tripType) params.tripType = filters.tripType
+  if (filters?.sort) params.sort = filters.sort
+  if (filters?.minPrice !== undefined) params.minPrice = filters.minPrice
+  if (filters?.maxPrice !== undefined) params.maxPrice = filters.maxPrice
+
   const res = await apiClient.get<{ success: true; data: DestinationDetailResponse }>(
     `/destinations/slug/${slug}`,
-    { params: { page } },
+    { params },
   )
   return res.data.data
 }
@@ -15,10 +25,11 @@ export function useDestinationDetail(
   slug: string,
   page: number = 1,
   initialData?: DestinationDetailResponse,
+  filters?: DestinationTripFilters,
 ) {
   return useQuery({
-    queryKey: destinationKeys.detail(slug, { page }),
-    queryFn: () => fetchDestinationDetail(slug, page),
+    queryKey: destinationKeys.detail(slug, { page, ...filters }),
+    queryFn: () => fetchDestinationDetail(slug, page, filters),
     enabled: !!slug,
     initialData,
     staleTime: initialData ? 5 * 60 * 1000 : 0,

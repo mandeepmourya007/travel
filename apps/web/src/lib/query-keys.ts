@@ -50,7 +50,7 @@ export const destinationKeys = {
   all: ['destinations'] as const,
   list: () => [...destinationKeys.all, 'list'] as const,
   details: () => [...destinationKeys.all, 'detail'] as const,
-  detail: (slug: string, params?: { page?: number }) =>
+  detail: (slug: string, params?: { page?: number; tripType?: string; sort?: string; minPrice?: number; maxPrice?: number }) =>
     [...destinationKeys.details(), slug, params] as const,
 }
 
