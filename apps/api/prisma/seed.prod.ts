@@ -6,6 +6,124 @@ const prisma = new PrismaClient()
 // Fixed date helper — not relative to "now"
 const d = (y: number, m: number, day: number) => new Date(y, m - 1, day)
 
+// ── Per-record idempotent wrappers (additive re-runs) ─────
+// Uses upsert (1 DB call) for models with unique constraints.
+// Falls back to find+create for models without unique keys.
+// New data added to the seed file is inserted; existing records are skipped.
+
+type BookingCreateArgs = Parameters<typeof prisma.booking.create>[0]
+async function safeBookingCreate(args: BookingCreateArgs) {
+  const data = args.data as Prisma.BookingUncheckedCreateInput
+  return prisma.booking.upsert({ where: { bookingRef: data.bookingRef }, update: {}, create: data })
+}
+
+type PaymentCreateArgs = Parameters<typeof prisma.paymentTransaction.create>[0]
+async function safePaymentCreate(args: PaymentCreateArgs) {
+  const data = args.data as Prisma.PaymentTransactionUncheckedCreateInput
+  const found = data.bookingId ? await prisma.paymentTransaction.findFirst({ where: { bookingId: data.bookingId, type: data.type } }) : null
+  return found ?? prisma.paymentTransaction.create(args)
+}
+
+type ReviewCreateArgs = Parameters<typeof prisma.review.create>[0]
+async function safeReviewCreate(args: ReviewCreateArgs) {
+  const data = args.data as Prisma.ReviewUncheckedCreateInput
+  return prisma.review.upsert({ where: { bookingId: data.bookingId }, update: {}, create: data })
+}
+
+type TravelerCreateManyArgs = NonNullable<Parameters<typeof prisma.travelerDetail.createMany>[0]>
+async function safeTravelerCreateMany(args: TravelerCreateManyArgs) {
+  const rows = Array.isArray(args.data) ? args.data : [args.data]
+  const bid = (rows[0] as Prisma.TravelerDetailUncheckedCreateInput).bookingId
+  const count = bid ? await prisma.travelerDetail.count({ where: { bookingId: bid } }) : 0
+  return count > 0 ? { count: 0 } : prisma.travelerDetail.createMany(args)
+}
+
+type TripRequestCreateArgs = Parameters<typeof prisma.tripRequest.create>[0]
+async function safeTripRequestCreate(args: TripRequestCreateArgs) {
+  const data = args.data as Prisma.TripRequestUncheckedCreateInput
+  return prisma.tripRequest.upsert({
+    where: { tripId_userId: { tripId: data.tripId, userId: data.userId } },
+    update: {},
+    create: data,
+  })
+}
+
+type ConvCreateArgs = Parameters<typeof prisma.conversation.create>[0]
+async function safeConvCreate(args: ConvCreateArgs) {
+  const data = args.data as Prisma.ConversationUncheckedCreateInput
+  const found = data.tripId
+    ? await prisma.conversation.findFirst({ where: { tripId: data.tripId, travelerId: data.travelerId } })
+    : data.type === 'ADMIN_SUPPORT'
+      ? await prisma.conversation.findFirst({ where: { type: 'ADMIN_SUPPORT', travelerId: data.travelerId } })
+      : null
+  return found ?? prisma.conversation.create(args)
+}
+
+type MsgCreateManyArgs = NonNullable<Parameters<typeof prisma.message.createMany>[0]>
+async function safeMsgCreateMany(args: MsgCreateManyArgs) {
+  const rows = Array.isArray(args.data) ? args.data : [args.data]
+  const cid = (rows[0] as Prisma.MessageUncheckedCreateInput).conversationId
+  const count = cid ? await prisma.message.count({ where: { conversationId: cid } }) : 0
+  return count > 0 ? { count: 0 } : prisma.message.createMany(args)
+}
+
+type NotifCreateManyArgs = NonNullable<Parameters<typeof prisma.notification.createMany>[0]>
+async function safeNotifCreateMany(args: NotifCreateManyArgs) {
+  const rows = Array.isArray(args.data) ? args.data : [args.data]
+  const first = rows[0] as Prisma.NotificationUncheckedCreateInput
+  const found = first.title && first.userId
+    ? await prisma.notification.findFirst({ where: { title: first.title, userId: first.userId } })
+    : null
+  return found ? { count: 0 } : prisma.notification.createMany(args)
+}
+
+type WalletTxCreateArgs = Parameters<typeof prisma.walletTransaction.create>[0]
+async function safeWalletTxCreate(args: WalletTxCreateArgs) {
+  const data = args.data as Prisma.WalletTransactionUncheckedCreateInput
+  const found = data.type && data.referenceModel && data.referenceId
+    ? await prisma.walletTransaction.findFirst({ where: { type: data.type, referenceModel: data.referenceModel, referenceId: data.referenceId } })
+    : null
+  return found ?? prisma.walletTransaction.create(args)
+}
+
+type VehicleCreateArgs = Parameters<typeof prisma.tripVehicle.create>[0]
+async function safeVehicleCreate(args: VehicleCreateArgs) {
+  const data = args.data as Prisma.TripVehicleUncheckedCreateInput
+  const found = data.tripId && data.label
+    ? await prisma.tripVehicle.findFirst({ where: { tripId: data.tripId, label: data.label } })
+    : null
+  return found ?? prisma.tripVehicle.create(args)
+}
+
+type SeatCreateManyArgs = NonNullable<Parameters<typeof prisma.vehicleSeat.createMany>[0]>
+async function safeSeatCreateMany(args: SeatCreateManyArgs) {
+  return prisma.vehicleSeat.createMany({ ...args, skipDuplicates: true })
+}
+
+type CategoryCreateArgs = Parameters<typeof prisma.tripCategory.create>[0]
+async function safeCategoryCreate(args: CategoryCreateArgs) {
+  const data = args.data as Prisma.TripCategoryCreateInput
+  return prisma.tripCategory.upsert({ where: { value: data.value }, update: {}, create: data })
+}
+
+type TypeReqCreateArgs = Parameters<typeof prisma.tripTypeRequest.create>[0]
+async function safeTypeReqCreate(args: TypeReqCreateArgs) {
+  const data = args.data as Prisma.TripTypeRequestUncheckedCreateInput
+  const found = data.organizerId && data.suggestedName
+    ? await prisma.tripTypeRequest.findFirst({ where: { organizerId: data.organizerId, suggestedName: data.suggestedName } })
+    : null
+  return found ?? prisma.tripTypeRequest.create(args)
+}
+
+type EditHistCreateArgs = Parameters<typeof prisma.tripEditHistory.create>[0]
+async function safeEditHistCreate(args: EditHistCreateArgs) {
+  const data = args.data as Prisma.TripEditHistoryUncheckedCreateInput
+  const found = data.tripId && data.editNote
+    ? await prisma.tripEditHistory.findFirst({ where: { tripId: data.tripId, editNote: data.editNote } })
+    : null
+  return found ?? prisma.tripEditHistory.create(args)
+}
+
 // ── Idempotent upsert helpers ─────────────────────────────
 
 async function upsertUser(email: string, data: Omit<Prisma.UserCreateInput, 'email'>) {
@@ -755,13 +873,9 @@ async function seedBookingsAndReviews(deps: {
   const org6User = deps.org6User as { id: string }
   const [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12] = travelers
 
-  // ── Sentinel: skip if transactional data already exists ──
-  const sentinel = await prisma.booking.findFirst({ where: { bookingRef: 'SFN-2026-0001' } })
-  if (sentinel) {
-    console.log('  ⏭ Bookings, reviews & wallets already seeded (sentinel found)')
-    return
-  }
-
+  // ⚠ nextRef() generates sequential bookingRefs (SFN-2026-0001, 0002, ...).
+  // New bookings MUST be appended at the END of each section — never inserted
+  // mid-list — otherwise refs shift and existing data gets mismatched on re-run.
   let refNum = 0
   const nextRef = () => `SFN-2026-${String(++refNum).padStart(4, '0')}`
 
@@ -770,40 +884,40 @@ async function seedBookingsAndReviews(deps: {
   // ══════════════════════════════════════════════════════
 
   // Trip C1: Goa Beach Carnival — 18 bookings (completed)
-  const bC1_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t1.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
-  const bC1_2 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t2.id, numTravelers: 1, totalAmount: 5499, bookingStatus: 'COMPLETED' } })
-  const bC1_3 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t3.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
-  const bC1_4 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t4.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'COMPLETED' } })
-  const bC1_5 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t5.id, numTravelers: 3, totalAmount: 16497, bookingStatus: 'COMPLETED' } })
-  const bC1_6 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t6.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
-  const bC1_7 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t7.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'COMPLETED' } })
-  const bC1_8 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t8.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t9.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'CANCELLED', cancellationReason: 'Could not get leave from office', cancelledAt: d(2026, 1, 5), cancelledById: t9.id } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t10.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'CANCELLED', cancellationReason: 'Family emergency', cancelledAt: d(2026, 1, 8), cancelledById: t10.id } })
+  const bC1_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t1.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
+  const bC1_2 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t2.id, numTravelers: 1, totalAmount: 5499, bookingStatus: 'COMPLETED' } })
+  const bC1_3 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t3.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
+  const bC1_4 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t4.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'COMPLETED' } })
+  const bC1_5 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t5.id, numTravelers: 3, totalAmount: 16497, bookingStatus: 'COMPLETED' } })
+  const bC1_6 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t6.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
+  const bC1_7 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t7.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'COMPLETED' } })
+  const bC1_8 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t8.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'COMPLETED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t9.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'CANCELLED', cancellationReason: 'Could not get leave from office', cancelledAt: d(2026, 1, 5), cancelledById: t9.id } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC1.id, userId: t10.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'CANCELLED', cancellationReason: 'Family emergency', cancelledAt: d(2026, 1, 8), cancelledById: t10.id } })
 
   // Trip C2: Manali Snow — 14 bookings
-  const bC2_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t3.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
-  const bC2_2 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t5.id, numTravelers: 1, totalAmount: 7999, bookingStatus: 'COMPLETED' } })
-  const bC2_3 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t7.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
-  const bC2_4 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t9.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'COMPLETED' } })
-  const bC2_5 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t11.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
-  const bC2_6 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t12.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'COMPLETED' } })
+  const bC2_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t3.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
+  const bC2_2 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t5.id, numTravelers: 1, totalAmount: 7999, bookingStatus: 'COMPLETED' } })
+  const bC2_3 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t7.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
+  const bC2_4 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t9.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'COMPLETED' } })
+  const bC2_5 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t11.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'COMPLETED' } })
+  const bC2_6 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC2.id, userId: t12.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'COMPLETED' } })
 
   // Trip C3: Rishikesh Rafting — 20 bookings
-  const bC3_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t1.id, numTravelers: 3, totalAmount: 10497, bookingStatus: 'COMPLETED' } })
-  const bC3_2 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t4.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
-  const bC3_3 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t6.id, numTravelers: 1, totalAmount: 3499, bookingStatus: 'COMPLETED' } })
-  const bC3_4 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t8.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
-  const bC3_5 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t10.id, numTravelers: 1, totalAmount: 3499, bookingStatus: 'COMPLETED' } })
-  const bC3_6 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t12.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
+  const bC3_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t1.id, numTravelers: 3, totalAmount: 10497, bookingStatus: 'COMPLETED' } })
+  const bC3_2 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t4.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
+  const bC3_3 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t6.id, numTravelers: 1, totalAmount: 3499, bookingStatus: 'COMPLETED' } })
+  const bC3_4 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t8.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
+  const bC3_5 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t10.id, numTravelers: 1, totalAmount: 3499, bookingStatus: 'COMPLETED' } })
+  const bC3_6 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC3.id, userId: t12.id, numTravelers: 2, totalAmount: 6998, bookingStatus: 'COMPLETED' } })
 
   // Trip C4: Jaipur Heritage — 16 bookings
-  const bC4_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t2.id, numTravelers: 2, totalAmount: 9998, bookingStatus: 'COMPLETED' } })
-  const bC4_2 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t4.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'COMPLETED' } })
-  const bC4_3 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t6.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'COMPLETED' } })
-  const bC4_4 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t8.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'COMPLETED' } })
-  const bC4_5 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t10.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'COMPLETED' } })
-  const bC4_6 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t11.id, numTravelers: 1, totalAmount: 4999, bookingStatus: 'COMPLETED' } })
+  const bC4_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t2.id, numTravelers: 2, totalAmount: 9998, bookingStatus: 'COMPLETED' } })
+  const bC4_2 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t4.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'COMPLETED' } })
+  const bC4_3 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t6.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'COMPLETED' } })
+  const bC4_4 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t8.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'COMPLETED' } })
+  const bC4_5 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t10.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'COMPLETED' } })
+  const bC4_6 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ct.tripC4.id, userId: t11.id, numTravelers: 1, totalAmount: 4999, bookingStatus: 'COMPLETED' } })
 
   console.log('  ✓ Created completed trip bookings (C1-C4)')
 
@@ -811,14 +925,14 @@ async function seedBookingsAndReviews(deps: {
   const completedBookings = [bC1_1, bC1_2, bC1_3, bC1_4, bC1_5, bC1_6, bC1_7, bC1_8, bC2_1, bC2_2, bC2_3, bC2_4, bC2_5, bC2_6, bC3_1, bC3_2, bC3_3, bC3_4, bC3_5, bC3_6, bC4_1, bC4_2, bC4_3, bC4_4, bC4_5, bC4_6]
   let payIdx = 0
   for (const b of completedBookings) {
-    await prisma.paymentTransaction.create({
+    await safePaymentCreate({
       data: { bookingId: b.id, type: 'PAYMENT', amount: b.totalAmount, status: 'CAPTURED', razorpayOrderId: `order_prod_${String(++payIdx).padStart(3, '0')}`, razorpayPaymentId: `pay_prod_${String(payIdx).padStart(3, '0')}` },
     })
   }
   console.log(`  ✓ Created ${payIdx} payment transactions for completed trips`)
 
   // ── Traveler details for key bookings ──
-  await prisma.travelerDetail.createMany({
+  await safeTravelerCreateMany({
     data: [
       { bookingId: bC1_1.id, name: 'Amit Kulkarni', phone: '+919876543210', age: 28, gender: 'MALE', isPrimary: true, emergencyContactName: 'Sneha Kulkarni', emergencyContactPhone: '+919876543230' },
       { bookingId: bC1_1.id, name: 'Prerna Kulkarni', age: 26, gender: 'FEMALE' },
@@ -925,7 +1039,7 @@ async function seedBookingsAndReviews(deps: {
   for (let i = 0; i < reviewData.length; i++) {
     const r = reviewData[i]
     const reply = orgReplies[i]
-    await prisma.review.create({
+    await safeReviewCreate({
       data: {
         tripId: r.tripId, bookingId: r.bookingId, userId: r.userId,
         overallRating: r.overall, organizationRating: r.org, valueRating: r.val, safetyRating: r.safe, accuracyRating: r.acc,
@@ -942,78 +1056,78 @@ async function seedBookingsAndReviews(deps: {
   // ══════════════════════════════════════════════════════
 
   // Kasol trek — 3 confirmed
-  const bU1_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t1.id, numTravelers: 2, totalAmount: 16998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t6.id, numTravelers: 1, totalAmount: 8499, bookingStatus: 'CONFIRMED' } })
+  const bU1_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t1.id, numTravelers: 2, totalAmount: 16998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t6.id, numTravelers: 1, totalAmount: 8499, bookingStatus: 'CONFIRMED' } })
   // Pending payment
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t9.id, numTravelers: 1, totalAmount: 9499, bookingStatus: 'PENDING_PAYMENT', expiresAt: d(2026, 5, 10) } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU1.id, userId: t9.id, numTravelers: 1, totalAmount: 9499, bookingStatus: 'PENDING_PAYMENT', expiresAt: d(2026, 5, 10) } })
 
   // Spiti — 2 confirmed (request-based)
-  const bU2_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU2.id, userId: t3.id, numTravelers: 2, totalAmount: 25998, bookingStatus: 'CONFIRMED' } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU2.id, userId: t3.id, numTravelers: 2, message: 'My wife and I have been dreaming of Spiti for years. Both experienced at high altitude. Please approve!', status: 'APPROVED', respondedAt: d(2026, 5, 1), responseNote: 'Welcome aboard! Payment link sent.', bookingId: bU2_1.id } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU2.id, userId: t7.id, numTravelers: 1, message: 'Solo photographer looking for Spiti landscapes. I have altitude experience from Ladakh.', status: 'PENDING', approvalExpiresAt: d(2026, 5, 15) } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU2.id, userId: t11.id, numTravelers: 2, message: 'College friends roadtrip! We both have our own bikes — can we ride our own instead?', status: 'PENDING', approvalExpiresAt: d(2026, 5, 15) } })
+  const bU2_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU2.id, userId: t3.id, numTravelers: 2, totalAmount: 25998, bookingStatus: 'CONFIRMED' } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU2.id, userId: t3.id, numTravelers: 2, message: 'My wife and I have been dreaming of Spiti for years. Both experienced at high altitude. Please approve!', status: 'APPROVED', respondedAt: d(2026, 5, 1), responseNote: 'Welcome aboard! Payment link sent.', bookingId: bU2_1.id } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU2.id, userId: t7.id, numTravelers: 1, message: 'Solo photographer looking for Spiti landscapes. I have altitude experience from Ladakh.', status: 'PENDING', approvalExpiresAt: d(2026, 5, 15) } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU2.id, userId: t11.id, numTravelers: 2, message: 'College friends roadtrip! We both have our own bikes — can we ride our own instead?', status: 'PENDING', approvalExpiresAt: d(2026, 5, 15) } })
 
   // Udaipur — 4 confirmed
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t2.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t8.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t10.id, numTravelers: 1, totalAmount: 9999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t2.id, numTravelers: 2, totalAmount: 17998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t8.id, numTravelers: 1, totalAmount: 8999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU3.id, userId: t10.id, numTravelers: 1, totalAmount: 9999, bookingStatus: 'CONFIRMED' } })
 
   // Coorg — 2 confirmed
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU4.id, userId: t4.id, numTravelers: 2, totalAmount: 18998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU4.id, userId: t4.id, numTravelers: 2, totalAmount: 18998, bookingStatus: 'CONFIRMED' } })
 
   // Varanasi — 1 confirmed
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU5.id, userId: t12.id, numTravelers: 1, totalAmount: 7999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU5.id, userId: t12.id, numTravelers: 1, totalAmount: 7999, bookingStatus: 'CONFIRMED' } })
 
   // Andaman — request-based, only pending requests
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU6.id, userId: t5.id, numTravelers: 2, message: 'Honeymoon trip! My wife and I love scuba diving. Any couples discounts available?', status: 'PENDING', approvalExpiresAt: d(2026, 6, 1) } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU6.id, userId: t9.id, numTravelers: 1, message: 'Solo travel photographer. Can I bring my underwater camera and drone?', status: 'PENDING', approvalExpiresAt: d(2026, 6, 1) } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU6.id, userId: t5.id, numTravelers: 2, message: 'Honeymoon trip! My wife and I love scuba diving. Any couples discounts available?', status: 'PENDING', approvalExpiresAt: d(2026, 6, 1) } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU6.id, userId: t9.id, numTravelers: 1, message: 'Solo travel photographer. Can I bring my underwater camera and drone?', status: 'PENDING', approvalExpiresAt: d(2026, 6, 1) } })
 
   // Goa Monsoon — 7 confirmed bookings
-  const bU7_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t1.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t4.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t6.id, numTravelers: 2, totalAmount: 13998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t11.id, numTravelers: 2, totalAmount: 13998, bookingStatus: 'CONFIRMED' } })
+  const bU7_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t1.id, numTravelers: 2, totalAmount: 11998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t4.id, numTravelers: 1, totalAmount: 5999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t6.id, numTravelers: 2, totalAmount: 13998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU7.id, userId: t11.id, numTravelers: 2, totalAmount: 13998, bookingStatus: 'CONFIRMED' } })
 
   // Lonavala Monsoon — 15 confirmed (popular budget trek)
-  const bU8_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t2.id, numTravelers: 3, totalAmount: 7497, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t5.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t7.id, numTravelers: 1, totalAmount: 2499, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t9.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t10.id, numTravelers: 3, totalAmount: 7497, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t12.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t3.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
+  const bU8_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t2.id, numTravelers: 3, totalAmount: 7497, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t5.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t7.id, numTravelers: 1, totalAmount: 2499, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t9.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t10.id, numTravelers: 3, totalAmount: 7497, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t12.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU8.id, userId: t3.id, numTravelers: 2, totalAmount: 4998, bookingStatus: 'CONFIRMED' } })
 
   // Manali Summer — 5 confirmed
-  const bU9_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t3.id, numTravelers: 2, totalAmount: 20998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t8.id, numTravelers: 1, totalAmount: 10499, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t11.id, numTravelers: 2, totalAmount: 23998, bookingStatus: 'CONFIRMED' } })
+  const bU9_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t3.id, numTravelers: 2, totalAmount: 20998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t8.id, numTravelers: 1, totalAmount: 10499, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU9.id, userId: t11.id, numTravelers: 2, totalAmount: 23998, bookingStatus: 'CONFIRMED' } })
 
   // Ladakh Bike — 3 confirmed (request-based)
-  const bU10_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU10.id, userId: t5.id, numTravelers: 1, totalAmount: 19999, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU10.id, userId: t7.id, numTravelers: 2, totalAmount: 45998, bookingStatus: 'CONFIRMED' } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU10.id, userId: t5.id, numTravelers: 1, message: 'Experienced rider with 3 Ladakh trips. Have my own gear. Please approve!', status: 'APPROVED', respondedAt: d(2026, 5, 3), responseNote: 'Welcome aboard, rider! Payment link sent.', bookingId: bU10_1.id } })
-  await prisma.tripRequest.create({ data: { tripId: ut.tripU10.id, userId: t9.id, numTravelers: 1, message: 'First time Ladakh rider. I have a valid DL and basic riding experience.', status: 'PENDING', approvalExpiresAt: d(2026, 5, 20) } })
+  const bU10_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU10.id, userId: t5.id, numTravelers: 1, totalAmount: 19999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU10.id, userId: t7.id, numTravelers: 2, totalAmount: 45998, bookingStatus: 'CONFIRMED' } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU10.id, userId: t5.id, numTravelers: 1, message: 'Experienced rider with 3 Ladakh trips. Have my own gear. Please approve!', status: 'APPROVED', respondedAt: d(2026, 5, 3), responseNote: 'Welcome aboard, rider! Payment link sent.', bookingId: bU10_1.id } })
+  await safeTripRequestCreate({ data: { tripId: ut.tripU10.id, userId: t9.id, numTravelers: 1, message: 'First time Ladakh rider. I have a valid DL and basic riding experience.', status: 'PENDING', approvalExpiresAt: d(2026, 5, 20) } })
 
   // Rishikesh Rafting & Bungee — 9 confirmed
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t1.id, numTravelers: 3, totalAmount: 14997, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t4.id, numTravelers: 2, totalAmount: 9998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t8.id, numTravelers: 1, totalAmount: 4999, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t12.id, numTravelers: 3, totalAmount: 14997, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t1.id, numTravelers: 3, totalAmount: 14997, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t4.id, numTravelers: 2, totalAmount: 9998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t8.id, numTravelers: 1, totalAmount: 4999, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU11.id, userId: t12.id, numTravelers: 3, totalAmount: 14997, bookingStatus: 'CONFIRMED' } })
 
   // Jaipur Heritage & Food — 6 confirmed
-  const bU12_1 = await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t2.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t6.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t10.id, numTravelers: 2, totalAmount: 14998, bookingStatus: 'CONFIRMED' } })
-  await prisma.booking.create({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t3.id, numTravelers: 1, totalAmount: 7499, bookingStatus: 'CONFIRMED' } })
+  const bU12_1 = await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t2.id, numTravelers: 2, totalAmount: 12998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t6.id, numTravelers: 1, totalAmount: 6499, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t10.id, numTravelers: 2, totalAmount: 14998, bookingStatus: 'CONFIRMED' } })
+  await safeBookingCreate({ data: { bookingRef: nextRef(), tripId: ut.tripU12.id, userId: t3.id, numTravelers: 1, totalAmount: 7499, bookingStatus: 'CONFIRMED' } })
 
   // Payments for upcoming confirmed bookings
-  await prisma.paymentTransaction.create({ data: { bookingId: bU1_1.id, type: 'PAYMENT', amount: 16998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up01', razorpayPaymentId: 'pay_prod_up01' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU2_1.id, type: 'PAYMENT', amount: 25998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up02', razorpayPaymentId: 'pay_prod_up02' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU7_1.id, type: 'PAYMENT', amount: 11998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up03', razorpayPaymentId: 'pay_prod_up03' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU8_1.id, type: 'PAYMENT', amount: 7497, status: 'CAPTURED', razorpayOrderId: 'order_prod_up04', razorpayPaymentId: 'pay_prod_up04' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU9_1.id, type: 'PAYMENT', amount: 20998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up05', razorpayPaymentId: 'pay_prod_up05' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU10_1.id, type: 'PAYMENT', amount: 19999, status: 'CAPTURED', razorpayOrderId: 'order_prod_up06', razorpayPaymentId: 'pay_prod_up06' } })
-  await prisma.paymentTransaction.create({ data: { bookingId: bU12_1.id, type: 'PAYMENT', amount: 12998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up07', razorpayPaymentId: 'pay_prod_up07' } })
+  await safePaymentCreate({ data: { bookingId: bU1_1.id, type: 'PAYMENT', amount: 16998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up01', razorpayPaymentId: 'pay_prod_up01' } })
+  await safePaymentCreate({ data: { bookingId: bU2_1.id, type: 'PAYMENT', amount: 25998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up02', razorpayPaymentId: 'pay_prod_up02' } })
+  await safePaymentCreate({ data: { bookingId: bU7_1.id, type: 'PAYMENT', amount: 11998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up03', razorpayPaymentId: 'pay_prod_up03' } })
+  await safePaymentCreate({ data: { bookingId: bU8_1.id, type: 'PAYMENT', amount: 7497, status: 'CAPTURED', razorpayOrderId: 'order_prod_up04', razorpayPaymentId: 'pay_prod_up04' } })
+  await safePaymentCreate({ data: { bookingId: bU9_1.id, type: 'PAYMENT', amount: 20998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up05', razorpayPaymentId: 'pay_prod_up05' } })
+  await safePaymentCreate({ data: { bookingId: bU10_1.id, type: 'PAYMENT', amount: 19999, status: 'CAPTURED', razorpayOrderId: 'order_prod_up06', razorpayPaymentId: 'pay_prod_up06' } })
+  await safePaymentCreate({ data: { bookingId: bU12_1.id, type: 'PAYMENT', amount: 12998, status: 'CAPTURED', razorpayOrderId: 'order_prod_up07', razorpayPaymentId: 'pay_prod_up07' } })
 
   console.log('  ✓ Created upcoming trip bookings, requests & payments')
 
@@ -1021,28 +1135,28 @@ async function seedBookingsAndReviews(deps: {
   // ── CONVERSATIONS & MESSAGES ──────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const conv1 = await prisma.conversation.create({
+  const conv1 = await safeConvCreate({
     data: { tripId: ut.tripU1.id, travelerId: t1.id, organizerProfileId: org1.id, lastMessageAt: d(2026, 5, 5), lastMessagePreview: 'Thanks! Can we bring our own sleeping bags?' },
   })
-  await prisma.message.createMany({ data: [
+  await safeMsgCreateMany({ data: [
     { conversationId: conv1.id, senderId: t1.id, content: 'Hi! What should we pack for the Kheerganga trek? Any specific shoes recommended?', readAt: d(2026, 5, 4) },
     { conversationId: conv1.id, senderId: org1User.id, content: 'Hey Amit! Bring sturdy trekking shoes with good grip — the trail gets slippery. Layer up with thermals + fleece. We provide sleeping bags at camp but bring a rain poncho.', readAt: d(2026, 5, 5) },
     { conversationId: conv1.id, senderId: t1.id, content: 'Thanks! Can we bring our own sleeping bags?', readAt: null },
   ] })
 
-  const conv2 = await prisma.conversation.create({
+  const conv2 = await safeConvCreate({
     data: { tripId: ut.tripU2.id, travelerId: t3.id, organizerProfileId: org2.id, lastMessageAt: d(2026, 5, 3), lastMessagePreview: 'We have a doctor on speed dial and carry oxygen cylinders.' },
   })
-  await prisma.message.createMany({ data: [
+  await safeMsgCreateMany({ data: [
     { conversationId: conv2.id, senderId: t3.id, content: 'Is the Spiti trip safe for someone with mild asthma? My wife has a mild condition.', readAt: d(2026, 5, 2) },
     { conversationId: conv2.id, senderId: org2User.id, content: 'Great question, Rohan. We recommend consulting your doctor first. We carry oxygen cylinders and the itinerary includes gradual altitude gain. We have a doctor on speed dial and carry oxygen cylinders.', readAt: d(2026, 5, 3) },
   ] })
 
   // Admin support conversation
-  const conv3 = await prisma.conversation.create({
+  const conv3 = await safeConvCreate({
     data: { type: 'ADMIN_SUPPORT', travelerId: t9.id, adminId: admin.id, lastMessageAt: d(2026, 5, 6), lastMessagePreview: 'We have extended your payment deadline by 24 hours.' },
   })
-  await prisma.message.createMany({ data: [
+  await safeMsgCreateMany({ data: [
     { conversationId: conv3.id, senderId: t9.id, content: 'Hi, my payment for Kasol trek failed but the booking shows pending. Can you help?', readAt: d(2026, 5, 6) },
     { conversationId: conv3.id, senderId: admin.id, content: 'Hi Nikhil, I can see the failed attempt. We have extended your payment deadline by 24 hours. Please try again with a different payment method.', readAt: d(2026, 5, 6) },
   ] })
@@ -1053,7 +1167,7 @@ async function seedBookingsAndReviews(deps: {
   // ── NOTIFICATIONS ─────────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  await prisma.notification.createMany({ data: [
+  await safeNotifCreateMany({ data: [
     { userId: t1.id, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your booking for "Kasol & Kheerganga Trek" is confirmed.', sentAt: d(2026, 5, 2), readAt: d(2026, 5, 2) },
     { userId: t1.id, channel: 'IN_APP', type: 'TRIP_REMINDER', title: 'Trip in 4 weeks!', body: 'Your Kasol trek starts on June 5. Start packing!', sentAt: d(2026, 5, 5) },
     { userId: t2.id, channel: 'IN_APP', type: 'BOOKING_CONFIRMED', title: 'Booking Confirmed!', body: 'Your booking for "Udaipur Royal Getaway" is confirmed.', sentAt: d(2026, 5, 3), readAt: d(2026, 5, 3) },
@@ -1085,33 +1199,33 @@ async function seedBookingsAndReviews(deps: {
   // Amit wallet: refund + cashback
   const amitW = await prisma.wallet.findUnique({ where: { userId: t1.id } })
   if (amitW) {
-    await prisma.walletTransaction.create({ data: { walletId: amitW.id, amount: 1500, type: 'REFUND', referenceModel: 'Booking', referenceId: bC1_1.id, description: 'Partial refund for Goa trip date change', balanceBefore: 0, balanceAfter: 1500 } })
-    await prisma.walletTransaction.create({ data: { walletId: amitW.id, amount: 200, type: 'CASHBACK', referenceModel: 'Booking', referenceId: bC3_1.id, description: 'Cashback for Rishikesh Rafting booking', balanceBefore: 1500, balanceAfter: 1700 } })
-    await prisma.walletTransaction.create({ data: { walletId: amitW.id, amount: 500, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t1.id, description: 'Welcome bonus credit', balanceBefore: 1700, balanceAfter: 2200 } })
-    await prisma.walletTransaction.create({ data: { walletId: amitW.id, amount: 800, type: 'BOOKING_DEDUCTION', referenceModel: 'Booking', referenceId: bU1_1.id, description: 'Wallet used for Kasol trek booking', balanceBefore: 2200, balanceAfter: 1400 } })
+    await safeWalletTxCreate({ data: { walletId: amitW.id, amount: 1500, type: 'REFUND', referenceModel: 'Booking', referenceId: bC1_1.id, description: 'Partial refund for Goa trip date change', balanceBefore: 0, balanceAfter: 1500 } })
+    await safeWalletTxCreate({ data: { walletId: amitW.id, amount: 200, type: 'CASHBACK', referenceModel: 'Booking', referenceId: bC3_1.id, description: 'Cashback for Rishikesh Rafting booking', balanceBefore: 1500, balanceAfter: 1700 } })
+    await safeWalletTxCreate({ data: { walletId: amitW.id, amount: 500, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t1.id, description: 'Welcome bonus credit', balanceBefore: 1700, balanceAfter: 2200 } })
+    await safeWalletTxCreate({ data: { walletId: amitW.id, amount: 800, type: 'BOOKING_DEDUCTION', referenceModel: 'Booking', referenceId: bU1_1.id, description: 'Wallet used for Kasol trek booking', balanceBefore: 2200, balanceAfter: 1400 } })
     await prisma.wallet.update({ where: { id: amitW.id }, data: { balance: 1400 } })
   }
 
   // Sneha wallet: admin credit
   const snehaW = await prisma.wallet.findUnique({ where: { userId: t2.id } })
   if (snehaW) {
-    await prisma.walletTransaction.create({ data: { walletId: snehaW.id, amount: 300, type: 'ADMIN_CREDIT', referenceModel: 'User', referenceId: t2.id, description: 'Compensation for delayed trip start on Goa trip', balanceBefore: 0, balanceAfter: 300 } })
+    await safeWalletTxCreate({ data: { walletId: snehaW.id, amount: 300, type: 'ADMIN_CREDIT', referenceModel: 'User', referenceId: t2.id, description: 'Compensation for delayed trip start on Goa trip', balanceBefore: 0, balanceAfter: 300 } })
     await prisma.wallet.update({ where: { id: snehaW.id }, data: { balance: 300 } })
   }
 
   // Pooja wallet: promo + expiry
   const poojaW = await prisma.wallet.findUnique({ where: { userId: t10.id } })
   if (poojaW) {
-    await prisma.walletTransaction.create({ data: { walletId: poojaW.id, amount: 500, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t10.id, description: 'Referral bonus credit', balanceBefore: 0, balanceAfter: 500 } })
-    await prisma.walletTransaction.create({ data: { walletId: poojaW.id, amount: 250, type: 'EXPIRY', referenceModel: 'WalletTransaction', referenceId: 'expired_promo_batch_001', description: 'Promotional credit expired after 90 days', balanceBefore: 500, balanceAfter: 250 } })
+    await safeWalletTxCreate({ data: { walletId: poojaW.id, amount: 500, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t10.id, description: 'Referral bonus credit', balanceBefore: 0, balanceAfter: 500 } })
+    await safeWalletTxCreate({ data: { walletId: poojaW.id, amount: 250, type: 'EXPIRY', referenceModel: 'WalletTransaction', referenceId: 'expired_promo_batch_001', description: 'Promotional credit expired after 90 days', balanceBefore: 500, balanceAfter: 250 } })
     await prisma.wallet.update({ where: { id: poojaW.id }, data: { balance: 250 } })
   }
 
   // Meera wallet: admin credit + debit
   const meeraW = await prisma.wallet.findUnique({ where: { userId: t8.id } })
   if (meeraW) {
-    await prisma.walletTransaction.create({ data: { walletId: meeraW.id, amount: 1000, type: 'ADMIN_CREDIT', referenceModel: 'User', referenceId: t8.id, description: 'Compensation for trip disruption', balanceBefore: 0, balanceAfter: 1000 } })
-    await prisma.walletTransaction.create({ data: { walletId: meeraW.id, amount: 400, type: 'ADMIN_DEBIT', referenceModel: 'User', referenceId: t8.id, description: 'Admin corrected over-credited amount', balanceBefore: 1000, balanceAfter: 600 } })
+    await safeWalletTxCreate({ data: { walletId: meeraW.id, amount: 1000, type: 'ADMIN_CREDIT', referenceModel: 'User', referenceId: t8.id, description: 'Compensation for trip disruption', balanceBefore: 0, balanceAfter: 1000 } })
+    await safeWalletTxCreate({ data: { walletId: meeraW.id, amount: 400, type: 'ADMIN_DEBIT', referenceModel: 'User', referenceId: t8.id, description: 'Admin corrected over-credited amount', balanceBefore: 1000, balanceAfter: 600 } })
     await prisma.wallet.update({ where: { id: meeraW.id }, data: { balance: 600 } })
   }
 
@@ -1265,20 +1379,20 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
       const unitPrice = (o.early && earlyBirdUsed < earlyBirdCap) ? o.early : o.price
       const amount = unitPrice * numT
       if (o.early && earlyBirdUsed < earlyBirdCap) earlyBirdUsed += numT
-      const b = await prisma.booking.create({ data: {
+      const b = await safeBookingCreate({ data: {
         bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
         tripId: trip.id, userId: trav.id,
         numTravelers: numT, totalAmount: amount, bookingStatus: bStatus,
       }})
-      await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + idx) })
-      await prisma.paymentTransaction.create({ data: {
+      await safeTravelerCreateMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + idx) })
+      await safePaymentCreate({ data: {
         bookingId: b.id, type: 'PAYMENT', amount, status: 'CAPTURED',
         razorpayOrderId: `order_mk_${++bulkPayN}`, razorpayPaymentId: `pay_mk_${bulkPayN}`,
       }})
       // For REQUEST_BASED: link an APPROVED TripRequest
       if (isRequest) {
         usedRequestUserIds.add(trav.id)
-        await prisma.tripRequest.create({ data: {
+        await safeTripRequestCreate({ data: {
           tripId: trip.id, userId: trav.id, numTravelers: numT,
           message: REQUEST_MSGS[idx % REQUEST_MSGS.length],
           status: 'APPROVED', respondedAt: new Date(Date.now() - (20 + idx) * 86400000),
@@ -1296,22 +1410,22 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
         const trav = travelers[(idx + p + 20) % travelers.length]
         const numT = 1 + (p % 2)
         const amount = o.price * numT
-        const b = await prisma.booking.create({ data: {
+        const b = await safeBookingCreate({ data: {
           bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
           tripId: trip.id, userId: trav.id,
           numTravelers: numT, totalAmount: amount,
           bookingStatus: 'PENDING_PAYMENT',
           expiresAt: new Date(Date.now() + (1 + p) * 86400000),
         }})
-        await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + p + 300) })
+        await safeTravelerCreateMany({ data: generateTravelerDetails(b.id, numT, bulkBRef + p + 300) })
         // Initiated (not yet captured) payment for PENDING_PAYMENT
-        await prisma.paymentTransaction.create({ data: {
+        await safePaymentCreate({ data: {
           bookingId: b.id, type: 'PAYMENT', amount, status: 'INITIATED',
           razorpayOrderId: `order_pp_${bulkPayN++}`,
         }})
         if (isRequest) {
           usedRequestUserIds.add(trav.id)
-          await prisma.tripRequest.create({ data: {
+          await safeTripRequestCreate({ data: {
             tripId: trip.id, userId: trav.id, numTravelers: numT,
             message: REQUEST_MSGS[(idx + p + 3) % REQUEST_MSGS.length],
             status: 'APPROVED', respondedAt: new Date(Date.now() - (5 + p) * 86400000),
@@ -1328,7 +1442,7 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
         const trav = travelers[(idx + c + 30) % travelers.length]
         const amount = o.price
         const cancelDate = new Date(Date.now() - (25 + c * 5) * 86400000)
-        const b = await prisma.booking.create({ data: {
+        const b = await safeBookingCreate({ data: {
           bookingRef: `SFN-2026-${String(++bulkBRef).padStart(4, '0')}`,
           tripId: trip.id, userId: trav.id,
           numTravelers: 1, totalAmount: amount,
@@ -1339,13 +1453,13 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
         }})
         // Original CAPTURED payment (paid before cancellation)
         const payDate = new Date(cancelDate.getTime() - 5 * 86400000)
-        await prisma.paymentTransaction.create({ data: {
+        await safePaymentCreate({ data: {
           bookingId: b.id, type: 'PAYMENT', amount, status: 'CAPTURED',
           razorpayOrderId: `order_cx_${++bulkPayN}`, razorpayPaymentId: `pay_cx_${bulkPayN}`,
           createdAt: payDate,
         }})
         // REFUND issued after cancellation (net revenue impact = 0)
-        await prisma.paymentTransaction.create({ data: {
+        await safePaymentCreate({ data: {
           bookingId: b.id, type: 'REFUND', amount, status: 'CAPTURED',
           razorpayOrderId: `order_cx_${bulkPayN}`, razorpayPaymentId: `rfnd_cx_${bulkPayN}`,
           createdAt: new Date(cancelDate.getTime() + 1 * 86400000),
@@ -1361,7 +1475,7 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
         if (!trav) break
         usedRequestUserIds.add(trav.id)
         const numT = 1 + (pr % 3)
-        await prisma.tripRequest.create({ data: {
+        await safeTripRequestCreate({ data: {
           tripId: trip.id, userId: trav.id, numTravelers: numT,
           message: REQUEST_MSGS[(idx + pr) % REQUEST_MSGS.length],
           status: 'PENDING', approvalExpiresAt: new Date(Date.now() + 7 * 86400000),
@@ -1373,7 +1487,7 @@ async function seedBulkTrips(deps: Record<string, { id: string }>, travelers: { 
         const trav = pickUnique(idx + rj + 42)
         if (!trav) break
         usedRequestUserIds.add(trav.id)
-        await prisma.tripRequest.create({ data: {
+        await safeTripRequestCreate({ data: {
           tripId: trip.id, userId: trav.id, numTravelers: 1,
           message: REQUEST_MSGS[(idx + rj + 5) % REQUEST_MSGS.length],
           status: 'REJECTED', respondedAt: new Date(Date.now() - (10 + rj * 3) * 86400000),
@@ -1626,7 +1740,7 @@ async function seedBulkReviews(_travelers: { id: string }[]) {
       const hasReply = r % 5 < 2
       const replyTemplate = ORG_REPLY_TEMPLATES[(seedIdx + r) % ORG_REPLY_TEMPLATES.length]
 
-      await prisma.review.create({
+      await safeReviewCreate({
         data: {
           tripId: trip.id,
           bookingId: booking.id,
@@ -1716,8 +1830,8 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const tp = applyTP(trip, i)
     const numT = 1 + (i % 2)
     const amount = trip.pricePerPerson * numT + tp.extraCharge * numT
-    const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
-    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i) })
+    const b = await safeBookingCreate({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await safeTravelerCreateMany({ data: generateTravelerDetails(b.id, numT, bRef + i) })
     instantConfirmed.push(b)
   }
 
@@ -1730,8 +1844,8 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const tp = applyTP(trip, i + 2) // offset combos for variety
     const numT = 1 + (i % 2)
     const price = trip.earlyBirdPrice! * numT + tp.extraCharge * numT
-    const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: price, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
-    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 100) })
+    const b = await safeBookingCreate({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: price, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await safeTravelerCreateMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 100) })
     earlyConfirmed.push(b)
   }
 
@@ -1743,7 +1857,7 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const trav = travelers[(i + 8) % 12]
     const tp = applyTP(trip, i + 3) // Mumbai pickup cancelled = user sees refund including extra charge
     const amount = trip.pricePerPerson + tp.extraCharge
-    const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: 1, totalAmount: amount, bookingStatus: 'CANCELLED', cancellationReason: cancelReasons[i], cancelledAt: new Date(Date.now() - (20 + i * 5) * 86400000), cancelledById: trav.id, ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    const b = await safeBookingCreate({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: 1, totalAmount: amount, bookingStatus: 'CANCELLED', cancellationReason: cancelReasons[i], cancelledAt: new Date(Date.now() - (20 + i * 5) * 86400000), cancelledById: trav.id, ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
     cancelledBookings.push(b)
   }
 
@@ -1753,7 +1867,7 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const trav = travelers[(i + 6) % 12]
     const tp = applyTP(trip, i + 1)
     const amount = trip.pricePerPerson + tp.extraCharge
-    await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: 1, totalAmount: amount, bookingStatus: 'PENDING_PAYMENT', expiresAt: new Date(Date.now() + (1 + i) * 86400000), ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await safeBookingCreate({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: 1, totalAmount: amount, bookingStatus: 'PENDING_PAYMENT', expiresAt: new Date(Date.now() + (1 + i) * 86400000), ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
   }
 
   // ── 5) REQUEST_BASED — approved + pending + rejected ──
@@ -1765,20 +1879,20 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
     const tp = applyTP(trip, i)
     const numT = 1 + (i % 2)
     const amount = trip.pricePerPerson * numT + tp.extraCharge * numT
-    const b = await prisma.booking.create({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
-    await prisma.travelerDetail.createMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 200) })
-    await prisma.tripRequest.create({ data: { tripId: trip.id, userId: trav.id, numTravelers: numT, message: 'I have relevant experience and would love to join this trip!', status: 'APPROVED', respondedAt: new Date(Date.now() - (15 + i) * 86400000), responseNote: 'Welcome! Payment link sent.', bookingId: b.id } })
+    const b = await safeBookingCreate({ data: { bookingRef: ref(), tripId: trip.id, userId: trav.id, numTravelers: numT, totalAmount: amount, bookingStatus: 'CONFIRMED', ...(tp.pickupPointId && { pickupPointId: tp.pickupPointId }), ...(tp.dropPointId && { dropPointId: tp.dropPointId }) } })
+    await safeTravelerCreateMany({ data: generateTravelerDetails(b.id, numT, bRef + i + 200) })
+    await safeTripRequestCreate({ data: { tripId: trip.id, userId: trav.id, numTravelers: numT, message: 'I have relevant experience and would love to join this trip!', status: 'APPROVED', respondedAt: new Date(Date.now() - (15 + i) * 86400000), responseNote: 'Welcome! Payment link sent.', bookingId: b.id } })
     requestConfirmed.push(b)
 
     // Pending request
     if (i < 4) {
       const pt = travelers[(i + 3) % 12]
-      await prisma.tripRequest.create({ data: { tripId: trip.id, userId: pt.id, numTravelers: 1, message: 'First timer here. Very excited about this trip!', status: 'PENDING', approvalExpiresAt: new Date(Date.now() + 7 * 86400000) } })
+      await safeTripRequestCreate({ data: { tripId: trip.id, userId: pt.id, numTravelers: 1, message: 'First timer here. Very excited about this trip!', status: 'PENDING', approvalExpiresAt: new Date(Date.now() + 7 * 86400000) } })
     }
     // Rejected request
     if (i < 3) {
       const rt = travelers[(i + 7) % 12]
-      await prisma.tripRequest.create({ data: { tripId: trip.id, userId: rt.id, numTravelers: 1, message: 'Can I join even though I have no prior experience?', status: 'REJECTED', respondedAt: new Date(Date.now() - (10 + i) * 86400000), responseNote: 'Sorry, this trip requires prior experience for safety reasons.' } })
+      await safeTripRequestCreate({ data: { tripId: trip.id, userId: rt.id, numTravelers: 1, message: 'Can I join even though I have no prior experience?', status: 'REJECTED', respondedAt: new Date(Date.now() - (10 + i) * 86400000), responseNote: 'Sorry, this trip requires prior experience for safety reasons.' } })
     }
   }
   console.log(`  ✓ Bulk bookings: ${instantConfirmed.length} instant + ${earlyConfirmed.length} early-bird + ${cancelledBookings.length} cancelled + 3 pending-payment + ${requestConfirmed.length} request-approved`)
@@ -1787,42 +1901,42 @@ async function seedBulkBookingsAndPayments(travelers: { id: string }[]) {
   // ── 6) PAYMENT TRANSACTIONS ──
   const allConfirmed = [...instantConfirmed, ...earlyConfirmed, ...requestConfirmed]
   for (const b of allConfirmed) {
-    await prisma.paymentTransaction.create({ data: { bookingId: b.id, type: 'PAYMENT', amount: b.totalAmount, status: 'CAPTURED', ...payRef() } })
+    await safePaymentCreate({ data: { bookingId: b.id, type: 'PAYMENT', amount: b.totalAmount, status: 'CAPTURED', ...payRef() } })
   }
   // Refund payments for cancelled
   for (const b of cancelledBookings) {
-    await prisma.paymentTransaction.create({ data: { bookingId: b.id, type: 'PAYMENT', amount: b.totalAmount, status: 'CAPTURED', ...payRef() } })
-    await prisma.paymentTransaction.create({ data: { bookingId: b.id, type: 'REFUND', amount: Math.round(b.totalAmount * 0.85), status: 'REFUNDED', razorpayRefundId: `rfnd_bulk_${payN}`, ...payRef() } })
+    await safePaymentCreate({ data: { bookingId: b.id, type: 'PAYMENT', amount: b.totalAmount, status: 'CAPTURED', ...payRef() } })
+    await safePaymentCreate({ data: { bookingId: b.id, type: 'REFUND', amount: Math.round(b.totalAmount * 0.85), status: 'REFUNDED', razorpayRefundId: `rfnd_bulk_${payN}`, ...payRef() } })
   }
   // Failed payment for one pending
-  await prisma.paymentTransaction.create({ data: { bookingId: (await prisma.booking.findFirst({ where: { bookingStatus: 'PENDING_PAYMENT' }, orderBy: { createdAt: 'desc' } }))!.id, type: 'PAYMENT', amount: 5999, status: 'FAILED', failureReason: 'Bank declined the transaction', ...payRef() } })
+  await safePaymentCreate({ data: { bookingId: (await prisma.booking.findFirst({ where: { bookingStatus: 'PENDING_PAYMENT' }, orderBy: { createdAt: 'desc' } }))!.id, type: 'PAYMENT', amount: 5999, status: 'FAILED', failureReason: 'Bank declined the transaction', ...payRef() } })
   console.log(`  ✓ Bulk payments: ${allConfirmed.length} captured + ${cancelledBookings.length} refunds + 1 failed`)
 
   // ── 7) WALLET TRANSACTIONS (cashbacks + refunds) ──
   // Traveler 5 (Saurabh): cashback on early bird
   const w5 = await prisma.wallet.findUnique({ where: { userId: t5.id } })
   if (w5) {
-    await prisma.walletTransaction.create({ data: { walletId: w5.id, amount: 500, type: 'CASHBACK', referenceModel: 'Booking', referenceId: earlyConfirmed[0]?.id ?? 'bulk_cb_1', description: 'Early bird booking cashback', balanceBefore: 0, balanceAfter: 500 } })
+    await safeWalletTxCreate({ data: { walletId: w5.id, amount: 500, type: 'CASHBACK', referenceModel: 'Booking', referenceId: earlyConfirmed[0]?.id ?? 'bulk_cb_1', description: 'Early bird booking cashback', balanceBefore: 0, balanceAfter: 500 } })
     await prisma.wallet.update({ where: { id: w5.id }, data: { balance: 500 } })
   }
   // Traveler 9 (Nikhil): cancellation refund to wallet
   const w9 = await prisma.wallet.findUnique({ where: { userId: t9.id } })
   if (w9) {
     const refAmt = cancelledBookings[0] ? Math.round(cancelledBookings[0].totalAmount * 0.15) : 750
-    await prisma.walletTransaction.create({ data: { walletId: w9.id, amount: refAmt, type: 'REFUND', referenceModel: 'Booking', referenceId: cancelledBookings[0]?.id ?? 'bulk_rf_1', description: 'Partial cancellation refund to wallet', balanceBefore: 0, balanceAfter: refAmt } })
+    await safeWalletTxCreate({ data: { walletId: w9.id, amount: refAmt, type: 'REFUND', referenceModel: 'Booking', referenceId: cancelledBookings[0]?.id ?? 'bulk_rf_1', description: 'Partial cancellation refund to wallet', balanceBefore: 0, balanceAfter: refAmt } })
     await prisma.wallet.update({ where: { id: w9.id }, data: { balance: refAmt } })
   }
   // Traveler 3 (Rohan): promo + used for booking
   const w3 = await prisma.wallet.findUnique({ where: { userId: t3.id } })
   if (w3) {
-    await prisma.walletTransaction.create({ data: { walletId: w3.id, amount: 1000, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t3.id, description: 'Referral bonus — invited 2 friends', balanceBefore: 0, balanceAfter: 1000 } })
-    await prisma.walletTransaction.create({ data: { walletId: w3.id, amount: 600, type: 'BOOKING_DEDUCTION', referenceModel: 'Booking', referenceId: requestConfirmed[0]?.id ?? 'bulk_bd_1', description: 'Wallet applied to Spiti booking', balanceBefore: 1000, balanceAfter: 400 } })
+    await safeWalletTxCreate({ data: { walletId: w3.id, amount: 1000, type: 'PROMOTIONAL_CREDIT', referenceModel: 'User', referenceId: t3.id, description: 'Referral bonus — invited 2 friends', balanceBefore: 0, balanceAfter: 1000 } })
+    await safeWalletTxCreate({ data: { walletId: w3.id, amount: 600, type: 'BOOKING_DEDUCTION', referenceModel: 'Booking', referenceId: requestConfirmed[0]?.id ?? 'bulk_bd_1', description: 'Wallet applied to Spiti booking', balanceBefore: 1000, balanceAfter: 400 } })
     await prisma.wallet.update({ where: { id: w3.id }, data: { balance: 400 } })
   }
   // Traveler 11 (Deepak): cashback from completed trip
   const w11 = await prisma.wallet.findUnique({ where: { userId: t11.id } })
   if (w11) {
-    await prisma.walletTransaction.create({ data: { walletId: w11.id, amount: 350, type: 'CASHBACK', referenceModel: 'Booking', referenceId: instantConfirmed[2]?.id ?? 'bulk_cb_2', description: 'Trip completion cashback reward', balanceBefore: 0, balanceAfter: 350 } })
+    await safeWalletTxCreate({ data: { walletId: w11.id, amount: 350, type: 'CASHBACK', referenceModel: 'Booking', referenceId: instantConfirmed[2]?.id ?? 'bulk_cb_2', description: 'Trip completion cashback reward', balanceBefore: 0, balanceAfter: 350 } })
     await prisma.wallet.update({ where: { id: w11.id }, data: { balance: 350 } })
   }
   console.log('  ✓ Bulk wallet transactions: cashbacks, refunds, promo credits, deductions')
@@ -1899,12 +2013,6 @@ const CUSTOM_SLEEPER_LAYOUT: CellType[][] = [
 async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
   const { tripU2, tripU7, tripU9, tripU11, tripU12 } = trips
 
-  // ── Sentinel: skip if vehicles already exist ──
-  const existingCount = await prisma.tripVehicle.count({ where: { tripId: { in: [tripU2.id, tripU7.id, tripU9.id, tripU11.id, tripU12.id] } } })
-  if (existingCount > 0) {
-    console.log('  ⏭ Vehicle layouts already seeded (sentinel found)')
-    return
-  }
 
   const defs: VehicleLayoutDef[] = [
     // ── tripU2 (Spiti): 1 predefined Innova + 1 custom SUV ──
@@ -1931,7 +2039,7 @@ async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
   const COL_LETTERS = 'ABCDEFGHIJ'
 
   for (const def of defs) {
-    const vehicle = await prisma.tripVehicle.create({
+    const vehicle = await safeVehicleCreate({
       data: {
         tripId: def.tripId,
         label: def.label,
@@ -1963,7 +2071,7 @@ async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
       }
     }
 
-    await prisma.vehicleSeat.createMany({ data: seatData })
+    await safeSeatCreateMany({ data: seatData })
   }
 
   console.log(`  ✓ Created ${defs.length} vehicle layouts with seat maps (5 predefined + 5 custom, 2 per trip)`)
@@ -1974,12 +2082,6 @@ async function seedVehicleLayouts(trips: Record<string, { id: string }>) {
 // ══════════════════════════════════════════════════════════
 
 async function seedNotifications(adminId: string, organizerId: string, travelerId: string) {
-  // ── Sentinel: skip if notifications already seeded ──
-  const sentinel = await prisma.notification.findFirst({ where: { title: 'Support Ticket #1042' } })
-  if (sentinel) {
-    console.log('  ⏭ Notifications already seeded (sentinel found)')
-    return
-  }
 
   const now = new Date()
   const ago = (mins: number) => new Date(now.getTime() - mins * 60_000)
@@ -2020,7 +2122,7 @@ async function seedNotifications(adminId: string, organizerId: string, travelerI
     { userId: adminId, channel: 'IN_APP', type: 'SYSTEM_ALERT', title: 'Daily Stats Summary', body: 'Today: 12 new bookings, 3 cancellations, ₹1.2L revenue, 2 new organizer applications.', data: { bookings: 12, cancellations: 3, revenue: 120000 }, sentAt: ago(1440), createdAt: ago(1440), readAt: ago(1300) },
   ]
 
-  await prisma.notification.createMany({ data: notifications.map(n => ({ ...n, sentAt: n.sentAt, readAt: n.readAt ?? null })) })
+  await safeNotifCreateMany({ data: notifications.map(n => ({ ...n, sentAt: n.sentAt, readAt: n.readAt ?? null })) })
 
   const unreadAdmin = notifications.filter(n => n.userId === adminId && !n.readAt).length
   const unreadOrg = notifications.filter(n => n.userId === organizerId && !n.readAt).length
@@ -2040,12 +2142,6 @@ async function seedTripCategoriesAndRequests(deps: {
   completedTrips: Record<string, { id: string }>
   upcomingTrips: Record<string, { id: string }>
 }) {
-  // ── Sentinel: skip if categories already seeded ──
-  const sentinel = await prisma.tripCategory.findUnique({ where: { value: 'BEACH' } })
-  if (sentinel) {
-    console.log('  ⏭ Trip categories, requests & edit history already seeded (sentinel found)')
-    return
-  }
 
   // ══════════════════════════════════════════════════════
   // ── 1) TRIP CATEGORIES ─────────────────────────────────
@@ -2063,7 +2159,7 @@ async function seedTripCategoriesAndRequests(deps: {
   ]
 
   for (const cat of categories) {
-    await prisma.tripCategory.create({ data: cat })
+    await safeCategoryCreate({ data: cat })
   }
   console.log(`  ✓ Created ${categories.length} trip categories (6 in-use + 2 new: SPIRITUAL, WILDLIFE)`)
 
@@ -2074,28 +2170,28 @@ async function seedTripCategoriesAndRequests(deps: {
   const { org1, org2, org3, org4, org7, org8 } = deps
 
   // ── PENDING requests (waiting for admin review) ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org1.id,
     suggestedName: 'Camping',
     reason: 'Many of our Lonavala and Pawna Lake trips are primarily camping experiences — tent stays, bonfires, stargazing. "Weekend Getaway" doesn\'t capture the camping essence. A dedicated Camping category would help travelers find these trips faster.',
     status: 'PENDING',
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org7.id,
     suggestedName: 'Women-Only',
     reason: 'She Travels India exclusively organizes women-only group trips. Having a dedicated "Women-Only" trip type would let female solo travelers filter and discover safe, women-focused experiences instantly. Currently we tag them under various types which dilutes discoverability.',
     status: 'PENDING',
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org8.id,
     suggestedName: 'Corporate Offsite',
     reason: 'Corporate Escapes India runs team building and corporate retreat packages with GST invoicing, conference rooms, and group activities. These don\'t fit under "Adventure" or "Weekend" — they need a dedicated corporate category for B2B discovery.',
     status: 'PENDING',
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org2.id,
     suggestedName: 'Backpacking',
     reason: 'Budget backpacking trips across Northeast India and Himachal — hostel stays, local transport, flexible itineraries. Very different from organized group tours. A "Backpacking" category would attract the right audience who wants raw, unstructured travel.',
@@ -2103,7 +2199,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // ── APPROVED requests (admin reviewed and approved) ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'Food Trail',
     reason: 'Nomad Trails India runs dedicated food-focused trips — Jaipur street food crawls, Varanasi kachori trails, Lucknow kebab walks. The food experience IS the trip, not a side activity. A "Food Trail" category would be a huge differentiator for the platform.',
@@ -2112,7 +2208,7 @@ async function seedTripCategoriesAndRequests(deps: {
     reviewedAt: d(2026, 4, 20),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org4.id,
     suggestedName: 'Festival Special',
     reason: 'Backpack Bharat runs special trips around Indian festivals — Holi in Mathura, Diwali in Varanasi, Rann Utsav in Kutch, Pushkar Camel Fair. These are time-sensitive, festival-themed experiences that don\'t fit existing categories.',
@@ -2121,7 +2217,7 @@ async function seedTripCategoriesAndRequests(deps: {
     reviewedAt: d(2026, 4, 25),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org1.id,
     suggestedName: 'Honeymoon',
     reason: 'We get many couples requesting romantic, honeymoon-focused itineraries — Udaipur, Andaman, Kerala backwaters. Having a "Honeymoon" category would help couples find curated romantic packages without scrolling through adventure trips.',
@@ -2131,7 +2227,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // ── REJECTED requests (admin reviewed and rejected) ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org2.id,
     suggestedName: 'Luxury',
     reason: 'We want to offer premium luxury group trips — 5-star hotels, business class travel, private guides. A "Luxury" category would let high-budget travelers find these easily.',
@@ -2140,7 +2236,7 @@ async function seedTripCategoriesAndRequests(deps: {
     reviewedAt: d(2026, 4, 10),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'Photography Tour',
     reason: 'Nomad Trails runs photography-focused trips with pro photographers — golden hour shoots, composition workshops, photo walks. A dedicated category would attract photography enthusiasts.',
@@ -2149,7 +2245,7 @@ async function seedTripCategoriesAndRequests(deps: {
     reviewedAt: d(2026, 4, 18),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org4.id,
     suggestedName: 'Hostel Hopping',
     reason: 'Budget travelers love hopping between hostels in different cities — Delhi to Rishikesh to Manali hostel circuit. A "Hostel Hopping" category would resonate with college students.',
@@ -2159,7 +2255,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // ── Additional PENDING requests (for pagination testing) ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'Cycling Tour',
     reason: 'Multi-day cycling tours from Manali to Leh, Munnar hills, Konkan coast. Cycling tourism is booming in India — a dedicated category would attract fitness-focused travelers.',
@@ -2167,7 +2263,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 1),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org4.id,
     suggestedName: 'Volunteering',
     reason: 'Backpack Bharat partners with NGOs for voluntourism trips — teaching English in rural schools, beach cleanups in Goa, wildlife conservation in Jim Corbett. These deserve their own category.',
@@ -2175,7 +2271,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 2),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org1.id,
     suggestedName: 'Houseboat Stay',
     reason: 'Kerala backwater houseboat experiences are unique — floating through canals, village visits from the boat, fresh seafood cooked onboard. Not beach, not adventure — it\'s its own thing.',
@@ -2183,7 +2279,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 3),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org7.id,
     suggestedName: 'Wellness Retreat',
     reason: 'She Travels India runs Ayurveda and yoga retreat packages in Rishikesh, Goa, and Kerala. These are health and wellness focused, very different from adventure or cultural trips.',
@@ -2191,7 +2287,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 4),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org2.id,
     suggestedName: 'Train Journey',
     reason: 'Scenic train journeys — Darjeeling toy train, Konkan Railway, Kalka-Shimla. The train IS the experience. We want to package multi-day rail adventures as a distinct trip type.',
@@ -2199,7 +2295,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 5),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org8.id,
     suggestedName: 'Team Building',
     reason: 'Corporate team building activities — paintball, treasure hunts, obstacle courses — that are separate from full corporate offsites. Shorter duration, activity-focused.',
@@ -2207,7 +2303,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 6),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'Stargazing',
     reason: 'Nomad Trails runs dedicated stargazing trips to dark-sky locations — Spiti, Rann of Kutch, Coorg. Telescopes, astrophotography workshops, overnight camping under the stars.',
@@ -2215,7 +2311,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 5, 7),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org4.id,
     suggestedName: 'Scuba & Diving',
     reason: 'Dedicated scuba diving trips to Andaman, Goa, Pondicherry, Netrani Island. PADI certification combos, multi-dive packages. Very different from general "Beach" trips.',
@@ -2224,7 +2320,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // ── Additional APPROVED requests ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org2.id,
     suggestedName: 'Heritage Walk',
     reason: 'Walking tours through heritage cities — Old Delhi, Jaipur, Hampi, Pondicherry French Quarter. Guided by local historians, 3-4 hour walking experiences.',
@@ -2234,7 +2330,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 15),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org7.id,
     suggestedName: 'Solo Female',
     reason: 'Distinct from Women-Only groups — these are curated itineraries designed for solo female travelers with safety-focused accommodations and local women guides.',
@@ -2244,7 +2340,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 20),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org1.id,
     suggestedName: 'Bike Rally',
     reason: 'Group motorcycle rallies — Royal Enfield runs to Ladakh, Spiti, Rajasthan. These are distinct from general road trips — it\'s the biking community experience.',
@@ -2254,7 +2350,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 22),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'River Rafting',
     reason: 'Multi-day rafting expeditions on Ganges, Teesta, Zanskar. Not just a 2-hour activity — full camping + rafting packages over 3-5 days.',
@@ -2265,7 +2361,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // ── Additional REJECTED requests ──
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org8.id,
     suggestedName: 'International',
     reason: 'We want to list international group trips — Thailand, Bali, Dubai. An "International" category would separate domestic from international.',
@@ -2275,7 +2371,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 12),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org2.id,
     suggestedName: 'Budget',
     reason: 'Trips under ₹3,000 per person. A "Budget" label would help price-sensitive travelers find affordable options quickly.',
@@ -2285,7 +2381,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 18),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org4.id,
     suggestedName: 'Day Trip',
     reason: 'One-day excursions from cities — Pune to Lonavala, Bangalore to Nandi Hills, Mumbai to Alibaug. Quick escapes that don\'t need overnight stay.',
@@ -2295,7 +2391,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 28),
   } })
 
-  await prisma.tripTypeRequest.create({ data: {
+  await safeTypeReqCreate({ data: {
     organizerId: org3.id,
     suggestedName: 'Pet Friendly',
     reason: 'Pet-friendly group trips with pet-allowed homestays and activities. Growing demand from pet parents who want to travel with their dogs.',
@@ -2314,7 +2410,7 @@ async function seedTripCategoriesAndRequests(deps: {
   const { completedTrips: ct, upcomingTrips: ut } = deps
 
   // tripC1 (Goa Beach Carnival) — organizer updated price and description before trip started
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ct.tripC1.id,
     editedById: deps.org1User.id,
     changedFields: ['pricePerPerson', 'earlyBirdPrice'],
@@ -2323,7 +2419,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2025, 12, 15),
   } })
 
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ct.tripC1.id,
     editedById: deps.org1User.id,
     changedFields: ['description', 'inclusions'],
@@ -2333,7 +2429,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // tripU2 (Spiti Valley Circuit) — organizer adjusted dates and max group size
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ut.tripU2.id,
     editedById: deps.org2User.id,
     changedFields: ['startDate', 'endDate'],
@@ -2342,7 +2438,7 @@ async function seedTripCategoriesAndRequests(deps: {
     createdAt: d(2026, 4, 28),
   } })
 
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ut.tripU2.id,
     editedById: deps.org2User.id,
     changedFields: ['maxGroupSize', 'description'],
@@ -2352,7 +2448,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // tripU7 (Goa Monsoon) — organizer updated transfer points and cancellation policy
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ut.tripU7.id,
     editedById: deps.org1User.id,
     changedFields: ['cancellationPolicy', 'itinerary'],
@@ -2362,7 +2458,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // tripU9 (Manali Summer) — organizer corrected pricing
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ut.tripU9.id,
     editedById: deps.org3User.id,
     changedFields: ['pricePerPerson'],
@@ -2372,7 +2468,7 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   // tripC3 (Rishikesh Rafting) — organizer added photos and updated itinerary after trip
-  await prisma.tripEditHistory.create({ data: {
+  await safeEditHistCreate({ data: {
     tripId: ct.tripC3.id,
     editedById: deps.org1User.id,
     changedFields: ['photos', 'itinerary'],
