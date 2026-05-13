@@ -113,8 +113,15 @@ export function TripForm({
     return () => { sub.unsubscribe(); clearTimeout(timerRef.current) }
   }, [watch, storageKey, activeTab])
 
+  const activeTabRef = useRef(activeTab)
+  useEffect(() => { activeTabRef.current = activeTab }, [activeTab])
+
   const handleFormSubmit = useCallback(
     (data: CreateTripDto) => {
+      // Guard: only allow actual submission from the review (last) tab
+      const currentIdx = TRIP_FORM_TABS.findIndex((t) => t.id === activeTabRef.current)
+      if (currentIdx !== TRIP_FORM_TABS.length - 1) return
+
       clearTripDraft(storageKey)
       if (typeof window !== 'undefined') localStorage.removeItem(`${storageKey}-tab`)
       onSubmit(data, vehicleDataRef.current ?? undefined)
@@ -155,7 +162,10 @@ export function TripForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={handleSubmit(handleFormSubmit, onInvalidSubmit)}
+        onSubmit={(e) => {
+          if (!isLastTab) { e.preventDefault(); return }
+          handleSubmit(handleFormSubmit, onInvalidSubmit)(e)
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !isLastTab && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
             e.preventDefault()
