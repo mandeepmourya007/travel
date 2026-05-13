@@ -19,6 +19,7 @@ export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSumma
     currentBookings: 8,
     organizer: {
       id: `clrk${String(counter).padStart(21, '0')}org`,
+      slug: `organizer-${counter}`,
       businessName: `Organizer ${counter}`,
       rating: 4.2,
       totalReviews: 15,

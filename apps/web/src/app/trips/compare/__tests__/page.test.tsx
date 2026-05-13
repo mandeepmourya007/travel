@@ -95,6 +95,7 @@ describe('Compare Page', () => {
       pricePerPerson: 3000,
       organizer: {
         id: 'o1',
+        slug: 'budget-co',
         businessName: 'Budget Co',
         rating: 3.5,
         totalReviews: 10,
@@ -109,6 +110,7 @@ describe('Compare Page', () => {
       pricePerPerson: 10000,
       organizer: {
         id: 'o2',
+        slug: 'premium-co',
         businessName: 'Premium Co',
         rating: 4.8,
         totalReviews: 50,
@@ -188,6 +190,7 @@ describe('Compare Page', () => {
       cancellationPolicy: 'FLEXIBLE',
       organizer: {
         id: 'o1',
+        slug: 'beach-co',
         businessName: 'Beach Co',
         rating: 4.5,
         totalReviews: 30,
@@ -211,6 +214,7 @@ describe('Compare Page', () => {
       cancellationPolicy: 'STRICT',
       organizer: {
         id: 'o2',
+        slug: 'trek-co',
         businessName: 'Trek Co',
         rating: 4.8,
         totalReviews: 50,

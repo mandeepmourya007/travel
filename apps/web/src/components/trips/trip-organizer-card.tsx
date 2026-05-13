@@ -4,6 +4,7 @@ import { StarRating } from '@/components/shared/star-rating'
 
 interface OrganizerInfo {
   id: string
+  slug: string
   businessName: string
   verified: boolean
   rating: number
@@ -67,7 +68,7 @@ export function TripOrganizerCard({ organizer }: TripOrganizerCardProps) {
         </div>
 
         <Link
-          href={`/trips/organizers/${organizer.id}`}
+          href={`/trips/organizers/${organizer.slug}`}
           className="mt-4 block text-center btn-secondary text-sm"
         >
           View All Trips by {organizer.businessName}

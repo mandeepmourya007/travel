@@ -51,8 +51,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
-                  Contact
+                <Link href="/how-it-works" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <Link href="/faq" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  FAQ
                 </Link>
               </li>
               <li>
@@ -78,7 +83,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/organizer/how-it-works" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/how-it-works" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   How It Works
                 </Link>
               </li>

@@ -181,7 +181,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
 
         {/* Organizer row */}
         <div className="mt-4 flex items-center justify-between">
-          <Link href={`/trips/organizers/${trip.organizer.id}`} className="flex items-center gap-3 group/org">
+          <Link href={`/trips/organizers/${trip.organizer.slug}`} className="flex items-center gap-3 group/org">
             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">
               {trip.organizer.businessName.charAt(0)}
             </div>

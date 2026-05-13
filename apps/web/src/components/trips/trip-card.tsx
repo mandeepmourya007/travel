@@ -111,7 +111,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
 
         {/* Organizer */}
         <div className="mt-1 flex items-center gap-1.5">
-          <Link href={`/trips/organizers/${trip.organizer.id}`} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+          <Link href={`/trips/organizers/${trip.organizer.slug}`} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
             by {trip.organizer.businessName}
           </Link>
           {trip.organizer.verified && <CheckCircle className="h-3.5 w-3.5 text-primary-500" />}
