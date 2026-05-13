@@ -1,5 +1,5 @@
 import { cache } from 'react'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { fetchApi } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
@@ -7,14 +7,17 @@ import { buildOrganizerProfileJsonLd, buildBreadcrumbJsonLd } from '@/lib/struct
 import { OrganizerProfileClient } from '@/components/trips/organizer-profile-client'
 import type { OrganizerPublicProfileResponse } from '@shared/types/organizer.types'
 
+/** CUIDs (Prisma default) start with 'cl' or 'cm' followed by 23+ alphanumeric chars */
+const CUID_PATTERN = /^c[lm][a-z0-9]{23,}$/i
+
 interface OrganizerPageProps {
-  params: { organizerId: string }
+  params: { slug: string }
 }
 
-const getOrganizerProfile = cache(async (id: string): Promise<OrganizerPublicProfileResponse | null> => {
+const getOrganizerProfile = cache(async (slug: string): Promise<OrganizerPublicProfileResponse | null> => {
   try {
     return await fetchApi<OrganizerPublicProfileResponse>(
-      `/trips/organizers/${id}?tripsLimit=12`,
+      `/trips/organizers/slug/${slug}?tripsLimit=12`,
       { revalidate: 300 },
     )
   } catch {
@@ -22,8 +25,20 @@ const getOrganizerProfile = cache(async (id: string): Promise<OrganizerPublicPro
   }
 })
 
+/** Legacy lookup by organizer ID — used for redirecting old URLs */
+const getOrganizerById = cache(async (id: string): Promise<OrganizerPublicProfileResponse | null> => {
+  try {
+    return await fetchApi<OrganizerPublicProfileResponse>(
+      `/trips/organizers/${id}?tripsLimit=1`,
+      { revalidate: 3600 },
+    )
+  } catch {
+    return null
+  }
+})
+
 export async function generateMetadata({ params }: OrganizerPageProps): Promise<Metadata> {
-  const data = await getOrganizerProfile(params.organizerId)
+  const data = await getOrganizerProfile(params.slug)
   if (!data) {
     return { title: 'Organizer Not Found' }
   }
@@ -40,30 +55,47 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
     title,
     description,
     alternates: {
-      canonical: `/trips/organizers/${params.organizerId}`,
+      canonical: `/trips/organizers/${params.slug}`,
     },
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `/trips/organizers/${params.organizerId}`,
+      url: `/trips/organizers/${params.slug}`,
     },
   }
 }
 
+export async function generateStaticParams() {
+  try {
+    const data = await fetchApi<{ organizers: { slug: string }[] }>('/sitemap-data', { revalidate: 3600 })
+    return data.organizers.map((org) => ({ slug: org.slug }))
+  } catch {
+    return []
+  }
+}
+
 export default async function OrganizerPublicProfilePage({ params }: OrganizerPageProps) {
-  const data = await getOrganizerProfile(params.organizerId)
+  const data = await getOrganizerProfile(params.slug)
+
+  // Legacy redirect: if slug looks like a CUID, try fetching by ID and redirect to canonical slug URL
+  if (!data && CUID_PATTERN.test(params.slug)) {
+    const legacyData = await getOrganizerById(params.slug)
+    if (legacyData) {
+      redirect(`/trips/organizers/${legacyData.organizer.slug}`)
+    }
+  }
 
   if (!data) {
     notFound()
   }
 
   const { organizer } = data
-  const organizerJsonLd = buildOrganizerProfileJsonLd(organizer, SITE_URL, params.organizerId)
+  const organizerJsonLd = buildOrganizerProfileJsonLd(organizer, SITE_URL, params.slug, APP_NAME)
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },
     { name: 'Trips', url: `${SITE_URL}/trips` },
-    { name: organizer.businessName, url: `${SITE_URL}/trips/organizers/${params.organizerId}` },
+    { name: organizer.businessName, url: `${SITE_URL}/trips/organizers/${params.slug}` },
   ])
 
   return (
@@ -76,7 +108,7 @@ export default async function OrganizerPublicProfilePage({ params }: OrganizerPa
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <OrganizerProfileClient initialData={data} organizerId={params.organizerId} />
+      <OrganizerProfileClient initialData={data} organizerId={organizer.id} />
     </>
   )
 }
