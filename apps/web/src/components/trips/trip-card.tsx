@@ -132,7 +132,13 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
         <div className="mt-3 space-y-1.5 text-sm text-neutral-500">
           <div className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 text-neutral-400" />
-            <span>{trip.destination.name}</span>
+            <Link
+              href={`/destinations/${trip.destination.slug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="hover:text-primary-600 transition-colors"
+            >
+              {trip.destination.name}
+            </Link>
             <span className="badge-primary text-xs ml-auto">{tripTypeLabel(trip.tripType)}</span>
           </div>
           <div className="flex items-center gap-1.5">

@@ -13,6 +13,7 @@ import {
   Coins,
   Shield,
   MapPin,
+  Compass,
   BookOpen,
   CreditCard,
   UserCircle,
@@ -36,6 +37,7 @@ interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: ['ORGANIZER'] },
+  { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: ['ORGANIZER'] },
   { href: '/my-bookings', label: 'My Bookings', icon: BookOpen, hideForRoles: ['ORGANIZER'] },
   { href: '/my-payments', label: 'My Payments', icon: CreditCard, hideForRoles: ['ORGANIZER'] },
   { href: '/wallet', label: 'Wallet', icon: Coins },

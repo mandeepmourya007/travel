@@ -24,6 +24,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/destinations" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Destinations
+                </Link>
+              </li>
+              <li>
                 <Link href="/trips?tripType=ADVENTURE" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Adventure
                 </Link>
