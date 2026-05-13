@@ -176,6 +176,23 @@ export function buildItemListJsonLd(trips: TripSummary[], siteUrl: string) {
   }
 }
 
+export function buildDestinationListJsonLd(
+  destinations: { name: string; slug: string; description?: string | null }[],
+  siteUrl: string,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: destinations.map((d, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${siteUrl}/destinations/${d.slug}`,
+      name: d.name,
+      ...(d.description && { description: d.description.slice(0, 200) }),
+    })),
+  }
+}
+
 export function buildFaqJsonLd(faqs: { question: string; answer: string }[]) {
   return {
     '@context': 'https://schema.org',

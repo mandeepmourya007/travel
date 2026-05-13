@@ -52,7 +52,7 @@ export function TrendingTrips() {
           </p>
         )}
 
-        <div className="mt-8 text-center sm:hidden">
+        <div className="mt-8 text-center">
           <Link href="/trips" className="btn-secondary inline-flex items-center gap-2">
             View All Trips
             <ArrowRight className="h-4 w-4" />

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { fetchApi } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
-import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
+import { buildBreadcrumbJsonLd, buildDestinationListJsonLd } from '@/lib/structured-data'
 import { DestinationsListClient } from '@/components/destinations/destinations-list-client'
 import type { Destination } from '@shared/types/destination.types'
 
@@ -44,6 +44,14 @@ export default async function DestinationsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {destinations.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildDestinationListJsonLd(destinations, SITE_URL)),
+          }}
+        />
+      )}
       <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <div className="mt-6 flex items-center gap-3">
           <Link href="/" className="btn-ghost p-2">
@@ -62,7 +70,8 @@ export default async function DestinationsPage() {
           <ul>
             {destinations.map((d) => (
               <li key={d.id}>
-                <a href={`/destinations/${d.slug}`}>{d.name}</a>
+                <a href={`/destinations/${d.slug}`}>{d.name} — {d.state}</a>
+                {d.description && <p>{d.description}</p>}
               </li>
             ))}
           </ul>
