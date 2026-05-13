@@ -1,4 +1,4 @@
-import type { TripDetail } from '@shared/types/trip.types'
+import type { TripDetail, TripSummary } from '@shared/types/trip.types'
 
 /**
  * Schema.org JSON-LD builder functions for SEO structured data.
@@ -28,7 +28,7 @@ export function buildTripJsonLd(trip: TripDetail, siteUrl: string) {
     organizer: {
       '@type': 'Organization',
       name: trip.organizer.businessName,
-      url: `${siteUrl}/trips/organizers/${trip.organizer.id}`,
+      url: `${siteUrl}/trips/organizers/${trip.organizer.slug}`,
     },
     offers: {
       '@type': 'Offer',
@@ -131,13 +131,13 @@ export function buildOrganizerProfileJsonLd(organizer: {
   description?: string | null
   rating: number
   totalReviews: number
-}, siteUrl: string, organizerId: string) {
+}, siteUrl: string, organizerSlug: string, appName: string) {
   const jsonLd: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: organizer.businessName,
-    description: organizer.description || `Verified trip organizer on TripCompare`,
-    url: `${siteUrl}/trips/organizers/${organizerId}`,
+    description: organizer.description || `Verified trip organizer on ${appName}`,
+    url: `${siteUrl}/trips/organizers/${organizerSlug}`,
   }
 
   if (organizer.totalReviews > 0) {
@@ -160,5 +160,33 @@ export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
     name: appName,
     url: siteUrl,
     description: 'Compare group trips, book safely with escrow-protected payments, and travel with verified organizers.',
+  }
+}
+
+export function buildItemListJsonLd(trips: TripSummary[], siteUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: trips.map((trip, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${siteUrl}/trips/${trip.slug}`,
+      name: trip.title,
+    })),
+  }
+}
+
+export function buildFaqJsonLd(faqs: { question: string; answer: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
   }
 }

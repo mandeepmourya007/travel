@@ -47,3 +47,35 @@ export async function fetchApi<T>(
   const json = await res.json() as { success: boolean; data: T }
   return json.data
 }
+
+export async function fetchApiWithPagination<T>(
+  path: string,
+  options: FetchApiOptions = {},
+): Promise<{ data: T; pagination: { page: number; limit: number; total: number; totalPages: number } | null }> {
+  const url = `${getApiBaseUrl()}${path}`
+
+  const nextOptions: NextFetchRequestConfig = {}
+  if (options.revalidate !== undefined) {
+    nextOptions.revalidate = options.revalidate
+  }
+  if (options.tags) {
+    nextOptions.tags = options.tags
+  }
+
+  const res = await fetch(url, {
+    next: nextOptions,
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  if (!res.ok) {
+    let message = `API error ${res.status}: ${res.statusText}`
+    try {
+      const body = await res.json() as { error?: { message?: string } }
+      if (body.error?.message) message = body.error.message
+    } catch { /* non-JSON response — keep default message */ }
+    throw new Error(message)
+  }
+
+  const json = await res.json() as { success: boolean; data: T; pagination?: { page: number; limit: number; total: number; totalPages: number } }
+  return { data: json.data, pagination: json.pagination ?? null }
+}
