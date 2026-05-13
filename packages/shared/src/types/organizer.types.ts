@@ -4,6 +4,7 @@ import type { PaginationMeta } from './api-response.types'
 
 export interface OrganizerPublicProfile {
   id: string
+  slug: string
   businessName: string
   description: string | null
   verified: boolean

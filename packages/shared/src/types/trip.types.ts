@@ -18,6 +18,7 @@ export interface TripSummary {
   currentBookings: number
   organizer: {
     id: string
+    slug: string
     businessName: string
     rating: number
     totalReviews: number
