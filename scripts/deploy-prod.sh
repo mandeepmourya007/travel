@@ -59,7 +59,6 @@ if [ ! -f "$ENV_FILE" ]; then
   echo ""
   echo "📝 Generating ${ENV_FILE} with strong secrets..."
 
-  PG_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
   RD_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
   JWT_S=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
   JWT_RS=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
@@ -78,10 +77,12 @@ WEB_PORT=3000
 # DOMAIN=tripcompare.in
 # ACME_EMAIL=you@email.com
 
-# ─── Database ────────────────────────────────────────
-POSTGRES_USER=travel_user
-POSTGRES_PASSWORD=$PG_PASS
-POSTGRES_DB=travel_prod
+# ─── Database (Neon PostgreSQL) ────────────────────────
+# Get both URLs from Neon Console → Connect
+# Pooled = has "-pooler" in hostname (for app runtime queries)
+# Direct = no "-pooler" (for Prisma CLI: migrations, introspect)
+DATABASE_URL=CHANGE_ME_NEON_POOLED_URL
+DIRECT_URL=CHANGE_ME_NEON_DIRECT_URL
 
 # ─── Redis ───────────────────────────────────────────
 REDIS_PASSWORD=$RD_PASS
@@ -226,7 +227,6 @@ validate_secret() {
   fi
 }
 
-validate_secret "POSTGRES_PASSWORD" 32
 validate_secret "REDIS_PASSWORD" 32
 validate_secret "JWT_SECRET" 48
 validate_secret "JWT_REFRESH_SECRET" 48
@@ -235,6 +235,29 @@ if [ "$PATCHED" -gt 0 ]; then
   echo ""
   echo "  ⚠️  ${PATCHED} secret(s) were auto-generated. Review ${ENV_FILE} if needed."
 fi
+
+# ── Validate Neon database URLs ───────────────────────
+echo ""
+echo "🗄️  Validating Neon database URLs in ${ENV_FILE}..."
+
+validate_neon_url() {
+  local KEY="$1"
+  local VAL
+  VAL=$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
+  if [ -z "$VAL" ] || [[ "$VAL" == *"CHANGE_ME"* ]] || [[ "$VAL" == *"ep-xxx"* ]]; then
+    echo "  ❌ ${KEY} — not configured. Get it from Neon Console → Connect"
+    echo "     Expected format: postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech/dbname?sslmode=require"
+    exit 1
+  fi
+  if [[ "$VAL" != *"sslmode=require"* ]]; then
+    echo "  ⚠️  ${KEY} — missing sslmode=require. Neon requires SSL."
+    exit 1
+  fi
+  echo "  ✅ ${KEY} — set"
+}
+
+validate_neon_url "DATABASE_URL"
+validate_neon_url "DIRECT_URL"
 
 # Shorthand for all compose commands
 # Note: --env-file handles variable interpolation; do NOT `source .env.prod`
@@ -256,16 +279,16 @@ $DC build api
 # Prune dangling images from previous builds
 docker image prune -f 2>/dev/null || true
 
-# ── Start databases ───────────────────────────────
+# ── Start Redis ──────────────────────────────────
 echo ""
-echo "🗄️  Starting Postgres + Redis..."
-$DC up -d postgres redis
+echo "🗄️  Starting Redis..."
+$DC up -d redis
 
-# ── Wait for databases ────────────────────────────
+# ── Wait for Redis ───────────────────────────────
 echo ""
-echo "🔍 Waiting for databases..."
+echo "🔍 Waiting for Redis..."
 HEALTH_TIMEOUT=180
-for svc in postgres redis; do
+for svc in redis; do
   elapsed=0
   container="travel-${svc}-prod"
   while [ $elapsed -lt $HEALTH_TIMEOUT ]; do

@@ -73,6 +73,7 @@ services:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
+      DIRECT_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
       JWT_SECRET: docker-dev-jwt-secret-min-32-chars-long
       JWT_REFRESH_SECRET: docker-dev-refresh-secret-min-32-chars
       REDIS_URL: redis://:dev-redis-pass@redis:6379
@@ -172,6 +173,7 @@ services:
     container_name: travel-seed
     environment:
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
+      DIRECT_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
     command: ['/app/node_modules/.bin/tsx', 'prisma/seed.ts']
     working_dir: /app/apps/api
     volumes:
@@ -193,6 +195,7 @@ services:
     container_name: travel-seed-prod
     environment:
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
+      DIRECT_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
     command: ['/app/node_modules/.bin/tsx', 'prisma/seed.prod.ts']
     working_dir: /app/apps/api
     volumes:
