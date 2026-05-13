@@ -12,39 +12,43 @@ import { NotFoundError } from '../errors/app-error'
 import { ConflictError } from '../errors/app-error'
 import { ForbiddenError } from '../errors/app-error'
 import { ValidationError } from '../errors/app-error'
+import type { CacheService } from './cache.service'
+import { CACHE_TTL } from '../utils/constants'
+import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 
 export class TripCategoryService {
-  /** In-memory cache: value → { label, isActive } */
-  private cache = new Map<string, { label: string; isActive: boolean }>()
-  private cacheLoaded = false
+  /** In-memory fallback cache: value → { label, isActive } */
+  private memCache = new Map<string, { label: string; isActive: boolean }>()
+  private memCacheLoaded = false
 
   constructor(
     private tripCategoryRepo: TripCategoryRepository,
     private organizerProfileRepo: OrganizerProfileRepository,
     private notificationService: NotificationService,
     private logger: Logger,
+    private redisCache: CacheService | null = null,
   ) {}
 
   // ─── Cache ────────────────────────────────────────────
 
-  private async ensureCache() {
-    if (this.cacheLoaded) return
-    await this.refreshCache()
+  private async ensureMemCache() {
+    if (this.memCacheLoaded) return
+    await this.refreshMemCache()
   }
 
-  private async refreshCache() {
+  private async refreshMemCache() {
     const all = await this.tripCategoryRepo.findAll()
-    this.cache.clear()
+    this.memCache.clear()
     for (const cat of all) {
-      this.cache.set(cat.value, { label: cat.label, isActive: cat.isActive })
+      this.memCache.set(cat.value, { label: cat.label, isActive: cat.isActive })
     }
-    this.cacheLoaded = true
+    this.memCacheLoaded = true
   }
 
   /** Validate that a tripType value exists and is active. Called by TripService. */
   async validateTripType(value: string): Promise<void> {
-    await this.ensureCache()
-    const entry = this.cache.get(value)
+    await this.ensureMemCache()
+    const entry = this.memCache.get(value)
     if (!entry || !entry.isActive) {
       throw new ValidationError(`Invalid trip type: ${value}`)
     }
@@ -52,15 +56,22 @@ export class TripCategoryService {
 
   /** Get the display label for a tripType value. Returns the value itself if not found. */
   async getLabelForValue(value: string): Promise<string> {
-    await this.ensureCache()
-    return this.cache.get(value)?.label ?? value.replace(/_/g, ' ')
+    await this.ensureMemCache()
+    return this.memCache.get(value)?.label ?? value.replace(/_/g, ' ')
   }
 
   // ─── Public (unauthenticated) ─────────────────────────
 
   async getActiveCategories(): Promise<TripCategoryItem[]> {
-    const categories = await this.tripCategoryRepo.findAllActive()
-    return categories.map(this.toItem)
+    const fetcher = async () => {
+      const categories = await this.tripCategoryRepo.findAllActive()
+      return categories.map(this.toItem)
+    }
+
+    if (this.redisCache) {
+      return this.redisCache.getOrSet(cacheKeys.categoriesActive(), CACHE_TTL.CATEGORIES, fetcher)
+    }
+    return fetcher()
   }
 
   // ─── Admin: TripCategory CRUD ─────────────────────────
@@ -81,7 +92,8 @@ export class TripCategoryService {
     if (existing) throw new ConflictError(`Trip type "${data.value}" already exists`)
 
     const category = await this.tripCategoryRepo.create(data)
-    await this.refreshCache()
+    await this.refreshMemCache()
+    await this.redisCache?.invalidateByPrefix(cacheInvalidation.allCategories())
     this.logger.info({ categoryId: category.id, value: category.value }, 'Trip category created')
     return this.toItem(category)
   }
@@ -91,7 +103,8 @@ export class TripCategoryService {
     if (!existing) throw new NotFoundError('Trip category')
 
     const category = await this.tripCategoryRepo.update(id, data)
-    await this.refreshCache()
+    await this.refreshMemCache()
+    await this.redisCache?.invalidateByPrefix(cacheInvalidation.allCategories())
     this.logger.info({ categoryId: id }, 'Trip category updated')
     return this.toItem(category)
   }
@@ -108,7 +121,8 @@ export class TripCategoryService {
     }
 
     await this.tripCategoryRepo.delete(id)
-    await this.refreshCache()
+    await this.refreshMemCache()
+    await this.redisCache?.invalidateByPrefix(cacheInvalidation.allCategories())
     this.logger.info({ categoryId: id, value: existing.value }, 'Trip category deleted')
   }
 
@@ -186,7 +200,8 @@ export class TripCategoryService {
           value,
           label: request.suggestedName,
         })
-        await this.refreshCache()
+        await this.refreshMemCache()
+        await this.redisCache?.invalidateByPrefix(cacheInvalidation.allCategories())
         this.logger.info({ value, label: request.suggestedName }, 'Trip category auto-created from approved request')
       }
     }

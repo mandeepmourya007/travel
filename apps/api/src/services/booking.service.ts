@@ -10,6 +10,8 @@ import { PaymentTransactionRepository } from '../repositories/payment-transactio
 import { PaymentService } from './payment.service'
 import type { NotificationService } from './notification.service'
 import type { VehicleService } from './vehicle.service'
+import type { CacheService } from './cache.service'
+import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
 import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, CANCELLATION_POLICY } from '@shared/constants'
@@ -43,7 +45,17 @@ export class BookingService {
     private logger: Logger,
     private notificationService: NotificationService,
     private vehicleService: VehicleService | null = null,
+    private cache: CacheService | null = null,
   ) {}
+
+  /** Invalidate trip search + detail caches after booking mutations. */
+  private async invalidateTripCaches(tripSlug: string) {
+    if (!this.cache) return
+    await Promise.all([
+      this.cache.invalidateByPrefix(cacheInvalidation.allTrips()),
+      this.cache.del(cacheKeys.tripDetail(tripSlug)),
+    ])
+  }
 
   /** Guards against calling payment methods when Razorpay is not configured */
   private requirePaymentService(): PaymentService {
@@ -222,6 +234,9 @@ export class BookingService {
       body: `Your booking for ${booking.trip.title} has been cancelled. Refund: ₹${refundAmount} (${refundPercent}%).`,
       data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title, refundAmount, refundPercent },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking cancellation notification'))
+
+    // Invalidate trip caches (currentBookings changed)
+    await this.invalidateTripCaches(booking.trip.slug)
 
     return {
       bookingId: booking.id,
@@ -532,6 +547,9 @@ export class BookingService {
       body: `Your booking for ${booking.trip.title} has been confirmed.`,
       data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking confirmation notification'))
+
+    // Invalidate trip caches (currentBookings changed)
+    await this.invalidateTripCaches(booking.trip.slug)
 
     return {
       bookingId: booking.id,

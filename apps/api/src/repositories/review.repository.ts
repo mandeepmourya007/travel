@@ -44,7 +44,11 @@ export class ReviewRepository {
         bookingStatus: true,
         tripId: true,
         trip: {
-          select: { organizerId: true },
+          select: {
+            organizerId: true,
+            slug: true,
+            organizer: { select: { slug: true } },
+          },
         },
       },
     })

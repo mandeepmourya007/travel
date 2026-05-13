@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { DestinationController } from '../controllers/destination.controller'
 import { validate } from '../middleware/validate.middleware'
+import { cacheControl } from '../middleware/cache-control.middleware'
 import { createDestinationSchema, updateDestinationSchema, destinationDetailQuerySchema } from '@shared/validators/destination.schema'
 import { cuidParamSchema, slugParamSchema } from '@shared/validators/common.schema'
 import type { RequestHandler } from 'express'
@@ -14,9 +15,10 @@ export function createDestinationRoutes(
   const router = Router()
 
   // Public
-  router.get('/', destinationController.list)
+  router.get('/', cacheControl(120), destinationController.list)
   router.get(
     '/slug/:slug',
+    cacheControl(300),
     validate(slugParamSchema, 'params'),
     validate(destinationDetailQuerySchema, 'query'),
     destinationController.getBySlug,

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { TripController } from '../controllers/trip.controller'
 import { validate } from '../middleware/validate.middleware'
+import { cacheControl } from '../middleware/cache-control.middleware'
 import { createTripSchema, updateTripSchema, tripFiltersSchema } from '@shared/validators/trip.schema'
 import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema, organizerIdParamSchema, organizerProfileQuerySchema } from '@shared/validators/common.schema'
 import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema, createTripRequestBodySchema } from '@shared/validators/booking.schema'
@@ -37,8 +38,8 @@ export function createTripRoutes(
   )
 
   // Public
-  router.get('/', validate(tripFiltersSchema, 'query'), tripController.search)
-  router.get('/slug/:slug', validate(slugParamSchema, 'params'), tripController.getBySlug)
+  router.get('/', cacheControl(60), validate(tripFiltersSchema, 'query'), tripController.search)
+  router.get('/slug/:slug', cacheControl(300), validate(slugParamSchema, 'params'), tripController.getBySlug)
   router.get(
     '/organizers/slug/:slug',
     validate(slugParamSchema, 'params'),

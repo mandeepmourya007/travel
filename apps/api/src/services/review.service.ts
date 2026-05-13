@@ -3,15 +3,18 @@ import type { CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary
 import { ReviewRepository } from '../repositories/review.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
+import type { CacheService } from './cache.service'
 import { REVIEW_EDIT_WINDOW_DAYS } from '@shared/constants/review'
 import { BOOKING_STATUS } from '@shared/constants'
 import { PAGINATION_DEFAULTS } from '../utils/constants'
+import { cacheInvalidation } from '../utils/cache-keys'
 
 export class ReviewService {
   constructor(
     private reviewRepo: ReviewRepository,
     private organizerProfileRepo: OrganizerProfileRepository,
     private logger: Logger,
+    private cache: CacheService | null = null,
   ) {}
 
   /**
@@ -58,6 +61,15 @@ export class ReviewService {
     await this.recalculateOrganizerRating(booking.trip.organizerId)
 
     this.logger.info({ reviewId: review.id, bookingId: dto.bookingId, userId }, 'Review created')
+
+    // Invalidate trip detail cache (rating changed) + organizer profile cache
+    if (this.cache) {
+      await this.cache.del(`cache:trips:detail:${booking.trip.slug}`)
+      if (booking.trip.organizer?.slug) {
+        await this.cache.invalidateByPrefix(cacheInvalidation.organizerProfile(booking.trip.organizer.slug))
+      }
+    }
+
     return review
   }
 

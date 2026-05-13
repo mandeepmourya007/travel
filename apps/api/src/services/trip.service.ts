@@ -12,9 +12,11 @@ import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { ReviewRepository } from '../repositories/review.repository'
 import type { NotificationService } from './notification.service'
 import type { TripCategoryService } from './trip-category.service'
+import type { CacheService } from './cache.service'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '@shared/utils/slug'
-import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
+import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
+import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
 
 export class TripService {
@@ -29,6 +31,7 @@ export class TripService {
     private logger: Logger,
     private notificationService: NotificationService,
     private tripCategoryService: TripCategoryService | null = null,
+    private cache: CacheService | null = null,
   ) {}
 
   async searchTrips(filters: TripFilters) {
@@ -36,23 +39,31 @@ export class TripService {
     const limit = Math.min(filters.limit ?? PAGINATION_DEFAULTS.limit, PAGINATION_DEFAULTS.maxLimit)
     const offset = (page - 1) * limit
 
-    const { data, total } = await this.tripRepo.search(filters, { offset, limit })
-
-    return {
-      data: data.map((trip) => this.toSummary(trip)),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+    const fetcher = async () => {
+      const { data, total } = await this.tripRepo.search(filters, { offset, limit })
+      return {
+        data: data.map((trip) => this.toSummary(trip)),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      }
     }
+
+    if (this.cache) {
+      return this.cache.getOrSet(cacheKeys.tripSearch({ ...filters, page, limit }), CACHE_TTL.TRIP_SEARCH, fetcher)
+    }
+    return fetcher()
   }
 
   async getTripBySlug(slug: string) {
-    const trip = await this.tripRepo.findBySlug(slug)
-    if (!trip) throw new NotFoundError('Trip')
-    return this.toDetail(trip)
+    const fetcher = async () => {
+      const trip = await this.tripRepo.findBySlug(slug)
+      if (!trip) throw new NotFoundError('Trip')
+      return this.toDetail(trip)
+    }
+
+    if (this.cache) {
+      return this.cache.getOrSet(cacheKeys.tripDetail(slug), CACHE_TTL.TRIP_DETAIL, fetcher)
+    }
+    return fetcher()
   }
 
   async getTripById(id: string) {
@@ -199,6 +210,7 @@ export class TripService {
     })
 
     this.logger.info({ tripId: trip.id, slug }, 'Trip created')
+    await this.invalidateTripCaches()
     return this.toSummary(trip)
   }
 
@@ -295,6 +307,7 @@ export class TripService {
     }
 
     this.logger.info({ tripId, changedFields }, 'Trip updated')
+    await this.invalidateTripCaches(trip.slug)
     return this.toSummary(updated)
   }
 
@@ -315,6 +328,7 @@ export class TripService {
     })
 
     this.logger.info({ tripId, acceptingBookings: !trip.acceptingBookings }, 'Bookings toggled')
+    await this.invalidateTripCaches(trip.slug)
     return this.toSummary(updated)
   }
 
@@ -399,6 +413,8 @@ export class TripService {
     })
 
     this.logger.info({ tripId }, 'Trip published')
+    await this.invalidateTripCaches()
+    await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
     return this.toSummary(updated)
   }
 
@@ -422,6 +438,8 @@ export class TripService {
       }
     })
     this.logger.info({ tripId }, 'Trip soft-deleted')
+    await this.invalidateTripCaches(trip.slug)
+    await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
   }
 
   // ─── Trip Participants Dashboard Methods ──────────────
@@ -676,6 +694,13 @@ export class TripService {
       }
       throw error
     }
+  }
+
+  /** Invalidate trip search caches (and optionally a specific detail page). */
+  private async invalidateTripCaches(slug?: string) {
+    if (!this.cache) return
+    await this.cache.invalidateByPrefix(cacheInvalidation.allTrips())
+    if (slug) await this.cache.del(cacheKeys.tripDetail(slug))
   }
 
   /**
