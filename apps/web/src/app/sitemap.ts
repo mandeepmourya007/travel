@@ -5,7 +5,7 @@ import { SITE_URL } from '@/lib/constants'
 interface SitemapData {
   trips: { slug: string; updatedAt: string }[]
   destinations: { slug: string; updatedAt: string }[]
-  organizers: { id: string; updatedAt: string }[]
+  organizers: { slug: string; updatedAt: string }[]
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -30,6 +30,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily',
       priority: 0.9,
     },
+    {
+      url: `${SITE_URL}/about`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/how-it-works`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${SITE_URL}/faq`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
   ]
 
   const tripPages: MetadataRoute.Sitemap = data.trips.map((trip) => ({
@@ -47,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }))
 
   const organizerPages: MetadataRoute.Sitemap = data.organizers.map((org) => ({
-    url: `${SITE_URL}/trips/organizers/${org.id}`,
+    url: `${SITE_URL}/trips/organizers/${org.slug}`,
     lastModified: new Date(org.updatedAt),
     changeFrequency: 'weekly',
     priority: 0.6,

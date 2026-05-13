@@ -52,6 +52,15 @@ export async function generateMetadata({ params }: TripDetailPageProps): Promise
   }
 }
 
+export async function generateStaticParams() {
+  try {
+    const data = await fetchApi<{ trips: { slug: string }[] }>('/sitemap-data', { revalidate: 3600 })
+    return data.trips.map((trip) => ({ slug: trip.slug }))
+  } catch {
+    return []
+  }
+}
+
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
   const trip = await getTrip(params.slug)
 

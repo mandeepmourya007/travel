@@ -19,6 +19,7 @@ import { PriceSummary } from '@/components/booking/price-summary'
 import { BookingSuccess } from '@/components/booking/booking-success'
 import { BookingPageSkeleton } from './loading'
 import { formatCurrency } from '@/lib/format'
+import { APP_NAME } from '@/lib/constants'
 import type { TripRequestTraveler } from '@shared/types/trip-request.types'
 
 type BookingRenderState = 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed' | 'notAccepting' | 'success' | 'alreadyBooked' | 'form'
@@ -135,7 +136,7 @@ export default function BookingPage({
         amount: result.amountInRupees * 100,
         currency: 'INR',
         order_id: result.razorpayOrderId,
-        name: 'TripCompare',
+        name: APP_NAME,
         description: `Booking for ${trip.title}`,
         prefill: { name: user.name, email: user.email },
 

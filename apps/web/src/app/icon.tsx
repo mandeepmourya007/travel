@@ -5,7 +5,7 @@ export const contentType = 'image/png'
 
 /** Generates a dynamic favicon using the first two letters of APP_NAME. */
 export default function Icon() {
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'TripCompare'
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Safarnama'
   const initials = appName
     .split(/(?=[A-Z\s])/)
     .filter((s) => s.trim())

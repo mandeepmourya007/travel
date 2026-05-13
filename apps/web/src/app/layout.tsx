@@ -30,6 +30,31 @@ export const metadata: Metadata = {
   },
   description:
     'Discover and book curated group trips. Escrow-protected payments, verified organizers, and hassle-free group travel from Pune.',
+  keywords: [
+    'group trips', 'group travel', 'weekend trips from Pune', 'adventure trips India',
+    'trekking trips', 'beach trips Goa', 'Ladakh bike trip', 'escrow payment travel',
+    'verified trip organizers', 'compare group trips',
+  ],
+  twitter: {
+    card: 'summary_large_image',
+    title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
+    description:
+      'Discover curated group trips from verified organizers. Escrow-protected payments and real reviews.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
