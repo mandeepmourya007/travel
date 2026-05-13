@@ -245,7 +245,7 @@ export class TripRepository {
         destination: { name: { contains: filters.destination, mode: 'insensitive' as const } },
       }),
       ...(filters.bookingMode && { bookingMode: filters.bookingMode as Prisma.EnumBookingModeFilter }),
-      ...(filters.tripType && { tripType: filters.tripType as Prisma.EnumTripTypeFilter }),
+      ...(filters.tripType && { tripType: filters.tripType }),
       ...(filters.minPrice !== undefined || filters.maxPrice !== undefined
         ? {
             pricePerPerson: {

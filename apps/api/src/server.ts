@@ -8,7 +8,7 @@ import { pinoHttpMiddleware } from './middleware/pino-http.middleware'
 import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, sitemapDeps } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, sitemapDeps } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -63,6 +63,9 @@ export function createServer() {
   app.use('/api/v1/chat', chatRoutes)
   app.use('/api/v1/notifications', notificationRoutes)
   app.use('/api/v1/admin', adminRoutes)
+  app.use('/api/v1/admin', adminTripCategoryRoutes)
+  app.use('/api/v1/trip-categories', publicTripCategoryRoutes)
+  app.use('/api/v1/trip-type-requests', organizerTripTypeRequestRoutes)
 
   // ── Sitemap Data (lightweight, no auth) ──────────
   app.get('/api/v1/sitemap-data', async (_req, res, next) => {

@@ -76,6 +76,10 @@ import { VehicleRepository } from '../repositories/vehicle.repository'
 import { VehicleService } from '../services/vehicle.service'
 import { VehicleController } from '../controllers/vehicle.controller'
 import { createVehicleRoutes } from '../routes/vehicle.routes'
+import { TripCategoryRepository } from '../repositories/trip-category.repository'
+import { TripCategoryService } from '../services/trip-category.service'
+import { TripCategoryController } from '../controllers/trip-category.controller'
+import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOrganizerTripTypeRequestRoutes } from '../routes/trip-category.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -98,6 +102,7 @@ const conversationRepo = new ConversationRepository(prisma)
 const messageRepo = new MessageRepository(prisma)
 const notificationRepo = new NotificationRepository(prisma)
 const vehicleRepo = new VehicleRepository(prisma)
+const tripCategoryRepo = new TripCategoryRepository(prisma)
 
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
@@ -163,8 +168,9 @@ export const notificationService = new NotificationService(
 )
 
 // Services that depend on notificationService (must be after it)
+export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger)
 const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService)
-const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService)
+const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
   paymentTxRepo, messageRepo,
@@ -190,6 +196,7 @@ const chatController = new ChatController(chatService)
 const notificationController = new NotificationController(notificationService)
 const adminController = new AdminController(adminService)
 const vehicleController = new VehicleController(vehicleService)
+const tripCategoryController = new TripCategoryController(tripCategoryService)
 const webhookController = paymentService
   ? new WebhookController(paymentService, bookingService)
   : (null as unknown as WebhookController)
@@ -217,6 +224,9 @@ export const chatRoutes = createChatRoutes(chatController, authMiddleware, requi
 export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
 export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole)
 export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddleware, requireRole)
+export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCategoryController)
+export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)
+export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
 export const webhookRoutes = webhookController
   ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
   : null

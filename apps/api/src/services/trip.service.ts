@@ -11,6 +11,7 @@ import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { ReviewRepository } from '../repositories/review.repository'
 import type { NotificationService } from './notification.service'
+import type { TripCategoryService } from './trip-category.service'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '@shared/utils/slug'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS } from '../utils/constants'
@@ -27,6 +28,7 @@ export class TripService {
     private reviewRepo: ReviewRepository,
     private logger: Logger,
     private notificationService: NotificationService,
+    private tripCategoryService: TripCategoryService | null = null,
   ) {}
 
   async searchTrips(filters: TripFilters) {
@@ -151,6 +153,10 @@ export class TripService {
     const destination = await this.resolveDestination(input.destinationId)
     if (!destination) throw new ValidationError('Invalid destination')
 
+    if (this.tripCategoryService) {
+      await this.tripCategoryService.validateTripType(input.tripType)
+    }
+
     if (new Date(input.startDate) <= new Date()) {
       throw new ValidationError('Start date must be in the future')
     }
@@ -206,6 +212,10 @@ export class TripService {
     if (input.destinationId) {
       const destination = await this.destinationRepo.findById(input.destinationId)
       if (!destination) throw new ValidationError('Invalid destination')
+    }
+
+    if (input.tripType && this.tripCategoryService) {
+      await this.tripCategoryService.validateTripType(input.tripType)
     }
 
     const updateData: Record<string, unknown> = {}
@@ -741,6 +751,7 @@ export class TripService {
         ? { id: trip.destination.id, name: trip.destination.name, slug: trip.destination.slug }
         : undefined,
       tripType: trip.tripType,
+      tripTypeLabel: trip._tripTypeLabel ?? trip.tripType?.replace(/_/g, ' ') ?? '',
       bookingMode: trip.bookingMode,
       pricePerPerson: trip.pricePerPerson,
       earlyBirdPrice: trip.earlyBirdPrice,
