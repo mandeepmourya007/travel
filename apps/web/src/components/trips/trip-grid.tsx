@@ -12,11 +12,12 @@ interface TripGridProps {
   filters: TripFilters
   onCompare: (trip: TripSummary) => void
   selectedTripIds?: string[]
+  initialData?: { trips: TripSummary[]; pagination: { page: number; limit: number; total: number; totalPages: number } | null }
 }
 
-export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridProps) {
+export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData }: TripGridProps) {
   const searchParams = useSearchParams()
-  const { data, isLoading, error, refetch } = useTrips(filters)
+  const { data, isLoading, error, refetch } = useTrips(filters, { initialData })
 
   if (isLoading) {
     return (

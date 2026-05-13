@@ -4,7 +4,12 @@ import { tripKeys } from '@/lib/query-keys'
 import type { TripSummary, TripFilters } from '@shared/types/trip.types'
 import type { PaginationMeta } from '@shared/types/api-response.types'
 
-export function useTrips(filters: TripFilters) {
+interface UseTripsOptions {
+  initialData?: { trips: TripSummary[]; pagination: PaginationMeta | null }
+  staleTime?: number
+}
+
+export function useTrips(filters: TripFilters, options?: UseTripsOptions) {
   return useQuery({
     queryKey: tripKeys.list(filters),
     queryFn: async () => {
@@ -19,10 +24,12 @@ export function useTrips(filters: TripFilters) {
       }
     },
     placeholderData: (prev) => prev,
+    ...(options?.initialData && { initialData: options.initialData }),
+    ...(options?.staleTime !== undefined && { staleTime: options.staleTime }),
   })
 }
 
 export function useTrendingTrips() {
   const filters: TripFilters = { sort: 'popularity', limit: 6 }
-  return useTrips(filters)
+  return useTrips(filters, { staleTime: 2 * 60 * 1000 })
 }

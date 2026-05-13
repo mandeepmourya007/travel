@@ -10,6 +10,7 @@ export function useDestinations() {
       const res = await apiClient.get<{ success: true; data: Destination[] }>('/destinations')
       return res.data.data
     },
+    staleTime: 5 * 60 * 1000,
   })
 }
 

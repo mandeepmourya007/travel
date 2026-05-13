@@ -68,7 +68,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
       )}
 
       {/* Image */}
-      <Link href={`/trips/${trip.slug}`} className="block">
+      <Link href={`/trips/${trip.slug}`} prefetch={false} className="block">
         <div className="relative h-48 overflow-hidden bg-neutral-200">
           <Image
             src={coverPhoto}
@@ -103,7 +103,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
 
       {/* Content */}
       <div className="p-4">
-        <Link href={`/trips/${trip.slug}`} className="block">
+        <Link href={`/trips/${trip.slug}`} prefetch={false} className="block">
           <h3 className="font-display text-base font-bold text-neutral-800 line-clamp-1 group-hover:text-primary-600 transition-colors">
             {trip.title}
           </h3>
@@ -111,7 +111,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
 
         {/* Organizer */}
         <div className="mt-1 flex items-center gap-1.5">
-          <Link href={`/trips/organizers/${trip.organizer.slug}`} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+          <Link href={`/trips/organizers/${trip.organizer.slug}`} prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
             by {trip.organizer.businessName}
           </Link>
           {trip.organizer.verified && <CheckCircle className="h-3.5 w-3.5 text-primary-500" />}
@@ -134,6 +134,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
             <MapPin className="h-3.5 w-3.5 text-neutral-400" />
             <Link
               href={`/destinations/${trip.destination.slug}`}
+              prefetch={false}
               onClick={(e) => e.stopPropagation()}
               className="hover:text-primary-600 transition-colors"
             >
@@ -177,6 +178,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
           </div>
           <Link
             href={`/trips/${trip.slug}`}
+            prefetch={false}
             className="whitespace-nowrap rounded-lg bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition-all hover:bg-primary-100"
             onMouseEnter={prefetchTripDetail}
           >

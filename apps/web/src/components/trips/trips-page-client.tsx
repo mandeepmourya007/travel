@@ -8,9 +8,13 @@ import { TripFilters } from '@/components/trips/trip-filters'
 import { TripGrid } from '@/components/trips/trip-grid'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
 import { useCompareQueue } from '@/hooks/use-compare-queue'
-import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
+import type { TripFilters as TripFiltersType, TripSummary } from '@shared/types/trip.types'
 
-function SearchContent() {
+interface SearchContentProps {
+  initialData?: { trips: TripSummary[]; pagination: { page: number; limit: number; total: number; totalPages: number } | null }
+}
+
+function SearchContent({ initialData }: SearchContentProps) {
   const searchParams = useSearchParams()
   const { selectedIds, toggle } = useCompareQueue()
 
@@ -38,13 +42,18 @@ function SearchContent() {
           filters={filters}
           onCompare={toggle}
           selectedTripIds={selectedIds}
+          initialData={initialData}
         />
       </div>
     </div>
   )
 }
 
-export function TripsPageClient() {
+interface TripsPageClientProps {
+  initialData?: { trips: TripSummary[]; pagination: { page: number; limit: number; total: number; totalPages: number } | null }
+}
+
+export function TripsPageClient({ initialData }: TripsPageClientProps) {
   const router = useRouter()
   const role = useAuthStore((s) => s.user?.role)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
@@ -67,7 +76,7 @@ export function TripsPageClient() {
         </div>
       }
     >
-      <SearchContent />
+      <SearchContent initialData={initialData} />
     </Suspense>
   )
 }

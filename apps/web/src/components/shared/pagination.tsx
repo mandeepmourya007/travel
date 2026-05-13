@@ -96,7 +96,7 @@ export function Pagination({ currentPage, totalPages, total, onPageChange, build
 
     if (buildHref) {
       return (
-        <Link key={page} href={buildHref(page)} className={pageBtnClass(page === currentPage)}>
+        <Link key={page} href={buildHref(page)} prefetch={false} className={pageBtnClass(page === currentPage)}>
           {page}
         </Link>
       )
@@ -121,7 +121,7 @@ export function Pagination({ currentPage, totalPages, total, onPageChange, build
       <div className="flex items-center gap-1.5">
         {buildHref ? (
           hasPrev ? (
-            <Link href={buildHref(currentPage - 1)} aria-label="Previous page" className={navBtnClass(true)}>
+            <Link href={buildHref(currentPage - 1)} prefetch={false} aria-label="Previous page" className={navBtnClass(true)}>
               {prevContent}
             </Link>
           ) : (
@@ -145,7 +145,7 @@ export function Pagination({ currentPage, totalPages, total, onPageChange, build
 
         {buildHref ? (
           hasNext ? (
-            <Link href={buildHref(currentPage + 1)} aria-label="Next page" className={navBtnClass(true)}>
+            <Link href={buildHref(currentPage + 1)} prefetch={false} aria-label="Next page" className={navBtnClass(true)}>
               {nextContent}
             </Link>
           ) : (

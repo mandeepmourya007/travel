@@ -11,6 +11,7 @@ export function DestinationCard({ destination }: DestinationCardProps) {
   return (
     <Link
       href={`/destinations/${destination.slug}`}
+      prefetch={false}
       className="group relative block h-48 overflow-hidden rounded-xl bg-neutral-200"
     >
       {destination.photoUrl ? (
