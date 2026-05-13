@@ -105,6 +105,16 @@ export const OTP_TYPE = {
 
 export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'
 
+// ─── Redis Cache TTLs (seconds) ────────────────────
+export const CACHE_TTL = {
+  TRIP_SEARCH: 60,
+  TRIP_DETAIL: 300,
+  DESTINATION_LIST: 600,
+  DESTINATION_DETAIL: 300,
+  CATEGORIES: 600,
+  ORGANIZER_PROFILE: 300,
+} as const
+
 /** Generic reference model constants for webhook events + payment transactions */
 export const REFERENCE_MODEL = {
   BOOKING: 'Booking',

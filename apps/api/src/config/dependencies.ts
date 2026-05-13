@@ -80,6 +80,8 @@ import { TripCategoryRepository } from '../repositories/trip-category.repository
 import { TripCategoryService } from '../services/trip-category.service'
 import { TripCategoryController } from '../controllers/trip-category.controller'
 import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOrganizerTripTypeRequestRoutes } from '../routes/trip-category.routes'
+import { CacheService } from '../services/cache.service'
+import { redis } from './redis'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -104,6 +106,9 @@ const notificationRepo = new NotificationRepository(prisma)
 const vehicleRepo = new VehicleRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
 
+// ── Cache ───────────────────────────────────────────
+export const cacheService = new CacheService(redis, logger)
+
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
   userRepo,
@@ -115,7 +120,7 @@ export const authService = new AuthService(
   env.GOOGLE_CLIENT_ID,
 )
 
-const destinationService = new DestinationService(destinationRepo, tripRepo, logger)
+const destinationService = new DestinationService(destinationRepo, tripRepo, logger, cacheService)
 const uploadService = new UploadService()
 const paymentService = razorpayClient
   ? new PaymentService(
@@ -133,7 +138,7 @@ const paymentService = razorpayClient
     : (null as unknown as PaymentService)
 
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
-const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger)
+const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
@@ -168,9 +173,9 @@ export const notificationService = new NotificationService(
 )
 
 // Services that depend on notificationService (must be after it)
-export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService)
-const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService)
+export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService)
+const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
   paymentTxRepo, messageRepo,
