@@ -276,8 +276,9 @@ $DC down --remove-orphans 2>/dev/null || true
 echo "📦 Building API image..."
 $DC build api
 
-# Prune dangling images from previous builds
+# Prune dangling images + build cache from previous builds
 docker image prune -f 2>/dev/null || true
+docker builder prune -f 2>/dev/null || true
 
 # ── Start Redis ──────────────────────────────────
 echo ""
@@ -359,8 +360,9 @@ echo ""
 echo "📦 Building Web image (next build will fetch data from running API)..."
 $DC build web
 
-# Prune dangling images again
+# Prune dangling images + build cache again
 docker image prune -f 2>/dev/null || true
+docker builder prune -f 2>/dev/null || true
 
 # ── Prepare Nginx template ───────────────────────
 # Use HTTP-only template until SSL certs exist (Certbot runs after health checks)

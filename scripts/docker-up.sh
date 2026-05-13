@@ -85,6 +85,11 @@ lsof -ti:${WEB_PORT} | xargs kill -9 2>/dev/null || true
 echo "📦 Building images..."
 docker compose build api web
 
+# Prune dangling images + build cache from previous builds
+echo "🧹 Cleaning up old Docker layers..."
+docker image prune -f 2>/dev/null || true
+docker builder prune -f 2>/dev/null || true
+
 echo ""
 echo "🗄️  Starting Postgres + Redis..."
 docker compose up -d postgres redis
