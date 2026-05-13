@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/carousel'
 import { useToast } from '@/components/shared/toast'
 import { StarRating } from '@/components/shared/star-rating'
-import { formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
+import { formatDateRange, getTripDuration, getSeatsLeft } from '@/lib/format'
 import type { TripDetail } from '@shared/types/trip.types'
 
 interface TripDetailHeaderProps {
@@ -135,7 +135,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
       <div className="mt-6">
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <span className="badge-primary text-xs font-semibold">
-            {tripTypeLabel(trip.tripType)}
+            {trip.tripTypeLabel}
           </span>
           <span
             className={

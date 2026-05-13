@@ -3,17 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useDestinations } from '@/hooks/use-destinations'
+import { useTripCategories } from '@/hooks/use-trip-categories'
 import { FormField } from './form-field'
 import type { CreateTripDto } from '@shared/types/trip.types'
-
-const TRIP_TYPES = [
-  { value: 'ADVENTURE', label: 'Adventure' },
-  { value: 'WEEKEND', label: 'Weekend' },
-  { value: 'TREKKING', label: 'Trekking' },
-  { value: 'BEACH', label: 'Beach' },
-  { value: 'CULTURAL', label: 'Cultural' },
-  { value: 'ROAD_TRIP', label: 'Road Trip' },
-] as const
 
 const BOOKING_MODES = [
   { value: 'INSTANT', label: 'Instant Booking' },
@@ -23,6 +15,7 @@ const BOOKING_MODES = [
 export function BasicInfoTab() {
   const { register, formState: { errors }, setValue, watch } = useFormContext<CreateTripDto>()
   const { data: destinations } = useDestinations()
+  const { data: tripCategories } = useTripCategories()
   const currentVal = watch('destinationId')
   const isExistingId = destinations?.some((d) => d.id === currentVal)
   const [useCustom, setUseCustom] = useState(false)
@@ -82,7 +75,7 @@ export function BasicInfoTab() {
         <FormField label="Trip Type" error={errors.tripType?.message} required>
           <select {...register('tripType')} className="input">
             <option value="">Select type</option>
-            {TRIP_TYPES.map((t) => (
+            {tripCategories?.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>

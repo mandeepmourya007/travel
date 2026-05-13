@@ -5,11 +5,9 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { NumberInput } from '@/components/shared/number-input'
 import { useDestinations } from '@/hooks/use-destinations'
+import { useTripCategories } from '@/hooks/use-trip-categories'
 import { useDebounce } from '@/hooks/use-debounce'
-import { tripTypeLabel } from '@/lib/format'
 import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
-
-const TRIP_TYPES = ['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP'] as const
 const SORT_OPTIONS = [
   { value: 'date', label: 'Soonest' },
   { value: 'price_asc', label: 'Price: Low to High' },
@@ -27,6 +25,7 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { data: destinations } = useDestinations()
+  const { data: tripCategories } = useTripCategories()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [localMinPrice, setLocalMinPrice] = useState(currentFilters.minPrice?.toString() || '')
   const [localMaxPrice, setLocalMaxPrice] = useState(currentFilters.maxPrice?.toString() || '')
@@ -110,19 +109,19 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
           Trip Type
         </label>
         <div className="flex flex-wrap gap-2">
-          {TRIP_TYPES.map((type) => (
+          {tripCategories?.map((cat) => (
             <button
-              key={type}
+              key={cat.value}
               onClick={() =>
-                updateFilters('tripType', currentFilters.tripType === type ? undefined : type)
+                updateFilters('tripType', currentFilters.tripType === cat.value ? undefined : cat.value)
               }
               className={
-                currentFilters.tripType === type
+                currentFilters.tripType === cat.value
                   ? 'badge bg-primary-500 text-white'
                   : 'badge bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               }
             >
-              {tripTypeLabel(type)}
+              {cat.label}
             </button>
           ))}
         </div>

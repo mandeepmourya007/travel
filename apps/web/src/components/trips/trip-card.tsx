@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useQueryClient } from '@tanstack/react-query'
 import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows, Armchair } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
-import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft, tripTypeLabel } from '@/lib/format'
+import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { tripKeys } from '@/lib/query-keys'
 import { fetchTripDetail } from '@/hooks/use-trip-detail'
@@ -139,7 +139,7 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
             >
               {trip.destination.name}
             </Link>
-            <span className="badge-primary text-xs ml-auto">{tripTypeLabel(trip.tripType)}</span>
+            <span className="badge-primary text-xs ml-auto">{trip.tripTypeLabel}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 text-neutral-400" />

@@ -14,9 +14,9 @@ import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
 import { NumberInput } from '@/components/shared/number-input'
 import { Pagination } from '@/components/shared/pagination'
 import { formatCurrency, tripTypeLabel } from '@/lib/format'
+import { useTripCategories } from '@/hooks/use-trip-categories'
 import { cn } from '@/lib/utils'
 import type { DestinationDetailResponse, DestinationTripFilters, DestinationTripSort } from '@shared/types/destination.types'
-import { TRIP_TYPES } from '@shared/constants/trip-types'
 const SORT_OPTIONS: { value: DestinationTripSort; label: string }[] = [
   { value: 'date', label: 'Soonest' },
   { value: 'price_asc', label: 'Price ↑' },
@@ -34,6 +34,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
   const [showFilters, setShowFilters] = useState(false)
   const [minPriceStr, setMinPriceStr] = useState('')
   const [maxPriceStr, setMaxPriceStr] = useState('')
+  const { data: tripCategories } = useTripCategories()
 
   const hasFilters = !!(filters.tripType || filters.sort || filters.minPrice || filters.maxPrice)
   const isInitial = page === 1 && !hasFilters
@@ -186,18 +187,18 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
             <div>
               <p className="text-xs font-medium text-neutral-500 mb-2">Trip Type</p>
               <div className="flex flex-wrap gap-2">
-                {TRIP_TYPES.map((type) => (
+                {tripCategories?.map((cat) => (
                   <button
-                    key={type}
-                    onClick={() => updateFilter({ tripType: filters.tripType === type ? undefined : type })}
+                    key={cat.value}
+                    onClick={() => updateFilter({ tripType: filters.tripType === cat.value ? undefined : cat.value })}
                     className={cn(
                       'rounded-full px-3 py-1 text-sm font-medium transition-colors',
-                      filters.tripType === type
+                      filters.tripType === cat.value
                         ? 'bg-primary-600 text-white'
                         : 'bg-white text-neutral-600 border border-neutral-200 hover:border-primary-300',
                     )}
                   >
-                    {tripTypeLabel(type)}
+                    {cat.label}
                   </button>
                 ))}
               </div>

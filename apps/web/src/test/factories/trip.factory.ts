@@ -10,6 +10,7 @@ export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSumma
     slug: `test-trip-${counter}`,
     destination: { id: `dest-${counter}`, name: 'Goa', slug: 'goa' },
     tripType: 'BEACH',
+    tripTypeLabel: 'Beach',
     bookingMode: 'INSTANT',
     pricePerPerson: 5000 + counter * 1000,
     earlyBirdPrice: null,

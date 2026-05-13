@@ -9,7 +9,6 @@ import {
   formatDateRange,
   getTripDuration,
   getSeatsLeft,
-  tripTypeLabel,
 } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { TripDetail } from '@shared/types/trip.types'
@@ -146,7 +145,7 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
                   <span className="text-xs sm:text-sm">{trip.destination.name}</span>
                   <div className="mt-0.5">
                     <span className="inline-block text-xs px-1.5 py-0.5 rounded-full bg-primary-50 text-primary-600 font-medium">
-                      {tripTypeLabel(trip.tripType)}
+                      {trip.tripTypeLabel}
                     </span>
                   </div>
                 </td>
