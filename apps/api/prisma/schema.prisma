@@ -29,15 +29,6 @@ enum TripStatus {
   CANCELLED
 }
 
-enum TripType {
-  ADVENTURE
-  WEEKEND
-  TREKKING
-  BEACH
-  CULTURAL
-  ROAD_TRIP
-}
-
 enum CancellationPolicy {
   FLEXIBLE
   MODERATE
@@ -98,6 +89,8 @@ enum NotificationType {
   TRIP_REQUEST_EXPIRED
   ADMIN_SUPPORT_MESSAGE
   SYSTEM_ALERT
+  TRIP_TYPE_REQUEST_APPROVED
+  TRIP_TYPE_REQUEST_REJECTED
 }
 
 enum VerificationCodeType {
@@ -141,6 +134,12 @@ enum ConversationStatus {
   ACTIVE
   ARCHIVED
   CLOSED
+}
+
+enum TripTypeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum SeatCellType {
@@ -228,8 +227,9 @@ model OrganizerProfile {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  trips         Trip[]
-  conversations Conversation[] @relation("organizer")
+  trips             Trip[]
+  conversations     Conversation[] @relation("organizer")
+  tripTypeRequests  TripTypeRequest[]
 
   @@index([verificationStatus])
   @@index([isDeleted])
@@ -265,7 +265,7 @@ model Trip {
   destination        Destination        @relation(fields: [destinationId], references: [id])
   title              String
   slug               String             @unique
-  tripType           TripType
+  tripType           String
   description        String
   itinerary          Json
   startDate          DateTime
@@ -723,6 +723,35 @@ model WalletTransaction {
   @@index([walletId, createdAt])
   @@index([referenceModel, referenceId])
   @@index([type])
+}
+
+model TripCategory {
+  id        String   @id @default(cuid())
+  value     String   @unique
+  label     String
+  icon      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model TripTypeRequest {
+  id            String                @id @default(cuid())
+  organizerId   String
+  organizer     OrganizerProfile      @relation(fields: [organizerId], references: [id])
+  suggestedName String
+  reason        String
+  status        TripTypeRequestStatus @default(PENDING)
+  adminNote     String?
+  reviewedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([status])
+  @@index([organizerId])
 }
 
 model TripEditHistory {
