@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { fetchApi } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
-import { buildDestinationJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
+import { buildDestinationJsonLd, buildBreadcrumbJsonLd, buildItemListJsonLd } from '@/lib/structured-data'
 import { DestinationDetailClient } from '@/components/destinations/destination-detail-client'
 import type { DestinationDetailResponse } from '@shared/types/destination.types'
 
@@ -26,9 +26,10 @@ export async function generateMetadata({ params }: DestinationPageProps): Promis
   }
 
   const { destination, stats } = data
+  const priceText = stats.minPrice > 0 ? ` Starting from ₹${stats.minPrice}/person.` : ''
   const title = `${destination.name} — Trips & Packages | ${APP_NAME}`
   const raw = destination.description
-    || `Explore ${destination.tripCount} group trips to ${destination.name}, ${destination.state}. Starting from ₹${stats.avgPrice}/person.`
+    || `Explore ${destination.tripCount} group trips to ${destination.name}, ${destination.state}.${priceText}`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw
@@ -69,13 +70,14 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
     notFound()
   }
 
-  const { destination } = data
+  const { destination, trips } = data
   const destinationJsonLd = buildDestinationJsonLd(destination, SITE_URL, destination.slug)
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },
-    { name: 'Trips', url: `${SITE_URL}/trips` },
+    { name: 'Destinations', url: `${SITE_URL}/destinations` },
     { name: destination.name, url: `${SITE_URL}/destinations/${destination.slug}` },
   ])
+  const itemListJsonLd = trips.length > 0 ? buildItemListJsonLd(trips, SITE_URL) : null
 
   return (
     <>
@@ -87,6 +89,12 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {itemListJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        />
+      )}
       <DestinationDetailClient initialData={data} slug={params.slug} />
     </>
   )
