@@ -88,7 +88,7 @@ export class AdminService {
       ? 'Your organizer profile has been approved!'
       : 'Your organizer profile has been rejected'
     const body = isApproved
-      ? 'Congratulations! You can now create and publish trips on TripCompare.'
+      ? 'Congratulations! You can now create and publish trips on Safarnama.'
       : dto.reason
         ? `Your organizer application was rejected. Reason: ${dto.reason}`
         : 'Your organizer application was rejected. Please contact support for details.'

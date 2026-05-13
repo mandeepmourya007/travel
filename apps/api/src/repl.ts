@@ -2,7 +2,7 @@ import repl from 'node:repl'
 import { prisma } from './lib/prisma'
 import { emailProvider, authService, walletService, notificationService, chatService } from './config/dependencies'
 
-console.log('\n🚀 TripCompare REPL')
+console.log('\n🚀 Safarnama REPL')
 console.log('─'.repeat(40))
 console.log('Available globals:')
 console.log('  prisma          — Prisma client (await prisma.user.findFirst())')

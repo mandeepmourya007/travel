@@ -1,7 +1,7 @@
 import type { NotificationType } from '@prisma/client'
 import { env } from '../config/env'
 
-const APP_NAME = 'TripCompare'
+const APP_NAME = 'Safarnama'
 const CLIENT_URL = env.CLIENT_URL
 
 const BRAND_COLOR = '#0FBAB5'
@@ -118,7 +118,7 @@ function organizerApproved(title: string, body: string, _data: TemplateData): Te
   return {
     subject: 'Your Organizer Profile Is Approved!',
     html: baseLayout(
-      heading('Welcome to TripCompare!') +
+      heading(`Welcome to ${APP_NAME}!`) +
       paragraph(body) +
       paragraph('You can now create and publish trips on the platform.') +
       cta('Go to Dashboard', `${CLIENT_URL}/dashboard`),
