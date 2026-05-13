@@ -1,4 +1,4 @@
-import type { TripSummary, TripType } from './trip.types'
+import type { TripSummary } from './trip.types'
 import type { PaginationMeta } from './api-response.types'
 
 export interface Destination {
@@ -34,7 +34,7 @@ export interface DestinationStats {
 export type DestinationTripSort = 'date' | 'price_asc' | 'price_desc'
 
 export interface DestinationTripFilters {
-  tripType?: TripType
+  tripType?: string
   sort?: DestinationTripSort
   minPrice?: number
   maxPrice?: number

@@ -1,4 +1,5 @@
-export const TRIP_TYPES = [
+/** @deprecated Use DB-driven TripCategory instead. Kept only for seeding and test fallbacks. */
+export const DEFAULT_TRIP_TYPES = [
   'ADVENTURE',
   'WEEKEND',
   'TREKKING',
@@ -6,6 +7,9 @@ export const TRIP_TYPES = [
   'CULTURAL',
   'ROAD_TRIP',
 ] as const
+
+/** @deprecated Alias for backward compat — prefer DEFAULT_TRIP_TYPES */
+export const TRIP_TYPES = DEFAULT_TRIP_TYPES
 
 export const BOOKING_MODES = ['INSTANT', 'REQUEST_BASED'] as const
 

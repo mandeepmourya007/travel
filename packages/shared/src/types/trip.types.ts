@@ -1,4 +1,4 @@
-export type TripType = 'ADVENTURE' | 'WEEKEND' | 'TREKKING' | 'BEACH' | 'CULTURAL' | 'ROAD_TRIP'
+export type TripType = string
 export type TripStatus = 'DRAFT' | 'ACTIVE' | 'FULL' | 'COMPLETED' | 'CANCELLED'
 export type BookingMode = 'INSTANT' | 'REQUEST_BASED'
 export type CancellationPolicy = 'FLEXIBLE' | 'MODERATE' | 'STRICT'
@@ -8,7 +8,8 @@ export interface TripSummary {
   title: string
   slug: string
   destination: { id: string; name: string; slug: string }
-  tripType: TripType
+  tripType: string
+  tripTypeLabel: string
   bookingMode: BookingMode
   pricePerPerson: number
   earlyBirdPrice?: number | null
@@ -98,7 +99,7 @@ export interface CreateTransferPointDto {
 export interface TripFilters {
   destinationId?: string
   destination?: string
-  tripType?: TripType
+  tripType?: string
   bookingMode?: BookingMode
   minPrice?: number
   maxPrice?: number
@@ -112,7 +113,7 @@ export interface TripFilters {
 export interface CreateTripDto {
   title: string
   destinationId: string
-  tripType: TripType
+  tripType: string
   bookingMode: BookingMode
   description: string
   startDate: string

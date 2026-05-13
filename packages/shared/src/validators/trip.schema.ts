@@ -40,7 +40,7 @@ export const createTripSchema = z
   .object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(100).trim(),
     destinationId: z.string().min(1, 'Destination is required'),
-    tripType: z.enum(['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP']),
+    tripType: z.string().min(1, 'Trip type is required'),
     bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).default('INSTANT'),
     description: z.string().min(20, 'Description must be at least 20 characters'),
     startDate: datetimeString,
@@ -91,9 +91,7 @@ export const updateTripSchema = z
   .object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(100).trim().optional(),
     destinationId: z.string().cuid().optional(),
-    tripType: z
-      .enum(['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP'])
-      .optional(),
+    tripType: z.string().min(1).optional(),
     bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).optional(),
     description: z.string().min(20, 'Description must be at least 20 characters').optional(),
     startDate: datetimeString.optional(),
@@ -136,9 +134,7 @@ export const updateTripSchema = z
 export const tripFiltersSchema = z.object({
   destinationId: z.string().cuid().optional(),
   destination: z.string().optional(),
-  tripType: z
-    .enum(['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP'])
-    .optional(),
+  tripType: z.string().optional(),
   bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).optional(),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
