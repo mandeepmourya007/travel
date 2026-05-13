@@ -40,6 +40,12 @@ export function createTripRoutes(
   router.get('/', validate(tripFiltersSchema, 'query'), tripController.search)
   router.get('/slug/:slug', validate(slugParamSchema, 'params'), tripController.getBySlug)
   router.get(
+    '/organizers/slug/:slug',
+    validate(slugParamSchema, 'params'),
+    validate(organizerProfileQuerySchema, 'query'),
+    tripController.getOrganizerPublicProfileBySlug,
+  )
+  router.get(
     '/organizers/:organizerId',
     validate(organizerIdParamSchema, 'params'),
     validate(organizerProfileQuerySchema, 'query'),

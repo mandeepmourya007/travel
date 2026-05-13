@@ -1,25 +1,38 @@
 import { Request, Response } from 'express'
+import type { z } from 'zod'
 import type { TripFilters } from '@shared/types/trip.types'
 import { tripBookingFiltersSchema, tripRequestFiltersSchema } from '@shared/validators/booking.schema'
+import { organizerProfileQuerySchema } from '@shared/validators/common.schema'
 import { asyncHandler } from '../utils/async-handler'
 import { TripService } from '../services/trip.service'
+
+type OrganizerProfileQuery = z.output<typeof organizerProfileQuerySchema>
 
 export class TripController {
   constructor(private tripService: TripService) {}
 
   /** GET /trips — Search trips with filters (public) */
   search = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.tripService.searchTrips(req.query as unknown as TripFilters)
+    const result = await this.tripService.searchTrips(req.query as TripFilters)
     res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 
   /** GET /trips/organizers/:organizerId — Public organizer profile with trips + reviews */
   getOrganizerPublicProfile = asyncHandler(async (req: Request, res: Response) => {
-    const { tripsPage, tripsLimit, reviewsPage, reviewsLimit } = req.query as unknown as {
-      tripsPage: number; tripsLimit: number; reviewsPage: number; reviewsLimit: number
-    }
+    // validate middleware already parsed req.query via organizerProfileQuerySchema
+    const { tripsPage, tripsLimit, reviewsPage, reviewsLimit } = req.query as unknown as OrganizerProfileQuery
     const data = await this.tripService.getOrganizerPublicProfile(
       req.params.organizerId, tripsPage, tripsLimit, reviewsPage, reviewsLimit,
+    )
+    res.json({ success: true, data })
+  })
+
+  /** GET /trips/organizers/slug/:slug — Public organizer profile by slug */
+  getOrganizerPublicProfileBySlug = asyncHandler(async (req: Request, res: Response) => {
+    // validate middleware already parsed req.query via organizerProfileQuerySchema
+    const { tripsPage, tripsLimit, reviewsPage, reviewsLimit } = req.query as unknown as OrganizerProfileQuery
+    const data = await this.tripService.getOrganizerPublicProfileBySlug(
+      req.params.slug, tripsPage, tripsLimit, reviewsPage, reviewsLimit,
     )
     res.json({ success: true, data })
   })

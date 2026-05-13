@@ -13,7 +13,12 @@ import { OrganizerProfileRepository } from '../repositories/organizer-profile.re
 import { WalletRepository } from '../repositories/wallet.repository'
 import { AuthError, ConflictError, NotFoundError } from '../errors/app-error'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
+import { uniqueSlug } from '../utils/slugify'
+import { slugify } from '../utils/slugify'
 import { USER_ROLE } from '@shared/constants'
+
+/** Prisma unique constraint violation code */
+const PRISMA_UNIQUE_VIOLATION = 'P2002'
 
 export class AuthService {
   constructor(
@@ -50,13 +55,9 @@ export class AuthService {
     // Auto-create OrganizerProfile for ORGANIZER signups (same transaction prevents orphans)
     if (user.role === USER_ROLE.ORGANIZER) {
       try {
-        await this.organizerProfileRepo.create({
-          user: { connect: { id: user.id } },
-          businessName: user.name,
-        })
+        await this.createOrganizerProfileWithSlug(user.id, user.name)
         this.logger.info({ userId: user.id }, 'OrganizerProfile auto-created')
       } catch (err) {
-        // Rollback: delete the user if profile creation fails
         this.logger.error({ userId: user.id, err }, 'Failed to create OrganizerProfile, rolling back user')
         throw err
       }
@@ -190,10 +191,7 @@ export class AuthService {
     if (dto.role === USER_ROLE.ORGANIZER && user.role !== USER_ROLE.ORGANIZER) {
       const existing = await this.organizerProfileRepo.findByUserId(userId)
       if (!existing) {
-        await this.organizerProfileRepo.create({
-          user: { connect: { id: userId } },
-          businessName: dto.name || user.name,
-        })
+        await this.createOrganizerProfileWithSlug(userId, dto.name || user.name)
         this.logger.info({ userId }, 'OrganizerProfile auto-created via onboarding')
       }
     }
@@ -256,7 +254,22 @@ export class AuthService {
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
 
-    const updated = await this.organizerProfileRepo.update(profile.id, dto)
+    const updateData: { businessName?: string; description?: string; slug?: string } = { ...dto }
+    if (dto.businessName && dto.businessName !== profile.businessName) {
+      updateData.slug = await uniqueSlug(dto.businessName, (s) => this.organizerProfileRepo.slugExists(s))
+    }
+
+    let updated: { businessName: string; description: string | null }
+    try {
+      updated = await this.organizerProfileRepo.update(profile.id, updateData)
+    } catch (err: unknown) {
+      if (this.isPrismaUniqueViolation(err) && updateData.slug) {
+        updateData.slug = `${slugify(dto.businessName!)}-${Date.now() % 10000}`
+        updated = await this.organizerProfileRepo.update(profile.id, updateData)
+      } else {
+        throw err
+      }
+    }
     this.logger.info({ userId }, 'Organizer profile updated')
 
     return { businessName: updated.businessName, description: updated.description }
@@ -317,6 +330,36 @@ export class AuthService {
 
     this.logger.info({ userId: user.id }, 'New user via Google')
     return { ...(await this.issueTokens(user, meta)), isNewUser: true }
+  }
+
+  /**
+   * Creates an OrganizerProfile with a unique slug, retrying on P2002 (slug collision).
+   * Handles the TOCTOU race between uniqueSlug check and DB insert.
+   */
+  private async createOrganizerProfileWithSlug(userId: string, businessName: string): Promise<void> {
+    const slug = await uniqueSlug(businessName, (s) => this.organizerProfileRepo.slugExists(s))
+    try {
+      await this.organizerProfileRepo.create({
+        user: { connect: { id: userId } },
+        businessName,
+        slug,
+      })
+    } catch (err: unknown) {
+      if (this.isPrismaUniqueViolation(err)) {
+        const fallbackSlug = `${slugify(businessName)}-${Date.now() % 10000}`
+        await this.organizerProfileRepo.create({
+          user: { connect: { id: userId } },
+          businessName,
+          slug: fallbackSlug,
+        })
+      } else {
+        throw err
+      }
+    }
+  }
+
+  private isPrismaUniqueViolation(err: unknown): boolean {
+    return err instanceof Error && 'code' in err && (err as { code: string }).code === PRISMA_UNIQUE_VIOLATION
   }
 
   /** Eager wallet creation — every new user gets a wallet. Non-fatal on failure. */

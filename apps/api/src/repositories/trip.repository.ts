@@ -11,6 +11,7 @@ export const TRIP_INCLUDE_SUMMARY = {
   organizer: {
     select: {
       id: true,
+      slug: true,
       businessName: true,
       rating: true,
       totalReviews: true,

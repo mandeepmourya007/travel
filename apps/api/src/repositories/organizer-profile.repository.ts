@@ -2,6 +2,19 @@ import { Prisma } from '@prisma/client'
 import type { VerificationStatus } from '@shared/constants/verification-status'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
+const PUBLIC_PROFILE_SELECT = {
+  id: true,
+  slug: true,
+  businessName: true,
+  description: true,
+  verificationStatus: true,
+  rating: true,
+  totalReviews: true,
+  totalTripsCompleted: true,
+  createdAt: true,
+  user: { select: { createdAt: true } },
+} as const
+
 export class OrganizerProfileRepository {
   constructor(private prisma: ExtendedPrismaClient) {}
 
@@ -31,24 +44,26 @@ export class OrganizerProfileRepository {
   async findByIdPublic(id: string) {
     return this.prisma.organizerProfile.findFirst({
       where: { id, isDeleted: false, verificationStatus: 'APPROVED' },
-      select: {
-        id: true,
-        businessName: true,
-        description: true,
-        verificationStatus: true,
-        rating: true,
-        totalReviews: true,
-        totalTripsCompleted: true,
-        createdAt: true,
-        user: { select: { createdAt: true } },
-      },
+      select: PUBLIC_PROFILE_SELECT,
     })
   }
 
-  async findIdsForSitemap(): Promise<{ id: string; updatedAt: Date }[]> {
+  async findBySlugPublic(slug: string) {
+    return this.prisma.organizerProfile.findFirst({
+      where: { slug, isDeleted: false, verificationStatus: 'APPROVED' },
+      select: PUBLIC_PROFILE_SELECT,
+    })
+  }
+
+  async slugExists(slug: string): Promise<boolean> {
+    const count = await this.prisma.organizerProfile.count({ where: { slug } })
+    return count > 0
+  }
+
+  async findIdsForSitemap(): Promise<{ id: string; slug: string; updatedAt: Date }[]> {
     return this.prisma.organizerProfile.findMany({
       where: { isDeleted: false, verificationStatus: 'APPROVED' },
-      select: { id: true, updatedAt: true },
+      select: { id: true, slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
     })
   }

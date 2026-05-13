@@ -98,6 +98,7 @@ export class TripService {
     return {
       organizer: {
         id: profile.id,
+        slug: profile.slug,
         businessName: profile.businessName,
         description: profile.description,
         verified: profile.verificationStatus === VERIFICATION_STATUS.APPROVED,
@@ -126,6 +127,18 @@ export class TripService {
         totalPages: Math.ceil(reviewResult.total / reviewsLimit),
       },
     }
+  }
+
+  async getOrganizerPublicProfileBySlug(
+    slug: string,
+    tripsPage = 1,
+    tripsLimit = 12,
+    reviewsPage = 1,
+    reviewsLimit = 10,
+  ) {
+    const profile = await this.organizerProfileRepo.findBySlugPublic(slug)
+    if (!profile) throw new NotFoundError('Organizer')
+    return this.getOrganizerPublicProfile(profile.id, tripsPage, tripsLimit, reviewsPage, reviewsLimit)
   }
 
   async createTrip(userId: string, input: CreateTripDto) {
@@ -743,6 +756,7 @@ export class TripService {
       organizer: trip.organizer
         ? {
             id: trip.organizer.id,
+            slug: trip.organizer.slug,
             businessName: trip.organizer.businessName,
             rating: trip.organizer.rating,
             totalReviews: trip.organizer.totalReviews,

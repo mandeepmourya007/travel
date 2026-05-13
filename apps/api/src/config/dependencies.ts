@@ -141,7 +141,7 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
 export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
   ? new NodemailerEmailProvider(
       { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
-      env.SMTP_FROM || `TripCompare <${env.SMTP_USER}>`,
+      env.SMTP_FROM || `Safarnama <${env.SMTP_USER}>`,
       logger,
     )
   : new MockEmailProvider(logger)
