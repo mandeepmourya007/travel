@@ -22,7 +22,12 @@ export const metadata: Metadata = {
 }
 
 async function getDestinations(): Promise<Destination[]> {
-  return await fetchApi<Destination[]>('/destinations', { revalidate: 3600 })
+  try {
+    return await fetchApi<Destination[]>('/destinations', { revalidate: 3600 })
+  } catch {
+    // Safety net — if API is unreachable during build, don't crash; ISR will populate at runtime
+    return []
+  }
 }
 
 export default async function DestinationsPage() {
