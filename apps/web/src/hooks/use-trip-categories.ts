@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { tripCategoryKeys } from '@/lib/query-keys'
 import type {
@@ -77,12 +77,14 @@ export function useDeleteTripCategory() {
 
 // ─── Admin: Request Review ──────────────────────────────
 
-export function useAdminTripTypeRequests(filters?: { status?: string }) {
+export function useAdminTripTypeRequests(filters?: { status?: string; page?: number; limit?: number }) {
   return useQuery({
     queryKey: tripCategoryKeys.requests(filters),
     queryFn: async () => {
       const params = new URLSearchParams()
       if (filters?.status) params.set('status', filters.status)
+      if (filters?.page != null) params.set('page', String(filters.page))
+      if (filters?.limit != null) params.set('limit', String(filters.limit))
       const res = await apiClient.get<{
         success: true
         data: TripTypeRequestItem[]
@@ -90,6 +92,7 @@ export function useAdminTripTypeRequests(filters?: { status?: string }) {
       }>(`/admin/trip-type-requests?${params}`)
       return res.data
     },
+    placeholderData: keepPreviousData,
   })
 }
 

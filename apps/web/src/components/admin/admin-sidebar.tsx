@@ -9,6 +9,7 @@ import {
   CreditCard,
   Gift,
   MessageSquare,
+  Tags,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'organizers', label: 'Organizers', href: '/admin/organizers', icon: Users },
   { id: 'bookings', label: 'Bookings', href: '/admin/bookings', icon: Package },
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
+  { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
   { id: 'cashback', label: 'Cashback', href: '/admin/cashback', icon: Gift },
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
 ]
@@ -66,8 +68,8 @@ export function AdminSidebar() {
         </nav>
       </aside>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-neutral-200 bg-white py-2 md:hidden">
+      {/* Mobile bottom nav — scrollable for 7+ items */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center overflow-x-auto border-t border-neutral-200 bg-white py-2 md:hidden">
         {ADMIN_NAV.map((item) => {
           const isActive = item.href === '/admin'
             ? pathname === '/admin'
@@ -79,12 +81,12 @@ export function AdminSidebar() {
               key={item.id}
               href={item.href}
               className={cn(
-                'flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-3 text-xs',
+                'flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 text-[10px] leading-tight',
                 isActive ? 'text-primary-600' : 'text-neutral-400',
               )}
             >
-              <Icon className="h-5 w-5" />
-              {item.label}
+              <Icon className="h-4.5 w-4.5" />
+              <span className="truncate max-w-full">{item.label}</span>
             </Link>
           )
         })}
