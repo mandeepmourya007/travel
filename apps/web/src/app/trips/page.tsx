@@ -17,6 +17,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
 
   // Server-side fetch for SEO — Google sees real trip content
   let trips: TripSummary[] = []
+  let pagination: { page: number; limit: number; total: number; totalPages: number } | null = null
   try {
     const params = new URLSearchParams()
     if (destination) params.set('destination', destination)
@@ -25,9 +26,10 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
     params.set('sort', sort)
     const result = await fetchApiWithPagination<TripSummary[]>(
       `/trips?${params.toString()}`,
-      { revalidate: 60 },
+      { revalidate: 300 },
     )
     trips = result.data
+    pagination = result.pagination
   } catch {
     /* API unavailable — client hydration will retry */
   }
@@ -89,7 +91,9 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         </div>
 
         {/* Interactive client component handles filters, compare, grid */}
-        <TripsPageClient />
+        <TripsPageClient
+          initialData={trips.length > 0 ? { trips, pagination } : undefined}
+        />
       </div>
     </>
   )

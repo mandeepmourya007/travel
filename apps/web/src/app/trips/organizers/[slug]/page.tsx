@@ -67,12 +67,7 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
 }
 
 export async function generateStaticParams() {
-  try {
-    const data = await fetchApi<{ organizers: { slug: string }[] }>('/sitemap-data', { revalidate: 3600 })
-    return data.organizers.map((org) => ({ slug: org.slug }))
-  } catch {
-    return []
-  }
+  return []
 }
 
 export default async function OrganizerPublicProfilePage({ params }: OrganizerPageProps) {
