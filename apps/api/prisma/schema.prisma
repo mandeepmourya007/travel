@@ -308,6 +308,9 @@ model Trip {
   @@index([organizerId, status])
   @@index([status, startDate])
   @@index([isDeleted, status])
+  @@index([isDeleted, status, startDate])
+  @@index([isDeleted, status, pricePerPerson])
+  @@index([isDeleted, status, currentBookings])
 }
 
 model Booking {
