@@ -120,7 +120,9 @@ services:
     build:
       context: .
       dockerfile: docker/web.prod.Dockerfile
+      network: host
       args:
+        API_URL_INTERNAL: http://127.0.0.1:4001/api/v1
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
         NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Safarnama}

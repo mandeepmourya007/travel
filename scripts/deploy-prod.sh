@@ -249,19 +249,19 @@ echo ""
 # ── Stop existing containers ──────────────────────────
 $DC down --remove-orphans 2>/dev/null || true
 
-# ── Build images ──────────────────────────────────────
-echo "📦 Building images (first build may take 5-10 min)..."
-$DC build api web
+# ── Build API image ───────────────────────────────
+echo "📦 Building API image..."
+$DC build api
 
 # Prune dangling images from previous builds
 docker image prune -f 2>/dev/null || true
 
-# ── Start databases ───────────────────────────────────
+# ── Start databases ───────────────────────────────
 echo ""
 echo "🗄️  Starting Postgres + Redis..."
 $DC up -d postgres redis
 
-# ── Wait for databases ────────────────────────────────
+# ── Wait for databases ────────────────────────────
 echo ""
 echo "🔍 Waiting for databases..."
 HEALTH_TIMEOUT=180
@@ -287,19 +287,53 @@ for svc in postgres redis; do
   fi
 done
 
-# ── Run migrations ────────────────────────────────────
+# ── Run migrations ────────────────────────────────
 echo ""
 echo "🔧 Running Prisma migrations..."
 $DC --profile migrate run --rm migrate
 echo "  ✅ Migrations complete"
 
-# ── Seed (optional) ──────────────────────────────────
+# ── Seed (optional) ──────────────────────────────
 echo "🌱 Seeding database..."
 $DC --profile seed run --rm seed \
   && echo "  ✅ Seed complete" \
   || echo "  ⏭️  Seed skipped (already applied or no seed data)"
 
-# ── Prepare Nginx template ───────────────────────────
+# ── Start API (needed for web SSG build) ─────────
+echo ""
+echo "🔧 Starting API..."
+$DC up -d api
+
+# Wait for API to be healthy before building web
+echo "🔍 Waiting for API health..."
+elapsed=0
+while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+  status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "travel-api-prod" 2>/dev/null || echo "missing")
+  if [ "$status" = "healthy" ]; then
+    echo "  ✅ api — healthy"
+    break
+  elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+    echo "  ❌ api — ${status}"
+    $DC logs api --tail 15
+    exit 1
+  fi
+  sleep 3
+  elapsed=$((elapsed + 3))
+done
+if [ $elapsed -ge $HEALTH_TIMEOUT ]; then
+  echo "  ⏰ api — timed out after ${HEALTH_TIMEOUT}s"
+  exit 1
+fi
+
+# ── Build Web image (API running → SSG gets real data) ──
+echo ""
+echo "📦 Building Web image (next build will fetch data from running API)..."
+$DC build web
+
+# Prune dangling images again
+docker image prune -f 2>/dev/null || true
+
+# ── Prepare Nginx template ───────────────────────
 # Use HTTP-only template until SSL certs exist (Certbot runs after health checks)
 CERTS_EXIST=false
 if [ -n "$DOMAIN" ]; then
@@ -318,10 +352,10 @@ else
   cp docker/nginx/templates/default.conf.template.http-only docker/nginx/templates/default.conf.template
 fi
 
-# ── Start all services ────────────────────────────────
+# ── Start Web + Nginx ─────────────────────────────
 echo ""
-echo "🔧 Starting API + Web + Nginx..."
-$DC up -d
+echo "🔧 Starting Web + Nginx..."
+$DC up -d web nginx
 
 # ── Health check all services ─────────────────────────
 echo ""
