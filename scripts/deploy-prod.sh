@@ -316,11 +316,17 @@ echo "🔧 Running Prisma migrations..."
 $DC --profile migrate run --rm migrate
 echo "  ✅ Migrations complete"
 
-# ── Seed (optional) ──────────────────────────────
-echo "🌱 Seeding database..."
-$DC --profile seed run --rm seed \
-  && echo "  ✅ Seed complete" \
-  || echo "  ⏭️  Seed skipped (already applied or no seed data)"
+# ── Seed (optional — prompted) ────────────────────
+echo ""
+read -rp "🌱 Run database seed? (y/n) [n]: " RUN_SEED
+if [[ "$RUN_SEED" == "y" || "$RUN_SEED" == "Y" ]]; then
+  echo "🌱 Seeding database..."
+  $DC --profile seed run --rm seed \
+    && echo "  ✅ Seed complete" \
+    || echo "  ⚠️  Seed failed — check logs above"
+else
+  echo "  ⏭️  Seed skipped"
+fi
 
 # ── Start API (needed for web SSG build) ─────────
 echo ""
