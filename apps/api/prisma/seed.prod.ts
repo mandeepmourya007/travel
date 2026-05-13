@@ -2158,7 +2158,154 @@ async function seedTripCategoriesAndRequests(deps: {
     reviewedAt: d(2026, 5, 2),
   } })
 
-  console.log('  ✓ Created 10 trip type requests (4 PENDING, 3 APPROVED, 3 REJECTED) from 6 different organizers')
+  // ── Additional PENDING requests (for pagination testing) ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'Cycling Tour',
+    reason: 'Multi-day cycling tours from Manali to Leh, Munnar hills, Konkan coast. Cycling tourism is booming in India — a dedicated category would attract fitness-focused travelers.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 1),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org4.id,
+    suggestedName: 'Volunteering',
+    reason: 'Backpack Bharat partners with NGOs for voluntourism trips — teaching English in rural schools, beach cleanups in Goa, wildlife conservation in Jim Corbett. These deserve their own category.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 2),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org1.id,
+    suggestedName: 'Houseboat Stay',
+    reason: 'Kerala backwater houseboat experiences are unique — floating through canals, village visits from the boat, fresh seafood cooked onboard. Not beach, not adventure — it\'s its own thing.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 3),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org7.id,
+    suggestedName: 'Wellness Retreat',
+    reason: 'She Travels India runs Ayurveda and yoga retreat packages in Rishikesh, Goa, and Kerala. These are health and wellness focused, very different from adventure or cultural trips.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 4),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org2.id,
+    suggestedName: 'Train Journey',
+    reason: 'Scenic train journeys — Darjeeling toy train, Konkan Railway, Kalka-Shimla. The train IS the experience. We want to package multi-day rail adventures as a distinct trip type.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 5),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org8.id,
+    suggestedName: 'Team Building',
+    reason: 'Corporate team building activities — paintball, treasure hunts, obstacle courses — that are separate from full corporate offsites. Shorter duration, activity-focused.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 6),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'Stargazing',
+    reason: 'Nomad Trails runs dedicated stargazing trips to dark-sky locations — Spiti, Rann of Kutch, Coorg. Telescopes, astrophotography workshops, overnight camping under the stars.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 7),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org4.id,
+    suggestedName: 'Scuba & Diving',
+    reason: 'Dedicated scuba diving trips to Andaman, Goa, Pondicherry, Netrani Island. PADI certification combos, multi-dive packages. Very different from general "Beach" trips.',
+    status: 'PENDING',
+    createdAt: d(2026, 5, 8),
+  } })
+
+  // ── Additional APPROVED requests ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org2.id,
+    suggestedName: 'Heritage Walk',
+    reason: 'Walking tours through heritage cities — Old Delhi, Jaipur, Hampi, Pondicherry French Quarter. Guided by local historians, 3-4 hour walking experiences.',
+    status: 'APPROVED',
+    adminNote: 'Heritage walks are a great niche. Adding as a sub-category under Cultural initially, may promote to top-level if we get 10+ active trips.',
+    reviewedAt: d(2026, 4, 28),
+    createdAt: d(2026, 4, 15),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org7.id,
+    suggestedName: 'Solo Female',
+    reason: 'Distinct from Women-Only groups — these are curated itineraries designed for solo female travelers with safety-focused accommodations and local women guides.',
+    status: 'APPROVED',
+    adminNote: 'Approved! Solo female travel safety is a priority. We\'ll create this and feature it prominently.',
+    reviewedAt: d(2026, 5, 1),
+    createdAt: d(2026, 4, 20),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org1.id,
+    suggestedName: 'Bike Rally',
+    reason: 'Group motorcycle rallies — Royal Enfield runs to Ladakh, Spiti, Rajasthan. These are distinct from general road trips — it\'s the biking community experience.',
+    status: 'APPROVED',
+    adminNote: 'Bike rallies are hugely popular in India. Approved — adding under the adventure umbrella.',
+    reviewedAt: d(2026, 5, 3),
+    createdAt: d(2026, 4, 22),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'River Rafting',
+    reason: 'Multi-day rafting expeditions on Ganges, Teesta, Zanskar. Not just a 2-hour activity — full camping + rafting packages over 3-5 days.',
+    status: 'APPROVED',
+    adminNote: 'Multi-day rafting is indeed distinct from general adventure. Approved!',
+    reviewedAt: d(2026, 5, 5),
+    createdAt: d(2026, 4, 25),
+  } })
+
+  // ── Additional REJECTED requests ──
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org8.id,
+    suggestedName: 'International',
+    reason: 'We want to list international group trips — Thailand, Bali, Dubai. An "International" category would separate domestic from international.',
+    status: 'REJECTED',
+    adminNote: 'Safarnama currently focuses on domestic India travel. International trips are planned for Phase 3. Will revisit this request then.',
+    reviewedAt: d(2026, 4, 22),
+    createdAt: d(2026, 4, 12),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org2.id,
+    suggestedName: 'Budget',
+    reason: 'Trips under ₹3,000 per person. A "Budget" label would help price-sensitive travelers find affordable options quickly.',
+    status: 'REJECTED',
+    adminNote: 'Similar to "Luxury" — "Budget" is a price tier, not a trip type. Use the price filter and mention budget-friendly in the trip description.',
+    reviewedAt: d(2026, 4, 30),
+    createdAt: d(2026, 4, 18),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org4.id,
+    suggestedName: 'Day Trip',
+    reason: 'One-day excursions from cities — Pune to Lonavala, Bangalore to Nandi Hills, Mumbai to Alibaug. Quick escapes that don\'t need overnight stay.',
+    status: 'REJECTED',
+    adminNote: 'Trip duration is already indicated by start/end date. A "Day Trip" filter would be more appropriate than a category. We\'ll add duration-based filtering soon.',
+    reviewedAt: d(2026, 5, 4),
+    createdAt: d(2026, 4, 28),
+  } })
+
+  await prisma.tripTypeRequest.create({ data: {
+    organizerId: org3.id,
+    suggestedName: 'Pet Friendly',
+    reason: 'Pet-friendly group trips with pet-allowed homestays and activities. Growing demand from pet parents who want to travel with their dogs.',
+    status: 'REJECTED',
+    adminNote: 'Interesting idea but too niche for a top-level category right now. We\'ll add a "Pet Friendly" tag/badge that can be applied to any trip type instead.',
+    reviewedAt: d(2026, 5, 6),
+    createdAt: d(2026, 5, 1),
+  } })
+
+  console.log('  ✓ Created 25 trip type requests (12 PENDING, 7 APPROVED, 6 REJECTED) from 6 different organizers')
 
   // ══════════════════════════════════════════════════════
   // ── 3) TRIP EDIT HISTORY ───────────────────────────────
