@@ -1,5 +1,5 @@
 import { Logger } from 'pino'
-import type { CreateDestinationDto, UpdateDestinationDto } from '@shared/types/destination.types'
+import type { CreateDestinationDto, UpdateDestinationDto, DestinationTripFilters } from '@shared/types/destination.types'
 import { DestinationRepository } from '../repositories/destination.repository'
 import { TripRepository } from '../repositories/trip.repository'
 import { NotFoundError, ConflictError, ValidationError } from '../errors/app-error'
@@ -42,15 +42,21 @@ export class DestinationService {
     }
   }
 
-  async getBySlug(slug: string, page: number = 1, limit: number = PAGINATION_DEFAULTS.limit) {
+  async getBySlug(
+    slug: string,
+    page: number = 1,
+    limit: number = PAGINATION_DEFAULTS.limit,
+    filters?: DestinationTripFilters,
+  ) {
     const destination = await this.destinationRepo.findBySlugPublic(slug)
     if (!destination) throw new NotFoundError('Destination')
 
     const offset = (page - 1) * limit
 
-    const [tripsResult, stats] = await Promise.all([
-      this.tripRepo.findByDestinationIdPaginated(destination.id, { offset, limit }),
+    const [tripsResult, stats, relatedDestinations] = await Promise.all([
+      this.tripRepo.findByDestinationIdPaginated(destination.id, { offset, limit }, filters),
       this.tripRepo.getDestinationStats(destination.id),
+      this.destinationRepo.findRelated(destination.id, destination.state),
     ])
 
     return {
@@ -72,6 +78,16 @@ export class DestinationService {
         totalPages: Math.ceil(tripsResult.total / limit),
       },
       stats,
+      relatedDestinations: relatedDestinations.map((d) => ({
+        id: d.id,
+        name: d.name,
+        slug: d.slug,
+        state: d.state,
+        photoUrl: d.photoUrl,
+        description: d.description,
+        tripCount: d.tripCount,
+        isPopular: d.isPopular,
+      })),
     }
   }
 

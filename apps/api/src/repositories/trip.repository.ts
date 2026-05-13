@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
+import type { DestinationTripFilters } from '@shared/types/destination.types'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
@@ -125,17 +126,40 @@ export class TripRepository {
   async findByDestinationIdPaginated(
     destinationId: string,
     pagination: { offset: number; limit: number },
+    filters?: DestinationTripFilters,
   ) {
     const where: Prisma.TripWhereInput = {
       destinationId,
       isDeleted: false,
       status: { in: ['ACTIVE', 'FULL'] },
+      ...(filters?.tripType ? { tripType: filters.tripType } : {}),
+      ...(filters?.minPrice || filters?.maxPrice
+        ? {
+            pricePerPerson: {
+              ...(filters.minPrice ? { gte: filters.minPrice } : {}),
+              ...(filters.maxPrice ? { lte: filters.maxPrice } : {}),
+            },
+          }
+        : {}),
     }
+
+    let orderBy: Prisma.TripOrderByWithRelationInput
+    switch (filters?.sort) {
+      case 'price_asc':
+        orderBy = { pricePerPerson: 'asc' }
+        break
+      case 'price_desc':
+        orderBy = { pricePerPerson: 'desc' }
+        break
+      default:
+        orderBy = { startDate: 'asc' }
+    }
+
     const [data, total] = await this.prisma.$transaction([
       this.prisma.trip.findMany({
         where,
         include: TRIP_INCLUDE_SUMMARY,
-        orderBy: { startDate: 'asc' },
+        orderBy,
         skip: pagination.offset,
         take: pagination.limit,
       }),
@@ -155,6 +179,8 @@ export class TripRepository {
       this.prisma.trip.aggregate({
         where: baseWhere,
         _avg: { pricePerPerson: true },
+        _min: { pricePerPerson: true },
+        _max: { pricePerPerson: true },
       }),
       this.prisma.trip.findMany({
         where: baseWhere,
@@ -170,6 +196,8 @@ export class TripRepository {
       avgPrice: Math.round(priceAgg._avg.pricePerPerson ?? 0),
       organizerCount: organizerIds.length,
       upcomingCount,
+      minPrice: Math.round(priceAgg._min.pricePerPerson ?? 0),
+      maxPrice: Math.round(priceAgg._max.pricePerPerson ?? 0),
     }
   }
 

@@ -78,4 +78,17 @@ export class DestinationRepository {
       data: { tripCount: { decrement: 1 } },
     })
   }
+
+  async findRelated(excludeId: string, state: string, limit = 6) {
+    return this.prisma.destination.findMany({
+      where: {
+        isDeleted: false,
+        isActive: true,
+        id: { not: excludeId },
+        OR: [{ state }, { isPopular: true }],
+      },
+      orderBy: [{ tripCount: 'desc' }, { name: 'asc' }],
+      take: limit,
+    })
+  }
 }

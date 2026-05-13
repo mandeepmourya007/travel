@@ -16,8 +16,18 @@ export class DestinationController {
   })
 
   getBySlug = asyncHandler(async (req: Request, res: Response) => {
-    const { page, limit } = req.query as { page?: number; limit?: number }
-    const data = await this.destinationService.getBySlug(req.params.slug, page, limit)
+    const { page, limit, tripType, sort, minPrice, maxPrice } = req.query as {
+      page?: number
+      limit?: number
+      tripType?: string
+      sort?: string
+      minPrice?: number
+      maxPrice?: number
+    }
+    const filters = { tripType, sort, minPrice, maxPrice } as Parameters<
+      DestinationService['getBySlug']
+    >[3]
+    const data = await this.destinationService.getBySlug(req.params.slug, page, limit, filters)
     res.json({ success: true, data })
   })
 
