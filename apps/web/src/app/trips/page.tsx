@@ -1,84 +1,90 @@
-'use client'
+import Link from 'next/link'
+import { fetchApiWithPagination } from '@/lib/api-server'
+import { SITE_URL } from '@/lib/constants'
+import { buildItemListJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
+import { TripsPageClient } from '@/components/trips/trips-page-client'
+import type { TripSummary } from '@shared/types/trip.types'
 
-import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
-import { useAuthStore } from '@/store/auth.store'
-import { TripFilters } from '@/components/trips/trip-filters'
-import { TripGrid } from '@/components/trips/trip-grid'
-import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
-import { useCompareQueue } from '@/hooks/use-compare-queue'
-import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
-
-function SearchContent() {
-  const searchParams = useSearchParams()
-  const { selectedIds, toggle } = useCompareQueue()
-
-  const filters: TripFiltersType = {
-    destinationId: searchParams.get('destinationId') || undefined,
-    destination: searchParams.get('destination') || undefined,
-    tripType: (searchParams.get('tripType') as TripFiltersType['tripType']) || undefined,
-    minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
-    maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
-    sort: (searchParams.get('sort') as TripFiltersType['sort']) || 'date',
-    page: searchParams.get('page') ? Number(searchParams.get('page')) : 1,
-    limit: 12,
-  }
-
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="font-display text-2xl font-bold text-neutral-800 mb-6">
-        {filters.destination
-          ? `Trips to "${filters.destination}"`
-          : 'Explore All Trips'}
-      </h1>
-
-      <div className="lg:flex lg:gap-8">
-        {/* Filters — mobile: toggle + drawer, desktop: sidebar */}
-        <aside className="lg:w-64 lg:shrink-0">
-          <TripFilters currentFilters={filters} />
-        </aside>
-
-        {/* Grid */}
-        <div className="flex-1 min-w-0">
-          <TripGrid
-            filters={filters}
-            onCompare={toggle}
-            selectedTripIds={selectedIds}
-          />
-        </div>
-      </div>
-    </div>
-  )
+interface TripsPageProps {
+  searchParams: Record<string, string | string[] | undefined>
 }
 
-export default function TripsPage() {
-  const router = useRouter()
-  const role = useAuthStore((s) => s.user?.role)
-  const hasHydrated = useAuthStore((s) => s._hasHydrated)
+export default async function TripsPage({ searchParams }: TripsPageProps) {
+  const destination = typeof searchParams.destination === 'string' ? searchParams.destination : undefined
+  const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1
+  const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'date'
 
-  useEffect(() => {
-    if (hasHydrated && role === 'ORGANIZER') {
-      router.replace('/dashboard')
-    }
-  }, [hasHydrated, role, router])
+  // Server-side fetch for SEO — Google sees real trip content
+  let trips: TripSummary[] = []
+  try {
+    const params = new URLSearchParams()
+    if (destination) params.set('destination', destination)
+    params.set('page', String(page))
+    params.set('limit', '12')
+    params.set('sort', sort)
+    const result = await fetchApiWithPagination<TripSummary[]>(
+      `/trips?${params.toString()}`,
+      { revalidate: 60 },
+    )
+    trips = result.data
+  } catch {
+    /* API unavailable — client hydration will retry */
+  }
 
-  if (hasHydrated && role === 'ORGANIZER') return null
+  const heading = destination ? `Trips to "${destination}"` : 'Explore All Group Trips from Pune'
+
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Trips', url: `${SITE_URL}/trips` },
+  ])
 
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-          <div className="skeleton h-8 w-48 mb-6" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <TripCardSkeleton key={i} />
-            ))}
-          </div>
+    <>
+      {/* Structured data for search engines */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      {trips.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(buildItemListJsonLd(trips, SITE_URL)) }}
+        />
+      )}
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        {/* Server-rendered h1 + trip links for SEO */}
+        <h1 className="font-display text-2xl font-bold text-neutral-800 mb-6">
+          {heading}
+        </h1>
+
+        {/* SEO-visible trip listing (hidden after client hydration takes over) */}
+        {trips.length > 0 && (
+          <noscript>
+            <ul>
+              {trips.map((trip) => (
+                <li key={trip.id}>
+                  <a href={`/trips/${trip.slug}`}>{trip.title}</a>
+                  {' — '}{trip.destination.name}
+                  {' — '}&#x20B9;{trip.pricePerPerson}/person
+                </li>
+              ))}
+            </ul>
+          </noscript>
+        )}
+
+        {/* Invisible-to-user but crawlable trip links for Googlebot */}
+        <div className="sr-only" aria-hidden="true">
+          {trips.map((trip) => (
+            <Link key={trip.id} href={`/trips/${trip.slug}`}>
+              {trip.title} — {trip.destination.name} — Group trip starting &#x20B9;{trip.pricePerPerson}/person
+            </Link>
+          ))}
         </div>
-      }
-    >
-      <SearchContent />
-    </Suspense>
+
+        {/* Interactive client component handles filters, compare, grid */}
+        <TripsPageClient />
+      </div>
+    </>
   )
 }
