@@ -118,6 +118,15 @@ export const vehicleKeys = {
   vehicleList: (tripId: string) => [...vehicleKeys.all, 'list', tripId] as const,
 }
 
+export const tripCategoryKeys = {
+  all: ['tripCategories'] as const,
+  active: () => [...tripCategoryKeys.all, 'active'] as const,
+  admin: () => [...tripCategoryKeys.all, 'admin'] as const,
+  requests: (filters?: { status?: string }) =>
+    [...tripCategoryKeys.all, 'requests', filters] as const,
+  myRequests: () => [...tripCategoryKeys.all, 'my-requests'] as const,
+}
+
 export const adminKeys = {
   all: ['admin'] as const,
   stats: () => [...adminKeys.all, 'stats'] as const,
