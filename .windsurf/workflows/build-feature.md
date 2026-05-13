@@ -1,12 +1,12 @@
 ---
-description: End-to-end feature development — DB schema, BE (TDD), FE (hooks + components), integration tests. Orchestrates /build-backend and /build-frontend into a single workflow.
+description: End-to-end feature development — collaborative planning meetings, architecture review, user approval, then DB schema, BE (TDD), FE (hooks + components), integration tests. Orchestrates /build-backend and /build-frontend into a single workflow.
 ---
 
 # Full-Stack Feature Development Workflow
 
-This is the **master workflow** for building any feature end-to-end. It orchestrates the DB → BE → Shared → FE → Integration pipeline with a test-driven approach at every layer.
+This is the **master workflow** for building any feature end-to-end. It starts with **collaborative planning meetings** between cross-functional roles, produces a reviewed plan document, gets user approval, THEN orchestrates the DB → BE → Shared → FE → Integration pipeline.
 
-**Think like a senior architect:** Design first. Types first. Tests first. Code last.
+**Think like a senior architect:** Plan collaboratively. Validate the plan. Get approval. THEN code.
 
 ---
 
@@ -23,962 +23,506 @@ Use `/build-backend` or `/build-frontend` individually only when working on isol
 
 ## Pre-Requisites
 
-Before starting, you MUST have read:
+Before starting, you MUST read these files:
 1. `docs/engineering/tech-stack.md` — Architecture, patterns, DB schema, error handling
 2. `docs/engineering/tech-stack.md` **Section 1 — Design Patterns (GoF Classification)** — 30+ patterns mapped to exact file locations + 6 usage rules
 3. `docs/mvp/mvp-plan.md` — Feature scope, wireframes, user flows
 4. `docs/engineering/fe/design-system.md` — Colors, tokens, component styles, data states
+5. `docs/engineering/fe/preview.html` — FE design reference for UI consistency
+6. `docs/PROJECT_MINDMAP.md` — System architecture overview, feature domains
+7. `docs/PROJECT_REFERENCE.md` — Full API surface, DB schema, component map
 
 ---
 
-## Overview: The 12-Step Pipeline
+## Overview: The 6-Step Pipeline
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     PHASE 1: DESIGN (Steps 1-3)                 │
-│  Feature Brief → DB Schema → Shared Types + Validators          │
+│              STEP 1: PLANNING MEETING (Collaborative)            │
+│  FE Dev + BE Dev + Senior Architect + Product Manager            │
+│  Each role presents points with VALID REASONS (no bluff)         │
+│  Debate trade-offs → Select best approach                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                     PHASE 2: BACKEND (Steps 4-7)                │
-│  BE Tests (Red) → Repository → Service → Controller+Routes     │
-│  Run Tests (Green) → Refactor                                   │
+│              STEP 2: CREATE PLAN DOCUMENT                        │
+│  Consolidate meeting output into a structured feature plan       │
 ├─────────────────────────────────────────────────────────────────┤
-│                     PHASE 3: FRONTEND (Steps 8-10)              │
-│  Custom Hook → Component (4 states) → Page + Error Boundary    │
+│              STEP 3: REVIEW MEETING (Senior Review)              │
+│  Senior Devs + Senior Architect + Stakeholder review the plan    │
+│  Identify gaps, risks, missing edge cases                        │
 ├─────────────────────────────────────────────────────────────────┤
-│                     PHASE 4: INTEGRATION (Steps 11-12)          │
-│  E2E Smoke Test → Verify Checklist → PR                        │
+│              STEP 4: REFINE PLAN                                 │
+│  Incorporate review feedback, fix gaps, finalize plan            │
+├─────────────────────────────────────────────────────────────────┤
+│              STEP 5: USER APPROVAL                               │
+│  Present final plan to user → WAIT for explicit approval         │
+│  Do NOT proceed to code until user says "approved"               │
+├─────────────────────────────────────────────────────────────────┤
+│              STEP 6: IMPLEMENTATION                              │
+│  Use /build-backend + /build-frontend workflows                  │
+│  Reference: preview.html, PROJECT_MINDMAP, PROJECT_REFERENCE     │
+│  After commit: update docs/mvp/mvp-plan.md                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# PHASE 1: DESIGN
+# STEP 1: PLANNING MEETING (Collaborative)
 
-## Step 1: Write a Feature Brief
+## Goal
 
-Before ANY code, write a brief. This is the single source of truth for the feature.
+Simulate a cross-functional planning meeting where **4 roles** discuss how to build the feature. Each role contributes their expertise. **Every point must have a valid reason** — no filler, no bluff, no "we should do X because it's best practice" without explaining WHY it's the right choice for THIS feature.
 
-**Location:** Write as a comment block at the top of your first test file.
+## Meeting Participants
 
-```
-FEATURE BRIEF: [Feature Name]
-==================================
-1. What:      [One sentence — "Trip search with destination, date, price, and type filters"]
-2. Who:       [User role — Traveler / Organizer / Admin]
-3. Why:       [Business value — "Core discovery flow, 80% of traveler sessions start here"]
+| Role | Focus Area | Brings to the Table |
+|------|-----------|---------------------|
+| **Product Manager (PM)** | User value, UX flows, business rules | What the user sees, feels, does. Acceptance criteria. Edge cases from user perspective. |
+| **FE Developer** | Component design, state management, UI/UX | Component hierarchy, data flow, loading/error/empty states, mobile-first layout, animation, accessibility. References `preview.html` for design consistency. |
+| **BE Developer** | API design, DB schema, validation, performance | Endpoint design, request/response shapes, validation rules, DB queries, caching, error codes. |
+| **Senior Architect** | System design, trade-offs, patterns, scalability | Architecture decisions, pattern selection (from tech-stack.md), cross-cutting concerns, security, performance trade-offs. Challenges weak proposals. |
 
-4. API Endpoints:
-   GET  /api/v1/trips?destination=Goa&minPrice=1000&sort=price_asc&page=1
-   GET  /api/v1/trips/:slug
+## Meeting Format
 
-5. DB Tables:  Trip, OrganizerProfile (read-only)
-6. Validations: destination (string, optional), minPrice (number, >= 0), page (int, >= 1)
-7. Error Cases: No trips found (200 empty), invalid filters (400), DB down (500)
-8. Side Effects: None (read-only)
+Run the meeting as a structured discussion. Output it as a readable conversation transcript.
 
-9. FE Components:
-   - TripFilters (client) → updates URL params
-   - TripGrid (client) → fetches + renders trip cards
-   - TripCard (presentational) → single trip card
-   - TripCardSkeleton → loading state
+### Round 1: Feature Understanding (PM leads)
+- PM defines: **What** is the feature, **Who** uses it, **Why** it matters (business value)
+- PM lists: User stories, acceptance criteria, happy path flow, edge cases from user POV
+- PM identifies: What makes the UX feel great vs. just functional
+- Others ask clarifying questions
 
-10. Data Flow:
-    URL params → TripFilters → useTrips(filters) → GET /trips → TripGrid → TripCard[]
-```
+### Round 2: FE Perspective (FE Dev leads)
+- Propose component hierarchy and data flow
+- Identify which components are client vs. server
+- Propose state management approach (URL state? Local state? Zustand?)
+- Define all 4 states: loading skeleton shape, error message, empty state CTA, happy path layout
+- Mobile-first layout decisions (stack order, breakpoints)
+- Reference `preview.html` for design system consistency
+- Identify accessibility requirements (ARIA, focus, keyboard nav)
+- **Every proposal must include WHY** — e.g., "URL state for filters because users share filtered links"
 
-**Rules:**
-- If you can't fill out all 10 points, you don't understand the feature well enough.
-- This brief takes 5 minutes and saves hours of rework.
-- Keep it in code, not in a separate doc — lives with the tests.
+### Round 3: BE Perspective (BE Dev leads)
+- Propose API endpoints (method, path, auth, request/response shape)
+- Propose DB schema changes (new tables, columns, indexes, enums)
+- Define validation rules (Zod schemas) and error codes
+- Identify side effects (notifications, cron jobs, webhook triggers)
+- Identify performance concerns (N+1 queries, large payloads, pagination)
+- **Every proposal must include WHY** — e.g., "Composite index on (tripId, status) because the seat map query filters both"
 
----
+### Round 4: Architecture Review (Senior Architect leads)
+- Challenge proposals from Round 2 and Round 3
+- Identify trade-offs and pick the best approach with reasoning
+- Flag security concerns (auth, input sanitization, rate limiting)
+- Flag scalability concerns (query performance, caching needs)
+- Ensure patterns match existing codebase (check `docs/PROJECT_REFERENCE.md`)
+- Ensure no layer violations (Controller → Repository is forbidden)
+- **Final decision on each contested point with explicit trade-off reasoning**
 
-## Step 2: Design / Update DB Schema
+### Round 5: Consensus & Action Items
+- Summarize agreed approach for each major decision
+- List any open questions that need more investigation
+- Identify risks and mitigation strategies
+- Agree on implementation order (DB → Shared → BE → FE)
 
-Check if the Prisma schema needs changes for this feature.
-
-**Location:** `apps/api/prisma/schema.prisma`
-
-### Decision Tree
-
-```
-Does this feature need new DB tables or columns?
-  ├── NO → Skip to Step 3
-  └── YES ↓
-        │
-        ├── New table? → Add model with ALL mixin fields:
-        │     isActive, isDeleted, createdAt, updatedAt, deletedAt
-        │
-        ├── New column? → Add as NULLABLE first (don't break existing rows)
-        │
-        ├── New enum value? → Add to existing enum
-        │
-        └── New index? → Add composite index for the query pattern
-```
-
-### Schema Change Checklist
+## Meeting Rules
 
 ```
-[ ] Model has all 5 mixin fields (isActive, isDeleted, createdAt, updatedAt, deletedAt)
-[ ] New columns are nullable or have defaults
-[ ] Relations use @relation with explicit names
-[ ] Indexes match the query patterns in the feature brief
-[ ] Price fields are Int (whole rupees, NOT paisa)
-[ ] Enums cover all possible states
-[ ] @@index([isDeleted]) on every model
-```
-
-### After Schema Change
-
-```bash
-// turbo
-npx prisma migrate dev --name <feature-name>
-
-// turbo
-npx prisma generate
-```
-
-**Rule:** NEVER edit a migration file after it's committed. Create a new migration instead.
-
----
-
-## Step 3: Define Shared Types + Validators
-
-Create types and validators that BOTH FE and BE will use. This is the **contract** between the two layers.
-
-**Location:** `packages/shared/src/`
-
-### 3a. Types
-
-```typescript
-// packages/shared/src/types/<domain>.types.ts
-
-// Response type — what the API returns
-export interface TripSummary {
-  id: string
-  title: string
-  slug: string
-  destination: string
-  tripType: TripType
-  pricePerPerson: number    // whole rupees
-  startDate: string         // ISO date
-  endDate: string
-  bookingDeadline?: string  // ISO date
-  maxGroupSize: number
-  currentBookings: number
-  organizer: {
-    businessName: string
-    rating: number
-    totalReviews: number
-    verified: boolean
-  }
-  photos: string[]
-}
-
-// Request type — what the FE sends to the API
-export interface CreateBookingDto {
-  tripId: string
-  numTravelers: number
-  travelerDetails?: TravelerDetail[]
-  tripProtection?: boolean
-}
-
-// Filter type — query params
-export interface TripFilters {
-  destination?: string
-  tripType?: TripType
-  minPrice?: number
-  maxPrice?: number
-  startDate?: string
-  sort?: 'price_asc' | 'price_desc' | 'rating' | 'date' | 'popularity'
-  page?: number
-  limit?: number
-}
-```
-
-### 3b. Validators (Shared Zod Schemas)
-
-```typescript
-// packages/shared/src/validators/<domain>.schema.ts
-
-import { z } from 'zod'
-
-export const tripFiltersSchema = z.object({
-  destination: z.string().optional(),
-  tripType: z.enum(['ADVENTURE', 'WEEKEND', 'TREKKING', 'BEACH', 'CULTURAL', 'ROAD_TRIP']).optional(),
-  minPrice: z.coerce.number().min(0).optional(),
-  maxPrice: z.coerce.number().optional(),
-  startDate: z.string().optional(),
-  sort: z.enum(['price_asc', 'price_desc', 'rating', 'date', 'popularity']).default('date'),
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
-})
-
-// Infer TS type from Zod schema — single source of truth
-export type TripFiltersInput = z.infer<typeof tripFiltersSchema>
-```
-
-**Why shared?**
-- BE uses it in `validate.middleware.ts` to reject bad requests.
-- FE uses it in `React Hook Form` with `zodResolver` to validate forms before submit.
-- Types are inferred from schemas — ONE source of truth, zero drift.
-
-### 3c. Shared Constants
-
-If your feature introduces new status strings, enum values, or domain constants, add them to `packages/shared/src/constants/`.
-
-**See `/build-backend` Step 2b** for the full constants reference (existing files, patterns, rules).
-
-Quick rules:
-- **Array form** (`as const` array) for Zod `.enum()` and type derivation
-- **Object form** (`as const` object) for dot-access in service code: `TRIP_STATUS.COMPLETED`
-- Never hardcode strings like `'COMPLETED'`, `'CASHBACK'`, `'Booking'` — always import constants
-- One source of truth per concept — re-export if needed, never duplicate
-
----
-
-# PHASE 2: BACKEND (TDD)
-
-> Follow `/build-backend` workflow for detailed patterns. Below is the execution sequence.
-
-## Step 4: Write BE Tests FIRST (Red Phase)
-
-Write failing tests BEFORE any implementation. This is non-negotiable.
-
-### 4a. Unit Tests (Service Layer)
-
-**Location:** `apps/api/tests/unit/services/<domain>.service.test.ts`
-
-```typescript
-// tests/unit/services/trip.service.test.ts
-
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { TripService } from '@/services/trip.service'
-import { createMockTrip } from '../../helpers/factories'
-
-describe('TripService', () => {
-  let tripService: TripService
-  let mockTripRepo: any
-
-  beforeEach(() => {
-    mockTripRepo = {
-      search: vi.fn(),
-      findBySlug: vi.fn(),
-      atomicIncrementBookings: vi.fn(),
-    }
-    tripService = new TripService(mockTripRepo, mockLogger)
-  })
-
-  describe('searchTrips', () => {
-    it('should return paginated trips with filters applied', async () => {
-      const mockTrips = [createMockTrip(), createMockTrip()]
-      mockTripRepo.search.mockResolvedValue({ data: mockTrips, total: 2 })
-
-      const result = await tripService.searchTrips({
-        destination: 'Goa',
-        page: 1,
-        limit: 20,
-      })
-
-      expect(result.data).toHaveLength(2)
-      expect(result.pagination.total).toBe(2)
-      expect(mockTripRepo.search).toHaveBeenCalledWith(
-        expect.objectContaining({ destination: 'Goa' }),
-        expect.objectContaining({ offset: 0, limit: 20 }),
-      )
-    })
-
-    it('should return empty array when no trips match', async () => {
-      mockTripRepo.search.mockResolvedValue({ data: [], total: 0 })
-
-      const result = await tripService.searchTrips({ destination: 'Mars' })
-
-      expect(result.data).toEqual([])
-      expect(result.pagination.total).toBe(0)
-    })
-  })
-
-  describe('getTripBySlug', () => {
-    it('should return trip detail for valid slug', async () => {
-      const mockTrip = createMockTrip({ slug: 'goa-beach-trip' })
-      mockTripRepo.findBySlug.mockResolvedValue(mockTrip)
-
-      const result = await tripService.getTripBySlug('goa-beach-trip')
-
-      expect(result.slug).toBe('goa-beach-trip')
-    })
-
-    it('should throw NotFoundError for non-existent slug', async () => {
-      mockTripRepo.findBySlug.mockResolvedValue(null)
-
-      await expect(tripService.getTripBySlug('nonexistent'))
-        .rejects.toThrow('Trip not found')
-    })
-  })
-})
-```
-
-### 4b. Integration Tests (API Routes)
-
-**Location:** `apps/api/tests/integration/routes/<domain>.routes.test.ts`
-
-```typescript
-// tests/integration/routes/trip.routes.test.ts
-
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import request from 'supertest'
-import { app } from '@/server'
-import { setupTestDB, teardownTestDB, seedTrips } from '../../helpers/test-db'
-
-describe('GET /api/v1/trips', () => {
-  beforeAll(async () => {
-    await setupTestDB()
-    await seedTrips()
-  })
-
-  afterAll(async () => {
-    await teardownTestDB()
-  })
-
-  it('should return 200 with paginated trip list', async () => {
-    const res = await request(app).get('/api/v1/trips').query({ page: 1, limit: 10 })
-
-    expect(res.status).toBe(200)
-    expect(res.body.success).toBe(true)
-    expect(res.body.data).toBeInstanceOf(Array)
-    expect(res.body.pagination).toMatchObject({
-      page: 1,
-      limit: 10,
-      total: expect.any(Number),
-      totalPages: expect.any(Number),
-    })
-  })
-
-  it('should filter by destination (case insensitive)', async () => {
-    const res = await request(app).get('/api/v1/trips').query({ destination: 'goa' })
-
-    expect(res.status).toBe(200)
-    res.body.data.forEach((trip: any) => {
-      expect(trip.destination.toLowerCase()).toContain('goa')
-    })
-  })
-
-  it('should return 400 for invalid filter values', async () => {
-    const res = await request(app).get('/api/v1/trips').query({ minPrice: 'abc' })
-
-    expect(res.status).toBe(400)
-    expect(res.body.success).toBe(false)
-    expect(res.body.error.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('should exclude soft-deleted trips', async () => {
-    // Soft-delete a trip in setup, verify it doesn't appear
-    const res = await request(app).get('/api/v1/trips')
-    const ids = res.body.data.map((t: any) => t.id)
-    expect(ids).not.toContain(deletedTripId)
-  })
-})
-```
-
-### Test Data Factories
-
-**Location:** `apps/api/tests/helpers/factories.ts`
-
-```typescript
-// tests/helpers/factories.ts
-
-import { randomUUID } from 'crypto'
-
-export function createMockTrip(overrides?: Partial<Trip>): Trip {
-  return {
-    id: randomUUID(),
-    title: 'Goa Beach Getaway',
-    slug: 'goa-beach-getaway-dec-2025',
-    destination: 'Goa',
-    tripType: 'BEACH',
-    description: 'Amazing beach trip with group activities',
-    pricePerPerson: 4500,       // whole rupees
-    startDate: new Date('2025-12-06'),
-    endDate: new Date('2025-12-08'),
-    bookingDeadline: new Date('2025-12-04'),
-    minGroupSize: 5,
-    maxGroupSize: 20,
-    currentBookings: 8,
-    status: 'ACTIVE',
-    isActive: true,
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    ...overrides,
-  }
-}
-
-export function createMockUser(overrides?: Partial<User>): User {
-  return {
-    id: randomUUID(),
-    name: 'Test User',
-    email: `user-${Date.now()}@test.com`,
-    role: 'TRAVELER',
-    isActive: true,
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    ...overrides,
-  }
-}
-
-export function createMockBooking(overrides?: Partial<Booking>): Booking {
-  return {
-    id: randomUUID(),
-    bookingRef: `TRP-2025-${Math.floor(Math.random() * 9999).toString().padStart(4, '0')}`,
-    tripId: randomUUID(),
-    userId: randomUUID(),
-    numTravelers: 1,
-    amountPaid: 4500,           // whole rupees
-    bookingStatus: 'CONFIRMED',
-    escrowStatus: 'HELD',
-    expiresAt: null,
-    isActive: true,
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    ...overrides,
-  }
-}
-```
-
-**Run tests — they should FAIL (Red):**
-
-```bash
-// turbo
-npm run test -- --run
+HARD RULES FOR THE MEETING:
+1. Every point MUST have a valid reason — "because best practice" is NOT a reason
+2. Trade-offs must be explicit: "Option A gives us X but costs Y. Option B gives us Z but costs W."
+3. No bluffing — if something is uncertain, say "I'm not sure about X, we should investigate"
+4. Challenge weak proposals — the Senior Architect's job is to poke holes
+5. Reference existing code — "We already do X in booking.service.ts, we should be consistent"
+6. Reference docs — back up claims with PROJECT_REFERENCE.md, tech-stack.md, preview.html
+7. Keep it practical — this is an MVP, not a PhD thesis. Ship value.
+8. Security and performance concerns are blockers, not nice-to-haves
 ```
 
 ---
 
-## Step 5: Implement BE (Green Phase)
+# STEP 2: CREATE PLAN DOCUMENT
 
-Build in this exact order. Each layer depends only on the layer below it.
+## Goal
 
+After the Step 1 meeting concludes, consolidate ALL decisions into a structured **Feature Plan Document**. This is the single source of truth for what will be built.
+
+## Plan Document Structure
+
+Output the plan as a well-formatted markdown document with these sections:
+
+### Section 1: Feature Overview
 ```
-Routes → Controller → Service → Repository → Prisma (DB)
-  ↑ thin     ↑ thin      ↑ logic    ↑ queries    ↑ schema
-```
-
-### 5a. Repository (DB queries only)
-
-**Location:** `apps/api/src/repositories/<domain>.repository.ts`
-
-```
-Rules:
-- Constructor receives PrismaClient
-- ONLY Prisma queries — no business logic
-- ALL queries include: isDeleted: false
-- Use $transaction for multi-table writes
-- Return raw Prisma types
+Feature Name: [Name]
+Requested By: [User's original request]
+Target Users: [Traveler / Organizer / Admin]
+Business Value: [Why this matters — from PM's input]
 ```
 
-### 5b. Service (Business logic)
+### Section 2: User Stories & Acceptance Criteria
+- List every user story from the PM round
+- Each story has testable acceptance criteria
+- Include edge cases the PM identified
 
-**Location:** `apps/api/src/services/<domain>.service.ts`
+### Section 3: API Design
+| Method | Path | Auth | Request Body | Response | Notes |
+|--------|------|------|-------------|----------|-------|
+- Include request/response shapes (TypeScript interfaces)
+- Include error codes and when they trigger
+- Include rate limiting requirements if any
+
+### Section 4: DB Schema Changes
+- New models, columns, enums, indexes
+- Migration strategy (nullable first, backfill later)
+- Relationships and constraints
+
+### Section 5: Shared Types & Validators
+- New types in `packages/shared/src/types/`
+- New Zod schemas in `packages/shared/src/validators/`
+- New constants in `packages/shared/src/constants/`
+
+### Section 6: FE Component Plan
+```
+Component Tree:
+└── Page (server/client)
+    ├── ComponentA (client) — [purpose]
+    │   ├── SubComponentA1 — [purpose]
+    │   └── SubComponentA2 — [purpose]
+    └── ComponentB (client) — [purpose]
+
+State Management:
+- URL state: [what and why]
+- Local state: [what and why]
+- Server state: [TanStack Query keys]
+
+Data Flow:
+[User action] → [Hook] → [API endpoint] → [Service] → [Repository] → [DB]
+```
+
+### Section 7: 4-State Rendering Plan
+For each data-fetching component:
+| Component | Loading (Skeleton) | Error | Empty | Happy Path |
+|-----------|-------------------|-------|-------|------------|
+
+### Section 8: Mobile-First Layout
+- Default (mobile) layout description
+- `sm:` / `md:` / `lg:` breakpoint enhancements
+- Stack → side-by-side transitions
+
+### Section 9: Implementation Order
+Ordered list of implementation steps, grouped by layer:
+1. DB migration
+2. Shared types + validators + constants
+3. BE: Repository → Service → Controller → Routes (TDD)
+4. FE: Hook → Components → Page
+5. Integration verification
+
+### Section 10: Risk Assessment
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+
+### Section 11: Test Plan
+- BE unit tests: list of describe blocks and key test cases
+- FE component tests: what each test covers
+- Integration: smoke test scenarios
+
+---
+
+# STEP 3: REVIEW MEETING (Senior Review)
+
+## Goal
+
+Simulate a **senior review meeting** where the plan from Step 2 is presented and critiqued by senior engineers and stakeholders. The goal is to catch gaps, risks, and improvements BEFORE any code is written.
+
+## Review Participants
+
+| Role | Focus Area |
+|------|-----------|
+| **Senior FE Developer** | Component reuse, performance, bundle size, accessibility, design system compliance |
+| **Senior BE Developer** | Query performance, security, error handling completeness, API design consistency |
+| **Senior Architect** | Cross-cutting concerns, pattern consistency, scalability, tech debt risk |
+| **Stakeholder (Product Owner)** | Does this plan deliver the user value? Missing user scenarios? Priority alignment? |
+
+## Review Format
+
+### Part 1: Plan Presentation
+- Present the plan document from Step 2
+- Walk through each section with the reasoning behind key decisions
+- Highlight trade-offs that were made and why
+
+### Part 2: Critical Review (each reviewer)
+Each reviewer examines the plan through their lens and raises issues categorized as:
 
 ```
-Rules:
-- Constructor receives repositories + external services (DI)
-- ALL business rules and validations here
-- Throw typed errors (NotFoundError, ValidationError)
-- Log business events (info level)
-- NEVER access Request/Response — framework-agnostic
-- Return clean DTOs, not raw DB models
+🔴 BLOCKER    — Must fix before implementation (security hole, data loss risk, wrong architecture)
+🟡 IMPORTANT  — Should fix, significant quality impact if ignored
+🟢 SUGGESTION — Nice to have, would improve quality but not blocking
 ```
 
-### 5c. Controller (Thin — parse request, call service, send response)
-
-**Location:** `apps/api/src/controllers/<domain>.controller.ts`
+**Review Checklist (each reviewer applies their domain expertise):**
 
 ```
-Rules:
-- Max 10-15 lines per method
-- Parse params/query/body → call service → return { success: true, data }
-- Wrap with asyncHandler (no try-catch)
-- NEVER put business logic here
+SENIOR FE DEV:
+- Does the component hierarchy avoid unnecessary re-renders?
+- Are we reusing existing components from PROJECT_REFERENCE.md or duplicating?
+- Does the skeleton match the actual component shape?
+- Is the empty state actionable (has a CTA)?
+- Mobile-first: tested at 375px mental model?
+- Design system: colors from tokens.json? Spacing multiples of 4px?
+- Accessibility: keyboard nav, screen reader, focus management?
+- Performance: lazy loading images? Pagination vs infinite scroll decision?
+
+SENIOR BE DEV:
+- Are all queries covered by indexes?
+- Is there an N+1 query risk? Does the include/select pattern prevent it?
+- Are all error paths returning proper HTTP status codes?
+- Is the validation schema complete (min/max/trim/lowercase)?
+- Are side effects (notifications, cache invalidation) accounted for?
+- Does this follow existing patterns in the codebase? (check PROJECT_REFERENCE.md)
+- Is the atomic operation pattern correct? (transactions where needed)
+
+SENIOR ARCHITECT:
+- Does this introduce any architectural inconsistency?
+- Layer violations? (Controller calling Repository directly?)
+- Security: auth on every mutation endpoint? Rate limiting on public endpoints?
+- Performance: will this scale with 10x data? 100x users?
+- Is the error handling strategy consistent with the rest of the API?
+- Are there any cross-feature impacts? (e.g., does this affect booking flow?)
+- Is the test plan sufficient? Missing edge cases?
+
+STAKEHOLDER:
+- Does the UX flow match what users actually need?
+- Are there user scenarios we haven't considered?
+- Is this the right scope for MVP? Too much? Too little?
+- Priority: should this be split into phases?
 ```
 
-### 5d. Routes (Wire middleware + controller)
+### Part 3: Consolidated Feedback
+- List all 🔴 BLOCKER items (must fix)
+- List all 🟡 IMPORTANT items (should fix)
+- List all 🟢 SUGGESTION items (nice to have)
+- Note any disagreements and the resolution
 
-**Location:** `apps/api/src/routes/<domain>.routes.ts`
+---
+
+# STEP 4: REFINE PLAN
+
+## Goal
+
+Take the feedback from Step 3 and produce the **final plan**. This is the version the user will approve.
+
+## Process
+
+1. Address every 🔴 BLOCKER — these are mandatory fixes
+2. Address every 🟡 IMPORTANT — incorporate unless there's a strong reason not to (document why if skipping)
+3. Consider 🟢 SUGGESTION items — incorporate easy wins, defer complex ones to Phase 2
+4. Update ALL affected sections of the plan document
+5. Mark what changed with `[UPDATED]` tags so the user can see diffs
+
+## Output
+
+Rewrite the complete plan document from Step 2 with all improvements incorporated. Add a **Changes Summary** section at the top listing:
 
 ```
-Middleware order: auth → role → validate → controller
-```
-
-**Run tests — they should PASS (Green):**
-
-```bash
-// turbo
-npm run test -- --run
+CHANGES FROM REVIEW:
+🔴 Fixed: [description of each blocker fix]
+🟡 Fixed: [description of each important fix]
+🟢 Added: [description of each suggestion incorporated]
+🟢 Deferred: [description of suggestions pushed to Phase 2, with reason]
 ```
 
 ---
 
-## Step 6: BE Refactor Phase
+# STEP 5: USER APPROVAL
+
+## Goal
+
+Present the final plan to the user and **WAIT for their explicit approval** before writing any code.
+
+## What to Present
+
+1. **Changes Summary** — what changed from the review
+2. **Full final plan** — the complete document from Step 4
+3. **Implementation estimate** — rough breakdown of what will be built
+4. **Ask explicitly:** "Do you approve this plan for implementation? Any changes needed?"
+
+## Rules
 
 ```
-Checklist:
-[ ] No duplicate code — extract to utils
-[ ] Service methods < 30 lines
-[ ] Controller methods < 15 lines
-[ ] All errors throw typed AppError subclasses
-[ ] Business events logged (info level)
-[ ] No console.log — use logger only
-[ ] No `any` — strict TypeScript
-[ ] Constants in constants.ts, not magic strings
-[ ] All queries filter isDeleted: false
-[ ] Soft-delete via Prisma middleware (never hard delete)
-```
-
----
-
-## Step 7: Verify BE in Isolation
-
-Before moving to FE, verify the API works standalone.
-
-```bash
-# Run all tests
-// turbo
-npm run test -- --run
-
-# Check types
-// turbo
-npm run type-check
-
-# Check lint
-// turbo
-npm run lint
-
-# Manual smoke test (optional)
-curl http://localhost:4000/api/v1/trips?destination=Goa | jq
-curl http://localhost:4000/api/v1/trips/goa-beach-getaway | jq
-```
-
-**Gate:** Do NOT proceed to FE until all BE tests pass and the API returns correct responses.
-
----
-
-# PHASE 3: FRONTEND
-
-> Follow `/build-frontend` workflow for detailed patterns. Below is the execution sequence.
-
-## Step 8: Build Custom Hook (Data Bridge)
-
-The hook is the bridge between API and UI. Build this BEFORE any component.
-
-**Location:** `apps/web/src/hooks/use-<domain>.ts`
-
-### For GET (read data):
-
-```typescript
-// hooks/use-trips.ts
-
-import { useQuery } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api-client'
-import type { TripSummary, TripFilters } from '@shared/types/trip.types'
-
-export const tripKeys = {
-  all: ['trips'] as const,
-  lists: () => [...tripKeys.all, 'list'] as const,
-  list: (filters: TripFilters) => [...tripKeys.lists(), filters] as const,
-  details: () => [...tripKeys.all, 'detail'] as const,
-  detail: (slug: string) => [...tripKeys.details(), slug] as const,
-}
-
-export function useTrips(filters: TripFilters) {
-  return useQuery({
-    queryKey: tripKeys.list(filters),
-    queryFn: async () => {
-      const res = await apiClient.get<TripSummary[]>('/trips', { params: filters })
-      return { trips: res.data, pagination: res.pagination! }
-    },
-    placeholderData: (prev) => prev,  // Keep previous data during filter change
-  })
-}
-```
-
-### For POST/PUT/DELETE (write data):
-
-```typescript
-// hooks/use-booking.ts
-
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api-client'
-import { tripKeys } from './use-trips'
-import type { Booking, CreateBookingDto } from '@shared/types/booking.types'
-
-export function useCreateBooking() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (dto: CreateBookingDto) =>
-      apiClient.post<Booking>('/bookings', dto).then(r => r.data),
-
-    onSuccess: (booking) => {
-      // Invalidate related caches so UI stays in sync
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(booking.tripId) })
-      queryClient.invalidateQueries({ queryKey: tripKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: ['bookings', 'my'] })
-    },
-  })
-}
-```
-
-### Hook Rules
-
-| Rule | Why |
-|------|-----|
-| One hook file per domain | `use-trips.ts`, `use-booking.ts` — find hook by feature |
-| Query key factories | Reliable cache invalidation, no typos |
-| `useQuery` for GET | Auto-caching, background refetch, stale management |
-| `useMutation` for POST/PUT/DELETE | No auto-retry, explicit success/error handling |
-| Never `useEffect + useState` for fetching | TanStack Query handles loading/error/cache |
-| `enabled: !!slug` for conditional fetches | Don't fetch until the dependency exists |
-| `placeholderData` for filters/pagination | Prevents blank flash when switching pages |
-
----
-
-## Step 9: Build Component (4-State Pattern)
-
-Every data-driven component MUST handle all four states.
-
-**Location:** `apps/web/src/components/<feature>/`
-
-```
-MANDATORY 4-STATE RENDERING:
-
-  if (isLoading) → return <Skeleton />         // Shape-matching skeleton
-  if (error)     → return <ErrorState />        // With retry button
-  if (!data)     → return <EmptyState />        // With relevant CTA
-  return         → <ActualComponent data />     // Happy path
-```
-
-### Component file structure:
-
-```typescript
-// components/trips/trip-grid.tsx
-
-'use client'
-
-// 1. External imports
-import { useTrips } from '@/hooks/use-trips'
-// 2. Internal imports
-import { TripCard } from './trip-card'
-import { TripCardSkeleton } from './trip-card-skeleton'
-import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import { ErrorBoundary } from '@/components/shared/error-boundary'
-// 3. Type imports
-import type { TripFilters } from '@shared/types/trip.types'
-
-// 4. Props interface (always explicit, above component)
-interface TripGridProps {
-  filters: TripFilters
-  onCompare?: (tripId: string) => void
-  selectedTripIds?: string[]
-}
-
-// 5. Named export (never default)
-export function TripGrid({ filters, onCompare, selectedTripIds = [] }: TripGridProps) {
-  // 6. Hooks first
-  const { data, isLoading, error, refetch } = useTrips(filters)
-
-  // 7. Loading → Skeleton
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, i) => <TripCardSkeleton key={i} />)}
-      </div>
-    )
-  }
-
-  // 8. Error → ErrorState with retry
-  if (error) return <ErrorState message={error.message} onRetry={refetch} />
-
-  // 9. Empty → EmptyState with CTA
-  if (!data?.trips.length) return <EmptyState message="No trips found for your search" />
-
-  // 10. Happy path → render data, wrap each item in ErrorBoundary
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {data.trips.map((trip) => (
-        <ErrorBoundary key={trip.id}>
-          <TripCard
-            trip={trip}
-            onCompare={onCompare}
-            isSelected={selectedTripIds.includes(trip.id)}
-          />
-        </ErrorBoundary>
-      ))}
-    </div>
-  )
-}
-```
-
-### Always create a skeleton component:
-
-```typescript
-// components/trips/trip-card-skeleton.tsx
-
-export function TripCardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-neutral-100 overflow-hidden">
-      <div className="h-48 bg-neutral-200 animate-pulse" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-neutral-200 rounded w-3/4 animate-pulse" />
-        <div className="h-3 bg-neutral-200 rounded w-1/2 animate-pulse" />
-        <div className="flex gap-2">
-          <div className="h-6 w-16 bg-neutral-200 rounded-full animate-pulse" />
-          <div className="h-6 w-20 bg-neutral-200 rounded-full animate-pulse" />
-        </div>
-      </div>
-    </div>
-  )
-}
+CRITICAL RULES:
+1. Do NOT write any code until the user says "approved" or equivalent
+2. If the user requests changes, go back to Step 4 and update the plan
+3. If the user asks questions, answer them before requesting approval again
+4. The user may approve partially — "approve BE but I want to discuss FE" is valid
+5. Respect the user's judgment — they know their product better than the plan does
 ```
 
 ---
 
-## Step 10: Wire Up Page + Route Files
+# STEP 6: IMPLEMENTATION
 
-### Page (Server Component by default)
+## Goal
 
-```typescript
-// app/(main)/trips/page.tsx
+Build the approved feature using the established `/build-backend` and `/build-frontend` workflows, referencing all project documentation for consistency.
 
-import { TripGrid } from '@/components/trips/trip-grid'
-import { TripFilters } from '@/components/trips/trip-filters'
-import type { Metadata } from 'next'
+## Pre-Implementation: Read Reference Files
 
-export const metadata: Metadata = {
-  title: 'Explore Group Trips from Pune | TripCompare',
-  description: 'Compare and book group trips. Escrow protected.',
-}
-
-export default function TripsPage({ searchParams }: { searchParams: Record<string, string> }) {
-  const filters = {
-    destination: searchParams.destination,
-    tripType: searchParams.tripType,
-    sort: searchParams.sort || 'date',
-    page: Number(searchParams.page) || 1,
-    limit: 20,
-  }
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-display font-bold text-neutral-900 mb-6">
-        Explore Group Trips
-      </h1>
-      <TripFilters currentFilters={filters} />
-      <TripGrid filters={filters} />
-    </div>
-  )
-}
-```
-
-### Route-level error.tsx and loading.tsx
-
-Create BOTH files in the same folder as `page.tsx`:
+Before writing ANY code, read these files for context:
 
 ```
-app/(main)/trips/
-├── page.tsx       ← Server component (SEO metadata)
-├── loading.tsx    ← Auto-shown during route transition
-└── error.tsx      ← Auto-shown on unhandled error
+MANDATORY READS:
+1. docs/engineering/fe/preview.html     — UI design reference
+2. docs/PROJECT_MINDMAP.md              — System architecture overview
+3. docs/PROJECT_REFERENCE.md            — Full API surface, DB schema, component map
+4. docs/engineering/tech-stack.md       — Architecture patterns, design patterns
+5. docs/engineering/fe/design-system.md — Colors, tokens, component styles
+6. docs/mvp/mvp-plan.md                — Current MVP status and scope
+7. The approved plan from Step 5        — THE source of truth for this feature
 ```
 
----
+## Implementation Pipeline
 
-# PHASE 4: INTEGRATION & VERIFICATION
+Follow this exact sequence. Each phase uses the corresponding workflow.
 
-## Step 11: Write FE Tests
-
-**Location:** `apps/web/src/components/<feature>/__tests__/`
-
-### Component Test (React Testing Library + MSW)
-
-```typescript
-// components/trips/__tests__/trip-grid.test.tsx
-
-import { render, screen, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { TripGrid } from '../trip-grid'
-import { http, HttpResponse } from 'msw'
-import { setupServer } from 'msw/node'
-
-const mockTrips = [
-  { id: '1', title: 'Goa Beach Trip', destination: 'Goa', slug: 'goa-beach' },
-  { id: '2', title: 'Manali Adventure', destination: 'Manali', slug: 'manali-adv' },
-]
-
-const server = setupServer(
-  http.get('*/api/v1/trips', () => {
-    return HttpResponse.json({
-      success: true,
-      data: mockTrips,
-      pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
-    })
-  }),
-)
-
-beforeAll(() => server.listen())
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
-
-function renderWithProviders(ui: React.ReactElement) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
-}
-
-describe('TripGrid', () => {
-  it('renders loading skeletons, then trip cards', async () => {
-    renderWithProviders(<TripGrid filters={{}} />)
-    // Skeletons visible initially
-    expect(document.querySelectorAll('[class*="animate-pulse"]').length).toBeGreaterThan(0)
-    // Trips appear after fetch
-    await waitFor(() => expect(screen.getByText('Goa Beach Trip')).toBeInTheDocument())
-  })
-
-  it('shows error state with retry on API failure', async () => {
-    server.use(
-      http.get('*/api/v1/trips', () =>
-        HttpResponse.json(
-          { success: false, error: { code: 'INTERNAL_ERROR', message: 'DB down' } },
-          { status: 500 },
-        ),
-      ),
-    )
-    renderWithProviders(<TripGrid filters={{}} />)
-    await waitFor(() => expect(screen.getByText(/failed to load/i)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
-  })
-
-  it('shows empty state when no trips match', async () => {
-    server.use(
-      http.get('*/api/v1/trips', () =>
-        HttpResponse.json({ success: true, data: [], pagination: { total: 0 } }),
-      ),
-    )
-    renderWithProviders(<TripGrid filters={{}} />)
-    await waitFor(() => expect(screen.getByText(/no trips found/i)).toBeInTheDocument())
-  })
-})
-```
-
----
-
-## Step 12: Final Verification Checklist
-
-### Run everything:
-
-```bash
-# Backend
-// turbo
-cd apps/api && npm run test -- --run && npm run type-check && npm run lint
-
-# Frontend
-// turbo
-cd apps/web && npm run test -- --run && npm run type-check && npm run lint
-
-# Full monorepo
-// turbo
-npm run test && npm run lint && npm run type-check
-```
-
-### Feature Completeness Checklist
+### Phase A: DB Schema (if needed)
 
 ```
-DB LAYER:
-  [ ] Schema has mixin fields (isActive, isDeleted, createdAt, updatedAt, deletedAt)
-  [ ] Migration created and applied
-  [ ] Indexes match query patterns
-  [ ] Prices stored as whole rupees (Int)
+1. Update apps/api/prisma/schema.prisma per the approved plan
+2. Run migration:
+   // turbo
+   npx prisma migrate dev --name <feature-name>
+   // turbo
+   npx prisma generate
+3. Schema change checklist:
+   [ ] Model has mixin fields (isActive, isDeleted, createdAt, updatedAt, deletedAt)
+   [ ] New columns are nullable or have defaults
+   [ ] Relations use @relation with explicit names
+   [ ] Indexes match query patterns from the plan
+   [ ] Price fields are Int (whole rupees)
+   [ ] @@index([isDeleted]) on every model
+```
 
-SHARED TYPES:
-  [ ] Types defined in packages/shared/src/types/
-  [ ] Zod validators in packages/shared/src/validators/
-  [ ] Types match actual API response shape
+### Phase B: Shared Types + Validators + Constants
 
-BACKEND:
-  [ ] Unit tests pass (service layer, mocked repos)
-  [ ] Integration tests pass (API routes, real test DB)
-  [ ] Repository queries filter isDeleted: false
-  [ ] Service throws typed errors (NotFoundError, ValidationError)
-  [ ] Controller < 15 lines per method
-  [ ] Business events logged (info level)
-  [ ] No console.log, no `any`
+```
+1. Create/update packages/shared/src/types/<domain>.types.ts
+2. Create/update packages/shared/src/validators/<domain>.schema.ts
+3. Create/update packages/shared/src/constants/<domain>.ts (if new constants needed)
+4. Export from barrel files (index.ts)
+```
 
-FRONTEND:
-  [ ] Custom hook uses query key factory
-  [ ] Component renders all 4 states (loading/error/empty/data)
-  [ ] Skeleton matches component shape
-  [ ] Mutations invalidate related queries
-  [ ] Error boundary wraps individual items (not whole page)
-  [ ] Route has error.tsx and loading.tsx
-  [ ] Mobile responsive
-  [ ] Accessibility: labels, aria, focus states
+### Phase C: Backend (follow /build-backend workflow)
 
-INTEGRATION:
-  [ ] FE tests pass (MSW mocking)
-  [ ] Manual smoke test: FE → BE → DB round trip works
-  [ ] Error scenarios tested: 400, 404, 500 responses
-  [ ] Soft delete works: deleted records don't appear
+Execute the `/build-backend` workflow with TDD:
 
-DOCUMENTATION (mandatory):
-  [ ] Feature doc created in docs/engineering/fe/<feature>.md
-  [ ] Doc has all 7 sections (Overview, Data Flow, API, Business Rules, Edge Cases, Errors, Tests)
-  [ ] Every business rule in service layer is documented
-  [ ] Every tested edge case is listed in the Edge Cases table
+```
+1. Write failing tests FIRST (Red Phase)
+   - Unit tests: apps/api/tests/unit/services/<domain>.service.test.ts
+   - Test data factories if needed
 
-CODE COMMENTS (mandatory):
-  [ ] Every public service method has JSDoc (description + @throws)
-  [ ] Every public repository method has JSDoc (query purpose + filters + edge cases)
-  [ ] Every custom hook has JSDoc (query key + invalidation targets + error handling)
-  [ ] Controller methods have single-line JSDoc (HTTP method + path)
-  [ ] No stale comments — all comments match current code
+2. Implement in order:
+   - Repository (DB queries only)
+   - Service (business logic, DI)
+   - Controller (thin, asyncHandler)
+   - Routes (middleware pipeline)
 
-TESTS (mandatory):
-  [ ] One describe block per public service method
-  [ ] Happy path is FIRST test in each describe
-  [ ] Test names follow "should <outcome> when <condition>"
-  [ ] Minimum coverage: happy path + not-found + auth + validation + edge cases
-  [ ] Aggregation methods test zero and negative values
-  [ ] FE components test all 4 states (loading/error/empty/data)
-  [ ] Arrange-Act-Assert pattern used consistently
+3. Run tests — they should PASS (Green Phase):
+   // turbo
+   npm run test -- --run
+
+4. Refactor Phase:
+   [ ] Service methods < 30 lines
+   [ ] Controller methods < 15 lines
+   [ ] No console.log, no any
+   [ ] Constants from constants.ts
+   [ ] All queries filter isDeleted: false
+
+5. Wire in config/dependencies.ts
+6. Mount routes in server.ts
+
+7. Verify BE in isolation:
+   // turbo
+   npm run test -- --run
+   // turbo
+   npx tsc --noEmit
+```
+
+### Phase D: Frontend (follow /build-frontend workflow)
+
+Execute the `/build-frontend` workflow:
+
+```
+1. Add query key factory to lib/query-keys.ts
+2. Build custom hook: hooks/use-<domain>.ts
+3. Build components (4-state pattern mandatory):
+   - Skeleton component
+   - Main component with loading/error/empty/data states
+   - Error boundary per item
+4. Wire up page + route files (error.tsx, loading.tsx)
+5. Ensure mobile-first (test at 375px mental model)
+6. Match design system from preview.html + design-system.md
+
+7. Verify FE:
+   // turbo
+   npx tsc --noEmit -p apps/web/tsconfig.json
+```
+
+### Phase E: Integration & Verification
+
+```
+1. Run full test suite:
+   // turbo
+   npm run test -- --run
+
+2. Type check both apps:
+   // turbo
+   npx tsc --noEmit -p apps/api/tsconfig.json
+   // turbo
+   npx tsc --noEmit -p apps/web/tsconfig.json
+
+3. Feature completeness checklist (from approved plan):
+   [ ] All API endpoints implemented
+   [ ] All components render 4 states
+   [ ] All business rules enforced
+   [ ] All edge cases handled
+   [ ] All tests pass
+   [ ] 0 TypeScript errors
+```
+
+### Phase F: Post-Implementation
+
+```
+1. Create feature documentation: docs/engineering/fe/<feature>.md
+   (7 sections: Overview, Data Flow, API, Business Rules, Edge Cases, Errors, Tests)
+
+2. Update docs/mvp/mvp-plan.md:
+   - Mark the feature as COMPLETED
+   - Add completion date
+   - Note any Phase 2 items deferred
+
+3. Commit with conventional commit format via /commit-changes workflow
+```
+
+## Implementation Rules
+
+```
+HARD RULES DURING IMPLEMENTATION:
+1. Follow the APPROVED PLAN — don't deviate without user consent
+2. If you discover something the plan missed, TELL the user before implementing
+3. Reference preview.html for ALL UI decisions
+4. Reference PROJECT_REFERENCE.md to ensure consistency with existing code
+5. Use existing patterns — don't invent new ones unless the plan calls for it
+6. Every new public method gets JSDoc
+7. Every new component handles 4 states
+8. Every mutation invalidates related query keys
+9. Mobile-first: write mobile styles as default, enhance with breakpoints
+10. No any, no console.log, no @ts-ignore in production code
 ```
 
 ---
 
-## Feature Build Order (Full-Stack Sequence)
+# MANDATORY STANDARDS (Apply During Step 6)
 
-Build features in this order. Each builds on the previous:
-
-| # | Feature | BE | FE | Depends On |
-|---|---------|----|----|------------|
-| 1 | **Project Setup** | Express, Prisma, env config, error handling, logging, Redis | Next.js, Tailwind, api-client, query-client, Providers, query-keys | Nothing |
-| 2 | **Auth** | signup/login/refresh/google, JWT, role middleware, refresh token hashing | LoginForm, SignupForm, AuthGuard, useAuth | Setup |
-| 3 | **Destinations** | CRUD /destinations (admin), GET /destinations (public) | DestinationGrid, DestinationCard, useDestinations | Setup |
-| 4 | **Trip Listing** | GET /trips (search by destinationId, filters, pagination) | TripGrid, TripCard, TripFilters, useTrips | Auth, Destinations |
-| 5 | **Trip Detail** | GET /trips/:slug (detail + reviews + bookingMode) | TripDetail, Itinerary, BookingSidebar, useTripDetail | Trip Listing |
-| 6 | **Trip Comparison** | — (FE-only, local state) | ComparisonTable, CompareBar | Trip Listing |
-| 7 | **Trip CRUD + Upload** | POST/PUT /trips, POST /uploads/signature (Cloudinary) | CreateTripForm, EditTripForm, ImageUploader, useCreateTrip | Auth, Destinations |
-| 8 | **Booking (Instant)** | POST /bookings, webhook, escrow, cron, atomic seat update | BookingForm, PriceBreakdown, Confirmation, useBooking | Trips, Auth |
-| 9 | **Trip Requests** | POST /trip-requests, PATCH respond, cron expiry | TripRequestForm, TripRequestCard, StatusBadge, useTripRequests | Trips, Auth |
-| 10 | **Booking (Request-Based)** | bookingMode check in createBooking, approved request validation | Conditional CTA (Book Now vs Request to Join) | Booking, Trip Requests |
-| 11 | **Notifications** | CRUD /notifications, unread count, Socket.IO push | NotificationBell, NotificationList, useNotifications | Auth |
-| 12 | **Reviews** | POST /reviews (completed bookings only) | ReviewForm, ReviewCard, StarRating, useReviews | Bookings |
-| 13 | **Chat** | Socket.IO, anti-leakage filter | ChatWindow, MessageBubble, useChat | Auth |
-| 14 | **Organizer Dashboard** | Stats API, payment history, pending requests queue | StatsCards, TripTable, RequestQueue, useOrganizerStats | Trips, Bookings, Requests |
-| 15 | **Admin Panel** | Approval queue, dispute mgmt, destination CRUD | AdminDashboard, ApprovalQueue, useAdmin | All above |
+The following standards are enforced during implementation. They are carried over from the `/build-backend` and `/build-frontend` workflows.
 
 ---
 
