@@ -1,4 +1,4 @@
-import type { TripSummary } from './trip.types'
+import type { TripSummary, TripType } from './trip.types'
 import type { PaginationMeta } from './api-response.types'
 
 export interface Destination {
@@ -27,6 +27,17 @@ export interface DestinationStats {
   avgPrice: number
   organizerCount: number
   upcomingCount: number
+  minPrice: number
+  maxPrice: number
+}
+
+export type DestinationTripSort = 'date' | 'price_asc' | 'price_desc'
+
+export interface DestinationTripFilters {
+  tripType?: TripType
+  sort?: DestinationTripSort
+  minPrice?: number
+  maxPrice?: number
 }
 
 export interface DestinationDetailResponse {
@@ -34,4 +45,5 @@ export interface DestinationDetailResponse {
   trips: TripSummary[]
   tripsPagination: PaginationMeta
   stats: DestinationStats
+  relatedDestinations: Destination[]
 }
