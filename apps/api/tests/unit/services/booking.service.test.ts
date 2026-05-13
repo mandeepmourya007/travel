@@ -1219,3 +1219,71 @@ describe('BookingService', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════════
+// Redis Cache Invalidation Tests
+// ═══════════════════════════════════════════════════════
+
+describe('BookingService — Redis Cache Invalidation', () => {
+  const mockCacheService = {
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    invalidateByPrefix: vi.fn(),
+  }
+
+  let cachedService: BookingService
+
+  const futureTrip = {
+    ...createMockBooking().trip,
+    startDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cachedService = new BookingService(
+      mockBookingRepo as any,
+      mockTripRepo as any,
+      mockTripRequestRepo as any,
+      mockPaymentTxRepo as any,
+      mockPaymentService as any,
+      logger as any,
+      { send: vi.fn().mockResolvedValue([]) } as any,
+      null,
+      mockCacheService as any,
+    )
+    mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+    mockCacheService.del.mockResolvedValue(undefined)
+  })
+
+  describe('cancelBooking — cache invalidation', () => {
+    it('should invalidate trip caches after cancellation', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      await cachedService.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:trips:*')
+      expect(mockCacheService.del).toHaveBeenCalledWith('cache:trips:detail:goa-beach-getaway-dec-2025')
+    })
+
+    it('should not call cache when cache is null', async () => {
+      const noCacheService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+      )
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      await noCacheService.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockCacheService.invalidateByPrefix).not.toHaveBeenCalled()
+    })
+  })
+})

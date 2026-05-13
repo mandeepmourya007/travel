@@ -796,3 +796,154 @@ describe('TripService', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════════
+// Redis Cache Integration Tests
+// ═══════════════════════════════════════════════════════
+
+describe('TripService — Redis Cache', () => {
+  const mockCacheService = {
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    invalidateByPrefix: vi.fn(),
+  }
+
+  let cachedService: TripService
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cachedService = new TripService(
+      mockTripRepo as any,
+      mockDestinationRepo as any,
+      mockOrganizerProfileRepo as any,
+      mockEditHistoryRepo as any,
+      {} as any,
+      {} as any,
+      mockReviewRepo as any,
+      logger as any,
+      { send: vi.fn().mockResolvedValue([]) } as any,
+      null,
+      mockCacheService as any,
+    )
+  })
+
+  describe('searchTrips — cache', () => {
+    it('should return cached result on hit (no DB call)', async () => {
+      const cachedResult = {
+        data: [{ id: 'trip-1', title: 'Cached Trip' }],
+        pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      }
+      mockCacheService.getOrSet.mockResolvedValue(cachedResult)
+
+      const result = await cachedService.searchTrips({ page: 1, limit: 10 })
+
+      expect(result).toEqual(cachedResult)
+      expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
+        expect.stringContaining('cache:trips:search:'),
+        60,
+        expect.any(Function),
+      )
+      expect(mockTripRepo.search).not.toHaveBeenCalled()
+    })
+
+    it('should call fetcher and cache result on miss', async () => {
+      mockCacheService.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockTripRepo.search.mockResolvedValue({ data: [mockTrip], total: 1 })
+
+      const result = await cachedService.searchTrips({ page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(1)
+      expect(result.pagination.total).toBe(1)
+      expect(mockTripRepo.search).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('getTripBySlug — cache', () => {
+    it('should return cached detail on hit (no DB call)', async () => {
+      const cachedDetail = { id: 'trip-1', title: 'Cached Trip', slug: 'cached-trip' }
+      mockCacheService.getOrSet.mockResolvedValue(cachedDetail)
+
+      const result = await cachedService.getTripBySlug('cached-trip')
+
+      expect(result).toEqual(cachedDetail)
+      expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
+        'cache:trips:detail:cached-trip',
+        300,
+        expect.any(Function),
+      )
+      expect(mockTripRepo.findBySlug).not.toHaveBeenCalled()
+    })
+
+    it('should call fetcher on cache miss', async () => {
+      mockCacheService.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockTripRepo.findBySlug.mockResolvedValue(mockTrip)
+
+      const result = await cachedService.getTripBySlug('goa-beach-getaway-dec-2025')
+
+      expect(result.title).toBe('Goa Beach Getaway')
+      expect(mockTripRepo.findBySlug).toHaveBeenCalledOnce()
+    })
+
+    it('should throw NotFoundError on cache miss when slug does not exist', async () => {
+      mockCacheService.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockTripRepo.findBySlug.mockResolvedValue(null)
+
+      await expect(cachedService.getTripBySlug('nonexistent')).rejects.toThrow('Trip not found')
+    })
+  })
+
+  describe('cache invalidation on mutations', () => {
+    it('should invalidate trip caches after createTrip', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockDestinationRepo.findById.mockResolvedValue(mockDestination)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+      mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.createTrip('user-1', {
+        title: 'Goa Beach Getaway',
+        destinationId: MOCK_DEST_ID,
+        tripType: 'BEACH',
+        bookingMode: 'INSTANT',
+        description: 'An amazing beach trip',
+        startDate: '2026-12-06T00:00:00.000Z',
+        endDate: '2026-12-08T00:00:00.000Z',
+        pricePerPerson: 4500,
+        minGroupSize: 10,
+        maxGroupSize: 20,
+        cancellationPolicy: 'FLEXIBLE',
+        inclusions: ['transport'],
+        exclusions: [],
+        itinerary: [],
+        photos: [],
+        pickupPoints: [{ label: 'Pune Station', time: '06:00 AM' }],
+        dropPoints: [{ label: 'Pune Station', time: '08:00 PM' }],
+      })
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:trips:*')
+    })
+
+    it('should invalidate trip caches after updateTrip', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE' })
+      // withTransaction resolves with the updated trip from tx.trip.update
+      mockTripRepo.withTransaction.mockResolvedValue({ ...mockTrip, title: 'Updated Trip' })
+      mockEditHistoryRepo.create.mockResolvedValue({})
+      mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+      mockCacheService.del.mockResolvedValue(undefined)
+
+      await cachedService.updateTrip('trip-1', 'user-1', { title: 'Updated Trip' })
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:trips:*')
+      expect(mockCacheService.del).toHaveBeenCalledWith('cache:trips:detail:goa-beach-getaway-dec-2025')
+    })
+  })
+})

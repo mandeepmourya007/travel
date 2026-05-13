@@ -322,3 +322,105 @@ describe('ReviewService', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════════
+// Redis Cache Invalidation Tests
+// ═══════════════════════════════════════════════════════
+
+describe('ReviewService — Redis Cache Invalidation', () => {
+  const mockCacheService = {
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    invalidateByPrefix: vi.fn(),
+  }
+
+  let cachedService: ReviewService
+
+  const dto = {
+    tripId: 'trip_1',
+    bookingId: 'booking_1',
+    overallRating: 5,
+    comment: 'Amazing!',
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cachedService = new ReviewService(
+      mockReviewRepo as any,
+      mockOrganizerProfileRepo as any,
+      logger as any,
+      mockCacheService as any,
+    )
+    mockCacheService.del.mockResolvedValue(undefined)
+    mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+  })
+
+  describe('createReview — cache invalidation', () => {
+    it('should invalidate trip detail + organizer cache after review creation', async () => {
+      mockReviewRepo.findBookingForReview.mockResolvedValue(
+        makeBookingForReview({
+          trip: { organizerId: 'org_1', slug: 'goa-trip', organizer: { slug: 'desi-explorers' } },
+        }),
+      )
+      mockReviewRepo.findByBookingId.mockResolvedValue(null)
+      mockReviewRepo.create.mockResolvedValue(makeReview({ overallRating: 5 }))
+      mockReviewRepo.getOrganizerRatingStats.mockResolvedValue({
+        _avg: { overallRating: 4.5 },
+        _count: { overallRating: 3 },
+      })
+      mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+      await cachedService.createReview('user_1', dto)
+
+      expect(mockCacheService.del).toHaveBeenCalledWith('cache:trips:detail:goa-trip')
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:organizers:slug:desi-explorers')
+    })
+
+    it('should not call cache when cache is null', async () => {
+      const noCacheService = new ReviewService(
+        mockReviewRepo as any,
+        mockOrganizerProfileRepo as any,
+        logger as any,
+      )
+      mockReviewRepo.findBookingForReview.mockResolvedValue(
+        makeBookingForReview({
+          trip: { organizerId: 'org_1', slug: 'goa-trip', organizer: { slug: 'desi-explorers' } },
+        }),
+      )
+      mockReviewRepo.findByBookingId.mockResolvedValue(null)
+      mockReviewRepo.create.mockResolvedValue(makeReview({ overallRating: 5 }))
+      mockReviewRepo.getOrganizerRatingStats.mockResolvedValue({
+        _avg: { overallRating: 4.5 },
+        _count: { overallRating: 3 },
+      })
+      mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+      await noCacheService.createReview('user_1', dto)
+
+      expect(mockCacheService.del).not.toHaveBeenCalled()
+      expect(mockCacheService.invalidateByPrefix).not.toHaveBeenCalled()
+    })
+
+    it('should skip organizer cache invalidation when organizer slug is missing', async () => {
+      mockReviewRepo.findBookingForReview.mockResolvedValue(
+        makeBookingForReview({
+          trip: { organizerId: 'org_1', slug: 'goa-trip', organizer: null },
+        }),
+      )
+      mockReviewRepo.findByBookingId.mockResolvedValue(null)
+      mockReviewRepo.create.mockResolvedValue(makeReview({ overallRating: 5 }))
+      mockReviewRepo.getOrganizerRatingStats.mockResolvedValue({
+        _avg: { overallRating: 4.5 },
+        _count: { overallRating: 3 },
+      })
+      mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+      await cachedService.createReview('user_1', dto)
+
+      expect(mockCacheService.del).toHaveBeenCalledWith('cache:trips:detail:goa-trip')
+      expect(mockCacheService.invalidateByPrefix).not.toHaveBeenCalled()
+    })
+  })
+})

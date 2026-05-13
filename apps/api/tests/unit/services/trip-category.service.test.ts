@@ -303,3 +303,96 @@ describe('TripCategoryService', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════════
+// Redis Cache Integration Tests
+// ═══════════════════════════════════════════════════════
+
+describe('TripCategoryService — Redis Cache', () => {
+  const mockRedisCache = {
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    invalidateByPrefix: vi.fn(),
+  }
+
+  let cachedService: TripCategoryService
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cachedService = new TripCategoryService(
+      mockTripCategoryRepo as any,
+      mockOrganizerProfileRepo as any,
+      mockNotificationService as any,
+      logger as any,
+      mockRedisCache as any,
+    )
+    mockTripCategoryRepo.findAll.mockResolvedValue([
+      makeCategory(),
+      makeCategory({ id: 'cat-2', value: 'BEACH', label: 'Beach', sortOrder: 2 }),
+    ])
+  })
+
+  describe('getActiveCategories — cache', () => {
+    it('should return cached categories on hit (no DB call)', async () => {
+      const cached = [{ value: 'ADVENTURE', label: 'Adventure' }]
+      mockRedisCache.getOrSet.mockResolvedValue(cached)
+
+      const result = await cachedService.getActiveCategories()
+
+      expect(result).toEqual(cached)
+      expect(mockRedisCache.getOrSet).toHaveBeenCalledWith(
+        'cache:categories:active',
+        600,
+        expect.any(Function),
+      )
+      expect(mockTripCategoryRepo.findAllActive).not.toHaveBeenCalled()
+    })
+
+    it('should call fetcher on cache miss', async () => {
+      mockRedisCache.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockTripCategoryRepo.findAllActive.mockResolvedValue([makeCategory()])
+
+      const result = await cachedService.getActiveCategories()
+
+      expect(result).toHaveLength(1)
+      expect(mockTripCategoryRepo.findAllActive).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('cache invalidation', () => {
+    it('should invalidate category caches after create', async () => {
+      mockTripCategoryRepo.findByValue.mockResolvedValue(null)
+      mockTripCategoryRepo.create.mockResolvedValue(makeCategory({ id: 'cat-new', value: 'CAMPING', label: 'Camping' }))
+      mockRedisCache.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.createCategory({ value: 'CAMPING', label: 'Camping' })
+
+      expect(mockRedisCache.invalidateByPrefix).toHaveBeenCalledWith('cache:categories:*')
+    })
+
+    it('should invalidate category caches after update', async () => {
+      mockTripCategoryRepo.findById.mockResolvedValue(makeCategory())
+      mockTripCategoryRepo.update.mockResolvedValue(makeCategory({ label: 'Updated' }))
+      mockRedisCache.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.updateCategory('cat-1', { label: 'Updated' })
+
+      expect(mockRedisCache.invalidateByPrefix).toHaveBeenCalledWith('cache:categories:*')
+    })
+
+    it('should invalidate category caches after delete', async () => {
+      mockTripCategoryRepo.findById.mockResolvedValue(makeCategory())
+      mockTripCategoryRepo.countTripsByValue.mockResolvedValue(0)
+      mockTripCategoryRepo.delete.mockResolvedValue(undefined)
+      mockRedisCache.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.deleteCategory('cat-1')
+
+      expect(mockRedisCache.invalidateByPrefix).toHaveBeenCalledWith('cache:categories:*')
+    })
+  })
+})

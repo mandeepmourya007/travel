@@ -290,3 +290,141 @@ describe('DestinationService', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════════
+// Redis Cache Integration Tests
+// ═══════════════════════════════════════════════════════
+
+describe('DestinationService — Redis Cache', () => {
+  const mockCacheService = {
+    getOrSet: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    invalidateByPrefix: vi.fn(),
+  }
+
+  let cachedService: DestinationService
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    cachedService = new DestinationService(
+      mockDestinationRepo as any,
+      mockTripRepo as any,
+      logger as any,
+      mockCacheService as any,
+    )
+  })
+
+  describe('list — cache', () => {
+    it('should return cached destinations on hit (no DB call)', async () => {
+      const cached = [{ id: '1', name: 'Goa' }]
+      mockCacheService.getOrSet.mockResolvedValue(cached)
+
+      const result = await cachedService.list()
+
+      expect(result).toEqual(cached)
+      expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
+        'cache:destinations:list',
+        600,
+        expect.any(Function),
+      )
+      expect(mockDestinationRepo.findAll).not.toHaveBeenCalled()
+    })
+
+    it('should call fetcher on cache miss', async () => {
+      mockCacheService.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockDestinationRepo.findAll.mockResolvedValue([
+        { id: '1', name: 'Goa', slug: 'goa', state: 'Goa', photoUrl: null, tripCount: 5, isPopular: true },
+      ])
+
+      const result = await cachedService.list()
+
+      expect(result).toHaveLength(1)
+      expect(mockDestinationRepo.findAll).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('getBySlug — cache', () => {
+    const mockDest = {
+      id: '1', name: 'Goa', slug: 'goa', state: 'Goa',
+      photoUrl: null, description: 'Beautiful beaches', tripCount: 5, isPopular: true,
+    }
+
+    it('should return cached detail on hit (page 1, no filters)', async () => {
+      const cachedDetail = { destination: { name: 'Goa' }, trips: [] }
+      mockCacheService.getOrSet.mockResolvedValue(cachedDetail)
+
+      const result = await cachedService.getBySlug('goa')
+
+      expect(result).toEqual(cachedDetail)
+      expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
+        'cache:destinations:detail:goa',
+        300,
+        expect.any(Function),
+      )
+      expect(mockDestinationRepo.findBySlugPublic).not.toHaveBeenCalled()
+    })
+
+    it('should call fetcher on cache miss', async () => {
+      mockCacheService.getOrSet.mockImplementation(
+        (_key: string, _ttl: number, fetcher: () => Promise<unknown>) => fetcher(),
+      )
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, minPrice: 0, maxPrice: 0 })
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      const result = await cachedService.getBySlug('goa')
+
+      expect(result.destination.name).toBe('Goa')
+      expect(mockDestinationRepo.findBySlugPublic).toHaveBeenCalledOnce()
+    })
+
+    it('should skip cache when filters are provided', async () => {
+      mockDestinationRepo.findBySlugPublic.mockResolvedValue(mockDest)
+      mockTripRepo.findByDestinationIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockTripRepo.getDestinationStats.mockResolvedValue({ avgPrice: 0, minPrice: 0, maxPrice: 0 })
+      mockDestinationRepo.findRelated.mockResolvedValue([])
+
+      await cachedService.getBySlug('goa', 1, 10, { tripType: 'BEACH' })
+
+      expect(mockCacheService.getOrSet).not.toHaveBeenCalled()
+      expect(mockDestinationRepo.findBySlugPublic).toHaveBeenCalledOnce()
+    })
+  })
+
+  describe('cache invalidation', () => {
+    it('should invalidate destination caches after create', async () => {
+      mockDestinationRepo.findBySlug.mockResolvedValue(null)
+      mockDestinationRepo.create.mockResolvedValue({ id: '1', name: 'Manali', slug: 'manali', state: 'HP' })
+      mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.create({ name: 'Manali', state: 'HP' })
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:destinations:*')
+    })
+
+    it('should invalidate destination caches after update', async () => {
+      mockDestinationRepo.findById.mockResolvedValue({ id: '1', name: 'Goa' })
+      mockDestinationRepo.update.mockResolvedValue({ id: '1', name: 'Goa Updated' })
+      mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.update('1', { name: 'Goa Updated' })
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:destinations:*')
+    })
+
+    it('should invalidate destination caches after delete', async () => {
+      mockDestinationRepo.findById.mockResolvedValue({ id: '1', tripCount: 0 })
+      mockDestinationRepo.softDelete.mockResolvedValue(undefined)
+      mockCacheService.invalidateByPrefix.mockResolvedValue(0)
+
+      await cachedService.delete('1')
+
+      expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:destinations:*')
+    })
+  })
+})
