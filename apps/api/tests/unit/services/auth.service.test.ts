@@ -44,6 +44,7 @@ function createMockOrganizerProfileRepo() {
     create: vi.fn(),
     update: vi.fn(),
     incrementTripCount: vi.fn(),
+    slugExists: vi.fn().mockResolvedValue(false),
   }
 }
 
@@ -393,6 +394,7 @@ describe('AuthService', () => {
       expect(organizerProfileRepo.create).toHaveBeenCalledWith({
         user: { connect: { id: 'user-123' } },
         businessName: 'New',
+        slug: 'new',
       })
     })
 
@@ -677,7 +679,7 @@ describe('AuthService', () => {
       })
 
       expect(result.businessName).toBe('New Business')
-      expect(organizerProfileRepo.update).toHaveBeenCalledWith('org-1', { businessName: 'New Business' })
+      expect(organizerProfileRepo.update).toHaveBeenCalledWith('org-1', { businessName: 'New Business', slug: 'new-business' })
     })
 
     it('should throw NotFoundError when organizer profile does not exist', async () => {

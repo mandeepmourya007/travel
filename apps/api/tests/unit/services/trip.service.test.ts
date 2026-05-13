@@ -22,6 +22,7 @@ const mockTripRepo = {
   countPendingRequests: vi.fn(),
   countByOrganizerId: vi.fn(),
   sumBookingsByOrganizerId: vi.fn(),
+  findByOrganizerIdPaginated: vi.fn(),
 }
 
 const mockDestinationRepo = {
@@ -35,6 +36,14 @@ const mockDestinationRepo = {
 
 const mockOrganizerProfileRepo = {
   findByUserId: vi.fn(),
+  findByIdPublic: vi.fn(),
+  findBySlugPublic: vi.fn(),
+}
+
+const mockReviewRepo = {
+  findByOrganizerId: vi.fn(),
+  getOrganizerRatingStats: vi.fn(),
+  getRatingDistributionByOrganizer: vi.fn(),
 }
 
 const mockEditHistoryRepo = {
@@ -99,7 +108,7 @@ beforeEach(() => {
     mockEditHistoryRepo as any,
     {} as any,
     {} as any,
-    {} as any,
+    mockReviewRepo as any,
     logger as any,
     { send: vi.fn().mockResolvedValue([]) } as any,
   )
@@ -723,6 +732,66 @@ describe('TripService', () => {
           where: { id: MOCK_DEST_ID },
           data: { tripCount: { decrement: 1 } },
         }),
+      )
+    })
+  })
+
+  // ── getOrganizerPublicProfileBySlug ─────────────────
+
+  describe('getOrganizerPublicProfileBySlug', () => {
+    const mockPublicProfile = {
+      id: 'org-1',
+      slug: 'desi-explorers',
+      businessName: 'Desi Explorers',
+      description: 'Best group trips',
+      verificationStatus: 'APPROVED',
+      rating: 4.5,
+      totalReviews: 20,
+      totalTripsCompleted: 15,
+      createdAt: new Date('2023-01-01'),
+      user: { createdAt: new Date('2023-01-01') },
+    }
+
+    const setupOrganizerMocks = () => {
+      mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [], total: 0 })
+      mockReviewRepo.findByOrganizerId.mockResolvedValue({ data: [], total: 0 })
+      mockReviewRepo.getOrganizerRatingStats.mockResolvedValue({
+        _avg: { overallRating: 4.5 },
+        _count: { overallRating: 20 },
+      })
+      mockReviewRepo.getRatingDistributionByOrganizer.mockResolvedValue([])
+    }
+
+    it('should return organizer profile by slug', async () => {
+      mockOrganizerProfileRepo.findBySlugPublic.mockResolvedValue(mockPublicProfile)
+      mockOrganizerProfileRepo.findByIdPublic.mockResolvedValue(mockPublicProfile)
+      setupOrganizerMocks()
+
+      const result = await service.getOrganizerPublicProfileBySlug('desi-explorers')
+
+      expect(mockOrganizerProfileRepo.findBySlugPublic).toHaveBeenCalledWith('desi-explorers')
+      expect(result.organizer.slug).toBe('desi-explorers')
+      expect(result.organizer.businessName).toBe('Desi Explorers')
+      expect(result.organizer.verified).toBe(true)
+    })
+
+    it('should throw NotFoundError when slug does not exist', async () => {
+      mockOrganizerProfileRepo.findBySlugPublic.mockResolvedValue(null)
+
+      await expect(service.getOrganizerPublicProfileBySlug('nonexistent'))
+        .rejects.toThrow('Organizer')
+    })
+
+    it('should delegate to getOrganizerPublicProfile with correct ID', async () => {
+      mockOrganizerProfileRepo.findBySlugPublic.mockResolvedValue(mockPublicProfile)
+      mockOrganizerProfileRepo.findByIdPublic.mockResolvedValue(mockPublicProfile)
+      setupOrganizerMocks()
+
+      await service.getOrganizerPublicProfileBySlug('desi-explorers', 2, 6, 1, 5)
+
+      expect(mockOrganizerProfileRepo.findByIdPublic).toHaveBeenCalledWith('org-1')
+      expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
+        'org-1', 'ACTIVE', { offset: 6, limit: 6 },
       )
     })
   })
