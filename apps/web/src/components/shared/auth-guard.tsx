@@ -18,7 +18,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
   useEffect(() => {
     if (hasHydrated && !isAuthenticated) {
-      router.replace('/login/phone')
+      router.replace('/login/email')
     }
     if (hasHydrated && isAuthenticated && allowedRoles && userRole && !allowedRoles.includes(userRole)) {
       router.replace('/')

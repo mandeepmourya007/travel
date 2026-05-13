@@ -176,7 +176,7 @@ export function Header() {
           ) : _hasHydrated ? (
             <>
               <Link
-                href="/login/phone"
+                href="/login/email"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
               >
                 Sign in
@@ -274,7 +274,7 @@ export function Header() {
           ) : _hasHydrated ? (
             <div className="flex gap-2 border-t border-neutral-100 mt-2 pt-3">
               <Link
-                href="/login/phone"
+                href="/login/email"
                 onClick={closeMobileMenu}
                 className="btn-secondary flex-1 text-center text-sm"
               >

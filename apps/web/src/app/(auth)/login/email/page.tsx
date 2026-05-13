@@ -137,10 +137,12 @@ export default function EmailLoginPage() {
             <Link href="/login/email-otp" className="font-medium text-primary-600 hover:text-primary-700">
               login with email OTP
             </Link>
+            {/* TODO: Uncomment when phone OTP is set up
             {' · '}
             <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
               login with phone
             </Link>
+            */}
           </p>
         </div>
       </div>

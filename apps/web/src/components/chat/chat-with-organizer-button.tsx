@@ -25,7 +25,7 @@ export function ChatWithOrganizerButton({ tripId, className }: ChatWithOrganizer
 
   const handleClick = () => {
     if (!isAuthenticated) {
-      router.push(`/login/phone?returnTo=/trips`)
+      router.push(`/login/email?returnTo=/trips`)
       return
     }
 

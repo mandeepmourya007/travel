@@ -137,7 +137,7 @@ apiClient.interceptors.response.use(
       const appRouter = getAppRouter()
       if (appRouter) {
         const returnTo = window.location.pathname + window.location.search
-        appRouter.replace(`/login/phone?returnTo=${encodeURIComponent(returnTo)}`)
+        appRouter.replace(`/login/email?returnTo=${encodeURIComponent(returnTo)}`)
       }
     }
 

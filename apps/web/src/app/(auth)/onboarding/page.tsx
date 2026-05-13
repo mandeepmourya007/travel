@@ -17,7 +17,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!hasHydrated) return
-    if (!isAuthenticated) { router.replace('/login/phone'); return }
+    if (!isAuthenticated) { router.replace('/login/email'); return }
     if (completedOnboarding) { router.replace(getHomeRoute(useAuthStore.getState().user?.role)); return }
   }, [hasHydrated, isAuthenticated, completedOnboarding, router])
 

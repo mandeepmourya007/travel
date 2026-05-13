@@ -15,7 +15,7 @@ export default function OnboardingProfilePage() {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (hasHydrated && !isAuthenticated) router.replace('/login/phone')
+    if (hasHydrated && !isAuthenticated) router.replace('/login/email')
   }, [hasHydrated, isAuthenticated, router])
 
   if (!hasHydrated || !isAuthenticated) return null

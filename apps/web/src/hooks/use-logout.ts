@@ -10,7 +10,7 @@ import { apiClient } from '@/lib/api-client'
  * Shared logout hook — calls POST /auth/logout, clears Zustand auth store, redirects.
  * Uses FullScreenLoader to mask the transition so the navbar doesn't flash.
  */
-export function useLogout(redirectTo = '/login/phone') {
+export function useLogout(redirectTo = '/login/email') {
   const router = useRouter()
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const showLoader = useLoadingStore((s) => s.show)

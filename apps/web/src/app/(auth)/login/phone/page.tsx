@@ -1,5 +1,17 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
+// TODO: Restore original PhoneLoginPage when phone OTP is set up
+export default function PhoneLoginPage() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/login/email') }, [router])
+  return null
+}
+
+/* Original phone login page — uncomment when OTP is ready:
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -21,24 +33,20 @@ export default function PhoneLoginPage() {
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
 
-  // Backend OTP hooks (always called — hooks must not be conditional)
   const sendOtp = useSendOtp()
   const verifyOtp = useVerifyOtp()
 
-  // Firebase phone auth hook
   const firebase = useFirebasePhoneAuth()
 
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [phone, setPhone] = useState('')
 
-  // Format phone: 9876543210 → +91 98765 43210
   const formattedPhone = phone ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : ''
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
   }, [hasHydrated, isAuthenticated, router])
 
-  /** Route based on isNewUser — new users need onboarding (name + role) */
   const handleVerified = (data: { isNewUser: boolean }) => {
     useLoadingStore.getState().show('Signing in...')
     if (data.isNewUser) {
@@ -49,7 +57,6 @@ export default function PhoneLoginPage() {
     }
   }
 
-  // Firebase strategy: override PhoneInputForm's internal sendOtp
   const firebaseSubmit = PHONE_STRATEGY === 'firebase'
     ? async (p: string) => { await firebase.sendCode(p, RECAPTCHA_CONTAINER_ID) }
     : undefined
@@ -114,7 +121,6 @@ export default function PhoneLoginPage() {
           )}
         </div>
 
-        {/* Invisible reCAPTCHA container for Firebase phone auth */}
         <div id={RECAPTCHA_CONTAINER_ID} />
 
         {step === 'phone' && (
@@ -133,3 +139,4 @@ export default function PhoneLoginPage() {
     </div>
   )
 }
+*/
