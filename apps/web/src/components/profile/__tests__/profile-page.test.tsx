@@ -8,6 +8,10 @@ import { makeTravelerProfile, makeOrganizerFullProfile } from '@/test/factories/
 import ProfilePage from '@/app/profile/page'
 import { API_BASE_URL as API } from '@/test/test-constants'
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}))
+
 const { mockUpdateUser, mockState } = vi.hoisted(() => {
   const mockUpdateUser = vi.fn()
   const mockState = () => ({
