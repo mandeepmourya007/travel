@@ -16,6 +16,7 @@ import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_S
 import { uniqueSlug } from '../utils/slugify'
 import { slugify } from '../utils/slugify'
 import { USER_ROLE } from '@shared/constants'
+import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 
 /** Prisma unique constraint violation code */
 const PRISMA_UNIQUE_VIOLATION = 'P2002'
@@ -29,6 +30,7 @@ export class AuthService {
     private jwtSecret: string,
     private logger: Logger,
     private googleClientId?: string,
+    private loginAttemptTracker?: LoginAttemptTracker | null,
   ) {}
 
   private googleOAuthClient?: import('google-auth-library').OAuth2Client
@@ -74,8 +76,21 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const timer = startTimer()
+
+    // Check brute-force lockout before any DB work
+    if (this.loginAttemptTracker) {
+      const lockoutRemaining = await this.loginAttemptTracker.isLocked(dto.email)
+      if (lockoutRemaining > 0) {
+        throw new AuthError(
+          `Account temporarily locked due to too many failed attempts. Try again in ${Math.ceil(lockoutRemaining / 60)} minutes.`,
+        )
+      }
+    }
+
     const user = await this.userRepo.findByEmail(dto.email)
     if (!user) {
+      // Record failure even for non-existent emails to prevent email enumeration timing attacks
+      await this.loginAttemptTracker?.recordFailure(dto.email)
       throw new AuthError('Invalid email or password')
     }
     if (!user.passwordHash) {
@@ -88,6 +103,7 @@ export class AuthService {
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash)
     if (!valid) {
+      await this.loginAttemptTracker?.recordFailure(dto.email)
       throw new AuthError('Invalid email or password')
     }
 
@@ -95,24 +111,57 @@ export class AuthService {
       throw new AuthError('Account is deactivated')
     }
 
+    // Successful login — clear any failed attempts
+    await this.loginAttemptTracker?.resetAttempts(dto.email)
+
     this.logger.info({ userId: user.id, durationMs: timer.elapsed() }, 'User logged in')
     return this.issueTokens(user, meta)
   }
 
-  async refresh(rawRefreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
+  async refresh(
+    rawRefreshToken: string,
+    meta?: { userAgent?: string; ip?: string },
+  ): Promise<{ accessToken: string; expiresIn: number; refreshToken: string }> {
     const tokenHash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex')
     const token = await this.refreshTokenRepo.findByHash(tokenHash)
 
     if (!token) throw new AuthError('Invalid refresh token')
-    if (token.revokedAt) throw new AuthError('Token has been revoked')
     if (token.expiresAt < new Date()) throw new AuthError('Refresh token expired')
+
+    // ── Reuse detection ─────────────────────────────────
+    // If the token was already revoked, an attacker may be replaying a stolen token.
+    // Grace period: allow if revoked < 30s ago (handles multi-tab race condition).
+    if (token.revokedAt) {
+      const revokedAgo = Date.now() - token.revokedAt.getTime()
+      const GRACE_PERIOD_MS = 30_000
+      if (revokedAgo > GRACE_PERIOD_MS) {
+        // Revoke entire token family — confirmed reuse
+        if (token.familyId) {
+          await this.refreshTokenRepo.revokeByFamily(token.familyId)
+          this.logger.warn({ userId: token.userId, familyId: token.familyId }, 'Refresh token reuse detected — family revoked')
+        }
+        throw new AuthError('Token has been revoked')
+      }
+      // Within grace period — allow but don't rotate again (already rotated)
+    }
 
     const user = await this.userRepo.findById(token.userId)
     if (!user || !user.isActive) throw new AuthError('User not found or deactivated')
 
-    const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
+    // ── Rotate: revoke old, issue new ───────────────────
+    if (!token.revokedAt) {
+      try {
+        await this.refreshTokenRepo.revokeByHash(tokenHash)
+      } catch {
+        // Token may have been concurrently revoked — safe to continue
+      }
+    }
 
-    return { accessToken, expiresIn: JWT_ACCESS_EXPIRY_SECONDS }
+    const familyId = token.familyId ?? token.id
+    const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
+    const newRefreshToken = await this.generateRefreshToken(user.id, meta ?? {}, familyId)
+
+    return { accessToken, expiresIn: JWT_ACCESS_EXPIRY_SECONDS, refreshToken: newRefreshToken }
   }
 
   async logout(rawRefreshToken: string): Promise<void> {
@@ -420,6 +469,7 @@ export class AuthService {
   private async generateRefreshToken(
     userId: string,
     meta: { userAgent?: string; ip?: string },
+    familyId?: string,
   ): Promise<string> {
     const rawToken = crypto.randomBytes(64).toString('hex')
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
@@ -427,10 +477,13 @@ export class AuthService {
     await this.refreshTokenRepo.create({
       userId,
       tokenHash,
+      familyId: familyId ?? undefined,
       deviceInfo: meta.userAgent || null,
       ipAddress: meta.ip || null,
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000),
     })
+    // Initial login tokens have no familyId. On first rotation, `token.familyId ?? token.id`
+    // adopts the token's own ID as the family root. All subsequent rotations inherit it.
 
     return rawToken
   }

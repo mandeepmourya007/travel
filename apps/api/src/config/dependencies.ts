@@ -82,6 +82,7 @@ import { TripCategoryController } from '../controllers/trip-category.controller'
 import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOrganizerTripTypeRequestRoutes } from '../routes/trip-category.routes'
 import { CacheService } from '../services/cache.service'
 import { redis } from './redis'
+import { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -109,6 +110,9 @@ const tripCategoryRepo = new TripCategoryRepository(prisma)
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
 
+// ── Security ────────────────────────────────────────
+const loginAttemptTracker = new LoginAttemptTracker(redis)
+
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
   userRepo,
@@ -118,6 +122,7 @@ export const authService = new AuthService(
   JWT_SECRET,
   logger,
   env.GOOGLE_CLIENT_ID,
+  loginAttemptTracker,
 )
 
 const destinationService = new DestinationService(destinationRepo, tripRepo, logger, cacheService)

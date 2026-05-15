@@ -6,6 +6,7 @@ export class RefreshTokenRepository {
   async create(data: {
     userId: string
     tokenHash: string
+    familyId?: string | null
     deviceInfo?: string | null
     ipAddress?: string | null
     expiresAt: Date
@@ -27,6 +28,13 @@ export class RefreshTokenRepository {
   async revokeAllForUser(userId: string) {
     return this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    })
+  }
+
+  async revokeByFamily(familyId: string) {
+    return this.prisma.refreshToken.updateMany({
+      where: { familyId, revokedAt: null },
       data: { revokedAt: new Date() },
     })
   }

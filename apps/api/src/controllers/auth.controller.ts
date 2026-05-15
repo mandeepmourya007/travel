@@ -33,8 +33,14 @@ export class AuthController {
       throw new AuthError('No refresh token provided')
     }
 
-    const tokens = await this.authService.refresh(rawToken)
-    res.json({ success: true, data: tokens })
+    const result = await this.authService.refresh(rawToken, {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    })
+
+    // Set the rotated refresh token cookie
+    res.cookie('refreshToken', result.refreshToken, COOKIE_OPTIONS)
+    res.json({ success: true, data: { accessToken: result.accessToken, expiresIn: result.expiresIn } })
   })
 
   logout = asyncHandler(async (req: Request, res: Response) => {
