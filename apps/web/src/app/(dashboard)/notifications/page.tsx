@@ -9,6 +9,7 @@ import { useNotificationStore } from '@/store/notification.store'
 import { NOTIFICATION_TYPE_ICON } from '@/lib/notification-icons'
 import { getNotificationRedirectUrl } from '@/lib/notification-redirect'
 import { cn } from '@/lib/utils'
+import { AuthGuard } from '@/components/shared/auth-guard'
 import type { NotificationListItem, NotificationFilters } from '@shared/types/notification.types'
 
 function NotificationRow({ item, onMarkRead }: { item: NotificationListItem; onMarkRead: (id: string) => void }) {
@@ -70,7 +71,7 @@ function NotificationRow({ item, onMarkRead }: { item: NotificationListItem; onM
   return content
 }
 
-export default function NotificationsPage() {
+function NotificationsContent() {
   const [filters, setFilters] = useState<NotificationFilters>({ page: 1, limit: 20 })
   const [unreadOnly, setUnreadOnly] = useState(false)
   const unreadCount = useNotificationStore((s) => s.unreadCount)
@@ -188,5 +189,13 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function NotificationsPage() {
+  return (
+    <AuthGuard>
+      <NotificationsContent />
+    </AuthGuard>
   )
 }

@@ -6,8 +6,9 @@ import { EditUserProfileForm } from '@/components/profile/edit-user-profile-form
 import { OrganizerProfileCard } from '@/components/profile/organizer-profile-card'
 import { ProfileSkeleton } from '@/components/profile/profile-skeleton'
 import { ErrorState } from '@/components/shared/data-states'
+import { AuthGuard } from '@/components/shared/auth-guard'
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { data: profile, isLoading, error, refetch } = useProfile()
 
   if (isLoading) {
@@ -39,5 +40,13 @@ export default function ProfilePage() {
         <OrganizerProfileCard organizerProfile={profile.organizerProfile} />
       )}
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <AuthGuard>
+      <ProfileContent />
+    </AuthGuard>
   )
 }
