@@ -493,6 +493,7 @@ describe('BookingService', () => {
       isDeleted: false,
       organizer: {
         id: 'org-1',
+        userId: 'organizer-user-1',
         razorpayAccountId: 'acc_org123',
         commissionRate: 10,
         businessName: 'TripVibes',
@@ -503,6 +504,15 @@ describe('BookingService', () => {
         { id: 'tp-3', type: 'PICKUP', extraCharge: 0 },
       ],
     }
+
+    it('should throw ValidationError when organizer tries to book own trip', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+
+      await expect(
+        service.createBooking('organizer-user-1', validInput),
+      ).rejects.toThrow('cannot book your own trip')
+    })
 
     it('should create booking and Razorpay order for INSTANT trip', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)

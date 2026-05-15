@@ -25,8 +25,17 @@ function createMockRefreshTokenRepo() {
     create: vi.fn(),
     findByHash: vi.fn(),
     revokeByHash: vi.fn(),
+    revokeByFamily: vi.fn(),
     revokeAllForUser: vi.fn(),
     deleteExpired: vi.fn(),
+  }
+}
+
+function createMockLoginAttemptTracker() {
+  return {
+    isLocked: vi.fn().mockResolvedValue(0),
+    recordFailure: vi.fn().mockResolvedValue({ locked: false, remainingAttempts: 4 }),
+    resetAttempts: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -82,12 +91,15 @@ describe('AuthService', () => {
   let organizerProfileRepo: ReturnType<typeof createMockOrganizerProfileRepo>
   let walletRepo: ReturnType<typeof createMockWalletRepo>
 
+  let loginAttemptTracker: ReturnType<typeof createMockLoginAttemptTracker>
+
   beforeEach(() => {
     vi.clearAllMocks()
     userRepo = createMockUserRepo()
     refreshTokenRepo = createMockRefreshTokenRepo()
     organizerProfileRepo = createMockOrganizerProfileRepo()
     walletRepo = createMockWalletRepo()
+    loginAttemptTracker = createMockLoginAttemptTracker()
     service = new AuthService(
       userRepo as any,
       refreshTokenRepo as any,
@@ -96,6 +108,7 @@ describe('AuthService', () => {
       JWT_SECRET,
       mockLogger,
       'test-google-client-id',
+      loginAttemptTracker as any,
     )
   })
 
@@ -212,6 +225,38 @@ describe('AuthService', () => {
       await expect(service.login(loginDto, meta)).rejects.toThrow(AuthError)
     })
 
+    it('records failure and throws when email does not exist', async () => {
+      userRepo.findByEmail.mockResolvedValue(null)
+
+      await expect(service.login(loginDto, meta)).rejects.toThrow(AuthError)
+      expect(loginAttemptTracker.recordFailure).toHaveBeenCalledWith('john@example.com')
+    })
+
+    it('records failure on wrong password', async () => {
+      const hashed = await bcrypt.hash('DifferentPassword1', 4)
+      userRepo.findByEmail.mockResolvedValue({ ...testUser, passwordHash: hashed })
+
+      await expect(service.login(loginDto, meta)).rejects.toThrow(AuthError)
+      expect(loginAttemptTracker.recordFailure).toHaveBeenCalledWith('john@example.com')
+    })
+
+    it('resets attempts on successful login', async () => {
+      const hashed = await bcrypt.hash('Password1', 4)
+      userRepo.findByEmail.mockResolvedValue({ ...testUser, passwordHash: hashed })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      await service.login(loginDto, meta)
+
+      expect(loginAttemptTracker.resetAttempts).toHaveBeenCalledWith('john@example.com')
+    })
+
+    it('throws AuthError when account is locked', async () => {
+      loginAttemptTracker.isLocked.mockResolvedValue(600)
+
+      await expect(service.login(loginDto, meta)).rejects.toThrow('temporarily locked')
+      expect(userRepo.findByEmail).not.toHaveBeenCalled()
+    })
+
     it('should throw AuthError with Google sign-in message when user has googleId but no password', async () => {
       userRepo.findByEmail.mockResolvedValue({
         ...testUser, passwordHash: null, googleId: 'google-123',
@@ -225,23 +270,32 @@ describe('AuthService', () => {
   // ── refresh ───────────────────────────────────────
 
   describe('refresh', () => {
-    it('returns new access token for valid refresh token', async () => {
+    it('rotates token: revokes old, issues new access + refresh token', async () => {
       const crypto = await import('crypto')
       const rawToken = crypto.randomBytes(64).toString('hex')
       const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex')
 
       refreshTokenRepo.findByHash.mockResolvedValue({
+        id: 'rt-1',
         tokenHash,
         userId: 'user-123',
+        familyId: null,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 86400000),
       })
       userRepo.findById.mockResolvedValue(testUser)
+      refreshTokenRepo.revokeByHash.mockResolvedValue({})
+      refreshTokenRepo.create.mockResolvedValue({})
 
-      const result = await service.refresh(rawToken)
+      const result = await service.refresh(rawToken, meta)
 
       expect(result.accessToken).toBeDefined()
       expect(result.expiresIn).toBe(900)
+      expect(result.refreshToken).toBeDefined()
+      expect(refreshTokenRepo.revokeByHash).toHaveBeenCalledWith(tokenHash)
+      expect(refreshTokenRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-123', familyId: 'rt-1' }),
+      )
     })
 
     it('throws AuthError for invalid token', async () => {
@@ -250,17 +304,40 @@ describe('AuthService', () => {
       await expect(service.refresh('invalid-token')).rejects.toThrow(AuthError)
     })
 
-    it('throws AuthError for revoked token', async () => {
+    it('allows revoked token within grace period (30s)', async () => {
       refreshTokenRepo.findByHash.mockResolvedValue({
-        revokedAt: new Date(),
+        id: 'rt-grace',
+        userId: 'user-123',
+        familyId: 'family-1',
+        revokedAt: new Date(Date.now() - 5000), // 5s ago
+        expiresAt: new Date(Date.now() + 86400000),
+      })
+      userRepo.findById.mockResolvedValue(testUser)
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      const result = await service.refresh('grace-token', meta)
+
+      expect(result.accessToken).toBeDefined()
+      // Should NOT revoke family — within grace period
+      expect(refreshTokenRepo.revokeByFamily).not.toHaveBeenCalled()
+    })
+
+    it('detects reuse: revokes entire family when revoked token used after grace period', async () => {
+      refreshTokenRepo.findByHash.mockResolvedValue({
+        id: 'rt-reused',
+        userId: 'user-123',
+        familyId: 'family-1',
+        revokedAt: new Date(Date.now() - 60000), // 60s ago — past grace
         expiresAt: new Date(Date.now() + 86400000),
       })
 
-      await expect(service.refresh('some-token')).rejects.toThrow(AuthError)
+      await expect(service.refresh('reused-token', meta)).rejects.toThrow('revoked')
+      expect(refreshTokenRepo.revokeByFamily).toHaveBeenCalledWith('family-1')
     })
 
     it('throws AuthError for expired token', async () => {
       refreshTokenRepo.findByHash.mockResolvedValue({
+        id: 'rt-exp',
         revokedAt: null,
         expiresAt: new Date(Date.now() - 1000),
       })
