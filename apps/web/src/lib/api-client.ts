@@ -69,8 +69,14 @@ apiClient.interceptors.request.use((config) => {
   config.headers['X-Request-Id'] = requestId
 
   // Read from Zustand-persisted auth store
-  const stored = typeof window !== 'undefined' ? localStorage.getItem('travel-auth') : null
-  const token = stored ? JSON.parse(stored)?.state?.accessToken : null
+  let token: string | null = null
+  try {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('travel-auth') : null
+    token = stored ? JSON.parse(stored)?.state?.accessToken : null
+  } catch {
+    // Corrupted localStorage — clear it so future reads don't keep failing
+    if (typeof window !== 'undefined') localStorage.removeItem('travel-auth')
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -89,11 +95,15 @@ function doRefresh(): Promise<string | null> {
       const rawToken = data.data?.accessToken
       const token = typeof rawToken === 'string' ? rawToken : undefined
       if (token) {
-        const raw = localStorage.getItem('travel-auth')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          parsed.state.accessToken = token
-          localStorage.setItem('travel-auth', JSON.stringify(parsed))
+        try {
+          const raw = localStorage.getItem('travel-auth')
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            parsed.state.accessToken = token
+            localStorage.setItem('travel-auth', JSON.stringify(parsed))
+          }
+        } catch {
+          // Corrupted store — token will be set via Zustand on next login
         }
         return token
       }

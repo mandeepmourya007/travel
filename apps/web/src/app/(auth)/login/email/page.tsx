@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { apiClient } from '@/lib/api-client'
 import { APP_NAME, getHomeRoute } from '@/lib/constants'
@@ -11,8 +11,18 @@ import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { EmailInput } from '@/components/shared/email-input'
 import { useLoadingStore } from '@/store/loading.store'
 
+/** Validates returnTo is a safe relative path (no open redirect) */
+function getSafeReturnTo(raw: string | null): string | null {
+  if (!raw) return null
+  // Must start with / and must NOT start with // (protocol-relative URL)
+  if (raw.startsWith('/') && !raw.startsWith('//')) return raw
+  return null
+}
+
 export default function EmailLoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = getSafeReturnTo(searchParams.get('returnTo'))
   const setAuth = useAuthStore((s) => s.setAuth)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -24,9 +34,9 @@ export default function EmailLoginPage() {
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated) {
-      router.replace(getHomeRoute(useAuthStore.getState().user?.role))
+      router.replace(returnTo ?? getHomeRoute(useAuthStore.getState().user?.role))
     }
-  }, [hasHydrated, isAuthenticated, router])
+  }, [hasHydrated, isAuthenticated, router, returnTo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,7 +62,7 @@ export default function EmailLoginPage() {
         useLoadingStore.getState().show('Signing in...')
         setAuth(res.data.user, res.data.tokens.accessToken)
         markOnboardingComplete()
-        router.push(getHomeRoute(res.data.user.role))
+        router.push(returnTo ?? getHomeRoute(res.data.user.role))
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.')
@@ -121,7 +131,7 @@ export default function EmailLoginPage() {
             onSuccess={(isNewUser) => {
               useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
-              router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+              router.push(isNewUser ? '/onboarding' : (returnTo ?? getHomeRoute(useAuthStore.getState().user?.role)))
             }}
           />
 
