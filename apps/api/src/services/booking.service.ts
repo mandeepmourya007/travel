@@ -312,6 +312,9 @@ export class BookingService {
     if (trip.currentBookings + input.numTravelers > trip.maxGroupSize) {
       throw new ValidationError('Not enough seats available')
     }
+    if (trip.organizer?.userId === userId) {
+      throw new ValidationError('You cannot book your own trip')
+    }
     if (!trip.organizer?.razorpayAccountId) {
       throw new ValidationError('Organizer has not set up payment — booking unavailable')
     }

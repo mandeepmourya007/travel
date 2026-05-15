@@ -347,6 +347,7 @@ export class TripRepository {
         organizer: {
           select: {
             id: true,
+            userId: true,
             businessName: true,
             rating: true,
             totalReviews: true,

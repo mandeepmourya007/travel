@@ -4,9 +4,13 @@ import { ChatService } from '../../services/chat.service'
 import { logger } from '../../utils/logger'
 import type { SendMessageDto } from '@shared/types/chat.types'
 
+const SOCKET_MSG_LIMIT = 10
+const SOCKET_MSG_WINDOW_MS = 10_000
+
 export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, chatService: ChatService) {
   const userId = socket.userId
   const log = logger.child({ module: 'socket:chat', userId, socketId: socket.id })
+  const msgTimestamps: number[] = []
 
   /** Join a conversation room — verify participant before allowing */
   socket.on('chat:join', async ({ conversationId }: { conversationId: string }) => {
@@ -31,6 +35,17 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
 
   /** Send a message */
   socket.on('chat:send', async (data: SendMessageDto & { conversationId: string }) => {
+    // Per-socket rate limit: max SOCKET_MSG_LIMIT messages per SOCKET_MSG_WINDOW_MS
+    const now = Date.now()
+    while (msgTimestamps.length > 0 && msgTimestamps[0]! <= now - SOCKET_MSG_WINDOW_MS) {
+      msgTimestamps.shift()
+    }
+    if (msgTimestamps.length >= SOCKET_MSG_LIMIT) {
+      socket.emit('chat:send:error', { error: 'You are sending messages too fast. Please slow down.' })
+      return
+    }
+    msgTimestamps.push(now)
+
     try {
       const { conversationId, ...dto } = data
       const message = await chatService.sendMessage(conversationId, userId, dto)

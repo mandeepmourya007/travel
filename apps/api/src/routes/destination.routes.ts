@@ -35,17 +35,17 @@ export function createDestinationRoutes(
   )
   router.put(
     '/:id',
-    validate(cuidParamSchema, 'params'),
     authMiddleware,
     requireRole('ADMIN'),
+    validate(cuidParamSchema, 'params'),
     validate(updateDestinationSchema),
     destinationController.update,
   )
   router.delete(
     '/:id',
-    validate(cuidParamSchema, 'params'),
     authMiddleware,
     requireRole('ADMIN'),
+    validate(cuidParamSchema, 'params'),
     destinationController.delete,
   )
 
