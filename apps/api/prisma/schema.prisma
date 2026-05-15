@@ -593,6 +593,7 @@ model RefreshToken {
   userId     String
   user       User      @relation(fields: [userId], references: [id])
   tokenHash  String    @unique
+  familyId   String?
   deviceInfo String?
   ipAddress  String?
   expiresAt  DateTime
@@ -603,6 +604,7 @@ model RefreshToken {
 
   @@index([userId, revokedAt])
   @@index([expiresAt])
+  @@index([familyId])
 }
 
 model VerificationCode {
