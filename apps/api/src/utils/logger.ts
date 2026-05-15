@@ -12,6 +12,10 @@ export const logger = pino({
     service: 'travel-api',
     env: process.env.NODE_ENV,
   },
+  redact: {
+    paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+    censor: '[REDACTED]',
+  },
   serializers: {
     err: (err: Record<string, unknown>) => ({
       type: (err.constructor as { name?: string })?.name ?? 'Error',

@@ -5,7 +5,6 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
-  JWT_REFRESH_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().startsWith('rzp_').optional(),

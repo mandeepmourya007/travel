@@ -21,7 +21,13 @@ export function createServer() {
   app.set('trust proxy', 1)
 
   // ── Security ──────────────────────────────────────
-  app.use(helmet())
+  app.use(helmet({
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  }))
+  app.use((_req, res, next) => {
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self), payment=(self)')
+    next()
+  })
   app.use(cors(corsOptions))
 
   // ── Webhook Routes (raw body — MUST be before JSON parser) ──
@@ -30,7 +36,7 @@ export function createServer() {
   }
 
   // ── Parsing ───────────────────────────────────────
-  app.use(express.json({ limit: '10mb' }))
+  app.use(express.json({ limit: '1mb' }))
   app.use(express.urlencoded({ extended: true }))
   app.use(cookieParser())
 
