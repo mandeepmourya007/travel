@@ -14,6 +14,7 @@ import { useLoadingStore } from '@/store/loading.store'
 export default function EmailOtpLoginPage() {
   const router = useRouter()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const completedOnboarding = useAuthStore((s) => s.completedOnboarding)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const sendOtp = useSendEmailOtp()
@@ -23,8 +24,8 @@ export default function EmailOtpLoginPage() {
   const [email, setEmail] = useState('')
 
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
-  }, [hasHydrated, isAuthenticated, router])
+    if (hasHydrated && isAuthenticated && completedOnboarding) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
+  }, [hasHydrated, isAuthenticated, completedOnboarding, router])
 
   const handleVerified = (data: { isNewUser: boolean }) => {
     useLoadingStore.getState().show('Signing in...')

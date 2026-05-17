@@ -16,6 +16,7 @@ export default function SignupPage() {
   const setAuth = useAuthStore((s) => s.setAuth)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const completedOnboarding = useAuthStore((s) => s.completedOnboarding)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
@@ -23,10 +24,10 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
+    if (hasHydrated && isAuthenticated && completedOnboarding) {
       router.replace(getHomeRoute(useAuthStore.getState().user?.role))
     }
-  }, [hasHydrated, isAuthenticated, router])
+  }, [hasHydrated, isAuthenticated, completedOnboarding, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
