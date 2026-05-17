@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Search,
   Menu,
@@ -62,7 +62,9 @@ function isLinkVisible(link: NavLink, role: string | undefined, isAuthenticated:
 export function Header() {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, user, _hasHydrated } = useAuthStore()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const user = useAuthStore((s) => s.user)
+  const _hasHydrated = useAuthStore((s) => s._hasHydrated)
   const { logout: handleLogout, loggingOut } = useLogout()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -85,9 +87,12 @@ export function Header() {
     return pathname.startsWith(href)
   }
 
-  const visibleLinks = _hasHydrated
-    ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated))
-    : NAV_LINKS.filter((link) => link.href === '/trips')
+  const visibleLinks = useMemo(
+    () => _hasHydrated
+      ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated))
+      : NAV_LINKS.filter((link) => link.href === '/trips'),
+    [_hasHydrated, user?.role, isAuthenticated],
+  )
 
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">

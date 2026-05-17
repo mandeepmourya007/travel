@@ -19,7 +19,9 @@ import type { NotificationSocketPayload, NotificationListItem } from '@shared/ty
  */
 export function SocketConnector() {
   const router = useRouter()
-  const { isAuthenticated, accessToken, _hasHydrated } = useAuthStore()
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const _hasHydrated = useAuthStore((s) => s._hasHydrated)
   const addNotification = useNotificationStore((s) => s.addNotification)
   const queryClient = useQueryClient()
 

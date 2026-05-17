@@ -18,7 +18,7 @@ interface ConversationSidebarProps {
 export function ConversationSidebar({ activeConversationId, onSelect, className }: ConversationSidebarProps) {
   const [activeTab, setActiveTab] = useState<ConversationType | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState('')
-  const { onlineUsers } = useChatStore()
+  const onlineUsers = useChatStore((s) => s.onlineUsers)
 
   const { data, isLoading, error, refetch } = useConversations(
     activeTab ? { type: activeTab } : undefined,
@@ -115,7 +115,7 @@ export function ConversationSidebar({ activeConversationId, onSelect, className 
                 conversation={conv}
                 isActive={conv.id === activeConversationId}
                 isOnline={conv.otherParticipant ? onlineUsers.has(conv.otherParticipant.id) : false}
-                onClick={() => onSelect(conv.id)}
+                onSelect={onSelect}
               />
             ))}
           </div>

@@ -13,7 +13,7 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({ conversation, onBack, className }: ChatHeaderProps) {
-  const { onlineUsers } = useChatStore()
+  const onlineUsers = useChatStore((s) => s.onlineUsers)
   const participant = conversation.otherParticipant
   const displayName = participant?.name ?? 'Support'
   const isOnline = participant ? onlineUsers.has(participant.id) : false

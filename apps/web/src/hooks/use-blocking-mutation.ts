@@ -14,7 +14,8 @@ import { useCallback } from 'react'
  *   await withBlocking(createBooking.mutateAsync(input))
  */
 export function useBlockingLoader(defaultMessage?: string) {
-  const { show, hide } = useLoadingStore()
+  const show = useLoadingStore((s) => s.show)
+  const hide = useLoadingStore((s) => s.hide)
 
   const withBlocking = useCallback(
     async <T>(promise: Promise<T>, message?: string): Promise<T> => {

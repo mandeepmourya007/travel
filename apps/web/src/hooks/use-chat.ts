@@ -202,7 +202,8 @@ export function useRemoveReaction(conversationId: string) {
  */
 export function useChatConnection(conversationId: string | null) {
   const queryClient = useQueryClient()
-  const { setTyping, clearTyping } = useChatStore()
+  const setTyping = useChatStore((s) => s.setTyping)
+  const clearTyping = useChatStore((s) => s.clearTyping)
   const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   useEffect(() => {
@@ -363,7 +364,10 @@ export function useMarkAsRead(conversationId: string | null) {
  * Hook for presence checking.
  */
 export function usePresence(userIds: string[]) {
-  const { onlineUsers, addOnlineUser, removeOnlineUser, setOnlineUsers } = useChatStore()
+  const onlineUsers = useChatStore((s) => s.onlineUsers)
+  const addOnlineUser = useChatStore((s) => s.addOnlineUser)
+  const removeOnlineUser = useChatStore((s) => s.removeOnlineUser)
+  const setOnlineUsers = useChatStore((s) => s.setOnlineUsers)
   const stableIds = useMemo(() => userIds, [userIds.join(',')])
 
   useEffect(() => {

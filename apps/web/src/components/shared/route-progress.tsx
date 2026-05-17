@@ -25,7 +25,8 @@ export function RouteProgress() {
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isRunningRef = useRef(false)
   const prevPathRef = useRef(pathname)
-  const { show: showLoader, hide: hideLoader } = useLoadingStore()
+  const showLoader = useLoadingStore((s) => s.show)
+  const hideLoader = useLoadingStore((s) => s.hide)
 
   const clearAllTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)

@@ -3,7 +3,8 @@
 import { useLoadingStore } from '@/store/loading.store'
 
 export function FullScreenLoader() {
-  const { isLoading, message } = useLoadingStore()
+  const isLoading = useLoadingStore((s) => s.isLoading)
+  const message = useLoadingStore((s) => s.message)
 
   if (!isLoading) return null
 
