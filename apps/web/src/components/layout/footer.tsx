@@ -3,7 +3,7 @@ import { APP_NAME } from '@/lib/constants'
 
 export function Footer() {
   return (
-    <footer className="border-t border-neutral-200 bg-white">
+    <footer className="border-t border-neutral-200 bg-white pb-20 md:pb-0">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
           {/* Brand */}
