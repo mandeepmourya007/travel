@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { validate } from '../middleware/validate.middleware'
-import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema } from '@shared/validators/auth.schema'
+import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema, connectBankAccountSchema } from '@shared/validators/auth.schema'
 import { otpRateLimit } from '../middleware/rate-limit.middleware'
 
 export function createAuthRoutes(
@@ -27,6 +27,14 @@ export function createAuthRoutes(
     requireRole('ORGANIZER'),
     validate(updateOrganizerProfileSchema),
     authController.updateOrganizerProfile,
+  )
+
+  router.post(
+    '/profile/organizer/bank',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(connectBankAccountSchema),
+    authController.connectBankAccount,
   )
 
   router.post('/google', validate(googleAuthSchema), authController.googleAuth)

@@ -88,6 +88,13 @@ export class AuthController {
     res.json({ success: true, data: result })
   })
 
+  /** POST /auth/profile/organizer/bank — Bearer (ORGANIZER only) */
+  connectBankAccount = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const result = await this.authService.connectBankAccount(req.user.userId, req.body)
+    res.json({ success: true, data: result })
+  })
+
   /** POST /auth/google — public */
   googleAuth = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.authService.googleAuth(req.body, {

@@ -142,6 +142,17 @@ export class OrganizerProfileRepository {
     })
   }
 
+  /**
+   * Atomic conditional update — only sets bank fields when bankAccountLinked is still false.
+   * Returns { count: 0 } if another request already linked the account (race-safe).
+   */
+  async updateWhereBankNotLinked(id: string, data: { razorpayAccountId: string; bankAccountLinked: true }) {
+    return this.prisma.organizerProfile.updateMany({
+      where: { id, bankAccountLinked: false },
+      data,
+    })
+  }
+
   /** Count pending organizer approvals. Used by: AdminService.getPlatformStats() */
   async countPending(): Promise<number> {
     return this.prisma.organizerProfile.count({

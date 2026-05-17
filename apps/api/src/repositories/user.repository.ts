@@ -73,6 +73,7 @@ export class UserRepository {
         organizerProfile: {
           select: {
             id: true,
+            slug: true,
             businessName: true,
             description: true,
             verificationStatus: true,
@@ -80,6 +81,7 @@ export class UserRepository {
             totalReviews: true,
             totalTripsCompleted: true,
             bankAccountLinked: true,
+            documents: true,
             isDeleted: true,
           },
         },

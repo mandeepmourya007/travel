@@ -4,17 +4,18 @@ import jwt from 'jsonwebtoken'
 import type { Logger } from 'pino'
 import { startTimer } from '../utils/perf-timer'
 import type { SignupDto, LoginDto, AuthResponse, JwtPayload } from '@shared/types/auth.types'
-import type { UserProfileResponse } from '@shared/types/user.types'
+import type { UserProfileResponse, ConnectBankAccountDto, ConnectBankAccountResponse } from '@shared/types/user.types'
 import { DEFAULT_USER_NAME } from '@shared/constants/roles'
 import type { SignupRole } from '@shared/constants/roles'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { WalletRepository } from '../repositories/wallet.repository'
-import { AuthError, ConflictError, NotFoundError } from '../errors/app-error'
+import { AuthError, ConflictError, NotFoundError, PaymentError } from '../errors/app-error'
+import { env } from '../config/env'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
-import { uniqueSlug } from '../utils/slugify'
-import { slugify } from '../utils/slugify'
+import { uniqueSlug, slugify } from '../utils/slugify'
+import { mergeDocuments } from '../utils/documents'
 import { USER_ROLE } from '@shared/constants'
 import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 
@@ -267,6 +268,7 @@ export class AuthService {
     const orgProfile = user.organizerProfile && !user.organizerProfile.isDeleted
       ? {
           id: user.organizerProfile.id,
+          slug: user.organizerProfile.slug,
           businessName: user.organizerProfile.businessName,
           description: user.organizerProfile.description,
           verificationStatus: user.organizerProfile.verificationStatus,
@@ -274,6 +276,7 @@ export class AuthService {
           totalReviews: user.organizerProfile.totalReviews,
           totalTripsCompleted: user.organizerProfile.totalTripsCompleted,
           bankAccountLinked: user.organizerProfile.bankAccountLinked,
+          documents: (user.organizerProfile.documents as Record<string, string> | null) ?? null,
         }
       : null
 
@@ -298,12 +301,19 @@ export class AuthService {
    */
   async updateOrganizerProfile(
     userId: string,
-    dto: { businessName?: string; description?: string },
+    dto: { businessName?: string; description?: string; documents?: Record<string, string> },
   ): Promise<{ businessName: string; description: string | null }> {
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
 
-    const updateData: { businessName?: string; description?: string; slug?: string } = { ...dto }
+    const { documents, ...rest } = dto
+    const updateData: { businessName?: string; description?: string; slug?: string; documents?: Record<string, string> } = { ...rest }
+    if (documents) {
+      updateData.documents = mergeDocuments(
+        profile.documents as Record<string, string> | null,
+        documents,
+      )
+    }
     if (dto.businessName && dto.businessName !== profile.businessName) {
       updateData.slug = await uniqueSlug(dto.businessName, (s) => this.organizerProfileRepo.slugExists(s))
     }
@@ -322,6 +332,119 @@ export class AuthService {
     this.logger.info({ userId }, 'Organizer profile updated')
 
     return { businessName: updated.businessName, description: updated.description }
+  }
+
+  /**
+   * Connects organizer's bank account via Razorpay Route linked account API.
+   * Creates a Razorpay linked account, stores the account ID, and marks bankAccountLinked.
+   * In dev mode without Razorpay configured, simulates with a mock account ID.
+   * @throws {NotFoundError} OrganizerProfile not found
+   * @throws {ConflictError} Bank account already linked
+   * @throws {PaymentError} Razorpay API failure
+   */
+  async connectBankAccount(
+    userId: string,
+    dto: ConnectBankAccountDto,
+  ): Promise<ConnectBankAccountResponse> {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    if (profile.bankAccountLinked && profile.razorpayAccountId) {
+      throw new ConflictError('Bank account is already linked')
+    }
+
+    const user = await this.userRepo.findById(userId)
+    if (!user) throw new NotFoundError('User')
+
+    const razorpayAccountId = await this.createRazorpayLinkedAccount(profile, user, dto)
+
+    // Atomic conditional update — prevents race condition when two requests pass the check above
+    const { count } = await this.organizerProfileRepo.updateWhereBankNotLinked(profile.id, {
+      razorpayAccountId,
+      bankAccountLinked: true,
+    })
+    if (count === 0) {
+      this.logger.warn(
+        { userId, profileId: profile.id, orphanedRazorpayAccountId: razorpayAccountId },
+        'CAS failed after Razorpay account creation — orphaned linked account',
+      )
+      throw new ConflictError('Bank account is already linked')
+    }
+
+    const masked = dto.accountNumber.slice(-4).padStart(dto.accountNumber.length, '*')
+    this.logger.info({ userId, profileId: profile.id }, 'Bank account linked via Razorpay Route')
+
+    return { bankAccountLinked: true, maskedAccountNumber: masked }
+  }
+
+  /**
+   * Creates a Razorpay Route linked account for the organizer.
+   * Falls back to a mock account ID when Razorpay is not configured (dev mode).
+   */
+  private async createRazorpayLinkedAccount(
+    profile: { id: string; businessName: string },
+    user: { email: string | null; phone: string | null },
+    dto: ConnectBankAccountDto,
+  ): Promise<string> {
+    const keyId = env.RAZORPAY_KEY_ID
+    const keySecret = env.RAZORPAY_KEY_SECRET
+
+    if (!keyId || !keySecret || env.NODE_ENV !== 'production') {
+      this.logger.warn('Razorpay not configured or non-production — using mock linked account ID')
+      return `acc_mock_${Date.now()}`
+    }
+
+    const body = {
+      email: user.email ?? `organizer-${profile.id}@placeholder.local`,
+      phone: user.phone ? { primary: user.phone } : undefined,
+      type: 'route',
+      legal_business_name: profile.businessName,
+      business_type: 'individual',
+      contact_name: dto.accountHolderName,
+      profile: {
+        category: 'tours_and_travel',
+        subcategory: 'travel_agency',
+        addresses: {
+          registered: {
+            street1: 'N/A',
+            street2: 'N/A',
+            city: 'N/A',
+            state: 'N/A',
+            postal_code: '000000',
+            country: 'IN',
+          },
+        },
+      },
+      legal_info: {},
+      bank_account: {
+        ifsc_code: dto.ifscCode,
+        beneficiary_name: dto.beneficiaryName,
+        account_type: 'current',
+        account_number: dto.accountNumber,
+      },
+    }
+
+    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
+
+    const response = await fetch('https://api.razorpay.com/v2/accounts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${auth}`,
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text()
+      const sanitized = errorBody.replace(/"account_number"\s*:\s*"[^"]+"/g, '"account_number":"[REDACTED]"')
+      this.logger.error({ statusCode: response.status, body: sanitized }, 'Razorpay linked account creation failed')
+      throw new PaymentError(`Failed to create Razorpay linked account: ${response.status}`)
+    }
+
+    const data = await response.json() as { id: string }
+    this.logger.info({ razorpayAccountId: data.id }, 'Razorpay linked account created')
+    return data.id
   }
 
   /**
