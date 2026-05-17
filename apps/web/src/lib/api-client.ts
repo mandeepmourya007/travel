@@ -4,6 +4,7 @@ import { useLoadingStore } from '@/store/loading.store'
 import { useAuthStore } from '@/store/auth.store'
 import { getAppRouter } from '@/lib/app-router'
 import { feLogger } from '@/lib/logger'
+import { API_TIMEOUT_MS } from '@/lib/constants'
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -27,11 +28,11 @@ export function getErrorMessage(err: Error | null, fallback = 'Something went wr
   return isAppApiError(err) ? err.message : fallback
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15_000,
+  timeout: API_TIMEOUT_MS,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 })

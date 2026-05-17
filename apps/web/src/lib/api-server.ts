@@ -8,7 +8,7 @@
  */
 
 function getApiBaseUrl(): string {
-  return process.env.API_URL_INTERNAL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1'
+  return process.env.API_URL_INTERNAL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'
 }
 
 export interface FetchApiOptions {

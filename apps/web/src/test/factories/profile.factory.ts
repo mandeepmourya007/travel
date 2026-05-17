@@ -3,6 +3,7 @@ import type { UserProfileResponse, OrganizerProfileResponse } from '@shared/type
 export function makeOrganizerProfile(overrides: Partial<OrganizerProfileResponse> = {}): OrganizerProfileResponse {
   return {
     id: 'org-1',
+    slug: 'trek-india-adventures',
     businessName: 'Trek India Adventures',
     description: 'Best treks in India',
     verificationStatus: 'APPROVED',
@@ -10,6 +11,7 @@ export function makeOrganizerProfile(overrides: Partial<OrganizerProfileResponse
     totalReviews: 120,
     totalTripsCompleted: 45,
     bankAccountLinked: true,
+    documents: null,
     ...overrides,
   }
 }
