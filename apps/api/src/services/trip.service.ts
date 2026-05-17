@@ -15,6 +15,8 @@ import type { TripCategoryService } from './trip-category.service'
 import type { CacheService } from './cache.service'
 import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '../errors/app-error'
 import { generateSlug, generateTripSlug } from '@shared/utils/slug'
+import { areDocsComplete } from '@shared/utils/organizer-docs'
+import type { OrganizerDocuments } from '@shared/types/user.types'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
@@ -159,6 +161,12 @@ export class TripService {
     if (!profile) throw new ForbiddenError('Organizer profile not found')
     if (profile.verificationStatus !== VERIFICATION_STATUS.APPROVED) {
       throw new ForbiddenError('Organizer profile must be approved before creating trips')
+    }
+    if (!areDocsComplete(profile.documents as OrganizerDocuments | null)) {
+      throw new ForbiddenError('All verification documents (Aadhaar front, back, and PAN) must be uploaded before creating trips')
+    }
+    if (!profile.bankAccountLinked) {
+      throw new ForbiddenError('Bank account must be linked before creating trips. Connect your bank account in Settings.')
     }
 
     const destination = await this.resolveDestination(input.destinationId)
