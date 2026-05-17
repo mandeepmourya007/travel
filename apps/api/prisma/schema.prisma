@@ -20,6 +20,13 @@ enum VerificationStatus {
   PENDING
   APPROVED
   REJECTED
+  REVISION_REQUIRED
+}
+
+enum DocumentReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum TripStatus {
@@ -92,6 +99,7 @@ enum NotificationType {
   SYSTEM_ALERT
   TRIP_TYPE_REQUEST_APPROVED
   TRIP_TYPE_REQUEST_REJECTED
+  DOCUMENT_REUPLOAD_REQUIRED
 }
 
 enum VerificationCodeType {
@@ -231,9 +239,44 @@ model OrganizerProfile {
   trips             Trip[]
   conversations     Conversation[] @relation("organizer")
   tripTypeRequests  TripTypeRequest[]
+  documentReviews   DocumentReview[]
+  reviewComments    DocumentReviewComment[]
 
   @@index([verificationStatus])
   @@index([isDeleted])
+}
+
+model DocumentReview {
+  id          String               @id @default(cuid())
+  organizerId String
+  organizer   OrganizerProfile     @relation(fields: [organizerId], references: [id])
+  docType     String               // "aadhaarFront" | "aadhaarBack" | "panCard"
+  status      DocumentReviewStatus @default(PENDING)
+  currentUrl  String?
+  reviewedAt  DateTime?
+  reviewedBy  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizerId, docType])
+  @@index([organizerId])
+  @@index([status])
+}
+
+model DocumentReviewComment {
+  id            String           @id @default(cuid())
+  organizerId   String
+  organizer     OrganizerProfile @relation(fields: [organizerId], references: [id])
+  authorId      String
+  authorRole    String           // "ADMIN" | "ORGANIZER"
+  docType       String?
+  comment       String
+  attachmentUrl String?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizerId, createdAt])
 }
 
 model Destination {
