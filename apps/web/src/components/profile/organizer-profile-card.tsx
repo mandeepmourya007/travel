@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Star, MessageCircle, MapPin, BadgeCheck } from 'lucide-react'
+import Link from 'next/link'
+import { Star, MessageCircle, MapPin, CheckCircle2, Circle, Landmark, ShieldCheck, FileText } from 'lucide-react'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { useUpdateOrganizerProfile } from '@/hooks/use-profile'
-import type { OrganizerProfileResponse } from '@shared/types/user.types'
+import { getDocCount, areDocsComplete } from '@/lib/organizer-utils'
+import type { OrganizerProfileResponse, OrganizerDocuments } from '@shared/types/user.types'
 
 interface OrganizerProfileCardProps {
   organizerProfile: OrganizerProfileResponse
@@ -52,15 +54,71 @@ export function OrganizerProfileCard({ organizerProfile }: OrganizerProfileCardP
 
       {/* Stats row — reuses StatCard from dashboard */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Rating" value={organizerProfile.rating.toFixed(1)} icon={<Star className="h-5 w-5" />} />
-        <StatCard label="Reviews" value={organizerProfile.totalReviews} icon={<MessageCircle className="h-5 w-5" />} />
-        <StatCard label="Trips" value={organizerProfile.totalTripsCompleted} icon={<MapPin className="h-5 w-5" />} />
+        <StatCard compact label="Rating" value={organizerProfile.rating.toFixed(1)} icon={<Star className="h-4 w-4" />} />
+        <StatCard compact label="Reviews" value={organizerProfile.totalReviews} icon={<MessageCircle className="h-4 w-4" />} />
+        <StatCard compact label="Trips" value={organizerProfile.totalTripsCompleted} icon={<MapPin className="h-4 w-4" />} />
       </div>
 
-      {/* Bank account status */}
-      <div className="flex items-center gap-2 text-sm text-neutral-600">
-        <BadgeCheck className={`h-4 w-4 ${organizerProfile.bankAccountLinked ? 'text-success-500' : 'text-neutral-400'}`} />
-        Bank account {organizerProfile.bankAccountLinked ? 'linked' : 'not linked'}
+      {/* Setup checklist */}
+      <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-4 space-y-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">Setup Checklist</p>
+
+        <div className="flex items-center gap-3">
+          {organizerProfile.verificationStatus === 'APPROVED' ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-success-500" />
+          ) : (
+            <Circle className="h-5 w-5 shrink-0 text-neutral-300" />
+          )}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
+              <span className="text-sm font-medium text-neutral-800">Admin Verification</span>
+            </div>
+            <p className="text-xs text-neutral-500">
+              {organizerProfile.verificationStatus === 'APPROVED'
+                ? 'Your profile has been verified by our team'
+                : organizerProfile.verificationStatus === 'REJECTED'
+                  ? 'Verification rejected — please update your profile'
+                  : 'Under review by our admin team'}
+            </p>
+          </div>
+          <span className={`badge ${badge.className} text-xs`}>{badge.label}</span>
+        </div>
+
+        <hr className="border-neutral-100" />
+
+        <DocumentsChecklistItem documents={organizerProfile.documents} />
+
+        <hr className="border-neutral-100" />
+
+        <div className="flex items-center gap-3">
+          {organizerProfile.bankAccountLinked ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-success-500" />
+          ) : (
+            <Circle className="h-5 w-5 shrink-0 text-neutral-300" />
+          )}
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <Landmark className="h-3.5 w-3.5 text-neutral-500" />
+              <span className="text-sm font-medium text-neutral-800">Bank Account</span>
+            </div>
+            <p className="text-xs text-neutral-500">
+              {organizerProfile.bankAccountLinked
+                ? 'Connected via Razorpay Route'
+                : 'Required to receive trip payouts'}
+            </p>
+          </div>
+          {organizerProfile.bankAccountLinked ? (
+            <span className="badge badge-success text-xs">Linked</span>
+          ) : (
+            <Link
+              href="/dashboard/settings/bank"
+              className="text-xs font-medium text-primary-600 hover:text-primary-700"
+            >
+              Connect
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Edit form */}
@@ -135,6 +193,42 @@ export function OrganizerProfileCard({ organizerProfile }: OrganizerProfileCardP
             Edit Details
           </button>
         </div>
+      )}
+    </div>
+  )
+}
+
+function DocumentsChecklistItem({ documents }: { documents: OrganizerDocuments | null }) {
+  const docCount = getDocCount(documents)
+  const allUploaded = areDocsComplete(documents)
+
+  return (
+    <div className="flex items-center gap-3">
+      {allUploaded ? (
+        <CheckCircle2 className="h-5 w-5 shrink-0 text-success-500" />
+      ) : (
+        <Circle className="h-5 w-5 shrink-0 text-neutral-300" />
+      )}
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <FileText className="h-3.5 w-3.5 text-neutral-500" />
+          <span className="text-sm font-medium text-neutral-800">Verification Documents</span>
+        </div>
+        <p className="text-xs text-neutral-500">
+          {allUploaded
+            ? 'Aadhaar (both sides) and PAN card uploaded'
+            : `${docCount}/3 documents uploaded — Aadhaar (front & back) + PAN required`}
+        </p>
+      </div>
+      {allUploaded ? (
+        <span className="badge badge-success text-xs">Done</span>
+      ) : (
+        <Link
+          href="/dashboard/settings/verification"
+          className="text-xs font-medium text-primary-600 hover:text-primary-700"
+        >
+          Upload
+        </Link>
       )}
     </div>
   )

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ApprovalActionDialog } from '@/components/admin/approval-action-dialog'
 import type { OrganizerApprovalItem } from '@shared/types/admin.types'
+import type { OrganizerDocuments } from '@shared/types/user.types'
+import { getDocCount } from '@/lib/organizer-utils'
 
 interface OrganizerApprovalCardProps {
   organizer: OrganizerApprovalItem
@@ -26,8 +28,8 @@ export function OrganizerApprovalCard({ organizer, onApprove, onReject, isPendin
   const [showApprove, setShowApprove] = useState(false)
   const [showReject, setShowReject] = useState(false)
 
-  const docs = organizer.documents as Record<string, unknown> | null
-  const docCount = docs ? Object.keys(docs).length : 0
+  const docs = organizer.documents as OrganizerDocuments | null
+  const docCount = getDocCount(docs)
   const initials = organizer.user.name
     .split(' ')
     .map((n) => n[0])
@@ -79,6 +81,34 @@ export function OrganizerApprovalCard({ organizer, onApprove, onReject, isPendin
 
           {organizer.description && (
             <p className="text-sm text-neutral-500 line-clamp-2">{organizer.description}</p>
+          )}
+
+          {docCount > 0 && docs && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-neutral-500">Verification Documents</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(docs).map(([key, url]) =>
+                  url ? (
+                    <a
+                      key={key}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative overflow-hidden rounded-lg border border-neutral-200"
+                    >
+                      <img
+                        src={url}
+                        alt={key}
+                        className="h-20 w-28 object-cover transition-transform group-hover:scale-105"
+                      />
+                      <span className="absolute bottom-0 left-0 right-0 bg-neutral-900/60 px-1.5 py-0.5 text-[10px] text-white">
+                        {key === 'aadhaarFront' ? 'Aadhaar Front' : key === 'aadhaarBack' ? 'Aadhaar Back' : 'PAN Card'}
+                      </span>
+                    </a>
+                  ) : null,
+                )}
+              </div>
+            </div>
           )}
 
           {organizer.verificationStatus === 'PENDING' && (

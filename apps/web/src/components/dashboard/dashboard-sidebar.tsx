@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Star,
   UserCircle,
+  Landmark,
   Plus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ interface NavItem {
   href: string
   icon: typeof LayoutDashboard
   disabled?: boolean
+  badge?: string
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -26,20 +28,18 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
   { id: 'messages', label: 'Messages', href: '/messages', icon: MessageSquare },
   { id: 'reviews', label: 'Reviews', href: '/dashboard/reviews', icon: Star },
+  { id: 'bank', label: 'Bank Account', href: '/dashboard/settings/bank', icon: Landmark },
   { id: 'profile', label: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const { data: profile } = useProfile()
-  const orgProfileId = profile?.organizerProfile?.id
+  const bankLinked = profile?.organizerProfile?.bankAccountLinked ?? true
 
   const resolvedItems = NAV_ITEMS.map((item) => {
-    if (item.id === 'reviews') {
-      const href = orgProfileId
-        ? `/trips/organizers/${orgProfileId}`
-        : item.href
-      return { ...item, href, disabled: !orgProfileId }
+    if (item.id === 'bank' && !bankLinked) {
+      return { ...item, badge: 'Action Needed' as const }
     }
     return item
   })
@@ -71,6 +71,9 @@ export function DashboardSidebar() {
                 {item.label}
                 {item.disabled && (
                   <span className="badge badge-warning ml-auto text-[10px]">Soon</span>
+                )}
+                {item.badge && (
+                  <span className="ml-auto h-2 w-2 rounded-full bg-warning-500" title={item.badge} />
                 )}
               </Link>
             )
