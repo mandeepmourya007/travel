@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth.store'
 import { getAppRouter } from '@/lib/app-router'
 import { feLogger } from '@/lib/logger'
 import { API_TIMEOUT_MS } from '@/lib/constants'
+import { useConnectionStore } from '@/store/connection.store'
 
 declare module 'axios' {
   interface InternalAxiosRequestConfig {
@@ -120,6 +121,7 @@ function doRefresh(): Promise<string | null> {
 apiClient.interceptors.response.use(
   (response) => {
     if (response.config._showLoader) decrementLoader()
+    if (useConnectionStore.getState().isServerDown) useConnectionStore.getState().markUp()
     feLogger.debug('API Response', { status: response.status, url: response.config.url })
     return response
   },
@@ -159,12 +161,20 @@ apiClient.interceptors.response.use(
       code: error.response?.data?.error?.code,
     })
 
+    // Detect server-down: no response means the server is unreachable
+    const isNetworkError = !error.response && (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message === 'Network Error')
+    if (isNetworkError) {
+      useConnectionStore.getState().markDown()
+    }
+
     // Extract user-friendly message from API response
     const apiError: ApiError = error.response?.data || {
       success: false,
       error: {
-        code: 'NETWORK_ERROR',
-        message: error.message || 'Network error. Please check your connection.',
+        code: isNetworkError ? 'SERVER_DOWN' : 'NETWORK_ERROR',
+        message: isNetworkError
+          ? 'Server is unreachable. Please try again in a moment.'
+          : (error.message || 'Network error. Please check your connection.'),
       },
     }
 

@@ -157,4 +157,11 @@ export const adminKeys = {
     [...adminKeys.cashbackByTripBase(), filters] as const,
   cashbackUserDetail: (userId: string, filters?: CashbackHistoryFilters) =>
     [...adminKeys.cashbackByUserBase(), 'detail', userId, filters] as const,
+  docReviewDetail: (organizerId: string) =>
+    [...adminKeys.organizersBase(), 'doc-review', organizerId] as const,
+}
+
+export const docReviewKeys = {
+  all: ['docReview'] as const,
+  comments: () => [...docReviewKeys.all, 'comments'] as const,
 }
