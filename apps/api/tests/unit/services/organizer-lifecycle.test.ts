@@ -183,6 +183,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       { credit: vi.fn() } as any,
       mockLogger as any,
       mockNotificationService as any,
+      { upsert: vi.fn(), countApproved: vi.fn(), findComments: vi.fn(), addComment: vi.fn(), updateAllDocStatuses: vi.fn(), findByOrganizerId: vi.fn() } as any,
     )
   })
 

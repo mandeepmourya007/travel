@@ -14,6 +14,7 @@ const mockOrganizerProfileRepo = {
 const mockUserRepo = {
   countAll: vi.fn(),
   countByRole: vi.fn(),
+  findByIds: vi.fn(),
 }
 
 const mockBookingRepo = {
@@ -53,6 +54,15 @@ const mockWalletService = {
   credit: vi.fn(),
 }
 
+const mockDocReviewRepo = {
+  upsert: vi.fn(),
+  countApproved: vi.fn(),
+  findComments: vi.fn(),
+  addComment: vi.fn(),
+  updateAllDocStatuses: vi.fn(),
+  findByOrganizerId: vi.fn(),
+}
+
 let service: AdminService
 
 beforeEach(() => {
@@ -68,6 +78,7 @@ beforeEach(() => {
     mockWalletService as any,
     logger as any,
     mockNotificationService as any,
+    mockDocReviewRepo as any,
   )
 })
 
@@ -832,5 +843,241 @@ describe('AdminService — getCashbackUserDetail (edge cases)', () => {
     await service.getCashbackUserDetail('user_1', {})
 
     expect(mockWalletRepo.getCashbackForUserDetail).toHaveBeenCalledWith('user_1', { skip: 0, take: 20 })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// Document Review
+// ═══════════════════════════════════════════════════════
+
+describe('AdminService — reviewDocument', () => {
+  it('approves a document and auto-approves organizer when all 3 docs are approved', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.upsert.mockResolvedValue({})
+    mockDocReviewRepo.countApproved.mockResolvedValue(3)
+    mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+    const result = await service.reviewDocument('admin_1', 'org_1', 'aadhaarFront', { action: 'APPROVED' })
+
+    expect(result).toEqual({ organizerId: 'org_1', docType: 'aadhaarFront', status: 'APPROVED' })
+    expect(mockDocReviewRepo.upsert).toHaveBeenCalledWith('org_1', 'aadhaarFront', expect.objectContaining({ status: 'APPROVED', reviewedBy: 'admin_1' }))
+    expect(mockOrganizerProfileRepo.update).toHaveBeenCalledWith('org_1', { verificationStatus: 'APPROVED' })
+    expect(mockNotificationService.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'ORGANIZER_APPROVED' }))
+  })
+
+  it('approves a document but does NOT auto-approve when fewer than 3 approved', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.upsert.mockResolvedValue({})
+    mockDocReviewRepo.countApproved.mockResolvedValue(2)
+
+    await service.reviewDocument('admin_1', 'org_1', 'aadhaarFront', { action: 'APPROVED' })
+
+    expect(mockOrganizerProfileRepo.update).not.toHaveBeenCalled()
+    expect(mockNotificationService.send).not.toHaveBeenCalled()
+  })
+
+  it('rejects a document and sets REVISION_REQUIRED + sends notification', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.upsert.mockResolvedValue({})
+    mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+    const result = await service.reviewDocument('admin_1', 'org_1', 'panCard', {
+      action: 'REJECTED',
+      comment: 'Blurry image',
+    })
+
+    expect(result.status).toBe('REJECTED')
+    expect(mockOrganizerProfileRepo.update).toHaveBeenCalledWith('org_1', { verificationStatus: 'REVISION_REQUIRED' })
+    expect(mockDocReviewRepo.addComment).toHaveBeenCalledWith(expect.objectContaining({
+      organizerId: 'org_1',
+      authorRole: 'ADMIN',
+      docType: 'panCard',
+      comment: 'Blurry image',
+    }))
+    expect(mockNotificationService.send).toHaveBeenCalledWith(expect.objectContaining({ type: 'DOCUMENT_REUPLOAD_REQUIRED' }))
+  })
+
+  it('throws NotFoundError for unknown organizer', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(null)
+
+    await expect(service.reviewDocument('admin_1', 'org_99', 'aadhaarFront', { action: 'APPROVED' }))
+      .rejects.toThrow('not found')
+  })
+})
+
+describe('AdminService — addDocComment', () => {
+  it('adds a comment to the organizer review thread and notifies', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.addComment.mockResolvedValue({ id: 'comment_1', comment: 'Looks good' })
+    mockNotificationService.send.mockResolvedValue(undefined)
+
+    const result = await service.addDocComment('admin_1', 'ADMIN', 'org_1', { comment: 'Looks good' })
+
+    expect(result.id).toBe('comment_1')
+    expect(mockDocReviewRepo.addComment).toHaveBeenCalledWith(expect.objectContaining({
+      organizerId: 'org_1',
+      authorId: 'admin_1',
+      authorRole: 'ADMIN',
+      comment: 'Looks good',
+    }))
+    expect(mockNotificationService.send).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user_1',
+      type: 'ADMIN_SUPPORT_MESSAGE',
+      title: 'New comment on your document review',
+    }))
+  })
+
+  it('throws NotFoundError for unknown organizer', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(null)
+
+    await expect(service.addDocComment('admin_1', 'ADMIN', 'org_99', { comment: 'test' }))
+      .rejects.toThrow('not found')
+  })
+})
+
+describe('AdminService — reviewDocument (edge cases)', () => {
+  it('rejects a document without comment — does NOT call addComment', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.upsert.mockResolvedValue({})
+    mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+    await service.reviewDocument('admin_1', 'org_1', 'aadhaarBack', { action: 'REJECTED' })
+
+    expect(mockDocReviewRepo.addComment).not.toHaveBeenCalled()
+    expect(mockOrganizerProfileRepo.update).toHaveBeenCalledWith('org_1', { verificationStatus: 'REVISION_REQUIRED' })
+    expect(mockNotificationService.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'DOCUMENT_REUPLOAD_REQUIRED',
+        body: expect.stringContaining('Please re-upload a clearer document'),
+      }),
+    )
+  })
+
+  it('approves a document and adds comment when provided', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.upsert.mockResolvedValue({})
+    mockDocReviewRepo.countApproved.mockResolvedValue(1)
+
+    await service.reviewDocument('admin_1', 'org_1', 'aadhaarFront', {
+      action: 'APPROVED',
+      comment: 'Clear document',
+    })
+
+    expect(mockDocReviewRepo.addComment).toHaveBeenCalledWith(expect.objectContaining({
+      organizerId: 'org_1',
+      authorRole: 'ADMIN',
+      comment: 'Clear document',
+    }))
+  })
+})
+
+describe('AdminService — addDocComment (edge cases)', () => {
+  it('does NOT notify when comment is from ORGANIZER role', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.addComment.mockResolvedValue({ id: 'c_2', comment: 'Updated doc' })
+
+    await service.addDocComment('user_1', 'ORGANIZER', 'org_1', { comment: 'Updated doc' })
+
+    expect(mockNotificationService.send).not.toHaveBeenCalled()
+  })
+
+  it('passes docType and attachmentUrl through to repo', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.addComment.mockResolvedValue({ id: 'c_3' })
+
+    await service.addDocComment('admin_1', 'ADMIN', 'org_1', {
+      comment: 'See attachment',
+      docType: 'panCard',
+      attachmentUrl: 'https://example.com/ref.jpg',
+    })
+
+    expect(mockDocReviewRepo.addComment).toHaveBeenCalledWith(expect.objectContaining({
+      docType: 'panCard',
+      attachmentUrl: 'https://example.com/ref.jpg',
+    }))
+  })
+})
+
+describe('AdminService — approveOrReject doc status sync', () => {
+  it('bulk-approves all doc reviews when organizer is approved', async () => {
+    const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
+    mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
+    mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+    await service.approveOrReject('org_1', { action: 'APPROVED' })
+
+    expect(mockDocReviewRepo.updateAllDocStatuses).toHaveBeenCalledWith('org_1', 'APPROVED')
+  })
+
+  it('bulk-rejects all doc reviews when organizer is rejected', async () => {
+    const profile = makeOrganizerProfile({ verificationStatus: 'PENDING' })
+    mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
+    mockOrganizerProfileRepo.update.mockResolvedValue({})
+
+    await service.approveOrReject('org_1', { action: 'REJECTED', reason: 'Fake docs' })
+
+    expect(mockDocReviewRepo.updateAllDocStatuses).toHaveBeenCalledWith('org_1', 'REJECTED')
+  })
+})
+
+describe('AdminService — getDocReviewDetail', () => {
+  it('returns organizer profile with doc reviews and resolved author names', async () => {
+    const profile = makeOrganizerProfile({
+      documentReviews: [
+        { id: 'dr_1', docType: 'aadhaarFront', status: 'APPROVED', currentUrl: 'url1', reviewedAt: new Date(), reviewedBy: 'admin_1' },
+      ],
+    })
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(profile)
+    mockDocReviewRepo.findComments.mockResolvedValue({
+      data: [{
+        id: 'c_1', authorId: 'admin_1', authorRole: 'ADMIN', docType: 'aadhaarFront',
+        comment: 'Verified', attachmentUrl: null, createdAt: new Date('2026-05-10'),
+      }],
+      total: 1,
+    })
+    mockUserRepo.findByIds.mockResolvedValue([{ id: 'admin_1', name: 'Super Admin' }])
+
+    const result = await service.getDocReviewDetail('org_1')
+
+    expect(result.reviewComments).toHaveLength(1)
+    expect(result.reviewComments[0].comment).toBe('Verified')
+    expect(result.reviewComments[0].authorName).toBe('Super Admin')
+    expect(result.reviewComments[0].createdAt).toBe('2026-05-10T00:00:00.000Z')
+    expect(mockUserRepo.findByIds).toHaveBeenCalledWith(['admin_1'])
+  })
+
+  it('falls back to role-based author name when user not found in DB', async () => {
+    const profile = makeOrganizerProfile()
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(profile)
+    mockDocReviewRepo.findComments.mockResolvedValue({
+      data: [
+        { id: 'c_1', organizerId: 'org_1', authorId: 'unknown_admin', authorRole: 'ADMIN', docType: null, comment: 'Check', attachmentUrl: null, createdAt: new Date('2026-05-10') },
+        { id: 'c_2', organizerId: 'org_1', authorId: 'unknown_org', authorRole: 'ORGANIZER', docType: null, comment: 'Done', attachmentUrl: null, createdAt: new Date('2026-05-11') },
+      ],
+      total: 2,
+    })
+    mockUserRepo.findByIds.mockResolvedValue([])
+
+    const result = await service.getDocReviewDetail('org_1')
+
+    expect(result.reviewComments[0].authorName).toBe('Admin')
+    expect(result.reviewComments[1].authorName).toBe('Organizer')
+  })
+
+  it('returns empty reviewComments when no comments exist', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeOrganizerProfile())
+    mockDocReviewRepo.findComments.mockResolvedValue({ data: [], total: 0 })
+    mockUserRepo.findByIds.mockResolvedValue([])
+
+    const result = await service.getDocReviewDetail('org_1')
+
+    expect(result.reviewComments).toEqual([])
+    expect(mockUserRepo.findByIds).toHaveBeenCalledWith([])
+  })
+
+  it('throws NotFoundError for unknown organizer', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(null)
+
+    await expect(service.getDocReviewDetail('org_99')).rejects.toThrow('not found')
   })
 })

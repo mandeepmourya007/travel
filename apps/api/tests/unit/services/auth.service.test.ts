@@ -65,6 +65,17 @@ function createMockWalletRepo() {
   }
 }
 
+function createMockDocReviewRepo() {
+  return {
+    upsert: vi.fn(),
+    countApproved: vi.fn(),
+    findComments: vi.fn(),
+    addComment: vi.fn(),
+    updateAllDocStatuses: vi.fn(),
+    findByOrganizerId: vi.fn(),
+  }
+}
+
 const JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters'
 
 const testUser = {
@@ -90,6 +101,7 @@ describe('AuthService', () => {
   let refreshTokenRepo: ReturnType<typeof createMockRefreshTokenRepo>
   let organizerProfileRepo: ReturnType<typeof createMockOrganizerProfileRepo>
   let walletRepo: ReturnType<typeof createMockWalletRepo>
+  let docReviewRepo: ReturnType<typeof createMockDocReviewRepo>
 
   let loginAttemptTracker: ReturnType<typeof createMockLoginAttemptTracker>
 
@@ -99,6 +111,7 @@ describe('AuthService', () => {
     refreshTokenRepo = createMockRefreshTokenRepo()
     organizerProfileRepo = createMockOrganizerProfileRepo()
     walletRepo = createMockWalletRepo()
+    docReviewRepo = createMockDocReviewRepo()
     loginAttemptTracker = createMockLoginAttemptTracker()
     service = new AuthService(
       userRepo as any,
@@ -109,6 +122,7 @@ describe('AuthService', () => {
       mockLogger,
       'test-google-client-id',
       loginAttemptTracker as any,
+      docReviewRepo as any,
     )
   })
 
@@ -806,6 +820,178 @@ describe('AuthService', () => {
 
       const updateArg = organizerProfileRepo.update.mock.calls[0][1] as Record<string, unknown>
       expect(updateArg).not.toHaveProperty('documents')
+    })
+
+    it('should upsert DocumentReview rows when documents are re-uploaded', async () => {
+      const profileWithDocs = {
+        ...orgProfile,
+        documents: { aadhaarFront: 'https://old.com/front.jpg' },
+      }
+      organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
+      organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
+      docReviewRepo.upsert.mockResolvedValue({})
+
+      await service.updateOrganizerProfile('user-org', {
+        documents: { aadhaarFront: 'https://new.com/front.jpg', panCard: 'https://new.com/pan.jpg' },
+      })
+
+      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(2)
+      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
+        currentUrl: 'https://new.com/front.jpg',
+        status: 'PENDING',
+      }))
+      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'panCard', expect.objectContaining({
+        currentUrl: 'https://new.com/pan.jpg',
+        status: 'PENDING',
+      }))
+    })
+
+    it('should not upsert DocumentReview for doc types not in the upload', async () => {
+      const profileWithDocs = { ...orgProfile, documents: {} }
+      organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
+      organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
+
+      await service.updateOrganizerProfile('user-org', {
+        documents: { aadhaarFront: 'https://new.com/front.jpg' },
+      })
+
+      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(1)
+      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
+        status: 'PENDING',
+      }))
+    })
+  })
+
+  // ── addOrganizerDocComment ──────────────────────────
+
+  describe('addOrganizerDocComment', () => {
+    const orgProfile = { id: 'org-1', userId: 'user-org' }
+
+    it('should add a comment to the organizer doc review thread', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      docReviewRepo.addComment.mockResolvedValue({ id: 'comment_1', comment: 'Please check my Aadhaar' })
+
+      const result = await service.addOrganizerDocComment('user-org', {
+        comment: 'Please check my Aadhaar',
+        docType: 'aadhaarFront',
+      })
+
+      expect(result.id).toBe('comment_1')
+      expect(docReviewRepo.addComment).toHaveBeenCalledWith(expect.objectContaining({
+        organizerId: 'org-1',
+        authorId: 'user-org',
+        authorRole: 'ORGANIZER',
+        comment: 'Please check my Aadhaar',
+        docType: 'aadhaarFront',
+      }))
+    })
+
+    it('should throw NotFoundError when organizer profile not found', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(service.addOrganizerDocComment('user-1', { comment: 'test' }))
+        .rejects.toThrow(NotFoundError)
+    })
+  })
+
+  // ── getOrganizerDocComments ──────────────────────────
+
+  describe('getOrganizerDocComments', () => {
+    const orgProfile = { id: 'org-1', userId: 'user-org' }
+
+    it('should return comments for the organizer', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      docReviewRepo.findComments.mockResolvedValue({
+        data: [
+          { id: 'c_1', authorId: 'admin_1', authorRole: 'ADMIN', comment: 'Re-upload front', createdAt: new Date() },
+          { id: 'c_2', authorId: 'user-org', authorRole: 'ORGANIZER', comment: 'Done', createdAt: new Date() },
+        ],
+        total: 2,
+      })
+
+      const result = await service.getOrganizerDocComments('user-org')
+
+      expect(result).toHaveLength(2)
+      expect(result[0].comment).toBe('Re-upload front')
+      expect(docReviewRepo.findComments).toHaveBeenCalledWith('org-1', { skip: 0, take: 100 })
+    })
+
+    it('should throw NotFoundError when organizer profile not found', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(service.getOrganizerDocComments('user-1'))
+        .rejects.toThrow(NotFoundError)
+    })
+
+    it('should return empty array when no comments exist', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue({ id: 'org-1', userId: 'user-org' })
+      docReviewRepo.findComments.mockResolvedValue({ data: [], total: 0 })
+
+      const result = await service.getOrganizerDocComments('user-org')
+
+      expect(result).toEqual([])
+    })
+  })
+
+  // ── updateOrganizerProfile doc review edge cases ────
+
+  describe('updateOrganizerProfile — doc review edge cases', () => {
+    const orgProfile = {
+      id: 'org-1',
+      userId: 'user-org',
+      businessName: 'Test',
+      description: 'desc',
+      slug: 'test',
+      documents: { aadhaarFront: 'https://old.com/front.jpg' },
+    }
+
+    it('should skip empty string doc URLs — no upsert for them', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      organizerProfileRepo.update.mockResolvedValue(orgProfile)
+
+      await service.updateOrganizerProfile('user-org', {
+        documents: { aadhaarFront: 'https://new.com/front.jpg', aadhaarBack: '', panCard: '' },
+      })
+
+      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(1)
+      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
+        currentUrl: 'https://new.com/front.jpg',
+        status: 'PENDING',
+      }))
+    })
+  })
+
+  // ── docReviewRepo not configured ────────────────────
+
+  describe('doc review — repo not configured', () => {
+    let serviceWithoutDocRepo: InstanceType<typeof AuthService>
+
+    beforeEach(() => {
+      serviceWithoutDocRepo = new AuthService(
+        userRepo as any,
+        refreshTokenRepo as any,
+        organizerProfileRepo as any,
+        walletRepo as any,
+        JWT_SECRET,
+        mockLogger,
+        'test-google-client-id',
+        loginAttemptTracker as any,
+        null,
+      )
+    })
+
+    it('addOrganizerDocComment throws when docReviewRepo is null', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue({ id: 'org-1', userId: 'user-org' })
+
+      await expect(serviceWithoutDocRepo.addOrganizerDocComment('user-org', { comment: 'test' }))
+        .rejects.toThrow('DocumentReviewRepository not configured')
+    })
+
+    it('getOrganizerDocComments throws when docReviewRepo is null', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue({ id: 'org-1', userId: 'user-org' })
+
+      await expect(serviceWithoutDocRepo.getOrganizerDocComments('user-org'))
+        .rejects.toThrow('DocumentReviewRepository not configured')
     })
   })
 })
