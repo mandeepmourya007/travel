@@ -39,9 +39,17 @@ export interface UserProfileResponse {
   organizerProfile: OrganizerProfileResponse | null
 }
 
+/** Structured verification documents uploaded by the organizer */
+export interface OrganizerDocuments {
+  aadhaarFront?: string
+  aadhaarBack?: string
+  panCard?: string
+}
+
 /** Organizer-specific fields in profile response */
 export interface OrganizerProfileResponse {
   id: string
+  slug: string
   businessName: string
   description: string | null
   verificationStatus: VerificationStatus
@@ -49,6 +57,7 @@ export interface OrganizerProfileResponse {
   totalReviews: number
   totalTripsCompleted: number
   bankAccountLinked: boolean
+  documents: OrganizerDocuments | null
 }
 
 /** DTO for PATCH /auth/profile */
@@ -61,4 +70,19 @@ export interface UpdateUserProfileDto {
 export interface UpdateOrganizerProfileDto {
   businessName?: string
   description?: string
+  documents?: OrganizerDocuments
+}
+
+/** DTO for POST /auth/profile/organizer/bank — Razorpay Route linked account */
+export interface ConnectBankAccountDto {
+  accountHolderName: string
+  ifscCode: string
+  accountNumber: string
+  beneficiaryName: string
+}
+
+/** Response from POST /auth/profile/organizer/bank */
+export interface ConnectBankAccountResponse {
+  bankAccountLinked: boolean
+  maskedAccountNumber: string
 }

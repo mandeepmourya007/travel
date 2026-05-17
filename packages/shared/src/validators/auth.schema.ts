@@ -73,7 +73,24 @@ export const googleAuthSchema = z.object({
   idToken: z.string().min(1, 'ID token is required'),
 })
 
+export const organizerDocumentsSchema = z.object({
+  aadhaarFront: z.string().url('Invalid Aadhaar front URL').or(z.literal('')).optional(),
+  aadhaarBack: z.string().url('Invalid Aadhaar back URL').or(z.literal('')).optional(),
+  panCard: z.string().url('Invalid PAN card URL').or(z.literal('')).optional(),
+})
+
 export const updateOrganizerProfileSchema = z.object({
   businessName: z.string().min(2, 'Business name must be at least 2 characters').max(100).trim().optional(),
   description: z.string().max(500, 'Description too long').trim().optional(),
+  documents: organizerDocumentsSchema.optional(),
+})
+
+/** IFSC format: 4 uppercase letters + 0 + 6 alphanumeric chars */
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
+
+export const connectBankAccountSchema = z.object({
+  accountHolderName: z.string().trim().min(2, 'Account holder name is required').max(120),
+  ifscCode: z.string().trim().toUpperCase().regex(IFSC_REGEX, 'Invalid IFSC code (e.g. SBIN0001234)'),
+  accountNumber: z.string().trim().min(9, 'Account number too short').max(18, 'Account number too long').regex(/^\d+$/, 'Account number must be numeric'),
+  beneficiaryName: z.string().trim().min(2, 'Beneficiary name is required').max(120),
 })

@@ -1,0 +1,5 @@
+export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
+export const REQUIRED_DOC_COUNT = 3
+
+export const ALLOWED_UPLOAD_FOLDERS = ['trips', 'itinerary-docs', 'vehicles', 'verification-docs'] as const
+export type UploadFolder = (typeof ALLOWED_UPLOAD_FOLDERS)[number]

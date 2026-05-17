@@ -1,5 +1,6 @@
 import { z } from 'zod'
+import { ALLOWED_UPLOAD_FOLDERS } from '../constants/upload'
 
 export const uploadSignatureSchema = z.object({
-  folder: z.enum(['trips', 'itinerary-docs', 'vehicles']),
+  folder: z.enum(ALLOWED_UPLOAD_FOLDERS),
 })
