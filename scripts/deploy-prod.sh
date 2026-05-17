@@ -24,6 +24,9 @@ if ! docker compose version >/dev/null 2>&1; then
   exit 1
 fi
 
+# ── Seed prompt (ask early so user isn't blocked later) ──
+read -rp "🌱 Run database seed? (y/n) [n]: " RUN_SEED
+
 # ── Check/Create Swap (next build needs ~2GB RAM) ────
 if command -v free &> /dev/null; then
   TOTAL_RAM_MB=$(free -m | awk '/Mem:/ {print $2}')
@@ -317,9 +320,8 @@ echo "🔧 Running Prisma migrations..."
 $DC --profile migrate run --rm migrate
 echo "  ✅ Migrations complete"
 
-# ── Seed (optional — prompted) ────────────────────
+# ── Seed (optional — answered at start) ────────────────────
 echo ""
-read -rp "🌱 Run database seed? (y/n) [n]: " RUN_SEED
 if [[ "$RUN_SEED" == "y" || "$RUN_SEED" == "Y" ]]; then
   echo "🌱 Seeding database..."
   $DC --profile seed run --rm seed \
