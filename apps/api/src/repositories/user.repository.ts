@@ -20,6 +20,14 @@ export class UserRepository {
     return this.prisma.user.findUnique({ where: { phone } })
   }
 
+  async findByIds(ids: string[]) {
+    if (ids.length === 0) return []
+    return this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true },
+    })
+  }
+
   async create(data: {
     name: string
     email?: string
@@ -83,6 +91,10 @@ export class UserRepository {
             bankAccountLinked: true,
             documents: true,
             isDeleted: true,
+            documentReviews: {
+              select: { id: true, docType: true, status: true, currentUrl: true, reviewedAt: true, reviewedBy: true },
+              orderBy: { docType: 'asc' as const },
+            },
           },
         },
       },

@@ -95,6 +95,20 @@ export class AuthController {
     res.json({ success: true, data: result })
   })
 
+  /** POST /auth/profile/organizer/doc-comments — Bearer (ORGANIZER only) */
+  addOrganizerDocComment = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const comment = await this.authService.addOrganizerDocComment(req.user.userId, req.body)
+    res.status(201).json({ success: true, data: comment })
+  })
+
+  /** GET /auth/profile/organizer/doc-comments — Bearer (ORGANIZER only) */
+  getOrganizerDocComments = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const comments = await this.authService.getOrganizerDocComments(req.user.userId)
+    res.json({ success: true, data: comments })
+  })
+
   /** POST /auth/google — public */
   googleAuth = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.authService.googleAuth(req.body, {

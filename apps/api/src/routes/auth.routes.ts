@@ -3,6 +3,7 @@ import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { validate } from '../middleware/validate.middleware'
 import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema, connectBankAccountSchema } from '@shared/validators/auth.schema'
+import { addDocCommentSchema } from '@shared/validators/admin.schema'
 import { otpRateLimit } from '../middleware/rate-limit.middleware'
 
 export function createAuthRoutes(
@@ -35,6 +36,21 @@ export function createAuthRoutes(
     requireRole('ORGANIZER'),
     validate(connectBankAccountSchema),
     authController.connectBankAccount,
+  )
+
+  router.post(
+    '/profile/organizer/doc-comments',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(addDocCommentSchema),
+    authController.addOrganizerDocComment,
+  )
+
+  router.get(
+    '/profile/organizer/doc-comments',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    authController.getOrganizerDocComments,
   )
 
   router.post('/google', validate(googleAuthSchema), authController.googleAuth)

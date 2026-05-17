@@ -72,6 +72,7 @@ import { SmsNotificationProvider } from '../providers/sms-notification.provider'
 import { PushNotificationProvider } from '../providers/push-notification.provider'
 import { NotificationController } from '../controllers/notification.controller'
 import { createNotificationRoutes } from '../routes/notification.routes'
+import { DocumentReviewRepository } from '../repositories/document-review.repository'
 import { VehicleRepository } from '../repositories/vehicle.repository'
 import { VehicleService } from '../services/vehicle.service'
 import { VehicleController } from '../controllers/vehicle.controller'
@@ -105,6 +106,7 @@ const conversationRepo = new ConversationRepository(prisma)
 const messageRepo = new MessageRepository(prisma)
 const notificationRepo = new NotificationRepository(prisma)
 const vehicleRepo = new VehicleRepository(prisma)
+const docReviewRepo = new DocumentReviewRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
@@ -123,6 +125,7 @@ export const authService = new AuthService(
   logger,
   env.GOOGLE_CLIENT_ID,
   loginAttemptTracker,
+  docReviewRepo,
 )
 
 const destinationService = new DestinationService(destinationRepo, tripRepo, logger, cacheService)
@@ -185,6 +188,7 @@ const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
   paymentTxRepo, messageRepo,
   walletRepo, walletService, logger, notificationService,
+  docReviewRepo,
 )
 
 const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)

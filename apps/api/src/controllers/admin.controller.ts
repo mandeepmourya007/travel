@@ -4,6 +4,7 @@ import type { AdminService } from '../services/admin.service'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
+  ReviewDocDto, AddDocCommentDto,
 } from '@shared/types/admin.types'
 
 export class AdminController {
@@ -100,5 +101,35 @@ export class AdminController {
       req.query as CashbackHistoryFilters,
     )
     res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  // ─── Document Review ───────────────────────────────
+
+  /** PATCH /admin/organizers/:id/documents/:docType/review */
+  reviewDocument = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.reviewDocument(
+      req.user!.userId,
+      req.params.id,
+      req.params.docType,
+      req.body as ReviewDocDto,
+    )
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /admin/organizers/:id/comments */
+  addDocComment = asyncHandler(async (req: Request, res: Response) => {
+    const comment = await this.adminService.addDocComment(
+      req.user!.userId,
+      'ADMIN',
+      req.params.id,
+      req.body as AddDocCommentDto,
+    )
+    res.status(201).json({ success: true, data: comment })
+  })
+
+  /** GET /admin/organizers/:id/documents */
+  getDocReviewDetail = asyncHandler(async (req: Request, res: Response) => {
+    const detail = await this.adminService.getDocReviewDetail(req.params.id)
+    res.json({ success: true, data: detail })
   })
 }

@@ -106,6 +106,10 @@ export class OrganizerProfileRepository {
           user: {
             select: { id: true, name: true, email: true, avatarUrl: true },
           },
+          documentReviews: {
+            select: { id: true, docType: true, status: true, currentUrl: true, reviewedAt: true, reviewedBy: true },
+            orderBy: { docType: 'asc' },
+          },
         },
       }),
       this.prisma.organizerProfile.count({ where }),
@@ -137,6 +141,13 @@ export class OrganizerProfileRepository {
         updatedAt: true,
         user: {
           select: { id: true, name: true, email: true, phone: true, avatarUrl: true, createdAt: true },
+        },
+        documentReviews: {
+          select: { id: true, docType: true, status: true, currentUrl: true, reviewedAt: true, reviewedBy: true },
+          orderBy: { docType: 'asc' },
+        },
+        reviewComments: {
+          orderBy: { createdAt: 'asc' },
         },
       },
     })

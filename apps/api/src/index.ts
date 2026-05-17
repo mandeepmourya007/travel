@@ -30,9 +30,19 @@ const server = httpServer.listen(PORT, () => {
 const stopCrons = startCronJobs(cronDeps)
 
 // ── Graceful Shutdown ─────────────────────────────────
+const SHUTDOWN_TIMEOUT_MS = 5000
+
 async function shutdown(signal: string) {
   logger.info({ signal }, 'Shutdown signal received — cleaning up')
+
+  const forceExit = setTimeout(() => {
+    logger.warn('Graceful shutdown timed out — forcing exit')
+    process.exit(1)
+  }, SHUTDOWN_TIMEOUT_MS)
+  forceExit.unref()
+
   stopCrons()
+  io.close()
   await new Promise<void>((resolve) => server.close(() => resolve()))
   if (redis) await redis.quit().catch(() => {})
   await basePrisma.$disconnect().catch(() => {})

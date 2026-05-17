@@ -8,15 +8,19 @@ import type { MessageRepository } from '../repositories/message.repository'
 import type { WalletRepository } from '../repositories/wallet.repository'
 import type { WalletService } from './wallet.service'
 import type { NotificationService } from './notification.service'
+import type { DocumentReviewRepository, DocumentReviewCommentRow } from '../repositories/document-review.repository'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
+  ReviewDocDto, AddDocCommentDto,
 } from '@shared/types/admin.types'
+import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { paginate } from '../utils/constants'
+
 
 export class AdminService {
   constructor(
@@ -30,6 +34,7 @@ export class AdminService {
     private walletService: WalletService,
     private logger: Logger,
     private notificationService: NotificationService,
+    private docReviewRepo: DocumentReviewRepository,
   ) {}
 
   // ─── Organizer Approvals ──────────────────────────────
@@ -81,6 +86,13 @@ export class AdminService {
     await this.organizerProfileRepo.update(profileId, {
       verificationStatus: dto.action,
     })
+
+    // Sync DocumentReview rows with bulk action
+    if (dto.action === VERIFICATION_STATUS.APPROVED) {
+      await this.docReviewRepo.updateAllDocStatuses(profileId, 'APPROVED')
+    } else if (dto.action === VERIFICATION_STATUS.REJECTED) {
+      await this.docReviewRepo.updateAllDocStatuses(profileId, 'REJECTED')
+    }
 
     // Create notification for the organizer
     const isApproved = dto.action === VERIFICATION_STATUS.APPROVED
@@ -285,6 +297,128 @@ export class AdminService {
       { skip: pg.skip, take: pg.take },
     )
     return { data, pagination: pg.meta(total) }
+  }
+
+  // ─── Document Review ──────────────────────────────────
+
+  /**
+   * Review a single document for an organizer (approve/reject).
+   * Auto-approves the organizer when all 3 docs are APPROVED.
+   * Sets REVISION_REQUIRED when a doc is rejected.
+   */
+  async reviewDocument(adminUserId: string, organizerId: string, docType: string, dto: ReviewDocDto) {
+    const profile = await this.organizerProfileRepo.findById(organizerId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const isApproved = dto.action === 'APPROVED'
+
+    await this.docReviewRepo.upsert(organizerId, docType, {
+      status: dto.action,
+      reviewedAt: new Date(),
+      reviewedBy: adminUserId,
+    })
+
+    // Auto-add comment if provided
+    if (dto.comment) {
+      await this.docReviewRepo.addComment({
+        organizerId,
+        authorId: adminUserId,
+        authorRole: 'ADMIN',
+        docType,
+        comment: dto.comment,
+      })
+    }
+
+    if (isApproved) {
+      // Check if all docs are approved → auto-approve organizer
+      const approvedCount = await this.docReviewRepo.countApproved(organizerId)
+      if (approvedCount >= REQUIRED_DOC_COUNT) {
+        await this.organizerProfileRepo.update(organizerId, {
+          verificationStatus: VERIFICATION_STATUS.APPROVED,
+        })
+        this.notificationService.send({
+          userId: profile.userId,
+          type: NOTIFICATION_TYPE.ORGANIZER_APPROVED,
+          title: 'Your organizer profile has been approved!',
+          body: 'All documents verified. You can now create and publish trips on Safarnama.',
+          data: { profileId: organizerId },
+        }).catch((err) => this.logger.error({ err, organizerId }, 'Failed to send approval notification'))
+      }
+    } else {
+      // Rejected → set REVISION_REQUIRED + notify
+      await this.organizerProfileRepo.update(organizerId, {
+        verificationStatus: 'REVISION_REQUIRED',
+      })
+      const docLabel = DOC_LABELS[docType as keyof typeof DOC_LABELS] ?? docType
+      this.notificationService.send({
+        userId: profile.userId,
+        type: NOTIFICATION_TYPE.DOCUMENT_REUPLOAD_REQUIRED,
+        title: 'Document requires re-upload',
+        body: dto.comment
+          ? `Your ${docLabel} was rejected. Reason: ${dto.comment}. Please re-upload a clearer document.`
+          : `Your ${docLabel} was rejected. Please re-upload a clearer document.`,
+        data: { organizerId, docType },
+      }).catch((err) => this.logger.error({ err, organizerId }, 'Failed to send doc reupload notification'))
+    }
+
+    this.logger.info({ adminUserId, organizerId, docType, action: dto.action, comment: dto.comment ?? null }, 'Document reviewed')
+    return { organizerId, docType, status: dto.action }
+  }
+
+  /** Add a comment to the organizer's document review thread. */
+  async addDocComment(userId: string, role: string, organizerId: string, dto: AddDocCommentDto) {
+    const profile = await this.organizerProfileRepo.findById(organizerId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const comment = await this.docReviewRepo.addComment({
+      organizerId,
+      authorId: userId,
+      authorRole: role,
+      docType: dto.docType,
+      comment: dto.comment,
+      attachmentUrl: dto.attachmentUrl,
+    })
+
+    // Notify organizer about the admin comment
+    if (role === 'ADMIN') {
+      this.notificationService.send({
+        userId: profile.userId,
+        type: NOTIFICATION_TYPE.ADMIN_SUPPORT_MESSAGE,
+        title: 'New comment on your document review',
+        body: dto.comment.length > 100 ? `${dto.comment.slice(0, 100)}...` : dto.comment,
+        data: { organizerId },
+      }).catch((err) => this.logger.error({ err, organizerId }, 'Failed to send doc comment notification'))
+    }
+
+    return comment
+  }
+
+  /** Full document review detail: organizer + doc reviews + comments. */
+  async getDocReviewDetail(organizerId: string) {
+    const profile = await this.organizerProfileRepo.findByIdAdmin(organizerId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const comments = await this.docReviewRepo.findComments(organizerId, { skip: 0, take: 100 })
+
+    // Resolve author names from User table
+    const commentData = comments.data as DocumentReviewCommentRow[]
+    const authorIds = Array.from(new Set(commentData.map((c) => c.authorId)))
+    const authors = await this.userRepo.findByIds(authorIds)
+    const authorMap = new Map(authors.map((a) => [a.id, a.name]))
+
+    return {
+      ...profile,
+      reviewComments: commentData.map((c) => ({
+        id: c.id,
+        authorId: c.authorId,
+        authorName: authorMap.get(c.authorId) ?? (c.authorRole === 'ADMIN' ? 'Admin' : 'Organizer'),
+        authorRole: c.authorRole,
+        docType: c.docType,
+        comment: c.comment,
+        attachmentUrl: c.attachmentUrl,
+        createdAt: c.createdAt.toISOString(),
+      })),
+    }
   }
 
   // ─── Private Helpers ────────────────────────────────

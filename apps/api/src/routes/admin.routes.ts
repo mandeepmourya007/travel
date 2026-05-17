@@ -10,6 +10,9 @@ import {
   cashbackTripFiltersSchema,
   issueCashbackSchema,
   cashbackHistoryFiltersSchema,
+  reviewDocSchema,
+  docTypeParamSchema,
+  addDocCommentSchema,
 } from '@shared/validators/admin.schema'
 
 export function createAdminRoutes(
@@ -38,6 +41,25 @@ export function createAdminRoutes(
     '/organizers/:id/status',
     validate(approveRejectSchema, 'body'),
     adminController.approveOrReject,
+  )
+
+  // ─── Document Review ────────────────────────────────
+  router.get(
+    '/organizers/:id/documents',
+    adminController.getDocReviewDetail,
+  )
+
+  router.patch(
+    '/organizers/:id/documents/:docType/review',
+    validate(docTypeParamSchema, 'params'),
+    validate(reviewDocSchema, 'body'),
+    adminController.reviewDocument,
+  )
+
+  router.post(
+    '/organizers/:id/comments',
+    validate(addDocCommentSchema, 'body'),
+    adminController.addDocComment,
   )
 
   // ─── Platform Stats ───────────────────────────────────

@@ -11,6 +11,8 @@ import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { WalletRepository } from '../repositories/wallet.repository'
+import { DocumentReviewRepository } from '../repositories/document-review.repository'
+import { DOC_TYPES } from '@shared/constants/upload'
 import { AuthError, ConflictError, NotFoundError, PaymentError } from '../errors/app-error'
 import { env } from '../config/env'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
@@ -22,6 +24,15 @@ import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 /** Prisma unique constraint violation code */
 const PRISMA_UNIQUE_VIOLATION = 'P2002'
 
+interface DocumentReviewRow {
+  id: string
+  docType: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  currentUrl: string | null
+  reviewedAt: Date | null
+  reviewedBy: string | null
+}
+
 export class AuthService {
   constructor(
     private userRepo: UserRepository,
@@ -32,6 +43,7 @@ export class AuthService {
     private logger: Logger,
     private googleClientId?: string,
     private loginAttemptTracker?: LoginAttemptTracker | null,
+    private docReviewRepo?: DocumentReviewRepository | null,
   ) {}
 
   private googleOAuthClient?: import('google-auth-library').OAuth2Client
@@ -277,6 +289,10 @@ export class AuthService {
           totalTripsCompleted: user.organizerProfile.totalTripsCompleted,
           bankAccountLinked: user.organizerProfile.bankAccountLinked,
           documents: (user.organizerProfile.documents as Record<string, string> | null) ?? null,
+          documentReviews: ((user.organizerProfile as { documentReviews?: DocumentReviewRow[] }).documentReviews ?? []).map((dr) => ({
+            ...dr,
+            reviewedAt: dr.reviewedAt?.toISOString() ?? null,
+          })),
         }
       : null
 
@@ -313,6 +329,20 @@ export class AuthService {
         profile.documents as Record<string, string> | null,
         documents,
       )
+      // Upsert DocumentReview rows — reset status to PENDING for re-uploaded docs
+      if (this.docReviewRepo) {
+        for (const field of DOC_TYPES) {
+          const url = documents[field]
+          if (url && url !== '') {
+            await this.docReviewRepo.upsert(profile.id, field, {
+              currentUrl: url,
+              status: 'PENDING',
+              reviewedAt: undefined,
+              reviewedBy: undefined,
+            })
+          }
+        }
+      }
     }
     if (dto.businessName && dto.businessName !== profile.businessName) {
       updateData.slug = await uniqueSlug(dto.businessName, (s) => this.organizerProfileRepo.slugExists(s))
@@ -332,6 +362,41 @@ export class AuthService {
     this.logger.info({ userId }, 'Organizer profile updated')
 
     return { businessName: updated.businessName, description: updated.description }
+  }
+
+  /**
+   * Adds a comment from the organizer to their own document review thread.
+   * @throws {NotFoundError} OrganizerProfile not found
+   */
+  async addOrganizerDocComment(
+    userId: string,
+    dto: { docType?: string; comment: string; attachmentUrl?: string },
+  ) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+    if (!this.docReviewRepo) throw new Error('DocumentReviewRepository not configured')
+
+    return this.docReviewRepo.addComment({
+      organizerId: profile.id,
+      authorId: userId,
+      authorRole: 'ORGANIZER',
+      docType: dto.docType,
+      comment: dto.comment,
+      attachmentUrl: dto.attachmentUrl,
+    })
+  }
+
+  /**
+   * Fetches comments for the organizer's document review thread.
+   * @throws {NotFoundError} OrganizerProfile not found
+   */
+  async getOrganizerDocComments(userId: string) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+    if (!this.docReviewRepo) throw new Error('DocumentReviewRepository not configured')
+
+    const { data } = await this.docReviewRepo.findComments(profile.id, { skip: 0, take: 100 })
+    return data
   }
 
   /**
