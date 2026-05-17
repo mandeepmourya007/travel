@@ -11,6 +11,7 @@ import type { VerificationStatusFilter } from '@shared/types/admin.types'
 const STATUS_TABS: Array<{ value: string; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'PENDING', label: 'Pending' },
+  { value: 'REVISION_REQUIRED', label: 'Revision Required' },
   { value: 'APPROVED', label: 'Approved' },
   { value: 'REJECTED', label: 'Rejected' },
 ]

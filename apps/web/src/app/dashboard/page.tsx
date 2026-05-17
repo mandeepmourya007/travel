@@ -6,10 +6,12 @@ import { useAuthStore } from '@/store/auth.store'
 import { useOrganizerStats } from '@/hooks/use-organizer-stats'
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { ErrorState } from '@/components/shared/data-states'
+import { VerificationBanner, useCanCreateTrips } from '@/components/dashboard/verification-banner'
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user)
   const { data: stats, isLoading, error, refetch } = useOrganizerStats()
+  const { canCreate, reason: gateReason } = useCanCreateTrips()
 
   return (
     <div className="space-y-6">
@@ -22,11 +24,20 @@ export default function DashboardPage() {
             Here&apos;s what&apos;s happening with your trips.
           </p>
         </div>
-        <Link href="/dashboard/trips/create" className="btn-primary flex items-center gap-2 text-sm">
-          <Plus className="h-4 w-4" />
-          Create Trip
-        </Link>
+        {canCreate ? (
+          <Link href="/dashboard/trips/create" className="btn-primary flex items-center gap-2 text-sm">
+            <Plus className="h-4 w-4" />
+            Create Trip
+          </Link>
+        ) : (
+          <span title={gateReason} className="btn-primary flex items-center gap-2 text-sm opacity-50 cursor-not-allowed pointer-events-none">
+            <Plus className="h-4 w-4" />
+            Create Trip
+          </span>
+        )}
       </div>
+
+      <VerificationBanner />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
@@ -62,16 +73,26 @@ export default function DashboardPage() {
             <p className="text-sm text-neutral-500">View, edit, and publish your trips</p>
           </div>
         </Link>
-        <Link
-          href="/dashboard/trips/create"
-          className="card-static flex items-center gap-4 p-6 transition-shadow hover:shadow-card-hover"
-        >
-          <Plus className="h-8 w-8 text-primary-500" />
-          <div>
-            <p className="font-semibold text-neutral-800">Create New Trip</p>
-            <p className="text-sm text-neutral-500">Add a new group trip listing</p>
+        {canCreate ? (
+          <Link
+            href="/dashboard/trips/create"
+            className="card-static flex items-center gap-4 p-6 transition-shadow hover:shadow-card-hover"
+          >
+            <Plus className="h-8 w-8 text-primary-500" />
+            <div>
+              <p className="font-semibold text-neutral-800">Create New Trip</p>
+              <p className="text-sm text-neutral-500">Add a new group trip listing</p>
+            </div>
+          </Link>
+        ) : (
+          <div className="card-static flex items-center gap-4 p-6 opacity-50">
+            <Plus className="h-8 w-8 text-neutral-400" />
+            <div>
+              <p className="font-semibold text-neutral-800">Create New Trip</p>
+              <p className="text-sm text-neutral-500">Documents must be approved first</p>
+            </div>
           </div>
-        </Link>
+        )}
       </div>
     </div>
   )

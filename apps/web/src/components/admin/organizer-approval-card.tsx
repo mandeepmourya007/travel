@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Calendar, FileText, Mail } from 'lucide-react'
+import Link from 'next/link'
+import { Building2, Calendar, FileText, Mail, Eye } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -22,6 +23,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
   PENDING: 'outline',
   APPROVED: 'default',
   REJECTED: 'destructive',
+  REVISION_REQUIRED: 'secondary',
 }
 
 export function OrganizerApprovalCard({ organizer, onApprove, onReject, isPending }: OrganizerApprovalCardProps) {
@@ -111,25 +113,33 @@ export function OrganizerApprovalCard({ organizer, onApprove, onReject, isPendin
             </div>
           )}
 
-          {organizer.verificationStatus === 'PENDING' && (
-            <div className="flex gap-2 pt-2">
-              <Button
-                size="sm"
-                onClick={() => setShowApprove(true)}
-                disabled={isPending}
-              >
-                Approve
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link href={`/admin/organizers/${organizer.id}`}>
+              <Button size="sm" variant="outline">
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                Review Documents
               </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setShowReject(true)}
-                disabled={isPending}
-              >
-                Reject
-              </Button>
-            </div>
-          )}
+            </Link>
+            {(organizer.verificationStatus === 'PENDING' || organizer.verificationStatus === 'REVISION_REQUIRED') && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => setShowApprove(true)}
+                  disabled={isPending}
+                >
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => setShowReject(true)}
+                  disabled={isPending}
+                >
+                  Reject
+                </Button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 

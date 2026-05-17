@@ -13,6 +13,7 @@ import { FullScreenLoader } from '@/components/shared/full-screen-loader'
 import { DismissLoader } from '@/components/shared/dismiss-loader'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { SocketConnector } from '@/components/shared/socket-connector'
+import { ServerDownBanner } from '@/components/shared/server-down-banner'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -50,6 +51,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const content = (
     <QueryClientProvider client={queryClient}>
+      <ServerDownBanner />
       <SocketConnector />
       <FullScreenLoader />
       <DismissLoader />

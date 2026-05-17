@@ -49,25 +49,34 @@ export default function CreateTripPage() {
     }
 
     if (!isApproved) {
+      const isRevision = verificationStatus === 'REVISION_REQUIRED'
       return (
-        <div className="flex items-start gap-3 rounded-xl border border-error-200 bg-error-50 p-5">
-          <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-error-600" />
+        <div className={`flex items-start gap-3 rounded-xl border p-5 ${
+          isRevision ? 'border-warning-200 bg-warning-50' : 'border-error-200 bg-error-50'
+        }`}>
+          <ShieldAlert className={`mt-0.5 h-6 w-6 shrink-0 ${isRevision ? 'text-warning-600' : 'text-error-600'}`} />
           <div>
-            <p className="text-sm font-semibold text-error-800">
+            <p className={`text-sm font-semibold ${isRevision ? 'text-warning-800' : 'text-error-800'}`}>
               {verificationStatus === 'REJECTED'
                 ? 'Your organizer profile was rejected'
-                : 'Verification pending'}
+                : isRevision
+                  ? 'Documents need revision'
+                  : 'Verification pending'}
             </p>
-            <p className="mt-1 text-sm text-error-700">
+            <p className={`mt-1 text-sm ${isRevision ? 'text-warning-700' : 'text-error-700'}`}>
               {verificationStatus === 'REJECTED'
                 ? 'Your profile was not approved. Please update your profile details and contact support for re-verification before creating trips.'
-                : 'Your organizer profile is under review by our admin team. You will be able to create trips once your profile is approved.'}
+                : isRevision
+                  ? 'Some documents were rejected and need to be re-uploaded. Please check the review comments and update your documents.'
+                  : 'Your organizer profile is under review by our admin team. You will be able to create trips once your profile is approved.'}
             </p>
             <Link
-              href="/profile"
-              className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-error-700 underline underline-offset-2 hover:text-error-800"
+              href={isRevision ? '/dashboard/settings' : '/profile'}
+              className={`mt-3 inline-flex items-center gap-1 text-sm font-medium underline underline-offset-2 ${
+                isRevision ? 'text-warning-700 hover:text-warning-800' : 'text-error-700 hover:text-error-800'
+              }`}
             >
-              View Profile
+              {isRevision ? 'Re-upload Documents' : 'View Profile'}
             </Link>
           </div>
         </div>

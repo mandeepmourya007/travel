@@ -3,13 +3,18 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Upload, X, FileCheck, Loader2, Eye, ShieldCheck, Clock, ShieldX, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Upload, X, Loader2, Eye, ShieldCheck, Clock, ShieldX, RefreshCw, MessageSquare, Send, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useProfile, useUpdateOrganizerProfile } from '@/hooks/use-profile'
 import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
+import { useOrganizerDocComments, useOrganizerAddDocComment } from '@/hooks/use-doc-review'
 import { ImageLightbox, useLightbox } from '@/components/shared/image-lightbox'
 import { useToast } from '@/components/shared/toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { DOC_LABELS } from '@shared/constants/upload'
 import type { OrganizerDocuments } from '@shared/types/user.types'
+import type { DocumentReviewItem } from '@shared/types/admin.types'
 import type { VerificationStatus } from '@shared/constants/verification-status'
 import { MAX_UPLOAD_SIZE_BYTES, REQUIRED_DOC_COUNT } from '@shared/constants'
 
@@ -23,6 +28,7 @@ const STATUS_CONFIG: Record<VerificationStatus, { label: string; icon: typeof Sh
   APPROVED: { label: 'Verified', icon: ShieldCheck, className: 'text-success-700', bg: 'bg-success-50 border-success-200' },
   PENDING: { label: 'Pending Review', icon: Clock, className: 'text-warning-700', bg: 'bg-warning-50 border-warning-200' },
   REJECTED: { label: 'Rejected', icon: ShieldX, className: 'text-error-700', bg: 'bg-error-50 border-error-200' },
+  REVISION_REQUIRED: { label: 'Revision Required', icon: RefreshCw, className: 'text-warning-700', bg: 'bg-warning-50 border-warning-200' },
 }
 
 export default function VerificationDocsPage() {
@@ -35,6 +41,8 @@ export default function VerificationDocsPage() {
 
   const docs: OrganizerDocuments = (profile?.organizerProfile?.documents as OrganizerDocuments) ?? {}
   const verificationStatus = profile?.organizerProfile?.verificationStatus ?? 'PENDING'
+  const docReviews: DocumentReviewItem[] = (profile?.organizerProfile?.documentReviews as DocumentReviewItem[]) ?? []
+  const docReviewMap = Object.fromEntries(docReviews.map((dr) => [dr.docType, dr]))
 
   const handleUpload = async (field: keyof OrganizerDocuments, file: File) => {
     if (file.size > MAX_UPLOAD_SIZE_BYTES) {
@@ -138,17 +146,21 @@ export default function VerificationDocsPage() {
         {DOC_FIELDS.map((field) => {
           const docUrl = docs[field.key]
           const isFieldUploading = uploadingField === field.key && (isUploading || mutation.isPending)
+          const review = docReviewMap[field.key] as DocumentReviewItem | undefined
 
           return (
             <div
               key={field.key}
-              className="card-static overflow-hidden"
+              className={cn(
+                'card-static overflow-hidden',
+                review?.status === 'REJECTED' && 'border-error-200',
+              )}
             >
               <div className="flex items-start gap-4 p-5">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-semibold text-neutral-800">{field.label}</h3>
-                    {docUrl && <FileCheck className="h-4 w-4 text-success-500" />}
+                    <DocStatusBadge status={review?.status} hasDoc={!!docUrl} />
                   </div>
                   <p className="mt-0.5 text-xs text-neutral-500">{field.description}</p>
                 </div>
@@ -204,6 +216,9 @@ export default function VerificationDocsPage() {
                 )}
               </div>
 
+              {/* Rejection reason */}
+              <DocRejectionReason docType={field.key} review={review} onReUpload={() => handleReUpload(field.key)} />
+
               {/* Document Thumbnail Preview */}
               {docUrl && (
                 <div className="border-t border-neutral-100 bg-neutral-50 px-5 py-3">
@@ -230,6 +245,9 @@ export default function VerificationDocsPage() {
         })}
       </div>
 
+      {/* Comment Thread */}
+      <DocCommentThread />
+
       <p className="mt-4 text-xs text-neutral-400">
         Documents are stored securely and used only for verification by our admin team.
         Aadhaar numbers will not be stored in plain text.
@@ -237,6 +255,171 @@ export default function VerificationDocsPage() {
 
       {/* Lightbox */}
       {isOpen && lightboxProps && <ImageLightbox {...lightboxProps} />}
+    </div>
+  )
+}
+
+// ─── Per-doc status badge ─────────────────────────────
+function DocStatusBadge({ status, hasDoc }: { status?: string; hasDoc: boolean }) {
+  if (!status && !hasDoc) return null
+
+  if (status === 'APPROVED') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-[10px] font-semibold text-success-700">
+        <CheckCircle2 className="h-3 w-3" />
+        Approved
+      </span>
+    )
+  }
+
+  if (status === 'REJECTED') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-error-50 px-2 py-0.5 text-[10px] font-semibold text-error-700">
+        <AlertTriangle className="h-3 w-3" />
+        Rejected
+      </span>
+    )
+  }
+
+  if (status === 'PENDING' || hasDoc) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-warning-50 px-2 py-0.5 text-[10px] font-semibold text-warning-700">
+        <Clock className="h-3 w-3" />
+        Pending
+      </span>
+    )
+  }
+
+  return null
+}
+
+// ─── Per-doc rejection reason ─────────────────────────
+function DocRejectionReason({ docType, review, onReUpload }: { docType: string; review?: DocumentReviewItem; onReUpload: () => void }) {
+  const { data: comments } = useOrganizerDocComments()
+
+  if (review?.status !== 'REJECTED') return null
+
+  // Find the latest admin comment for this doc type
+  const latestRejectionComment = comments
+    ?.filter((c) => c.authorRole === 'ADMIN' && c.docType === docType)
+    .at(-1)
+
+  return (
+    <div className="mx-5 mb-4 rounded-lg border border-error-200 bg-error-50 px-3 py-2.5">
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-error-600" />
+        <div className="flex-1">
+          <p className="text-xs font-semibold text-error-700">Document rejected</p>
+          {latestRejectionComment ? (
+            <p className="mt-0.5 text-xs text-error-600">
+              Reason: {latestRejectionComment.comment}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-xs text-error-600">
+              Please re-upload a clearer document.
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-2 h-7 border-error-300 text-xs text-error-700 hover:bg-error-100"
+            onClick={onReUpload}
+          >
+            <Upload className="mr-1 h-3 w-3" />
+            Re-upload
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Comment thread sub-component ─────────────────────
+function DocCommentThread() {
+  const { data: comments, isLoading } = useOrganizerDocComments()
+  const addComment = useOrganizerAddDocComment()
+  const [text, setText] = useState('')
+
+  const handleSend = () => {
+    if (!text.trim()) return
+    addComment.mutate({ comment: text.trim() }, {
+      onSuccess: () => setText(''),
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <div className="mt-6">
+        <div className="skeleton h-6 w-40 mb-3" />
+        <div className="skeleton h-20 rounded-xl" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-center gap-2 mb-3">
+        <MessageSquare className="h-4 w-4 text-neutral-500" />
+        <h3 className="font-display text-sm font-semibold text-neutral-800">Review Comments</h3>
+        {comments && comments.length > 0 && (
+          <span className="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700">
+            {comments.length}
+          </span>
+        )}
+      </div>
+
+      {(!comments || comments.length === 0) ? (
+        <div className="rounded-xl border border-dashed border-neutral-200 p-6 text-center">
+          <MessageSquare className="mx-auto h-8 w-8 text-neutral-300" />
+          <p className="mt-2 text-sm text-neutral-500">No comments yet</p>
+          <p className="text-xs text-neutral-400">Admin comments about your documents will appear here</p>
+        </div>
+      ) : (
+        <div className="space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4 max-h-64 overflow-y-auto">
+          {comments.map((c) => (
+            <div
+              key={c.id}
+              className={cn(
+                'rounded-lg px-3 py-2 text-sm',
+                c.authorRole === 'ADMIN'
+                  ? 'mr-8 bg-white border border-neutral-200'
+                  : 'ml-8 bg-primary-50 border border-primary-100',
+              )}
+            >
+              <div className="flex items-center gap-2 text-xs text-neutral-500">
+                <span className="font-medium text-neutral-700">
+                  {c.authorRole === 'ADMIN' ? 'Admin' : 'You'}
+                </span>
+                {c.docType && (
+                  <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
+                    {DOC_LABELS[c.docType as keyof typeof DOC_LABELS] ?? c.docType}
+                  </span>
+                )}
+                <span>{new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <p className="mt-1 text-neutral-700">{c.comment}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Reply input */}
+      <div className="mt-3 flex gap-2">
+        <Input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Reply to admin..."
+          className="flex-1"
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSend() }}
+        />
+        <Button
+          size="sm"
+          onClick={handleSend}
+          disabled={!text.trim() || addComment.isPending}
+        >
+          <Send className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   )
 }
