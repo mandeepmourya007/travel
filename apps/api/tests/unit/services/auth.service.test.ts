@@ -778,5 +778,34 @@ describe('AuthService', () => {
         expect.any(String),
       )
     })
+
+    it('should pass merged documents to repo (merge logic tested in documents.test.ts)', async () => {
+      const profileWithDocs = {
+        ...orgProfile,
+        documents: { aadhaarFront: 'https://example.com/front.jpg' },
+      }
+      organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
+      organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
+
+      await service.updateOrganizerProfile('user-org', {
+        documents: { panCard: 'https://example.com/pan.jpg' },
+      })
+
+      const updateArg = organizerProfileRepo.update.mock.calls[0][1] as { documents?: Record<string, string> }
+      expect(updateArg.documents).toEqual({
+        aadhaarFront: 'https://example.com/front.jpg',
+        panCard: 'https://example.com/pan.jpg',
+      })
+    })
+
+    it('should not include documents in update when not provided in dto', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
+      organizerProfileRepo.update.mockResolvedValue(orgProfile)
+
+      await service.updateOrganizerProfile('user-org', { description: 'Updated' })
+
+      const updateArg = organizerProfileRepo.update.mock.calls[0][1] as Record<string, unknown>
+      expect(updateArg).not.toHaveProperty('documents')
+    })
   })
 })

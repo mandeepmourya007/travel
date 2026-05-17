@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, updateProfileSchema, googleAuthSchema } from '@shared/validators/auth.schema'
+import {
+  signupSchema,
+  loginSchema,
+  sendOtpSchema,
+  verifyOtpSchema,
+  updateProfileSchema,
+  googleAuthSchema,
+  organizerDocumentsSchema,
+  updateOrganizerProfileSchema,
+  connectBankAccountSchema,
+} from '@shared/validators/auth.schema'
 
 describe('signupSchema', () => {
   const validPayload = {
@@ -189,5 +199,138 @@ describe('googleAuthSchema', () => {
 
   it('should reject missing idToken', () => {
     expect(googleAuthSchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe('organizerDocumentsSchema', () => {
+  it('accepts valid URLs for all fields', () => {
+    const result = organizerDocumentsSchema.safeParse({
+      aadhaarFront: 'https://res.cloudinary.com/demo/image/upload/aadhaar-front.jpg',
+      aadhaarBack: 'https://res.cloudinary.com/demo/image/upload/aadhaar-back.jpg',
+      panCard: 'https://res.cloudinary.com/demo/image/upload/pan.jpg',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts empty object (all fields optional)', () => {
+    expect(organizerDocumentsSchema.safeParse({}).success).toBe(true)
+  })
+
+  it('accepts a subset of fields', () => {
+    const result = organizerDocumentsSchema.safeParse({
+      aadhaarFront: 'https://example.com/front.jpg',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts empty string for clearing a field', () => {
+    const result = organizerDocumentsSchema.safeParse({ aadhaarFront: '' })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects non-URL non-empty strings', () => {
+    const result = organizerDocumentsSchema.safeParse({ aadhaarFront: 'not-a-url' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects numeric values', () => {
+    const result = organizerDocumentsSchema.safeParse({ panCard: 12345 })
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('updateOrganizerProfileSchema', () => {
+  it('accepts businessName + description + documents', () => {
+    const result = updateOrganizerProfileSchema.safeParse({
+      businessName: 'Trek India',
+      description: 'Best treks in India',
+      documents: { aadhaarFront: 'https://example.com/aadhaar.jpg' },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts documents only', () => {
+    const result = updateOrganizerProfileSchema.safeParse({
+      documents: { panCard: 'https://example.com/pan.jpg' },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts empty object (all optional)', () => {
+    expect(updateOrganizerProfileSchema.safeParse({}).success).toBe(true)
+  })
+
+  it('rejects too-short businessName', () => {
+    const result = updateOrganizerProfileSchema.safeParse({ businessName: 'X' })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects description over 500 chars', () => {
+    const result = updateOrganizerProfileSchema.safeParse({ description: 'A'.repeat(501) })
+    expect(result.success).toBe(false)
+  })
+
+  it('trims businessName whitespace', () => {
+    const result = updateOrganizerProfileSchema.parse({ businessName: '  Trek India  ' })
+    expect(result.businessName).toBe('Trek India')
+  })
+})
+
+describe('connectBankAccountSchema', () => {
+  const validPayload = {
+    accountHolderName: 'Rahul Sharma',
+    ifscCode: 'SBIN0001234',
+    accountNumber: '12345678901234',
+    beneficiaryName: 'Rahul Sharma',
+  }
+
+  it('passes with valid bank details', () => {
+    const result = connectBankAccountSchema.safeParse(validPayload)
+    expect(result.success).toBe(true)
+  })
+
+  it('uppercases IFSC code', () => {
+    const result = connectBankAccountSchema.parse({ ...validPayload, ifscCode: 'sbin0001234' })
+    expect(result.ifscCode).toBe('SBIN0001234')
+  })
+
+  it('trims all string fields', () => {
+    const result = connectBankAccountSchema.parse({
+      ...validPayload,
+      accountHolderName: '  Rahul Sharma  ',
+      beneficiaryName: '  Rahul  ',
+      ifscCode: ' SBIN0001234 ',
+      accountNumber: ' 12345678901234 ',
+    })
+    expect(result.accountHolderName).toBe('Rahul Sharma')
+    expect(result.beneficiaryName).toBe('Rahul')
+    expect(result.ifscCode).toBe('SBIN0001234')
+    expect(result.accountNumber).toBe('12345678901234')
+  })
+
+  it('rejects invalid IFSC format', () => {
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, ifscCode: 'INVALID' }).success).toBe(false)
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, ifscCode: '12340001234' }).success).toBe(false)
+  })
+
+  it('rejects non-numeric account number', () => {
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, accountNumber: 'ABC123' }).success).toBe(false)
+  })
+
+  it('rejects account number too short', () => {
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, accountNumber: '12345678' }).success).toBe(false)
+  })
+
+  it('rejects account number too long', () => {
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, accountNumber: '1234567890123456789' }).success).toBe(false)
+  })
+
+  it('rejects too-short accountHolderName', () => {
+    expect(connectBankAccountSchema.safeParse({ ...validPayload, accountHolderName: 'R' }).success).toBe(false)
+  })
+
+  it('rejects missing required fields', () => {
+    expect(connectBankAccountSchema.safeParse({}).success).toBe(false)
+    expect(connectBankAccountSchema.safeParse({ accountHolderName: 'Rahul' }).success).toBe(false)
   })
 })

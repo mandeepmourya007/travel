@@ -60,6 +60,8 @@ const mockOrganizer = {
   verificationStatus: 'APPROVED',
   rating: 4.5,
   totalReviews: 20,
+  documents: { aadhaarFront: 'https://example.com/front.jpg', aadhaarBack: 'https://example.com/back.jpg', panCard: 'https://example.com/pan.jpg' },
+  bankAccountLinked: true,
 }
 
 const MOCK_DEST_ID = 'clh1234567890abcdefghijkl'
@@ -223,6 +225,39 @@ describe('TripService', () => {
 
       await expect(service.createTrip('user-1', createInput)).rejects.toThrow(
         'must be approved',
+      )
+    })
+
+    it('should throw ForbiddenError if verification documents are incomplete', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
+        ...mockOrganizer,
+        documents: { aadhaarFront: 'https://example.com/front.jpg' },
+      })
+
+      await expect(service.createTrip('user-1', createInput)).rejects.toThrow(
+        'verification documents',
+      )
+    })
+
+    it('should throw ForbiddenError if documents are null', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
+        ...mockOrganizer,
+        documents: null,
+      })
+
+      await expect(service.createTrip('user-1', createInput)).rejects.toThrow(
+        'verification documents',
+      )
+    })
+
+    it('should throw ForbiddenError if bank account is not linked', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
+        ...mockOrganizer,
+        bankAccountLinked: false,
+      })
+
+      await expect(service.createTrip('user-1', createInput)).rejects.toThrow(
+        'Bank account must be linked',
       )
     })
 
