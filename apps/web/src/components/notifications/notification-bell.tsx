@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
@@ -19,7 +19,7 @@ interface NotificationItemProps {
   onNavigate: (url: string) => void
 }
 
-function NotificationItem({ item, onMarkRead, onNavigate }: NotificationItemProps) {
+const NotificationItem = memo(function NotificationItem({ item, onMarkRead, onNavigate }: NotificationItemProps) {
   const isUnread = !item.readAt
   const redirectUrl = getNotificationRedirectUrl(item.type, item.data)
 
@@ -53,7 +53,7 @@ function NotificationItem({ item, onMarkRead, onNavigate }: NotificationItemProp
       </div>
     </button>
   )
-}
+})
 
 export function NotificationBell() {
   const router = useRouter()
@@ -63,10 +63,11 @@ export function NotificationBell() {
   const markRead = useMarkRead()
   const markAllRead = useMarkAllRead()
 
-  const handleNavigate = (url: string) => {
+  const handleMarkRead = useCallback((id: string) => markRead.mutate(id), [markRead])
+  const handleNavigate = useCallback((url: string) => {
     setOpen(false)
     router.push(url)
-  }
+  }, [router])
 
   // Fetch recent notifications for the dropdown (syncs page 1 to store)
   useNotifications({ page: 1, limit: 5 })
@@ -116,7 +117,7 @@ export function NotificationBell() {
               <NotificationItem
                 key={item.id}
                 item={item}
-                onMarkRead={(id) => markRead.mutate(id)}
+                onMarkRead={handleMarkRead}
                 onNavigate={handleNavigate}
               />
             ))

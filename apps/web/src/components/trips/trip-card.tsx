@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback } from 'react'
+import { memo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQueryClient } from '@tanstack/react-query'
@@ -29,7 +29,7 @@ interface TripCardProps {
  *       so the compare queue can store a lightweight snapshot without re-fetching.
  *       When omitted, the compare button is hidden.
  */
-export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
+export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
   const queryClient = useQueryClient()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
@@ -188,4 +188,4 @@ export function TripCard({ trip, onCompare, isSelected = false }: TripCardProps)
       </div>
     </div>
   )
-}
+})

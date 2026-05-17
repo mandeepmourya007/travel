@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin } from 'lucide-react'
@@ -7,7 +8,7 @@ interface DestinationCardProps {
   destination: Destination
 }
 
-export function DestinationCard({ destination }: DestinationCardProps) {
+export const DestinationCard = memo(function DestinationCard({ destination }: DestinationCardProps) {
   return (
     <Link
       href={`/destinations/${destination.slug}`}
@@ -42,4 +43,4 @@ export function DestinationCard({ destination }: DestinationCardProps) {
       )}
     </Link>
   )
-}
+})

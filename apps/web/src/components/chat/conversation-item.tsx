@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
 import { OnlineIndicator } from './online-indicator'
@@ -9,17 +10,17 @@ interface ConversationItemProps {
   conversation: ConversationListItem
   isActive: boolean
   isOnline: boolean
-  onClick: () => void
+  onSelect: (conversationId: string) => void
 }
 
-export function ConversationItem({ conversation, isActive, isOnline, onClick }: ConversationItemProps) {
+export const ConversationItem = memo(function ConversationItem({ conversation, isActive, isOnline, onSelect }: ConversationItemProps) {
   const { otherParticipant, lastMessagePreview, lastMessageAt, unreadCount, trip } = conversation
   const displayName = otherParticipant?.name ?? 'Support'
 
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => onSelect(conversation.id)}
       className={cn(
         'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-neutral-50',
         isActive && 'bg-primary-50 hover:bg-primary-50',
@@ -64,4 +65,4 @@ export function ConversationItem({ conversation, isActive, isOnline, onClick }: 
       </div>
     </button>
   )
-}
+})
