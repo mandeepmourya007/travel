@@ -1,6 +1,9 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { env } from '../config/env'
 import { ValidationError } from '../errors/app-error'
+import { CLOUDINARY_TRANSFORM } from '../utils/constants'
+import { ALLOWED_UPLOAD_FOLDERS } from '@shared/constants'
+import type { UploadFolder } from '@shared/constants'
 
 export interface CloudinarySignature {
   signature: string
@@ -9,9 +12,6 @@ export interface CloudinarySignature {
   cloudName: string
   folder: string
 }
-
-const ALLOWED_FOLDERS = ['trips', 'itinerary-docs', 'vehicles'] as const
-type UploadFolder = (typeof ALLOWED_FOLDERS)[number]
 
 export class UploadService {
   constructor() {
@@ -29,15 +29,18 @@ export class UploadService {
       throw new ValidationError('Cloudinary is not configured')
     }
 
-    if (!ALLOWED_FOLDERS.includes(folder)) {
+    if (!ALLOWED_UPLOAD_FOLDERS.includes(folder)) {
       throw new ValidationError(`Invalid upload folder: ${folder}`)
     }
+
+    const envPrefix = env.NODE_ENV === 'production' ? 'prod' : 'dev'
+    const fullFolder = `${envPrefix}/${folder}`
 
     const timestamp = Math.round(Date.now() / 1000)
     const params = {
       timestamp,
-      folder,
-      transformation: 'c_limit,w_1920,h_1080,q_auto,f_auto',
+      folder: fullFolder,
+      transformation: CLOUDINARY_TRANSFORM,
     }
 
     const signature = cloudinary.utils.api_sign_request(params, env.CLOUDINARY_API_SECRET)
@@ -47,7 +50,7 @@ export class UploadService {
       timestamp,
       apiKey: env.CLOUDINARY_API_KEY,
       cloudName: env.CLOUDINARY_CLOUD_NAME,
-      folder,
+      folder: fullFolder,
     }
   }
 

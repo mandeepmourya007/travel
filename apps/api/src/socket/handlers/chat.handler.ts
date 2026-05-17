@@ -2,6 +2,7 @@ import type { Server } from 'socket.io'
 import type { AuthenticatedSocket } from '../middleware/socket-auth.middleware'
 import { ChatService } from '../../services/chat.service'
 import { logger } from '../../utils/logger'
+import { MESSAGE_PREVIEW_LENGTH } from '../../utils/constants'
 import type { SendMessageDto } from '@shared/types/chat.types'
 
 const SOCKET_MSG_LIMIT = 10
@@ -54,7 +55,7 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
 
       io.to(`conversation:${conversationId}`).emit('chat:conversation-update', {
         conversationId,
-        lastMessagePreview: message.content.substring(0, 100),
+        lastMessagePreview: message.content.substring(0, MESSAGE_PREVIEW_LENGTH),
         lastMessageAt: message.createdAt,
       })
 

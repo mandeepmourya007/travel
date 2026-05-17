@@ -13,7 +13,14 @@ export const logger = pino({
     env: process.env.NODE_ENV,
   },
   redact: {
-    paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+    paths: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'res.headers["set-cookie"]',
+      'req.body.accountNumber',
+      'req.body.ifscCode',
+      'req.body.password',
+    ],
     censor: '[REDACTED]',
   },
   serializers: {

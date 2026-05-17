@@ -104,6 +104,7 @@ export const OTP_TYPE = {
 } as const
 
 export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'
+export const MESSAGE_PREVIEW_LENGTH = 100
 
 // ─── Redis Cache TTLs (seconds) ────────────────────
 export const CACHE_TTL = {
