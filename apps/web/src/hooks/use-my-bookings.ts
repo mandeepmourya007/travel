@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT } from '@/lib/constants'
 import { bookingKeys } from '@/lib/query-keys'
 import type { MyBookingListItem, MyBookingFilters } from '@shared/types/booking.types'
 
@@ -24,7 +25,7 @@ export function useMyBookings(filters: MyBookingFilters = {}, enabled = true) {
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
     placeholderData: (prev) => prev,
     enabled,
   })

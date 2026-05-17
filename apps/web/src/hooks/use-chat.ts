@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
 import { chatKeys } from '@/lib/query-keys'
 import { getSocket } from '@/lib/socket'
 import { useChatStore } from '@/store/chat.store'
@@ -29,7 +30,7 @@ export function useConversations(filters?: ConversationListFilters) {
       }>('/chat/conversations', { params: filters })
       return { conversations: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }
 
@@ -88,8 +89,8 @@ export function useUnreadCount() {
       setTotalUnreadCount(res.data.data.totalUnread)
       return res.data.data
     },
-    refetchInterval: 30_000,
-    staleTime: 15_000,
+    refetchInterval: REFETCH_INTERVAL_REALTIME,
+    staleTime: STALE_TIME_DEFAULT,
   })
 }
 

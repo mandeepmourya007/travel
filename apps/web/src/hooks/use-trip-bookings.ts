@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT } from '@/lib/constants'
 import { bookingKeys } from '@/lib/query-keys'
 import type { TripBookingListItem, TripBookingFilters } from '@shared/types/booking.types'
 
@@ -30,7 +31,7 @@ export function useTripBookings(tripId: string, filters: TripBookingFilters = {}
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
     enabled: !!tripId,
   })
 }

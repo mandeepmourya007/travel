@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_STATIC } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth.store'
 import { profileKeys } from '@/lib/query-keys'
-import type { UserProfileResponse, UpdateUserProfileDto, UpdateOrganizerProfileDto } from '@shared/types/user.types'
+import type { UserProfileResponse, UpdateUserProfileDto, UpdateOrganizerProfileDto, ConnectBankAccountDto, ConnectBankAccountResponse } from '@shared/types/user.types'
 
 /**
  * Fetches the authenticated user's full profile (including organizer data).
@@ -14,7 +15,7 @@ export function useProfile() {
     queryKey: profileKeys.me(),
     queryFn: () =>
       apiClient.get('/auth/profile').then((r) => r.data.data as UserProfileResponse),
-    staleTime: 60_000,
+    staleTime: STALE_TIME_STATIC,
     enabled: !!accessToken,
   })
 }
@@ -55,6 +56,22 @@ export function useUpdateOrganizerProfile() {
   return useMutation({
     mutationFn: (dto: UpdateOrganizerProfileDto) =>
       apiClient.patch('/auth/profile/organizer', dto).then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profileKeys.me() })
+    },
+  })
+}
+
+/**
+ * Connects organizer's bank account via Razorpay Route.
+ * On success: invalidates profileKeys.me() so dashboard alerts update.
+ */
+export function useConnectBankAccount() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (dto: ConnectBankAccountDto) =>
+      apiClient.post('/auth/profile/organizer/bank', dto).then((r) => r.data.data as ConnectBankAccountResponse),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: profileKeys.me() })
     },

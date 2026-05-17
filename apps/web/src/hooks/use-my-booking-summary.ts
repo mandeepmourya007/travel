@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT } from '@/lib/constants'
 import { bookingKeys } from '@/lib/query-keys'
 import type { MyBookingSummary } from '@shared/types/booking.types'
 
@@ -19,6 +20,6 @@ export function useMyBookingSummary() {
       }>('/bookings/my/summary')
       return res.data.data
     },
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
   })
 }

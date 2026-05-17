@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, type AppApiError } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
 import { vehicleKeys, tripKeys } from '@/lib/query-keys'
 import type { MultiVehicleSeatMapResponse, CreateVehicleDto, UpdateVehicleDto, OrganizerVehicleListItem } from '@shared/types/vehicle.types'
 import type { ApiResponse } from '@shared/types/api-response.types'
@@ -19,8 +20,8 @@ export function useSeatMap(tripId: string) {
       return data.data
     },
     enabled: !!tripId,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
+    staleTime: STALE_TIME_REALTIME,
+    refetchInterval: REFETCH_INTERVAL_REALTIME,
   })
 }
 
@@ -35,7 +36,7 @@ export function useOrganizerSeatMap(tripId: string) {
       return data.data
     },
     enabled: !!tripId,
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
   })
 }
 
@@ -50,7 +51,7 @@ export function useOrganizerVehicles(tripId: string) {
       return data.data
     },
     enabled: !!tripId,
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
   })
 }
 

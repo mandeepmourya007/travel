@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { walletKeys } from '@/lib/query-keys'
 import type { WalletSummary, WalletTransactionItem, WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { PaginationMeta } from '@shared/types/api-response.types'
@@ -23,7 +24,7 @@ export function useWalletBalance() {
       const res = await apiClient.get<{ success: true; data: WalletSummary }>('/wallet')
       return res.data.data
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }
 
@@ -42,7 +43,7 @@ export function useWalletTransactions(filters: WalletTransactionFilters = {}) {
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -64,7 +65,7 @@ export function useWalletCashback(page = 1) {
       }>('/wallet/cashback', { params: { page, limit: 10 } })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }

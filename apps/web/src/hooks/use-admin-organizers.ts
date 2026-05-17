@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { adminKeys } from '@/lib/query-keys'
 import { useToast } from '@/components/shared/toast'
 import type { OrganizerApprovalFilters, OrganizerApprovalItem, ApproveRejectDto } from '@shared/types/admin.types'
@@ -16,7 +17,7 @@ export function useOrganizerApprovals(filters: OrganizerApprovalFilters) {
       }>('/admin/organizers', { params: filters })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }

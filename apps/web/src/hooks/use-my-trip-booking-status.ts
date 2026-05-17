@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { bookingKeys } from '@/lib/query-keys'
 import { useAuthStore } from '@/store/auth.store'
 import type { MyTripBookingStatus } from '@shared/types/booking.types'
@@ -22,6 +23,6 @@ export function useMyTripBookingStatus(tripId: string) {
       return res.data.data
     },
     enabled: !!tripId && isAuthenticated,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }

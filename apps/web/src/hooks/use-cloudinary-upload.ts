@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useUploadSignature } from './use-upload-signature'
+import type { UploadFolder } from '@shared/constants'
 
 interface UploadResult {
   secure_url: string
@@ -18,7 +19,7 @@ export function useCloudinaryUpload() {
   const [uploadProgress, setUploadProgress] = useState(0)
 
   const upload = useCallback(
-    async (file: File, folder: 'trips' | 'itinerary-docs' | 'vehicles' = 'trips'): Promise<string> => {
+    async (file: File, folder: UploadFolder = 'trips'): Promise<string> => {
       const sig = await getSignature(folder)
 
       const formData = new FormData()
@@ -46,7 +47,7 @@ export function useCloudinaryUpload() {
   )
 
   const uploadMany = useCallback(
-    async (files: File[], folder: 'trips' | 'itinerary-docs' | 'vehicles' = 'trips'): Promise<string[]> => {
+    async (files: File[], folder: UploadFolder = 'trips'): Promise<string[]> => {
       setIsUploading(true)
       setUploadProgress(0)
       const urls: string[] = []

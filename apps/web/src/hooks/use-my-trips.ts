@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { tripKeys } from '@/lib/query-keys'
 import type { OrganizerTripListItem } from '@shared/types/trip.types'
 
@@ -19,6 +20,6 @@ export function useMyTrips(status?: string) {
       }>('/trips/my/list', { params: status ? { status } : {} })
       return res.data.data
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }

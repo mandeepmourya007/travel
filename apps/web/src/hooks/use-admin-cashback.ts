@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { adminKeys } from '@/lib/query-keys'
 import type {
   CompletedTripForCashback,
@@ -25,7 +26,7 @@ export function useCompletedTripsForCashback(filters: CashbackTripFilters) {
       }>('/admin/cashback/trips', { params: filters })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -41,7 +42,7 @@ export function useCashbackTripDetail(tripId: string) {
       return res.data.data
     },
     enabled: !!tripId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }
 
@@ -76,7 +77,7 @@ export function useCashbackByUser(filters: CashbackHistoryFilters) {
       }>('/admin/cashback/by-user', { params: filters })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -92,7 +93,7 @@ export function useCashbackByTrip(filters: CashbackHistoryFilters) {
       }>('/admin/cashback/by-trip', { params: filters })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -109,7 +110,7 @@ export function useCashbackUserDetail(userId: string, filters: CashbackHistoryFi
       return { data: res.data.data, pagination: res.data.pagination }
     },
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }

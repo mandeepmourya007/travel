@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT } from '@/lib/constants'
 import { bookingKeys } from '@/lib/query-keys'
 import type { TripBookingSummary } from '@shared/types/booking.types'
 
@@ -19,7 +20,7 @@ export function useTripSummary(tripId: string) {
       }>(`/trips/${tripId}/summary`)
       return res.data.data
     },
-    staleTime: 15_000,
+    staleTime: STALE_TIME_DEFAULT,
     enabled: !!tripId,
   })
 }

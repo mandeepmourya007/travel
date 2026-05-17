@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
 import { notificationKeys } from '@/lib/query-keys'
 import { useNotificationStore } from '@/store/notification.store'
 import type { NotificationListItem, NotificationFilters, NotificationUnreadCountResponse } from '@shared/types/notification.types'
@@ -27,7 +28,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 
@@ -55,8 +56,8 @@ export function useUnreadCount(enabled = true) {
       return res.data.data.count
     },
     enabled,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
+    staleTime: STALE_TIME_DEFAULT,
+    refetchInterval: REFETCH_INTERVAL_REALTIME,
   })
 
   useEffect(() => {

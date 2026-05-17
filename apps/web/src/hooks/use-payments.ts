@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { paymentKeys } from '@/lib/query-keys'
 import type {
   PaymentHistoryItem,
@@ -33,7 +34,7 @@ export function useMyPayments(filters: PaymentHistoryFilters = {}) {
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -53,7 +54,7 @@ export function useMyPaymentSummary() {
       }>('/payments/my/summary')
       return res.data.data
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }
 
@@ -74,7 +75,7 @@ export function useTripPayments(tripId: string, filters: PaymentHistoryFilters =
       )
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     enabled: !!tripId,
     placeholderData: (prev) => prev,
   })
@@ -95,7 +96,7 @@ export function useTripPaymentSummary(tripId: string) {
       }>(`/payments/trip/${tripId}/summary`)
       return res.data.data
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     enabled: !!tripId,
   })
 }
@@ -116,7 +117,7 @@ export function useAdminPayments(filters: AdminPaymentFilters = {}) {
       })
       return { data: res.data.data, pagination: res.data.pagination }
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
     placeholderData: (prev) => prev,
   })
 }
@@ -136,6 +137,6 @@ export function useAdminPaymentSummary() {
       }>('/payments/admin/summary')
       return res.data.data
     },
-    staleTime: 30_000,
+    staleTime: STALE_TIME_REALTIME,
   })
 }

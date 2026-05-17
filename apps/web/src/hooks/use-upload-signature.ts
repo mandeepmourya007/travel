@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import type { CloudinarySignature } from '@shared/types/upload.types'
+import type { UploadFolder } from '@shared/constants'
 
 /**
  * Requests a signed Cloudinary upload signature for direct browser uploads.
@@ -9,7 +10,7 @@ import type { CloudinarySignature } from '@shared/types/upload.types'
  */
 export function useUploadSignature() {
   return useMutation({
-    mutationFn: async (folder: 'trips' | 'itinerary-docs' | 'vehicles') => {
+    mutationFn: async (folder: UploadFolder) => {
       const res = await apiClient.post<{ success: true; data: CloudinarySignature }>(
         '/uploads/signature',
         { folder },
