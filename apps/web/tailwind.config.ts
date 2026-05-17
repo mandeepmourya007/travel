@@ -66,6 +66,10 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'slide-down': {
+          from: { transform: 'translateY(-100%)' },
+          to: { transform: 'translateY(0)' },
+        },
         'toast-exit': {
           from: { transform: 'translateX(0)', opacity: '1' },
           to: { transform: 'translateX(30px)', opacity: '0' },
@@ -82,6 +86,7 @@ const config: Config = {
         shake: 'shake 0.4s ease-in-out',
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'slide-down': 'slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         'toast-exit': 'toast-exit 0.2s ease-in forwards',
       },
     },
