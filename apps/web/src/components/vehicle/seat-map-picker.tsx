@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSeatMap } from '@/hooks/use-vehicle'
 import { SeatGrid } from './seat-grid'
 import { SeatLegend } from './seat-legend'
@@ -192,11 +192,16 @@ export function SeatMapPicker({ tripId, maxSeats, onSelectionChange }: SeatMapPi
     }
   }, [data, activeVehicleIdx])
 
+  const vehicles = data?.vehicles ?? []
+  const vehiclesWithSelectionCount = useMemo(
+    () => vehicles.filter((v) => v.seats.some((s) => selectedIds.has(s.id))).length,
+    [vehicles, selectedIds],
+  )
+
   if (isLoading) return <SeatMapPickerSkeleton />
   if (error) return <SeatMapPickerError onRetry={() => refetch()} />
-  if (!data || data.vehicles.length === 0) return <SeatMapPickerEmpty />
+  if (!data || vehicles.length === 0) return <SeatMapPickerEmpty />
 
-  const vehicles = data.vehicles
   const isMultiVehicle = vehicles.length > 1
   const activeEntry = vehicles[activeVehicleIdx]
 
@@ -267,7 +272,7 @@ export function SeatMapPicker({ tripId, maxSeats, onSelectionChange }: SeatMapPi
       <div className="flex flex-wrap gap-4 text-[13px] text-neutral-600">
         <span>Selected: <strong className="text-neutral-800">{totalSelected}/{maxSeats}</strong></span>
         {isMultiVehicle && (
-          <span>Across: <strong className="text-neutral-800">{vehicles.filter((v) => v.seats.some((s) => selectedIds.has(s.id))).length} vehicle{vehicles.filter((v) => v.seats.some((s) => selectedIds.has(s.id))).length !== 1 ? 's' : ''}</strong></span>
+          <span>Across: <strong className="text-neutral-800">{vehiclesWithSelectionCount} vehicle{vehiclesWithSelectionCount !== 1 ? 's' : ''}</strong></span>
         )}
       </div>
 

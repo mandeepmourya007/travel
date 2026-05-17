@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useAuthStore } from '@/store/auth.store'
@@ -18,7 +18,7 @@ function SearchContent({ initialData }: SearchContentProps) {
   const searchParams = useSearchParams()
   const { selectedIds, toggle } = useCompareQueue()
 
-  const filters: TripFiltersType = {
+  const filters = useMemo<TripFiltersType>(() => ({
     destinationId: searchParams.get('destinationId') || undefined,
     destination: searchParams.get('destination') || undefined,
     tripType: (searchParams.get('tripType') as TripFiltersType['tripType']) || undefined,
@@ -27,7 +27,7 @@ function SearchContent({ initialData }: SearchContentProps) {
     sort: (searchParams.get('sort') as TripFiltersType['sort']) || 'date',
     page: searchParams.get('page') ? Number(searchParams.get('page')) : 1,
     limit: 12,
-  }
+  }), [searchParams])
 
   return (
     <div className="lg:flex lg:gap-8">

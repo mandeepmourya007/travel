@@ -38,7 +38,7 @@ export function TrendingTrips() {
           <ErrorState
             title="Could not load trending trips"
             message={error.message || 'Please try again later.'}
-            onRetry={() => refetch()}
+            onRetry={refetch}
           />
         ) : data?.trips.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
