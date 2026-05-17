@@ -2,6 +2,41 @@ import type { PaginationMeta } from './api-response.types'
 import type { VerificationStatus, ApproveRejectAction } from '../constants/verification-status'
 import type { BookingStatusConst } from '../constants/booking-status'
 
+// ─── Document Review ────────────────────────────────────
+
+export type DocumentReviewStatusType = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export interface DocumentReviewItem {
+  id: string
+  docType: string
+  status: DocumentReviewStatusType
+  currentUrl: string | null
+  reviewedAt: string | null
+  reviewedBy: string | null
+}
+
+export interface DocumentReviewCommentItem {
+  id: string
+  authorId: string
+  authorName: string
+  authorRole: string
+  docType: string | null
+  comment: string
+  attachmentUrl: string | null
+  createdAt: string
+}
+
+export interface ReviewDocDto {
+  action: 'APPROVED' | 'REJECTED'
+  comment?: string
+}
+
+export interface AddDocCommentDto {
+  docType?: string
+  comment: string
+  attachmentUrl?: string
+}
+
 // ─── Organizer Approvals ────────────────────────────────
 
 export type VerificationStatusFilter = VerificationStatus
@@ -13,6 +48,7 @@ export interface OrganizerApprovalItem {
   description: string | null
   documents: unknown
   verificationStatus: VerificationStatusFilter
+  documentReviews?: DocumentReviewItem[]
   createdAt: string
   user: {
     id: string
@@ -20,6 +56,11 @@ export interface OrganizerApprovalItem {
     email: string | null
     avatarUrl: string | null
   }
+}
+
+export interface OrganizerDocReviewDetail extends OrganizerApprovalItem {
+  documentReviews: DocumentReviewItem[]
+  reviewComments: DocumentReviewCommentItem[]
 }
 
 export interface OrganizerApprovalFilters {

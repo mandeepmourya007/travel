@@ -1,4 +1,4 @@
-export const VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const
+export const VERIFICATION_STATUSES = ['PENDING', 'APPROVED', 'REJECTED', 'REVISION_REQUIRED'] as const
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number]
 
 /** Object form for dot-access: VERIFICATION_STATUS.APPROVED — derived from array */

@@ -16,6 +16,7 @@ export const NOTIFICATION_TYPE = {
   TRIP_REQUEST_EXPIRED: 'TRIP_REQUEST_EXPIRED',
   ADMIN_SUPPORT_MESSAGE: 'ADMIN_SUPPORT_MESSAGE',
   SYSTEM_ALERT: 'SYSTEM_ALERT',
+  DOCUMENT_REUPLOAD_REQUIRED: 'DOCUMENT_REUPLOAD_REQUIRED',
 } as const
 
 /** Notification channel constants — matches Prisma NotificationChannel enum */

@@ -1,5 +1,6 @@
 import type { UserRole, SignupRole } from '../constants/roles'
 import type { VerificationStatus } from '../constants/verification-status'
+import type { DocumentReviewItem } from './admin.types'
 
 export type { UserRole, SignupRole }
 
@@ -58,6 +59,7 @@ export interface OrganizerProfileResponse {
   totalTripsCompleted: number
   bankAccountLinked: boolean
   documents: OrganizerDocuments | null
+  documentReviews?: DocumentReviewItem[]
 }
 
 /** DTO for PATCH /auth/profile */
