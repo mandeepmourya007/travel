@@ -2,15 +2,23 @@ import type { TripDetail, TripSummary } from '@shared/types/trip.types'
 
 let counter = 0
 
+function toTripTypeLabel(tripType: string): string {
+  return tripType
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSummary {
   counter++
+  const tripType = overrides.tripType ?? 'BEACH'
   return {
     id: `clrk${String(counter).padStart(21, '0')}trip`,
     title: `Test Trip ${counter}`,
     slug: `test-trip-${counter}`,
     destination: { id: `dest-${counter}`, name: 'Goa', slug: 'goa' },
-    tripType: 'BEACH',
-    tripTypeLabel: 'Beach',
+    tripType,
+    tripTypeLabel: overrides.tripTypeLabel ?? toTripTypeLabel(tripType),
     bookingMode: 'INSTANT',
     pricePerPerson: 5000 + counter * 1000,
     earlyBirdPrice: null,
