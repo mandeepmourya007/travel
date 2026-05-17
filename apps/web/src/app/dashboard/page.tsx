@@ -12,7 +12,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading, error, refetch } = useOrganizerStats()
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-display text-2xl font-bold text-neutral-900">
@@ -29,7 +29,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 md:gap-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
         ) : error ? (
@@ -51,7 +51,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick actions */}
-      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link
           href="/dashboard/trips"
           className="card-static flex items-center gap-4 p-6 transition-shadow hover:shadow-card-hover"
