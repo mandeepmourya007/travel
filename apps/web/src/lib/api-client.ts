@@ -128,9 +128,9 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config
 
     // Token refresh on 401 — use mutex to avoid concurrent refreshes
-    // Skip refresh for logout (token is already invalidated)
-    const isLogout = originalRequest?.url?.includes('/auth/logout')
-    if (error.response?.status === 401 && !originalRequest._retry && !isLogout) {
+    // Skip refresh for auth endpoints (401 = real credential error, not expired token)
+    const isAuthEndpoint = /\/auth\/(login|signup|otp\/|google-auth|logout)/.test(originalRequest?.url || '')
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 
       if (!refreshPromise) {
