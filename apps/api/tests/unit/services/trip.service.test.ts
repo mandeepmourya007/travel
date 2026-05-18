@@ -817,14 +817,14 @@ describe('TripService', () => {
         .rejects.toThrow('Organizer')
     })
 
-    it('should delegate to getOrganizerPublicProfile with correct ID', async () => {
+    it('should skip redundant findByIdPublic and use slug-fetched profile directly', async () => {
       mockOrganizerProfileRepo.findBySlugPublic.mockResolvedValue(mockPublicProfile)
-      mockOrganizerProfileRepo.findByIdPublic.mockResolvedValue(mockPublicProfile)
       setupOrganizerMocks()
 
       await service.getOrganizerPublicProfileBySlug('desi-explorers', 2, 6, 1, 5)
 
-      expect(mockOrganizerProfileRepo.findByIdPublic).toHaveBeenCalledWith('org-1')
+      expect(mockOrganizerProfileRepo.findBySlugPublic).toHaveBeenCalledWith('desi-explorers')
+      expect(mockOrganizerProfileRepo.findByIdPublic).not.toHaveBeenCalled()
       expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
         'org-1', 'ACTIVE', { offset: 6, limit: 6 },
       )
