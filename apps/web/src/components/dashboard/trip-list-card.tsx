@@ -69,13 +69,13 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             </div>
             {/* Icon buttons — top-right on desktop */}
             <div className="hidden shrink-0 items-center gap-0.5 md:flex">
-              <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost p-1.5" title="Edit">
+              <Link href={`/dashboard/trips/${trip.id}/edit`} prefetch={false} className="btn-ghost p-1.5" title="Edit">
                 <Edit className="h-4 w-4" />
               </Link>
-              <Link href={`/trips/${trip.slug}`} className="btn-ghost p-1.5" title="View Public Page">
+              <Link href={`/trips/${trip.slug}`} prefetch={false} className="btn-ghost p-1.5" title="View Public Page">
                 <Eye className="h-4 w-4" />
               </Link>
-              <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost p-1.5" title="Edit History">
+              <Link href={`/dashboard/trips/${trip.id}/history`} prefetch={false} className="btn-ghost p-1.5" title="Edit History">
                 <History className="h-4 w-4" />
               </Link>
               <button
@@ -107,29 +107,29 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             >
               Publish
             </button>
-            <Link href={`/dashboard/trips/${trip.id}/users?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+            <Link href={`/dashboard/trips/${trip.id}/users?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Users className="h-4 w-4 shrink-0" /> Participants <span className="font-mono text-xs text-neutral-500">({trip.currentBookings})</span>
             </Link>
-            <Link href={`/dashboard/trips/${trip.id}/payments?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+            <Link href={`/dashboard/trips/${trip.id}/payments?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Wallet className="h-4 w-4 shrink-0" /> Payments
             </Link>
-            <Link href={`/dashboard/trips/${trip.id}/reviews?trip=${slugify(trip.title)}`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+            <Link href={`/dashboard/trips/${trip.id}/reviews?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Star className="h-4 w-4 shrink-0" /> Reviews <span className="font-mono text-xs text-neutral-500">({trip.reviewCount})</span>
             </Link>
-            <Link href={`/dashboard/trips/${trip.id}/vehicle`} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
+            <Link href={`/dashboard/trips/${trip.id}/vehicle`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Armchair className="h-4 w-4 shrink-0" /> Seats
             </Link>
           </div>
 
           {/* Icon buttons — mobile only (below action links) */}
           <div className="mt-2 flex items-center gap-1 justify-end md:hidden">
-            <Link href={`/dashboard/trips/${trip.id}/edit`} className="btn-ghost p-1.5" title="Edit">
+            <Link href={`/dashboard/trips/${trip.id}/edit`} prefetch={false} className="btn-ghost p-1.5" title="Edit">
               <Edit className="h-4 w-4" />
             </Link>
-            <Link href={`/trips/${trip.slug}`} className="btn-ghost p-1.5" title="View Public Page">
+            <Link href={`/trips/${trip.slug}`} prefetch={false} className="btn-ghost p-1.5" title="View Public Page">
               <Eye className="h-4 w-4" />
             </Link>
-            <Link href={`/dashboard/trips/${trip.id}/history`} className="btn-ghost p-1.5" title="Edit History">
+            <Link href={`/dashboard/trips/${trip.id}/history`} prefetch={false} className="btn-ghost p-1.5" title="Edit History">
               <History className="h-4 w-4" />
             </Link>
             <button

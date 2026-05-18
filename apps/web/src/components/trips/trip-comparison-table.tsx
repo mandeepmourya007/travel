@@ -73,6 +73,7 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
             {/* Name + Price */}
             <Link
               href={`/trips/${trip.slug}`}
+              prefetch={false}
               className="mt-2 font-display text-xs sm:text-sm font-bold text-neutral-800 line-clamp-2 hover:text-primary-600 transition-colors leading-tight"
             >
               {trip.title}
@@ -262,6 +263,7 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
                     ) : (
                       <Link
                         href={`/trips/${trip.slug}/book`}
+                        prefetch={false}
                         className="btn-primary w-full text-center block text-xs sm:text-sm"
                       >
                         {trip.bookingMode === 'INSTANT' ? 'Book Now' : 'Request to Join'}

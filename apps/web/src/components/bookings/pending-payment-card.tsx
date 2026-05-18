@@ -37,6 +37,7 @@ export function PendingPaymentCard({ request, onPayNow, isPaying }: PendingPayme
       {/* Trip photo */}
       <Link
         href={`/trips/${trip.slug}`}
+        prefetch={false}
         className="relative h-40 w-full flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 md:h-auto md:w-40"
       >
         {trip.photos[0] && (
@@ -53,7 +54,7 @@ export function PendingPaymentCard({ request, onPayNow, isPaying }: PendingPayme
       <div className="flex flex-1 flex-col justify-between gap-2">
         {/* Title + status badges */}
         <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between md:gap-2">
-          <Link href={`/trips/${trip.slug}`} className="text-base font-semibold text-neutral-900 hover:text-primary-600 md:text-lg">
+          <Link href={`/trips/${trip.slug}`} prefetch={false} className="text-base font-semibold text-neutral-900 hover:text-primary-600 md:text-lg">
             {trip.title}
           </Link>
           <div className="flex items-center gap-2 self-start">
@@ -130,6 +131,7 @@ export function PendingPaymentCard({ request, onPayNow, isPaying }: PendingPayme
             )}
             <Link
               href={`/trips/${trip.slug}`}
+              prefetch={false}
               className="btn-outline py-2 text-sm text-center"
             >
               View Trip

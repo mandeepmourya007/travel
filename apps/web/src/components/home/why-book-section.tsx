@@ -70,6 +70,7 @@ export function WhyBookSection() {
           </p>
           <Link
             href="/signup?role=organizer"
+            prefetch={false}
             className="mt-6 inline-block rounded-lg bg-white px-8 py-3 text-sm font-semibold text-primary-700 shadow-sm transition-all hover:bg-neutral-50"
           >
             List Your Trips

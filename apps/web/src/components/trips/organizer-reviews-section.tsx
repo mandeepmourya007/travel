@@ -111,6 +111,7 @@ export function OrganizerReviewsSection({
                     <MapPin className="h-4 w-4 text-primary-500" />
                     <Link
                       href={`/trips/${group.slug}`}
+                      prefetch={false}
                       className="font-display text-base font-semibold text-neutral-800 hover:text-primary-600 transition-colors"
                     >
                       {group.title}

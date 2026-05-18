@@ -32,7 +32,7 @@ export function RoleGuard({ roles, children }: RoleGuardProps) {
         <p className="text-5xl">🔒</p>
         <h2 className="text-lg font-semibold text-neutral-900">Access Denied</h2>
         <p className="text-sm text-neutral-500">You don&apos;t have permission to view this page.</p>
-        <Link href="/" className="btn-outline mt-2">
+        <Link href="/" prefetch={false} className="btn-outline mt-2">
           Go to Home
         </Link>
       </div>

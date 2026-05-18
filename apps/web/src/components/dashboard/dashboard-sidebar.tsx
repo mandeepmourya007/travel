@@ -65,6 +65,7 @@ export function DashboardSidebar() {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                 isActive
@@ -84,6 +85,7 @@ export function DashboardSidebar() {
         <div className="mt-4 border-t border-neutral-100 pt-4">
           <Link
             href="/dashboard/trips/create"
+            prefetch={false}
             className="btn-primary flex w-full items-center justify-center gap-2 text-sm"
           >
             <Plus className="h-4 w-4" />

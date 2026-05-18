@@ -60,7 +60,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             <CreditCard className="h-4 w-4" /> Complete Payment
           </button>
         ) : (
-          <Link href={`/trips/${trip.slug}/book`} className={accentCls}>
+          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={accentCls}>
             <CreditCard className="h-4 w-4" /> Complete Payment
           </Link>
         )
@@ -74,7 +74,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             <CreditCard className="h-4 w-4" /> Pay Now
           </button>
         ) : (
-          <Link href={`/trips/${trip.slug}/book`} className={accentCls}>
+          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={accentCls}>
             <CreditCard className="h-4 w-4" /> Pay Now
           </Link>
         )
@@ -87,7 +87,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
           {trip.bookingMode === 'INSTANT' ? 'Book Now' : 'Request to Book'}
         </button>
       ) : trip.bookingMode === 'INSTANT' ? (
-        <Link href={`/trips/${trip.slug}/book`} className={primaryCls}>
+        <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={primaryCls}>
           Book Now
         </Link>
       ) : (

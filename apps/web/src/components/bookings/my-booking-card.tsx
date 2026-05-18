@@ -39,6 +39,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
       {/* Trip photo — mobile: full width, desktop: fixed sidebar */}
       <Link
         href={`/trips/${trip.slug}`}
+        prefetch={false}
         className="relative h-40 w-full flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 md:h-auto md:w-40"
       >
         {trip.photos[0] && (
@@ -55,7 +56,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
       <div className="flex flex-1 flex-col justify-between gap-2">
         {/* Title + status — mobile: stack, desktop: row */}
         <div className="flex flex-col gap-1 md:flex-row md:items-start md:justify-between md:gap-2">
-          <Link href={`/trips/${trip.slug}`} className="text-base font-semibold text-neutral-900 hover:text-primary-600 md:text-lg">
+          <Link href={`/trips/${trip.slug}`} prefetch={false} className="text-base font-semibold text-neutral-900 hover:text-primary-600 md:text-lg">
             {trip.title}
           </Link>
           <BookingStatusBadge status={booking.bookingStatus} className="self-start" />
@@ -175,6 +176,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
             )}
             <Link
               href={`/trips/${trip.slug}`}
+              prefetch={false}
               className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
             >
               View Trip

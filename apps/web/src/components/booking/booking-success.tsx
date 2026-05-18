@@ -57,7 +57,7 @@ export function BookingSuccess({
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/my-bookings" className="btn-primary">
+          <Link href="/my-bookings" prefetch={false} className="btn-primary">
             View My Bookings
           </Link>
           <button

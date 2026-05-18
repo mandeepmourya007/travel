@@ -30,7 +30,7 @@ export function StatCard({ label, value, icon, href, compact }: StatCardProps) {
 
   if (href) {
     return (
-      <Link href={href} className={cn('card block', compact ? 'p-3' : 'p-6')}>
+      <Link href={href} prefetch={false} className={cn('card block', compact ? 'p-3' : 'p-6')}>
         {content}
       </Link>
     )

@@ -21,6 +21,7 @@ export function TrendingTrips() {
           </h2>
           <Link
             href="/trips"
+            prefetch={false}
             className="hidden sm:flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
           >
             View All
@@ -53,7 +54,7 @@ export function TrendingTrips() {
         )}
 
         <div className="mt-8 text-center">
-          <Link href="/trips" className="btn-secondary inline-flex items-center gap-2">
+          <Link href="/trips" prefetch={false} className="btn-secondary inline-flex items-center gap-2">
             View All Trips
             <ArrowRight className="h-4 w-4" />
           </Link>

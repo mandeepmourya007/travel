@@ -81,6 +81,7 @@ export function VerificationBanner() {
               <div className="mt-2">
                 <Link
                   href="/dashboard/settings/verification"
+                  prefetch={false}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-warning-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-warning-700"
                 >
                   <Upload className="h-3 w-3" />

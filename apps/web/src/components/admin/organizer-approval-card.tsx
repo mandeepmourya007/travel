@@ -114,7 +114,7 @@ export function OrganizerApprovalCard({ organizer, onApprove, onReject, isPendin
           )}
 
           <div className="flex flex-wrap gap-2 pt-2">
-            <Link href={`/admin/organizers/${organizer.id}`}>
+            <Link href={`/admin/organizers/${organizer.id}`} prefetch={false}>
               <Button size="sm" variant="outline">
                 <Eye className="mr-1.5 h-3.5 w-3.5" />
                 Review Documents

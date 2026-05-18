@@ -74,12 +74,12 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
     <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
       {/* Breadcrumb */}
       <nav className="mt-4 flex items-center gap-2 text-sm text-neutral-500">
-        <Link href="/destinations" className="btn-ghost p-1.5 -ml-1.5">
+        <Link href="/destinations" prefetch={false} className="btn-ghost p-1.5 -ml-1.5">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <Link href="/" className="hover:text-primary-600 transition-colors">Home</Link>
+        <Link href="/" prefetch={false} className="hover:text-primary-600 transition-colors">Home</Link>
         <span>/</span>
-        <Link href="/destinations" className="hover:text-primary-600 transition-colors">Destinations</Link>
+        <Link href="/destinations" prefetch={false} className="hover:text-primary-600 transition-colors">Destinations</Link>
         <span>/</span>
         <span className="text-neutral-800 font-medium">{destination.name}</span>
       </nav>
@@ -345,7 +345,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
                 Clear filters
               </button>
             ) : (
-              <Link href="/trips" className="btn-primary mt-4 inline-block">
+              <Link href="/trips" prefetch={false} className="btn-primary mt-4 inline-block">
                 Browse all trips
               </Link>
             )}
@@ -367,6 +367,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
           <div className="mt-4 text-center">
             <Link
               href="/destinations"
+              prefetch={false}
               className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
             >
               View all destinations →

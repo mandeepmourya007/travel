@@ -54,6 +54,7 @@ export function PopularDestinations() {
           </h2>
           <Link
             href="/destinations"
+            prefetch={false}
             className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
           >
             View all →
@@ -64,6 +65,7 @@ export function PopularDestinations() {
             <Link
               key={dest.id}
               href={`/destinations/${dest.slug}`}
+              prefetch={false}
               className="group relative h-36 overflow-hidden rounded-xl bg-neutral-200"
             >
               {dest.photoUrl && (
@@ -89,6 +91,7 @@ export function PopularDestinations() {
         <div className="mt-6 text-center">
           <Link
             href="/destinations"
+            prefetch={false}
             className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
           >
             View all destinations →

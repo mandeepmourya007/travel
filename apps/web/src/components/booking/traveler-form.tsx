@@ -371,8 +371,8 @@ export function TravelerForm({
       {/* Legal text */}
       <p className="text-xs text-neutral-400 text-center mt-2">
         By booking, you agree to our{' '}
-        <Link href="/terms" className="underline hover:text-neutral-600">Terms</Link> &{' '}
-        <Link href="/cancellation-policy" className="underline hover:text-neutral-600">Cancellation Policy</Link>.
+        <Link href="/terms" prefetch={false} className="underline hover:text-neutral-600">Terms</Link> &{' '}
+        <Link href="/cancellation-policy" prefetch={false} className="underline hover:text-neutral-600">Cancellation Policy</Link>.
       </p>
     </form>
   )

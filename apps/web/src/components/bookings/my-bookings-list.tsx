@@ -115,7 +115,7 @@ export function MyBookingsList() {
           message={TAB_EMPTY_MESSAGES[activeTab]}
           action={
             activeTab === 'all' ? (
-              <Link href="/trips" className="btn-primary inline-block rounded-lg px-5 py-2.5 text-sm font-medium">
+              <Link href="/trips" prefetch={false} className="btn-primary inline-block rounded-lg px-5 py-2.5 text-sm font-medium">
                 Browse Trips
               </Link>
             ) : undefined

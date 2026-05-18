@@ -113,6 +113,7 @@ export function OrganizerProfileCard({ organizerProfile }: OrganizerProfileCardP
           ) : (
             <Link
               href="/dashboard/settings/bank"
+              prefetch={false}
               className="text-xs font-medium text-primary-600 hover:text-primary-700"
             >
               Connect
@@ -225,6 +226,7 @@ function DocumentsChecklistItem({ documents }: { documents: OrganizerDocuments |
       ) : (
         <Link
           href="/dashboard/settings/verification"
+          prefetch={false}
           className="text-xs font-medium text-primary-600 hover:text-primary-700"
         >
           Upload

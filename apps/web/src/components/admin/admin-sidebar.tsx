@@ -53,6 +53,7 @@ export function AdminSidebar() {
               <Link
                 key={item.id}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                   isActive
@@ -80,6 +81,7 @@ export function AdminSidebar() {
             <Link
               key={item.id}
               href={item.href}
+              prefetch={false}
               className={cn(
                 'flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 text-[10px] leading-tight',
                 isActive ? 'text-primary-600' : 'text-neutral-400',

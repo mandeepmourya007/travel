@@ -38,6 +38,7 @@ export function TripDetailClient({ trip: initialTrip, slug }: TripDetailClientPr
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
               href="/trips"
+              prefetch={false}
               className="btn-secondary inline-flex items-center gap-2 text-sm"
             >
               <ArrowLeft className="h-4 w-4" />

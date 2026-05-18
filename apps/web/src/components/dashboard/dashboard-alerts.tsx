@@ -56,6 +56,7 @@ export function DashboardAlerts() {
           </p>
           <Link
             href="/profile"
+            prefetch={false}
             className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-error-700 underline underline-offset-2 hover:text-error-800"
           >
             Update Profile
@@ -84,6 +85,7 @@ export function DashboardAlerts() {
           </p>
           <Link
             href="/dashboard/settings/verification"
+            prefetch={false}
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-warning-700 bg-white px-3 py-1.5 text-sm font-semibold text-warning-800 transition-colors hover:bg-warning-100"
           >
             <FileText className="h-3.5 w-3.5" />
@@ -111,6 +113,7 @@ export function DashboardAlerts() {
           </p>
           <Link
             href="/dashboard/settings/bank"
+            prefetch={false}
             className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-primary-700 bg-white px-3 py-1.5 text-sm font-semibold text-primary-800 transition-colors hover:bg-primary-100"
           >
             <Landmark className="h-3.5 w-3.5" />

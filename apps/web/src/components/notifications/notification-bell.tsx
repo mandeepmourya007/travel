@@ -129,6 +129,7 @@ export function NotificationBell() {
           <div className="border-t border-neutral-100 px-4 py-2.5">
             <Link
               href="/notifications"
+              prefetch={false}
               className="block text-center text-xs font-medium text-primary-600 hover:text-primary-700"
             >
               View all notifications

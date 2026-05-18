@@ -48,6 +48,7 @@ export function OrganizerProfileClient({ initialData, organizerId }: OrganizerPr
       {/* Back link */}
       <Link
         href="/trips"
+        prefetch={false}
         className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-primary-600 transition-colors mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
@@ -103,6 +104,7 @@ export function OrganizerProfileClient({ initialData, organizerId }: OrganizerPr
             <div className="mt-4 text-center">
               <Link
                 href={`/trips?organizerId=${organizerId}`}
+                prefetch={false}
                 className="text-sm text-primary-600 hover:text-primary-700 font-medium"
               >
                 See all {tripsPagination.total} trips →

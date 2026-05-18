@@ -95,6 +95,7 @@ export function CompareBar({ items, onRemove, onClose, isOpen, maxItems = 3 }: C
           {canCompare ? (
             <Link
               href={`/trips/compare?trips=${slugParam}`}
+              prefetch={false}
               className="btn-accent text-sm uppercase tracking-wide"
             >
               Compare Now
