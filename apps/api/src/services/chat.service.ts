@@ -121,11 +121,15 @@ export class ChatService {
       replyToId: dto.replyToId ?? null,
     })
 
-    const senderRole = this.getSenderRole(conversation, senderId)
-    await this.conversationRepo.incrementUnread(conversationId, senderRole)
-    await this.conversationRepo.updateLastMessage(conversationId, content, new Date())
-
     this.logger.info({ conversationId, messageId: message.id, senderId }, 'Message sent')
+
+    // Fire-and-forget: denormalized counter updates don't affect the returned message
+    const senderRole = this.getSenderRole(conversation, senderId)
+    void Promise.all([
+      this.conversationRepo.incrementUnread(conversationId, senderRole),
+      this.conversationRepo.updateLastMessage(conversationId, content, new Date()),
+    ]).catch((err) => this.logger.error({ err, conversationId }, 'Failed to update conversation counters'))
+
     return message
   }
 
@@ -180,9 +184,12 @@ export class ChatService {
       limit,
     })
 
-    await this.messageRepo.markAsRead(conversationId, userId)
+    // Fire-and-forget: mark-as-read side effects don't affect the response
     const readerRole = this.getSenderRole(conversation, userId)
-    await this.conversationRepo.resetUnread(conversationId, readerRole)
+    void Promise.all([
+      this.messageRepo.markAsRead(conversationId, userId),
+      this.conversationRepo.resetUnread(conversationId, readerRole),
+    ]).catch((err) => this.logger.error({ err, conversationId }, 'Failed to mark messages as read'))
 
     return result
   }
