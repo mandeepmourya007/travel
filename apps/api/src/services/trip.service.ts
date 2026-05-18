@@ -21,6 +21,8 @@ import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
 
+type PublicOrganizerProfile = NonNullable<Awaited<ReturnType<OrganizerProfileRepository['findByIdPublic']>>>
+
 export class TripService {
   constructor(
     private tripRepo: TripRepository,
@@ -91,7 +93,37 @@ export class TripService {
   ) {
     const profile = await this.organizerProfileRepo.findByIdPublic(organizerId)
     if (!profile) throw new NotFoundError('Organizer')
+    return this.buildOrganizerProfile(profile, tripsPage, tripsLimit, reviewsPage, reviewsLimit)
+  }
 
+  async getOrganizerPublicProfileBySlug(
+    slug: string,
+    tripsPage = 1,
+    tripsLimit = 12,
+    reviewsPage = 1,
+    reviewsLimit = 10,
+  ) {
+    const fetcher = async () => {
+      const profile = await this.organizerProfileRepo.findBySlugPublic(slug)
+      if (!profile) throw new NotFoundError('Organizer')
+      return this.buildOrganizerProfile(profile, tripsPage, tripsLimit, reviewsPage, reviewsLimit)
+    }
+
+    // Cache first page only (default pagination)
+    if (this.cache && tripsPage === 1 && reviewsPage === 1) {
+      return this.cache.getOrSet(cacheKeys.organizerProfile(slug), CACHE_TTL.ORGANIZER_PROFILE, fetcher)
+    }
+    return fetcher()
+  }
+
+  private async buildOrganizerProfile(
+    profile: PublicOrganizerProfile,
+    tripsPage = 1,
+    tripsLimit = 12,
+    reviewsPage = 1,
+    reviewsLimit = 10,
+  ) {
+    const organizerId = profile.id
     const tripsOffset = (tripsPage - 1) * tripsLimit
     const reviewsOffset = (reviewsPage - 1) * reviewsLimit
 
@@ -142,18 +174,6 @@ export class TripService {
         totalPages: Math.ceil(reviewResult.total / reviewsLimit),
       },
     }
-  }
-
-  async getOrganizerPublicProfileBySlug(
-    slug: string,
-    tripsPage = 1,
-    tripsLimit = 12,
-    reviewsPage = 1,
-    reviewsLimit = 10,
-  ) {
-    const profile = await this.organizerProfileRepo.findBySlugPublic(slug)
-    if (!profile) throw new NotFoundError('Organizer')
-    return this.getOrganizerPublicProfile(profile.id, tripsPage, tripsLimit, reviewsPage, reviewsLimit)
   }
 
   async createTrip(userId: string, input: CreateTripDto) {
@@ -380,14 +400,20 @@ export class TripService {
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new ForbiddenError('Organizer profile not found')
 
-    const [activeTrips, totalBookings, revenue, pendingRequests] = await Promise.all([
-      this.tripRepo.countByOrganizerId(profile.id, 'ACTIVE'),
-      this.tripRepo.sumBookingsByOrganizerId(profile.id),
-      this.tripRepo.calculateOrganizerRevenue(profile.id),
-      this.tripRepo.countPendingRequests(profile.id),
-    ])
+    const fetcher = async () => {
+      const [activeTrips, totalBookings, revenue, pendingRequests] = await Promise.all([
+        this.tripRepo.countByOrganizerId(profile.id, 'ACTIVE'),
+        this.tripRepo.sumBookingsByOrganizerId(profile.id),
+        this.tripRepo.calculateOrganizerRevenue(profile.id),
+        this.tripRepo.countPendingRequests(profile.id),
+      ])
+      return { activeTrips, totalBookings, revenue, pendingRequests }
+    }
 
-    return { activeTrips, totalBookings, revenue, pendingRequests }
+    if (this.cache) {
+      return this.cache.getOrSet(cacheKeys.organizerStats(profile.id), CACHE_TTL.ORGANIZER_STATS, fetcher)
+    }
+    return fetcher()
   }
 
   async publishTrip(userId: string, tripId: string) {
