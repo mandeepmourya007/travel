@@ -31,6 +31,9 @@ export const cacheKeys = {
 
   organizerProfile: (slug: string) =>
     `${CACHE_PREFIX}:organizers:slug:${slug}`,
+
+  organizerStats: (organizerId: string) =>
+    `${CACHE_PREFIX}:organizers:stats:${organizerId}`,
 } as const
 
 // ─── Invalidation Prefixes ──────────────────────────

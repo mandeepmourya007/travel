@@ -114,6 +114,7 @@ export const CACHE_TTL = {
   DESTINATION_DETAIL: 300,
   CATEGORIES: 600,
   ORGANIZER_PROFILE: 300,
+  ORGANIZER_STATS: 60,
 } as const
 
 /** Generic reference model constants for webhook events + payment transactions */
