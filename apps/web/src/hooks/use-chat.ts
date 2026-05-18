@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
 import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
@@ -12,7 +12,11 @@ import type {
   Message,
   ConversationListFilters,
   SendMessageDto,
+  ChatUser,
 } from '@shared/types/chat.types'
+
+type MessagesPage = { data: Message[]; hasMore: boolean; nextCursor: string | null }
+type MessagesInfiniteData = InfiniteData<MessagesPage, string | undefined>
 
 // ─── Read Hooks ─────────────────────────────────────
 
@@ -54,6 +58,7 @@ export function useMessages(conversationId: string | null) {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     enabled: !!conversationId,
+    staleTime: STALE_TIME_REALTIME,
   })
 }
 
@@ -216,10 +221,40 @@ export function useChatConnection(conversationId: string | null) {
     socket.emit('chat:join', { conversationId })
 
     const handleMessage = (message: Message) => {
-      if (message.conversationId === conversationId) {
-        queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) })
-        queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
-      }
+      if (message.conversationId !== conversationId) return
+
+      // Direct cache update instead of invalidation — avoids full refetch
+      queryClient.setQueryData<MessagesInfiniteData>(
+        chatKeys.messages(conversationId),
+        (old) => {
+          if (!old) return old
+          const firstPage = old.pages[0]
+          if (!firstPage) return old
+
+          // Deduplicate: skip if this exact message ID is already in cache
+          if (firstPage.data.some((m) => m.id === message.id)) return old
+
+          // Replace optimistic placeholder (temp-*) if one matches content + sender
+          const tempIdx = firstPage.data.findIndex(
+            (m) => m.id.startsWith('temp-') && m.content === message.content && m.senderId === message.senderId,
+          )
+          if (tempIdx >= 0) {
+            const newData = [...firstPage.data]
+            newData[tempIdx] = message
+            return { ...old, pages: [{ ...firstPage, data: newData }, ...old.pages.slice(1)] }
+          }
+
+          // New message from other participant — prepend
+          return {
+            ...old,
+            pages: [
+              { ...firstPage, data: [message, ...firstPage.data] },
+              ...old.pages.slice(1),
+            ],
+          }
+        },
+      )
+      queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
     }
 
     const handleTyping = ({ conversationId: convId, userId, userName }: { conversationId: string; userId: string; userName?: string }) => {
@@ -283,22 +318,81 @@ export function useChatConnection(conversationId: string | null) {
  */
 export function useSendMessage(conversationId: string | null) {
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
 
   const sendMessage = useCallback(
     async (dto: SendMessageDto) => {
-      if (!conversationId) return
+      if (!conversationId || !user) return
+
+      // Optimistic update: immediately show the message in the chat
+      const optimisticMsg: Message = {
+        id: `temp-${Date.now()}`,
+        conversationId,
+        senderId: user.id,
+        sender: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, role: user.role } satisfies ChatUser,
+        type: dto.type ?? 'TEXT',
+        content: dto.content,
+        originalContent: null,
+        isFlagged: false,
+        readAt: null,
+        fileUrl: dto.fileUrl ?? null,
+        fileName: dto.fileName ?? null,
+        fileSize: dto.fileSize ?? null,
+        reactions: [],
+        replyToId: dto.replyToId ?? null,
+        replyTo: null,
+        createdAt: new Date().toISOString(),
+      }
+
+      queryClient.setQueryData<MessagesInfiniteData>(
+        chatKeys.messages(conversationId),
+        (old) => {
+          if (!old) return old
+          const firstPage = old.pages[0]
+          if (!firstPage) return old
+          return {
+            ...old,
+            pages: [
+              { ...firstPage, data: [optimisticMsg, ...firstPage.data] },
+              ...old.pages.slice(1),
+            ],
+          }
+        },
+      )
 
       const socket = getSocket()
       if (socket?.connected) {
         socket.emit('chat:send', { conversationId, ...dto })
       } else {
-        await apiClient.post(`/chat/conversations/${conversationId}/messages`, dto)
+        // REST fallback — on success, refetch to replace optimistic message
+        try {
+          await apiClient.post(`/chat/conversations/${conversationId}/messages`, dto)
+          queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) })
+        } catch {
+          // Rollback optimistic message on failure
+          queryClient.setQueryData<MessagesInfiniteData>(
+            chatKeys.messages(conversationId),
+            (old) => {
+              if (!old) return old
+              const firstPage = old.pages[0]
+              if (!firstPage) return old
+              return {
+                ...old,
+                pages: [
+                  { ...firstPage, data: firstPage.data.filter((m) => m.id !== optimisticMsg.id) },
+                  ...old.pages.slice(1),
+                ],
+              }
+            },
+          )
+          throw new Error('Failed to send message')
+        }
       }
 
-      queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) })
+      // Only refresh conversation list (for preview), not messages
       queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
     },
-    [conversationId, queryClient],
+    [conversationId, queryClient, user],
   )
 
   return { sendMessage }
