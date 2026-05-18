@@ -98,7 +98,7 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" prefetch={false} className="flex items-center gap-2">
           <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
         </Link>
 
@@ -130,6 +130,7 @@ export function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={false}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all',
@@ -148,6 +149,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -182,12 +184,14 @@ export function Header() {
             <>
               <Link
                 href="/login/email"
+                prefetch={false}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
+                prefetch={false}
                 className="rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-600"
               >
                 Get started
@@ -232,6 +236,7 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
+                prefetch={false}
                 onClick={closeMobileMenu}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
@@ -256,6 +261,7 @@ export function Header() {
             <>
               <Link
                 href="/notifications"
+                prefetch={false}
                 onClick={closeMobileMenu}
                 className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 border-t border-neutral-100 mt-2 pt-2"
               >
@@ -280,6 +286,7 @@ export function Header() {
             <div className="flex gap-2 border-t border-neutral-100 mt-2 pt-3">
               <Link
                 href="/login/email"
+                prefetch={false}
                 onClick={closeMobileMenu}
                 className="btn-secondary flex-1 text-center text-sm"
               >
@@ -287,6 +294,7 @@ export function Header() {
               </Link>
               <Link
                 href="/signup"
+                prefetch={false}
                 onClick={closeMobileMenu}
                 className="btn-primary flex-1 text-center text-sm"
               >

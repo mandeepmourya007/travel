@@ -19,27 +19,27 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-neutral-800 mb-3">Explore</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/trips" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/trips" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   All Trips
                 </Link>
               </li>
               <li>
-                <Link href="/destinations" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/destinations" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Destinations
                 </Link>
               </li>
               <li>
-                <Link href="/trips?tripType=ADVENTURE" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/trips?tripType=ADVENTURE" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Adventure
                 </Link>
               </li>
               <li>
-                <Link href="/trips?tripType=WEEKEND" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/trips?tripType=WEEKEND" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Weekend Getaways
                 </Link>
               </li>
               <li>
-                <Link href="/trips?tripType=TREKKING" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/trips?tripType=TREKKING" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Trekking
                 </Link>
               </li>
@@ -51,27 +51,27 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-neutral-800 mb-3">Company</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/about" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/how-it-works" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/faq" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/terms" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/privacy" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
@@ -83,12 +83,12 @@ export function Footer() {
             <h4 className="text-sm font-semibold text-neutral-800 mb-3">For Organizers</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/signup?role=organizer" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/signup?role=organizer" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   List Your Trips
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works" className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                <Link href="/how-it-works" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   How It Works
                 </Link>
               </li>
