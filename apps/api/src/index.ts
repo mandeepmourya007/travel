@@ -8,7 +8,7 @@ import { cronDeps, authService, chatService, setIoInstance } from './config/depe
 import { createSocketServer } from './socket'
 import { env } from './config/env'
 
-const PORT = process.env.PORT || 4000
+const PORT = env.PORT
 
 const app = createServer()
 const httpServer = createHttpServer(app)
@@ -51,3 +51,11 @@ async function shutdown(signal: string) {
 
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 process.on('SIGINT', () => shutdown('SIGINT'))
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason }, 'Unhandled promise rejection — shutting down')
+  process.exit(1)
+})
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception — shutting down')
+  process.exit(1)
+})
