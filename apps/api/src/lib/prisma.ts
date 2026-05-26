@@ -1,4 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
+import { logger as pinoLogger } from '../utils/logger'
+
+const SLOW_QUERY_THRESHOLD_MS = 100
 
 const SOFT_DELETE_MODELS = [
   'User', 'OrganizerProfile', 'Destination', 'Trip', 'TripTransferPoint', 'Booking',
@@ -7,7 +10,18 @@ const SOFT_DELETE_MODELS = [
 ] as const
 
 export const basePrisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  log: [
+    { level: 'query', emit: 'event' },
+    { level: 'warn', emit: 'stdout' },
+    { level: 'error', emit: 'stdout' },
+  ],
+})
+
+// Log slow DB queries (>100ms) — helps pinpoint DB bottlenecks in prod
+basePrisma.$on('query', (e: Prisma.QueryEvent) => {
+  if (e.duration > SLOW_QUERY_THRESHOLD_MS) {
+    pinoLogger.warn({ duration: e.duration, query: e.query }, 'slow_db_query')
+  }
 })
 
 export const prisma = basePrisma.$extends({
