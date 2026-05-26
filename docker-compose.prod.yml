@@ -3,8 +3,42 @@
 # Usage: docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 #
 # Requires Docker Compose v2.24.0+
+#
+# Database: set DATABASE_URL and DIRECT_URL in .env.prod
+#   Local Postgres:  start with --profile db, set URL to postgres://travel:<pw>@postgres:5432/travel
+#   External (Neon):  just set the Neon URL, don't start the db profile
 
 services:
+  # ── PostgreSQL (optional — start with --profile db) ─
+  postgres:
+    image: postgres:16-alpine
+    container_name: travel-postgres-prod
+    restart: unless-stopped
+    profiles: ['db']
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-travel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_DB: ${POSTGRES_DB:-travel}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-travel}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
+    networks:
+      - prodnet
+
   # ── Redis ────────────────────────────────────────────
   redis:
     image: redis:7-alpine3.20
@@ -233,6 +267,7 @@ services:
       - prodnet
 
 volumes:
+  pgdata:
   redisdata:
   certbot_www:
   certbot_certs:
