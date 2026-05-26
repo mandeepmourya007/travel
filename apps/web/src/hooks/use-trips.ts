@@ -29,7 +29,12 @@ export function useTrips(filters: TripFilters, options?: UseTripsOptions) {
   })
 }
 
-export function useTrendingTrips() {
+export function useTrendingTrips(
+  initialData?: { trips: TripSummary[]; pagination: PaginationMeta | null },
+) {
   const filters: TripFilters = { sort: 'popularity', limit: 6 }
-  return useTrips(filters, { staleTime: 2 * 60 * 1000 })
+  return useTrips(filters, {
+    staleTime: 2 * 60 * 1000,
+    ...(initialData && { initialData }),
+  })
 }

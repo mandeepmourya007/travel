@@ -4,9 +4,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin } from 'lucide-react'
 import { usePopularDestinations } from '@/hooks/use-destinations'
+import type { Destination } from '@shared/types/destination.types'
 
-export function PopularDestinations() {
-  const { data: destinations, isLoading, error } = usePopularDestinations()
+interface PopularDestinationsProps {
+  initialData?: Destination[]
+}
+
+export function PopularDestinations({ initialData }: PopularDestinationsProps) {
+  const { data: destinations, isLoading, error } = usePopularDestinations(initialData)
 
   if (isLoading) {
     return (

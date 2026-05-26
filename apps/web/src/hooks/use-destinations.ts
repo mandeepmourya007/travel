@@ -14,10 +14,16 @@ export function useDestinations() {
   })
 }
 
-// TODO: Replace client-side filter with server-side ?popular=true query param
-// once the GET /destinations endpoint supports filtering (see tech-stack.md §API)
-export function usePopularDestinations() {
-  const query = useDestinations()
-  const popular = query.data?.filter((d) => d.isPopular) ?? []
-  return { ...query, data: popular }
+export function usePopularDestinations(initialData?: Destination[]) {
+  return useQuery({
+    queryKey: destinationKeys.popular(),
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: true; data: Destination[] }>('/destinations', {
+        params: { popular: 'true' },
+      })
+      return res.data.data
+    },
+    staleTime: 5 * 60 * 1000,
+    ...(initialData && { initialData }),
+  })
 }

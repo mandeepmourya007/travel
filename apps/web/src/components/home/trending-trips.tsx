@@ -7,9 +7,15 @@ import { TripCard } from '@/components/trips/trip-card'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
 import { ErrorState } from '@/components/shared/data-states'
 import { useCompareQueue } from '@/hooks/use-compare-queue'
+import type { TripSummary } from '@shared/types/trip.types'
+import type { PaginationMeta } from '@shared/types/api-response.types'
 
-export function TrendingTrips() {
-  const { data, isLoading, error, refetch } = useTrendingTrips()
+interface TrendingTripsProps {
+  initialData?: { trips: TripSummary[]; pagination: PaginationMeta | null }
+}
+
+export function TrendingTrips({ initialData }: TrendingTripsProps) {
+  const { data, isLoading, error, refetch } = useTrendingTrips(initialData)
   const { selectedIds, toggle } = useCompareQueue()
 
   return (
@@ -43,8 +49,8 @@ export function TrendingTrips() {
           />
         ) : data?.trips.length ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.trips.slice(0, 6).map((trip) => (
-              <TripCard key={trip.id} trip={trip} onCompare={toggle} isSelected={selectedIds.includes(trip.id)} />
+            {data.trips.slice(0, 6).map((trip, i) => (
+              <TripCard key={trip.id} trip={trip} onCompare={toggle} isSelected={selectedIds.includes(trip.id)} priority={i < 3} />
             ))}
           </div>
         ) : (
