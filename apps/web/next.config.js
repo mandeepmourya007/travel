@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: false, // Nginx handles gzip in production — avoid double-compression overhead
   trailingSlash: false,
   transpilePackages: ['@travel/shared'],
   images: {

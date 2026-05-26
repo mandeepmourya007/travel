@@ -116,8 +116,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
-          cpus: '0.5'
+          memory: 512M
+          cpus: '1'
     depends_on:
       api:
         condition: service_healthy
@@ -151,10 +151,12 @@ services:
       - ./docker/nginx/templates:/etc/nginx/templates:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_certs:/etc/letsencrypt:ro
+    tmpfs:
+      - /var/cache/nginx:size=128M
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 256M
           cpus: '0.5'
     depends_on:
       api:
