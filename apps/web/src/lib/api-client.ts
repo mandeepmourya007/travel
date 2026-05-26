@@ -7,12 +7,6 @@ import { feLogger } from '@/lib/logger'
 import { API_TIMEOUT_MS } from '@/lib/constants'
 import { useConnectionStore } from '@/store/connection.store'
 
-declare module 'axios' {
-  interface InternalAxiosRequestConfig {
-    _showLoader?: boolean
-  }
-}
-
 export interface AppApiError extends Error {
   code?: string
   status?: number
@@ -38,32 +32,8 @@ export const apiClient = axios.create({
   withCredentials: true,
 })
 
-// ── Loading overlay: track in-flight requests ───────
-let activeRequests = 0
-
-function incrementLoader() {
-  activeRequests++
-  if (activeRequests === 1) {
-    const { _pinned, show } = useLoadingStore.getState()
-    if (!_pinned) show()
-  }
-}
-
-function decrementLoader() {
-  activeRequests = Math.max(0, activeRequests - 1)
-  if (activeRequests === 0) {
-    useLoadingStore.getState().hide()
-  }
-}
-
 // ── Request Interceptor ──────────────────────────────
 apiClient.interceptors.request.use((config) => {
-  const method = (config.method ?? '').toUpperCase()
-  if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-    incrementLoader()
-    config._showLoader = true
-  }
-
   // Correlation ID — links FE logs with BE request-scoped logs
   const requestId = typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -83,7 +53,7 @@ apiClient.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
 
-  feLogger.debug('API Request', { method, url: config.url, requestId })
+  feLogger.debug('API Request', { method: config.method, url: config.url, requestId })
   return config
 })
 
@@ -120,13 +90,11 @@ function doRefresh(): Promise<string | null> {
 // ── Response Interceptor ─────────────────────────────
 apiClient.interceptors.response.use(
   (response) => {
-    if (response.config._showLoader) decrementLoader()
     if (useConnectionStore.getState().isServerDown) useConnectionStore.getState().markUp()
     feLogger.debug('API Response', { status: response.status, url: response.config.url })
     return response
   },
   async (error) => {
-    if (error.config?._showLoader) decrementLoader()
     const originalRequest = error.config
 
     // Token refresh on 401 — use mutex to avoid concurrent refreshes

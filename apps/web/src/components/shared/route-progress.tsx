@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { useLoadingStore } from '@/store/loading.store'
 
 /**
  * Thin animated progress bar at the top of the viewport.
@@ -25,8 +24,6 @@ export function RouteProgress() {
   const safetyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isRunningRef = useRef(false)
   const prevPathRef = useRef(pathname)
-  const showLoader = useLoadingStore((s) => s.show)
-  const hideLoader = useLoadingStore((s) => s.hide)
 
   const clearAllTimers = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
@@ -42,7 +39,6 @@ export function RouteProgress() {
 
     setProgress(0)
     setVisible(true)
-    showLoader()
 
     // Animate towards 80 % in random increments
     let p = 0
@@ -57,17 +53,16 @@ export function RouteProgress() {
 
     // Safety: auto-complete after 5 s
     safetyTimeoutRef.current = setTimeout(() => complete(), 5000)
-  }, [clearAllTimers, showLoader])
+  }, [clearAllTimers])
 
   const complete = useCallback(() => {
     clearAllTimers()
     isRunningRef.current = false
     setProgress(100)
-    hideLoader()
 
     fadeTimeoutRef.current = setTimeout(() => setVisible(false), 300)
     resetTimeoutRef.current = setTimeout(() => setProgress(0), 600)
-  }, [clearAllTimers, hideLoader])
+  }, [clearAllTimers])
 
   // Detect navigation completion via pathname change
   useEffect(() => {
