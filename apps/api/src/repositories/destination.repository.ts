@@ -4,11 +4,12 @@ import type { ExtendedPrismaClient } from '../lib/prisma'
 export class DestinationRepository {
   constructor(private prisma: ExtendedPrismaClient) {}
 
-  async findAll(includeInactive = false) {
+  async findAll(options: { includeInactive?: boolean; popular?: boolean } = {}) {
     return this.prisma.destination.findMany({
       where: {
         isDeleted: false,
-        ...(includeInactive ? {} : { isActive: true }),
+        ...(options.includeInactive ? {} : { isActive: true }),
+        ...(options.popular && { isPopular: true }),
       },
       orderBy: [{ isPopular: 'desc' }, { tripCount: 'desc' }, { name: 'asc' }],
     })

@@ -16,9 +16,9 @@ export class DestinationService {
     private cache: CacheService | null = null,
   ) {}
 
-  async list() {
+  async list(options?: { popular?: boolean }) {
     const fetcher = async () => {
-      const destinations = await this.destinationRepo.findAll()
+      const destinations = await this.destinationRepo.findAll({ popular: options?.popular })
       return destinations.map((d) => ({
         id: d.id,
         name: d.name,
@@ -32,7 +32,8 @@ export class DestinationService {
     }
 
     if (this.cache) {
-      return this.cache.getOrSet(cacheKeys.destinationList(), CACHE_TTL.DESTINATION_LIST, fetcher)
+      const key = options?.popular ? cacheKeys.destinationListPopular() : cacheKeys.destinationList()
+      return this.cache.getOrSet(key, CACHE_TTL.DESTINATION_LIST, fetcher)
     }
     return fetcher()
   }

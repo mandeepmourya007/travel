@@ -23,6 +23,9 @@ export const cacheKeys = {
   destinationList: () =>
     `${CACHE_PREFIX}:destinations:list`,
 
+  destinationListPopular: () =>
+    `${CACHE_PREFIX}:destinations:list:popular`,
+
   destinationDetail: (slug: string) =>
     `${CACHE_PREFIX}:destinations:detail:${slug}`,
 

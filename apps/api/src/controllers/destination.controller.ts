@@ -5,8 +5,9 @@ import { DestinationService } from '../services/destination.service'
 export class DestinationController {
   constructor(private destinationService: DestinationService) {}
 
-  list = asyncHandler(async (_req: Request, res: Response) => {
-    const destinations = await this.destinationService.list()
+  list = asyncHandler(async (req: Request, res: Response) => {
+    const popular = req.query.popular === 'true' ? true : undefined
+    const destinations = await this.destinationService.list({ popular })
     res.json({ success: true, data: destinations })
   })
 
