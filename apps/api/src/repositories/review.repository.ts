@@ -106,7 +106,7 @@ export class ReviewRepository {
     const where: Prisma.ReviewWhereInput = { tripId, isDeleted: false }
     const orderBy = this.buildOrderBy(filters.sort)
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.review.findMany({
         where,
         select: REVIEW_SELECT,
@@ -170,7 +170,7 @@ export class ReviewRepository {
    */
   async findByOrganizerId(organizerId: string, pagination: { offset: number; limit: number }) {
     const where: Prisma.ReviewWhereInput = { trip: { organizerId }, isDeleted: false }
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.review.findMany({
         where,
         select: {

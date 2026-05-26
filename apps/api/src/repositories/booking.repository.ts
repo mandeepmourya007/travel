@@ -88,7 +88,7 @@ export class BookingRepository {
     pagination: { offset: number; limit: number },
   ) {
     const where = this.buildWhere(tripId, filters)
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.booking.findMany({
         where,
         skip: pagination.offset,
@@ -115,7 +115,7 @@ export class BookingRepository {
    * - INITIATED/FAILED transactions are excluded
    */
   async getTripBookingSummary(tripId: string) {
-    const [confirmedAgg, revenueGroups, pendingRequests] = await this.prisma.$transaction([
+    const [confirmedAgg, revenueGroups, pendingRequests] = await Promise.all([
       this.prisma.booking.aggregate({
         _count: { id: true },
         _sum: { numTravelers: true },
@@ -181,7 +181,7 @@ export class BookingRepository {
       ? { trip: { startDate: 'asc' as const } }
       : { createdAt: 'desc' as const }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.booking.findMany({
         where, skip: pagination.offset, take: pagination.limit,
         orderBy, include: MY_BOOKING_INCLUDE,
@@ -509,7 +509,7 @@ export class BookingRepository {
       }),
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.booking.findMany({
         where,
         skip: pagination.skip,

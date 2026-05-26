@@ -138,7 +138,7 @@ export class MessageRepository {
       content: { contains: query, mode: 'insensitive' },
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.message.findMany({
         where,
         select: MESSAGE_SELECT,
@@ -220,7 +220,7 @@ export class MessageRepository {
       isDeleted: false,
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.message.findMany({
         where,
         select: {

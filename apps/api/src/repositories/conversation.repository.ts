@@ -125,7 +125,7 @@ export class ConversationRepository {
       ],
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
         select: CONVERSATION_SELECT,
@@ -159,7 +159,7 @@ export class ConversationRepository {
       isDeleted: false,
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.conversation.findMany({
         where,
         select: CONVERSATION_SELECT,

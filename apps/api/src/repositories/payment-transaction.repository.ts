@@ -135,7 +135,7 @@ export class PaymentTransactionRepository {
     pagination: { skip: number; take: number },
   ) {
     const where = this.buildPaymentWhere({ ...filters, userId })
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.paymentTransaction.findMany({
         where,
         include: { booking: { select: BOOKING_SELECT_BASE } },
@@ -161,7 +161,7 @@ export class PaymentTransactionRepository {
     pagination: { skip: number; take: number },
   ) {
     const where = this.buildPaymentWhere({ ...filters, tripId })
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.paymentTransaction.findMany({
         where,
         include: { booking: { select: BOOKING_SELECT_WITH_USER } },
@@ -188,7 +188,7 @@ export class PaymentTransactionRepository {
     pagination: { skip: number; take: number },
   ) {
     const where = this.buildPaymentWhere(filters)
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.paymentTransaction.findMany({
         where,
         include: { booking: { select: BOOKING_SELECT_WITH_USER } },
@@ -209,7 +209,7 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getMyPaymentSummary()
    */
   async getUserSummary(userId: string) {
-    const [groups, transactionCount] = await this.prisma.$transaction([
+    const [groups, transactionCount] = await Promise.all([
       this.prisma.paymentTransaction.groupBy({
         by: ['type', 'status'],
         _sum: { amount: true },
@@ -242,7 +242,7 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getTripPaymentSummary()
    */
   async getTripSummary(tripId: string) {
-    const [groups, txCount, refundCount] = await this.prisma.$transaction([
+    const [groups, txCount, refundCount] = await Promise.all([
       this.prisma.paymentTransaction.groupBy({
         by: ['type'],
         _sum: { amount: true },
@@ -274,7 +274,7 @@ export class PaymentTransactionRepository {
    * Used by: PaymentHistoryService.getGlobalSummary()
    */
   async getGlobalSummary() {
-    const [groups, txCount, failedCount] = await this.prisma.$transaction([
+    const [groups, txCount, failedCount] = await Promise.all([
       this.prisma.paymentTransaction.groupBy({
         by: ['type'],
         _sum: { amount: true },

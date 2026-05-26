@@ -89,7 +89,7 @@ export class OrganizerProfileRepository {
       ...(filters.status && { verificationStatus: filters.status }),
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.organizerProfile.findMany({
         where,
         skip: pagination.skip,

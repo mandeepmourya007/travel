@@ -56,7 +56,7 @@ export class DocumentReviewRepository {
   async findComments(organizerId: string, pagination: { skip: number; take: number }) {
     const where = { organizerId }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.documentReviewComment.findMany({
         where,
         skip: pagination.skip,

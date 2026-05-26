@@ -35,7 +35,7 @@ export class TripEditHistoryRepository {
    * - Returns { data: [], total: 0 } if trip has no edits
    */
   async findByTripId(tripId: string, pagination: { offset: number; limit: number }) {
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.tripEditHistory.findMany({
         where: { tripId },
         skip: pagination.offset,

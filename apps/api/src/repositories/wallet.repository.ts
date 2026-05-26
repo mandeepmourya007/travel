@@ -250,7 +250,7 @@ export class WalletRepository {
       referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
     }
 
-    const [txns, total] = await this.prisma.$transaction([
+    const [txns, total] = await Promise.all([
       this.prisma.walletTransaction.findMany({
         where,
         orderBy: { createdAt: 'desc' },

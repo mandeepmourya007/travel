@@ -42,7 +42,7 @@ export class TripRequestRepository {
     pagination: { offset: number; limit: number },
   ) {
     const where = this.buildWhere(tripId, filters)
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.tripRequest.findMany({
         where,
         skip: pagination.offset,

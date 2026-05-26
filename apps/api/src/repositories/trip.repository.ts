@@ -61,7 +61,7 @@ export class TripRepository {
 
   async search(filters: TripFilters, pagination: { offset: number; limit: number }) {
     const where = this.buildWhere(filters)
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
         skip: pagination.offset,
@@ -110,7 +110,7 @@ export class TripRepository {
       isDeleted: false,
       ...(status && { status: status as Prisma.EnumTripStatusFilter }),
     }
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
         include: TRIP_INCLUDE_SUMMARY,
@@ -155,7 +155,7 @@ export class TripRepository {
         orderBy = { startDate: 'asc' }
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
         include: TRIP_INCLUDE_SUMMARY,
@@ -528,7 +528,7 @@ export class TripRepository {
       }),
     }
 
-    const [trips, total] = await this.prisma.$transaction([
+    const [trips, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
         skip: pagination.skip,
