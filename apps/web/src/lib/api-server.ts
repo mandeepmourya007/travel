@@ -21,6 +21,7 @@ export async function fetchApi<T>(
   options: FetchApiOptions = {},
 ): Promise<T> {
   const url = `${getApiBaseUrl()}${path}`
+  const start = performance.now()
 
   const nextOptions: NextFetchRequestConfig = {}
   if (options.revalidate !== undefined) {
@@ -30,10 +31,17 @@ export async function fetchApi<T>(
     nextOptions.tags = options.tags
   }
 
+  const requestId = crypto.randomUUID()
   const res = await fetch(url, {
     next: nextOptions,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
   })
+
+  const duration = Math.round(performance.now() - start)
+  if (duration > 500) {
+    // eslint-disable-next-line no-console -- server-side perf instrumentation
+    console.warn(`[SSR-FETCH] SLOW ${path} ${res.status} ${duration}ms rid=${requestId}`)
+  }
 
   if (!res.ok) {
     let message = `API error ${res.status}: ${res.statusText}`
@@ -53,6 +61,7 @@ export async function fetchApiWithPagination<T>(
   options: FetchApiOptions = {},
 ): Promise<{ data: T; pagination: { page: number; limit: number; total: number; totalPages: number } | null }> {
   const url = `${getApiBaseUrl()}${path}`
+  const start = performance.now()
 
   const nextOptions: NextFetchRequestConfig = {}
   if (options.revalidate !== undefined) {
@@ -62,10 +71,17 @@ export async function fetchApiWithPagination<T>(
     nextOptions.tags = options.tags
   }
 
+  const requestId = crypto.randomUUID()
   const res = await fetch(url, {
     next: nextOptions,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
   })
+
+  const duration = Math.round(performance.now() - start)
+  if (duration > 500) {
+    // eslint-disable-next-line no-console -- server-side perf instrumentation
+    console.warn(`[SSR-FETCH] SLOW ${path} ${res.status} ${duration}ms rid=${requestId}`)
+  }
 
   if (!res.ok) {
     let message = `API error ${res.status}: ${res.statusText}`
