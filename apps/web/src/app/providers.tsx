@@ -1,9 +1,10 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useState, Suspense, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { setAppRouter } from '@/lib/app-router'
 import { CompareQueueProvider } from '@/hooks/use-compare-queue'
 import { GlobalCompareBar } from '@/components/trips/global-compare-bar'
@@ -11,9 +12,13 @@ import { ToastProvider } from '@/components/shared/toast'
 import { RouteProgress } from '@/components/shared/route-progress'
 import { FullScreenLoader } from '@/components/shared/full-screen-loader'
 import { DismissLoader } from '@/components/shared/dismiss-loader'
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import { SocketConnector } from '@/components/shared/socket-connector'
 import { ServerDownBanner } from '@/components/shared/server-down-banner'
+
+const ReactQueryDevtools = dynamic(
+  () => import('@tanstack/react-query-devtools').then((mod) => ({ default: mod.ReactQueryDevtools })),
+  { ssr: false },
+)
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -64,7 +69,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <GlobalCompareBar />
         </ToastProvider>
       </CompareQueueProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )
 
