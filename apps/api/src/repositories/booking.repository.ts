@@ -3,6 +3,8 @@ import { Prisma, type BookingStatus, type Gender } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants'
+import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 const ASSIGNED_SEAT_SELECT = {
   select: {
@@ -121,7 +123,7 @@ export class BookingRepository {
         _sum: { numTravelers: true },
         where: {
           tripId,
-          bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] },
+          bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] },
           isDeleted: false,
         },
       }),
@@ -129,15 +131,15 @@ export class BookingRepository {
         by: ['type'],
         _sum: { amount: true },
         where: {
-          status: 'CAPTURED',
-          type: { in: ['PAYMENT', 'REFUND'] },
+          status: PAYMENT_TX_STATUS.CAPTURED,
+          type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
           booking: { tripId, isDeleted: false },
         },
       }),
       this.prisma.tripRequest.count({
         where: {
           tripId,
-          status: 'PENDING',
+          status: TRIP_REQUEST_STATUS.PENDING,
           isDeleted: false,
         },
       }),
@@ -146,8 +148,8 @@ export class BookingRepository {
     let payments = 0
     let refunds = 0
     for (const g of revenueGroups) {
-      if (g.type === 'PAYMENT') payments = g._sum.amount ?? 0
-      if (g.type === 'REFUND') refunds = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT) payments = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND) refunds = g._sum.amount ?? 0
     }
 
     return {
@@ -272,7 +274,7 @@ export class BookingRepository {
         numTravelers: data.numTravelers,
         totalAmount: data.totalAmount,
         expiresAt: data.expiresAt,
-        bookingStatus: 'PENDING_PAYMENT',
+        bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
         pickupPointId: data.pickupPointId ?? null,
         dropPointId: data.dropPointId ?? null,
         travelerDetails: {
@@ -311,12 +313,12 @@ export class BookingRepository {
       where: {
         userId,
         tripId,
-        bookingStatus: { in: ['PENDING_PAYMENT', 'CONFIRMED'] },
+        bookingStatus: { in: [BOOKING_STATUS.PENDING_PAYMENT, BOOKING_STATUS.CONFIRMED] },
         isDeleted: false,
       },
       include: {
         paymentTransactions: {
-          where: { type: 'PAYMENT' },
+          where: { type: PAYMENT_TX_TYPE.PAYMENT },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -333,13 +335,13 @@ export class BookingRepository {
   async findExpiredPendingBookings() {
     return this.prisma.booking.findMany({
       where: {
-        bookingStatus: 'PENDING_PAYMENT',
+        bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
         expiresAt: { lt: new Date() },
         isDeleted: false,
       },
       include: {
         paymentTransactions: {
-          where: { type: 'PAYMENT' },
+          where: { type: PAYMENT_TX_TYPE.PAYMENT },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -385,7 +387,7 @@ export class BookingRepository {
           },
         },
         paymentTransactions: {
-          where: { type: 'PAYMENT' },
+          where: { type: PAYMENT_TX_TYPE.PAYMENT },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -434,13 +436,13 @@ export class BookingRepository {
       case 'upcoming':
         return {
           ...base,
-          bookingStatus: { in: ['CONFIRMED', 'PENDING_PAYMENT'] },
+          bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.PENDING_PAYMENT] },
           trip: { startDate: { gt: new Date() } },
         }
       case 'completed':
-        return { ...base, bookingStatus: 'COMPLETED' }
+        return { ...base, bookingStatus: BOOKING_STATUS.COMPLETED }
       case 'cancelled':
-        return { ...base, bookingStatus: { in: ['CANCELLED', 'EXPIRED'] } }
+        return { ...base, bookingStatus: { in: [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.EXPIRED] } }
       case 'all':
       default:
         return base
@@ -590,7 +592,7 @@ export class BookingRepository {
     const bookings = await this.prisma.booking.findMany({
       where: {
         tripId,
-        bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] },
+        bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] },
         isDeleted: false,
       },
       select: {
