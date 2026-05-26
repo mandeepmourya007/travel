@@ -1,9 +1,10 @@
 import Razorpay from 'razorpay'
 import { logger } from '../utils/logger'
+import { env } from './env'
 
 function createRazorpayClient(): Razorpay | null {
-  const keyId = process.env.RAZORPAY_KEY_ID
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  const keyId = env.RAZORPAY_KEY_ID
+  const keySecret = env.RAZORPAY_KEY_SECRET
 
   if (!keyId || !keySecret) {
     logger.warn('Razorpay not configured — payment features disabled')

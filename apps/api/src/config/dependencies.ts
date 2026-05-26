@@ -143,7 +143,7 @@ const paymentService = razorpayClient
         logger.warn('Using MockPaymentService — Razorpay not configured. Payments will be simulated.')
         return new MockPaymentService(paymentTxRepo, webhookEventRepo, logger)
       })()
-    : (null as unknown as PaymentService)
+    : (() => { throw new Error('RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required in production') })()
 
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
@@ -211,9 +211,7 @@ const notificationController = new NotificationController(notificationService)
 const adminController = new AdminController(adminService)
 const vehicleController = new VehicleController(vehicleService)
 const tripCategoryController = new TripCategoryController(tripCategoryService)
-const webhookController = paymentService
-  ? new WebhookController(paymentService, bookingService)
-  : (null as unknown as WebhookController)
+const webhookController = new WebhookController(paymentService, bookingService)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)

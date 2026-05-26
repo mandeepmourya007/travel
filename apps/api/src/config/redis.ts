@@ -1,5 +1,6 @@
 import IORedis from 'ioredis'
 import { logger } from '../utils/logger'
+import { env } from './env'
 
 /**
  * Creates a singleton ioredis client.
@@ -7,7 +8,7 @@ import { logger } from '../utils/logger'
  * Returns null when REDIS_URL is unset — rate limiting gracefully disabled.
  */
 function createRedisClient(): IORedis | null {
-  const url = process.env.REDIS_URL
+  const url = env.REDIS_URL
   if (!url) {
     logger.warn('REDIS_URL not set — rate limiting and caching disabled')
     return null
