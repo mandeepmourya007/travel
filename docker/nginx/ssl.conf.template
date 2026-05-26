@@ -1,5 +1,6 @@
 # ── HTTPS Nginx Config Template ──────────────────────
-# Activated by deploy-prod.sh when DOMAIN is set in .env.prod.
+# Single source of truth for HTTPS config.
+# Activated by deploy-prod.sh when SSL certs exist.
 # Replaces docker/nginx/templates/default.conf.template during deploy.
 
 # ── Upstream definitions ─────────────────────────────
@@ -57,6 +58,12 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_tickets off;
 
+    # ── OCSP Stapling (faster TLS handshake) ─────────
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 1.1.1.1 8.8.8.8 valid=300s;
+    resolver_timeout 5s;
+
     # ── Security headers ─────────────────────────────
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -98,12 +105,47 @@ server {
         add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
     }
 
-    # ── Default: Next.js app ─────────────────────────
+    # ── Next.js image optimization (cache 24h) ─────────
+    location /_next/image {
+        proxy_pass http://web_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache ssr_cache;
+        proxy_cache_valid 200 24h;
+        proxy_cache_key "$request_uri";
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header Cache-Control "public, max-age=86400";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    }
+
+    # ── Default: Next.js app (SSR with short proxy cache) ─
     location / {
         proxy_pass http://web_upstream;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Only bypass cache for authenticated users (has refreshToken cookie)
+        set $skip_cache 0;
+        if ($cookie_refreshToken) {
+            set $skip_cache 1;
+        }
+
+        proxy_cache ssr_cache;
+        proxy_cache_valid 200 60s;
+        proxy_cache_key "$scheme$request_method$host$request_uri$http_accept_encoding";
+        proxy_cache_bypass $skip_cache;
+        proxy_no_cache $skip_cache;
+        add_header X-Cache-Status $upstream_cache_status;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
     }
 }

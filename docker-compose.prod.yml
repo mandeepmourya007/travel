@@ -65,7 +65,7 @@ services:
           memory: 192M
           cpus: '0.5'
     healthcheck:
-      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      test: ['CMD-SHELL', 'REDISCLI_AUTH=$REDIS_PASSWORD redis-cli ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -104,6 +104,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:4000/health']
       interval: 15s
@@ -123,8 +126,8 @@ services:
     build:
       context: .
       dockerfile: docker/web.prod.Dockerfile
-      network: host
       args:
+        # Build-time placeholder — overridden at runtime by environment section
         API_URL_INTERNAL: http://127.0.0.1:4001/api/v1
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}

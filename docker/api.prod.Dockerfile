@@ -1,17 +1,15 @@
 # syntax=docker/dockerfile:1
-# ── Production API Dockerfile ─────────────────────────
+# ── Production API Dockerfile (Multi-Stage) ───────────
+# Stage 1: Install dependencies (cached layer)
+# Stage 2: Copy source, generate Prisma client, prune devDeps
+# Stage 3: Minimal runner (~150MB vs ~400MB single-stage)
 # Uses tsx runtime (avoids rootDir tsc path issue in monorepo)
-# Non-root user, dumb-init for PID 1 signal handling
 
-FROM node:20-alpine3.20
-
-# dumb-init: proper PID 1 signal handling
-# openssl: required by Prisma Client for database connections
-RUN apk add --no-cache dumb-init openssl
+# ── Stage 1: Dependencies ────────────────────────────
+FROM node:20-alpine3.20 AS deps
 
 WORKDIR /app
 
-# ── Dependency layer (cached unless package.json changes)
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
@@ -21,14 +19,33 @@ RUN --mount=type=cache,target=/root/.npm \
     npm install --workspace=@travel/api --workspace=@travel/shared --include-workspace-root \
  && rm -rf /tmp/*
 
-# ── Source layer ──────────────────────────────────────
-COPY --chown=node:node packages/shared/ packages/shared/
-COPY --chown=node:node apps/api/ apps/api/
+# ── Stage 2: Build ───────────────────────────────────
+FROM deps AS builder
+
+COPY packages/shared/ packages/shared/
+COPY apps/api/ apps/api/
+
 RUN npx --workspace=@travel/api prisma generate
 
 # Prune dev dependencies (vitest, @types, typescript, prisma CLI ~160MB)
 # tsx must be in dependencies (not devDependencies) for this to work
-RUN npm prune --omit=dev 2>/dev/null || true
+RUN npm prune --omit=dev && rm -rf /tmp/*
+
+# ── Stage 3: Production runner ───────────────────────
+FROM node:20-alpine3.20 AS runner
+
+# dumb-init: proper PID 1 signal handling
+# openssl: required by Prisma Client for database connections
+RUN apk add --no-cache dumb-init openssl
+
+WORKDIR /app
+
+# Copy only production artifacts from builder
+COPY --from=builder --chown=node:node /app/package.json ./
+COPY --from=builder --chown=node:node /app/tsconfig.base.json ./
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
+COPY --from=builder --chown=node:node /app/apps/api ./apps/api
 
 WORKDIR /app/apps/api
 

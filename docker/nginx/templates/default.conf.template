@@ -132,7 +132,7 @@ server {
 
         proxy_cache ssr_cache;
         proxy_cache_valid 200 60s;
-        proxy_cache_key "$scheme$request_method$host$request_uri";
+        proxy_cache_key "$scheme$request_method$host$request_uri$http_accept_encoding";
         proxy_cache_bypass $skip_cache;
         proxy_no_cache $skip_cache;
         add_header X-Cache-Status $upstream_cache_status;

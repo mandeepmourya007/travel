@@ -77,9 +77,21 @@ echo ""
 # ── Stop any existing containers ─────────────────────
 docker compose down --remove-orphans 2>/dev/null || true
 
-# ── Kill local processes on ports 3000/4000 ──────────
-lsof -ti:4000 | xargs kill -9 2>/dev/null || true
-lsof -ti:${WEB_PORT} | xargs kill -9 2>/dev/null || true
+# ── Kill local processes on conflicting ports ─────────
+for PORT_TO_FREE in 4000 ${WEB_PORT}; do
+  PIDS=$(lsof -ti:${PORT_TO_FREE} 2>/dev/null || true)
+  if [ -n "$PIDS" ]; then
+    echo "⚠️  Port ${PORT_TO_FREE} in use by PID(s): ${PIDS}"
+    echo "$PIDS" | xargs kill 2>/dev/null || true
+    sleep 1
+    # SIGKILL only if SIGTERM didn't work
+    PIDS=$(lsof -ti:${PORT_TO_FREE} 2>/dev/null || true)
+    if [ -n "$PIDS" ]; then
+      echo "   Force-killing stubborn process(es)..."
+      echo "$PIDS" | xargs kill -9 2>/dev/null || true
+    fi
+  fi
+done
 
 # ── Build and start ──────────────────────────────────
 echo "📦 Building images..."

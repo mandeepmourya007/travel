@@ -99,7 +99,6 @@ if [ ! -f "$ENV_FILE" ]; then
   RD_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
   PG_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
   JWT_S=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
-  JWT_RS=$(openssl rand -base64 48 | tr -d '/+=' | head -c 48)
   BASE_URL="http://$HOST_IP"
 
   # Database URLs depend on chosen mode
@@ -140,7 +139,6 @@ REDIS_PASSWORD=$RD_PASS
 
 # ─── Auth ────────────────────────────────────────────
 JWT_SECRET=$JWT_S
-JWT_REFRESH_SECRET=$JWT_RS
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
@@ -280,7 +278,6 @@ validate_secret() {
 
 validate_secret "REDIS_PASSWORD" 32
 validate_secret "JWT_SECRET" 48
-validate_secret "JWT_REFRESH_SECRET" 48
 
 if [ "$PATCHED" -gt 0 ]; then
   echo ""

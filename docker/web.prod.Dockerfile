@@ -60,7 +60,8 @@ ENV API_URL_INTERNAL=$API_URL_INTERNAL \
     NEXT_TELEMETRY_DISABLED=1 \
     NODE_OPTIONS="--max-old-space-size=512"
 
-RUN npx --workspace=@travel/web next build
+RUN npm run --workspace=@travel/web build --if-present \
+ || npx --workspace=@travel/web next build
 
 # ── Stage 3: Runner ──────────────────────────────────
 FROM node:20-alpine3.20 AS runner

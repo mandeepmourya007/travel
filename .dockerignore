@@ -15,8 +15,9 @@ dist
 **/.DS_Store
 coverage
 **/coverage
-tests
-**/tests
+# Exclude test files (scoped to app dirs to avoid over-matching)
+apps/*/tests
+packages/*/tests
 **/*.test.ts
 **/*.spec.ts
 .turbo
