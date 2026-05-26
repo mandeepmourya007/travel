@@ -11,7 +11,7 @@
 services:
   # ── PostgreSQL (optional — start with --profile db) ─
   postgres:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     container_name: travel-postgres-prod
     restart: unless-stopped
     profiles: ['db']
