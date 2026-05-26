@@ -16,6 +16,7 @@ interface TripCardProps {
   trip: TripSummary
   onCompare?: (trip: TripSummary) => void
   isSelected?: boolean
+  priority?: boolean
 }
 
 /**
@@ -29,7 +30,7 @@ interface TripCardProps {
  *       so the compare queue can store a lightweight snapshot without re-fetching.
  *       When omitted, the compare button is hidden.
  */
-export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = false }: TripCardProps) {
+export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = false, priority = false }: TripCardProps) {
   const queryClient = useQueryClient()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
@@ -76,6 +77,7 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
+            priority={priority}
           />
           {/* Booking mode badge */}
           <span

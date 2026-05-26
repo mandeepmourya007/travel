@@ -49,12 +49,13 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData
         {data.pagination?.total ?? data.trips.length} trips found
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data.trips.map((trip) => (
+        {data.trips.map((trip, i) => (
           <TripCard
             key={trip.id}
             trip={trip}
             onCompare={onCompare}
             isSelected={selectedTripIds.includes(trip.id)}
+            priority={i < 3}
           />
         ))}
       </div>
