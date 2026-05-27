@@ -97,10 +97,9 @@ done
 echo "📦 Building images..."
 docker compose build api web
 
-# Prune dangling images + build cache from previous builds
-echo "🧹 Cleaning up old Docker layers..."
+# Prune only dangling images — keep build cache so layer reuse speeds future starts
+echo "🧹 Cleaning up dangling images..."
 docker image prune -f 2>/dev/null || true
-docker builder prune -f 2>/dev/null || true
 
 echo ""
 echo "🗄️  Starting Postgres + Redis..."
@@ -110,51 +109,48 @@ echo ""
 echo "🔧 Starting API + Web (API auto-runs migrate + prisma generate)..."
 docker compose up -d api web
 
-# ── Health check all services ────────────────────────
+# ── Health check all services (parallel) ────────────
 echo ""
 echo "🔍 Checking service health..."
-SERVICES=("postgres" "redis" "api" "web")
 HEALTH_TIMEOUT=60
-FAILED=()
+TMPDIR_HEALTH=$(mktemp -d)
 
-for svc in "${SERVICES[@]}"; do
-  elapsed=0
-  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
-    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "travel-${svc}" 2>/dev/null || echo "missing")
-
+_check_svc() {
+  local svc="$1" timeout="$2" out="$TMPDIR_HEALTH/${svc}.result"
+  local container="travel-${svc}"
+  local elapsed=0 status
+  while [ $elapsed -lt "$timeout" ]; do
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
     if [ "$status" = "healthy" ]; then
-      echo "  ✅ ${svc} — healthy"
-      break
+      echo "ok" > "$out"; return
     elif [ "$status" = "no-healthcheck" ]; then
-      # No healthcheck defined — check if container is running
-      running=$(docker inspect --format='{{.State.Status}}' "travel-${svc}" 2>/dev/null || echo "missing")
-      if [ "$running" = "running" ]; then
-        echo "  ✅ ${svc} — running (no healthcheck)"
-        break
-      else
-        echo "  ❌ ${svc} — ${running}"
-        FAILED+=("$svc")
-        break
-      fi
-    elif [ "$status" = "missing" ]; then
-      echo "  ❌ ${svc} — container not found"
-      FAILED+=("$svc")
-      break
-    elif [ "$status" = "unhealthy" ]; then
-      echo "  ❌ ${svc} — unhealthy"
-      FAILED+=("$svc")
-      break
+      running=$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "missing")
+      if [ "$running" = "running" ]; then echo "ok" > "$out"; else echo "fail:$running" > "$out"; fi
+      return
+    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+      echo "fail:$status" > "$out"; return
     fi
-
-    sleep 2
-    elapsed=$((elapsed + 2))
+    sleep 2; elapsed=$((elapsed + 2))
   done
+  echo "timeout:$status" > "$out"
+}
 
-  if [ $elapsed -ge $HEALTH_TIMEOUT ] && [ "$status" != "healthy" ]; then
-    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s (status: ${status})"
+for svc in postgres redis api web; do
+  _check_svc "$svc" "$HEALTH_TIMEOUT" &
+done
+wait
+
+FAILED=()
+for svc in postgres redis api web; do
+  result=$(cat "$TMPDIR_HEALTH/${svc}.result" 2>/dev/null || echo "fail:missing")
+  if [ "$result" = "ok" ]; then
+    echo "  ✅ ${svc} — healthy"
+  else
+    echo "  ❌ ${svc} — ${result#*:}"
     FAILED+=("$svc")
   fi
 done
+rm -rf "$TMPDIR_HEALTH"
 
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo ""
