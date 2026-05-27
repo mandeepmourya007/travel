@@ -11,13 +11,13 @@ const defaultProps = {
 }
 
 describe('PaymentFilters', () => {
-  it('should render all four filter controls', () => {
+  it('should render all filter controls', () => {
     render(<PaymentFilters {...defaultProps} />)
 
     expect(screen.getByLabelText('Type')).toBeInTheDocument()
     expect(screen.getByLabelText('Status')).toBeInTheDocument()
-    expect(screen.getByLabelText('From')).toBeInTheDocument()
-    expect(screen.getByLabelText('To')).toBeInTheDocument()
+    // Date range is a single combined picker — check for its trigger button
+    expect(screen.getByText('Select date range')).toBeInTheDocument()
   })
 
   it('should show all payment types from shared schema', () => {
@@ -120,7 +120,8 @@ describe('PaymentFilters', () => {
 
     expect(screen.getByLabelText('Type')).toHaveValue('REFUND')
     expect(screen.getByLabelText('Status')).toHaveValue('FAILED')
-    expect(screen.getByLabelText('From')).toHaveValue('2025-01-01')
-    expect(screen.getByLabelText('To')).toHaveValue('2025-01-31')
+    // Date range picker shows formatted dates in its trigger button
+    expect(screen.getByText('Jan 1, 2025')).toBeInTheDocument()
+    expect(screen.getByText('Jan 31, 2025')).toBeInTheDocument()
   })
 })

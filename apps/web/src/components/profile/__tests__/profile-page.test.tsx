@@ -110,7 +110,7 @@ describe('ProfilePage', () => {
       expect(screen.getByTestId('organizer-profile-card')).toBeInTheDocument()
     })
     expect(screen.getByText('Trek India Adventures')).toBeInTheDocument()
-    expect(screen.getByText('Verified')).toBeInTheDocument()
+    expect(screen.getAllByText('Verified')[0]).toBeInTheDocument()
   })
 
   // ── Edit user profile form ──────────────────────────

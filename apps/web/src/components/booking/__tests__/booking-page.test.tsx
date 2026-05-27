@@ -38,16 +38,18 @@ vi.mock('next/link', () => ({
 }))
 
 // Mock auth store — user is always authenticated
-vi.mock('@/store/auth.store', () => ({
-  useAuthStore: (selector?: (s: Record<string, unknown>) => unknown) => {
-    const state = {
-      isAuthenticated: true,
-      _hasHydrated: true,
-      user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'TRAVELER' },
-    }
-    return selector ? selector(state) : state
-  },
-}))
+vi.mock('@/store/auth.store', () => {
+  const state = {
+    isAuthenticated: true,
+    _hasHydrated: true,
+    accessToken: 'test-jwt',
+    user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'TRAVELER' },
+  }
+  const useAuthStore = (selector?: (s: Record<string, unknown>) => unknown) =>
+    selector ? selector(state) : state
+  useAuthStore.getState = () => state
+  return { useAuthStore }
+})
 
 // Mock toast
 const mockToast = vi.fn()
