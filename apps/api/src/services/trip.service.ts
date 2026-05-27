@@ -20,6 +20,7 @@ import type { OrganizerDocuments } from '@shared/types/user.types'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
+import { mapTripToSummary } from '../utils/trip-mapper'
 
 type PublicOrganizerProfile = NonNullable<Awaited<ReturnType<OrganizerProfileRepository['findByIdPublic']>>>
 
@@ -802,38 +803,7 @@ export class TripService {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toSummary(trip: any) {
-    return {
-      id: trip.id,
-      title: trip.title,
-      slug: trip.slug,
-      destination: trip.destination
-        ? { id: trip.destination.id, name: trip.destination.name, slug: trip.destination.slug }
-        : undefined,
-      tripType: trip.tripType,
-      tripTypeLabel: trip._tripTypeLabel ?? trip.tripType?.replace(/_/g, ' ') ?? '',
-      bookingMode: trip.bookingMode,
-      pricePerPerson: trip.pricePerPerson,
-      earlyBirdPrice: trip.earlyBirdPrice,
-      startDate: trip.startDate,
-      endDate: trip.endDate,
-      maxGroupSize: trip.maxGroupSize,
-      currentBookings: trip.currentBookings,
-      status: trip.status,
-      acceptingBookings: trip.acceptingBookings,
-      photos: trip.photos,
-      seatSelectionEnabled: trip.seatSelectionEnabled ?? false,
-      reviewCount: trip._count?.reviews ?? 0,
-      organizer: trip.organizer
-        ? {
-            id: trip.organizer.id,
-            slug: trip.organizer.slug,
-            businessName: trip.organizer.businessName,
-            rating: trip.organizer.rating,
-            totalReviews: trip.organizer.totalReviews,
-            verified: trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
-          }
-        : undefined,
-    }
+    return mapTripToSummary(trip)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

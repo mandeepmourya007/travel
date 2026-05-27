@@ -7,6 +7,7 @@ import type { CacheService } from './cache.service'
 import { generateSlug } from '@shared/utils/slug'
 import { PAGINATION_DEFAULTS, CACHE_TTL } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
+import { mapTripToSummary } from '../utils/trip-mapper'
 
 export class DestinationService {
   constructor(
@@ -82,7 +83,7 @@ export class DestinationService {
           tripCount: destination.tripCount,
           isPopular: destination.isPopular,
         },
-        trips: tripsResult.data,
+        trips: tripsResult.data.map(mapTripToSummary),
         tripsPagination: {
           page,
           limit,
