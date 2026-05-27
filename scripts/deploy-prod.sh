@@ -333,9 +333,8 @@ $DC down --remove-orphans 2>/dev/null || true
 echo "📦 Building API image..."
 $DC build api
 
-# Prune dangling images + build cache from previous builds
+# Prune only dangling images — keep build cache so layer reuse speeds future deploys
 docker image prune -f 2>/dev/null || true
-docker builder prune -f 2>/dev/null || true
 
 # ── Start infrastructure (Redis + optional Postgres) ──
 echo ""
@@ -394,50 +393,18 @@ else
   echo "  ⏭️  Seed skipped"
 fi
 
-# ── Start API (needed for web SSG build) ─────────
+# ── Build Web image ──────────────────────────────────
+# Pages fetch data at runtime (SSR), so API does not need to be running during build.
+echo ""
+echo "📦 Building Web image..."
+$DC build web
+# Prune only dangling images — keep build cache for future deploys
+docker image prune -f 2>/dev/null || true
+
+# ── Start API ─────────────────────────────────────
 echo ""
 echo "🔧 Starting API..."
 $DC up -d api
-
-# Wait for API to be healthy before building web
-echo "🔍 Waiting for API health..."
-elapsed=0
-while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
-  status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "travel-api-prod" 2>/dev/null || echo "missing")
-  if [ "$status" = "healthy" ]; then
-    echo "  ✅ api — healthy"
-    break
-  elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
-    echo "  ❌ api — ${status}"
-    $DC logs api --tail 15
-    exit 1
-  fi
-  sleep 3
-  elapsed=$((elapsed + 3))
-done
-if [ $elapsed -ge $HEALTH_TIMEOUT ]; then
-  echo "  ⏰ api — timed out after ${HEALTH_TIMEOUT}s"
-  exit 1
-fi
-
-# ── Build Web image ──────────────────────────────────
-# Stop API during build to free RAM on low-memory VPS (API uses ~512MB).
-# SSR pages will fetch data at runtime, not build time.
-echo ""
-echo "📦 Building Web image..."
-$DC stop api 2>/dev/null || true
-WEB_BUILD_OK=true
-$DC build web || WEB_BUILD_OK=false
-echo "🔧 Restarting API after web build..."
-$DC up -d api
-if [ "$WEB_BUILD_OK" = false ]; then
-  echo "  ❌ Web build failed — API is running but web is not updated"
-  exit 1
-fi
-
-# Prune dangling images + build cache again
-docker image prune -f 2>/dev/null || true
-docker builder prune -f 2>/dev/null || true
 
 # ── Prepare Nginx template ───────────────────────
 # Use HTTP-only template until SSL certs exist (Certbot runs after health checks)
@@ -463,46 +430,47 @@ echo ""
 echo "🔧 Starting Web + Nginx..."
 $DC up -d web nginx
 
-# ── Health check all services ─────────────────────────
+# ── Health check all services (parallel) ─────────────
 echo ""
 echo "🔍 Checking service health..."
-SERVICES=("api" "web" "nginx")
-FAILED=()
+TMPDIR_HEALTH=$(mktemp -d)
 
-for svc in "${SERVICES[@]}"; do
-  elapsed=0
-  container="travel-${svc}-prod"
-  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+_check_svc() {
+  local svc="$1" timeout="$2" out="$TMPDIR_HEALTH/${svc}.result"
+  local container="travel-${svc}-prod"
+  local elapsed=0 status
+  while [ $elapsed -lt "$timeout" ]; do
     status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
-
     if [ "$status" = "healthy" ]; then
-      echo "  ✅ ${svc} — healthy"
-      break
+      echo "ok" > "$out"; return
     elif [ "$status" = "no-healthcheck" ]; then
       running=$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "missing")
-      if [ "$running" = "running" ]; then
-        echo "  ✅ ${svc} — running (no healthcheck)"
-        break
-      else
-        echo "  ❌ ${svc} — ${running}"
-        FAILED+=("$svc")
-        break
-      fi
-    elif [ "$status" = "missing" ]; then
-      echo "  ❌ ${svc} — ${status}"
-      FAILED+=("$svc")
-      break
+      if [ "$running" = "running" ]; then echo "ok" > "$out"; else echo "fail:$running" > "$out"; fi
+      return
+    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
+      echo "fail:$status" > "$out"; return
     fi
-    # "starting" or "unhealthy" → keep waiting until timeout
-    sleep 3
-    elapsed=$((elapsed + 3))
+    sleep 3; elapsed=$((elapsed + 3))
   done
+  echo "timeout:$status" > "$out"
+}
 
-  if [ $elapsed -ge $HEALTH_TIMEOUT ] && [ "$status" != "healthy" ]; then
-    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s (status: ${status})"
+for svc in api web nginx; do
+  _check_svc "$svc" "$HEALTH_TIMEOUT" &
+done
+wait
+
+FAILED=()
+for svc in api web nginx; do
+  result=$(cat "$TMPDIR_HEALTH/${svc}.result" 2>/dev/null || echo "fail:missing")
+  if [ "$result" = "ok" ]; then
+    echo "  ✅ ${svc} — healthy"
+  else
+    echo "  ❌ ${svc} — ${result#*:}"
     FAILED+=("$svc")
   fi
 done
+rm -rf "$TMPDIR_HEALTH"
 
 if [ ${#FAILED[@]} -gt 0 ]; then
   echo ""
