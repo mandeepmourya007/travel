@@ -15,14 +15,6 @@ import { ErrorState } from '@/components/shared/data-states'
 import type { CreateTripDto, TripDetail } from '@shared/types/trip.types'
 import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 
-function toDateTimeLocal(iso: string | null | undefined): string | undefined {
-  if (!iso) return undefined
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return undefined
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 export default function EditTripPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -56,12 +48,12 @@ export default function EditTripPage() {
     tripType: trip.tripType,
     bookingMode: trip.bookingMode,
     description: trip.description,
-    startDate: toDateTimeLocal(trip.startDate) ?? '',
-    endDate: toDateTimeLocal(trip.endDate) ?? '',
+    startDate: trip.startDate ?? '',
+    endDate: trip.endDate ?? '',
     pricePerPerson: trip.pricePerPerson,
     earlyBirdPrice: trip.earlyBirdPrice ?? undefined,
-    earlyBirdDeadline: toDateTimeLocal(trip.earlyBirdDeadline),
-    bookingDeadline: toDateTimeLocal(trip.bookingDeadline),
+    earlyBirdDeadline: trip.earlyBirdDeadline ?? undefined,
+    bookingDeadline: trip.bookingDeadline ?? undefined,
     minGroupSize: trip.minGroupSize,
     maxGroupSize: trip.maxGroupSize,
     cancellationPolicy: trip.cancellationPolicy,

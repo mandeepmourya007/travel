@@ -1,8 +1,10 @@
 'use client'
 
 import { useFormContext, Controller } from 'react-hook-form'
+import { useMemo } from 'react'
 import { FormField } from './form-field'
 import { NumberInput } from '@/components/shared/number-input'
+import { DateTimePicker } from '@/components/shared/date-time-picker'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
 const CANCELLATION_POLICIES = [
@@ -14,16 +16,39 @@ const CANCELLATION_POLICIES = [
 export function DatesPricingTab() {
   const { register, watch, control, formState: { errors } } = useFormContext<CreateTripDto>()
   const earlyBirdPrice = watch('earlyBirdPrice')
+  const today = useMemo(() => new Date(), [])
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <FormField label="Start Date" error={errors.startDate?.message} required>
-          <input type="datetime-local" {...register('startDate')} className="input" />
+          <Controller
+            name="startDate"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Pick start date & time"
+                minDate={today}
+              />
+            )}
+          />
         </FormField>
 
         <FormField label="End Date" error={errors.endDate?.message} required>
-          <input type="datetime-local" {...register('endDate')} className="input" />
+          <Controller
+            name="endDate"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Pick end date & time"
+                minDate={today}
+              />
+            )}
+          />
         </FormField>
       </div>
 
@@ -107,12 +132,34 @@ export function DatesPricingTab() {
 
       {earlyBirdPrice && (
         <FormField label="Early Bird Deadline" error={errors.earlyBirdDeadline?.message}>
-          <input type="datetime-local" {...register('earlyBirdDeadline')} className="input" />
+          <Controller
+            name="earlyBirdDeadline"
+            control={control}
+            render={({ field }) => (
+              <DateTimePicker
+                value={field.value ?? undefined}
+                onChange={field.onChange}
+                placeholder="Pick early bird deadline"
+                minDate={today}
+              />
+            )}
+          />
         </FormField>
       )}
 
       <FormField label="Booking Deadline" error={errors.bookingDeadline?.message}>
-        <input type="datetime-local" {...register('bookingDeadline')} className="input" />
+        <Controller
+          name="bookingDeadline"
+          control={control}
+          render={({ field }) => (
+            <DateTimePicker
+              value={field.value ?? undefined}
+              onChange={field.onChange}
+              placeholder="Pick booking deadline"
+              minDate={today}
+            />
+          )}
+        />
       </FormField>
 
       <FormField label="Cancellation Policy" error={errors.cancellationPolicy?.message} required>

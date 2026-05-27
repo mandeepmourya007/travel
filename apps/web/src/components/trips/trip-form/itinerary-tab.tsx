@@ -1,8 +1,9 @@
 'use client'
 
-import { useFormContext, useFieldArray } from 'react-hook-form'
+import { useFormContext, useFieldArray, Controller } from 'react-hook-form'
 import { Plus, Trash2, GripVertical } from 'lucide-react'
 import { FormField } from './form-field'
+import { TimePicker } from '@/components/shared/time-picker'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
 export function ItineraryTab() {
@@ -80,6 +81,7 @@ interface ItineraryDayCardProps {
   errors: ReturnType<typeof useFormContext<CreateTripDto>>['formState']['errors']
 }
 
+
 function ItineraryDayCard({ index, onRemove, register, control, errors: _errors }: ItineraryDayCardProps) {
   const { fields: activities, append: addActivity, remove: removeActivity } = useFieldArray({
     control,
@@ -115,10 +117,17 @@ function ItineraryDayCard({ index, onRemove, register, control, errors: _errors 
         <div className="mt-3 space-y-2">
           {activities.map((activity, actIdx) => (
             <div key={activity.id} className="flex items-center gap-2">
-              <input
-                {...register(`itinerary.${index}.activities.${actIdx}.time`)}
-                placeholder="Time"
-                className="input w-24 py-1.5 text-sm"
+              <Controller
+                name={`itinerary.${index}.activities.${actIdx}.time`}
+                control={control}
+                render={({ field }) => (
+                  <TimePicker
+                    value={field.value ?? undefined}
+                    onChange={field.onChange}
+                    placeholder="Time"
+                    className="w-36 py-1.5 text-sm"
+                  />
+                )}
               />
               <input
                 {...register(`itinerary.${index}.activities.${actIdx}.title`)}
@@ -136,7 +145,7 @@ function ItineraryDayCard({ index, onRemove, register, control, errors: _errors 
           ))}
           <button
             type="button"
-            onClick={() => addActivity({ title: '', time: '' })}
+            onClick={() => addActivity({ title: '', time: undefined })}
             className="text-sm font-medium text-primary-600 hover:text-primary-700"
           >
             + Add Activity

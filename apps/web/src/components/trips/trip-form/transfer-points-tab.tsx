@@ -4,6 +4,7 @@ import { useFormContext, useFieldArray, Controller } from 'react-hook-form'
 import { Plus, Trash2, MapPin } from 'lucide-react'
 import { FormField } from './form-field'
 import { NumberInput } from '@/components/shared/number-input'
+import { TimePicker } from '@/components/shared/time-picker'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
 const MAX_TRANSFER_POINTS = 10
@@ -67,10 +68,16 @@ export function TransferPointsTab() {
                   />
                 </FormField>
                 <FormField label="Time" error={errors.pickupPoints?.[idx]?.time?.message}>
-                  <input
-                    {...register(`pickupPoints.${idx}.time`)}
-                    placeholder="e.g. 06:00 AM"
-                    className="input"
+                  <Controller
+                    name={`pickupPoints.${idx}.time`}
+                    control={control}
+                    render={({ field }) => (
+                      <TimePicker
+                        value={field.value ?? undefined}
+                        onChange={field.onChange}
+                        placeholder="Pick time"
+                      />
+                    )}
                   />
                 </FormField>
                 <div className="flex items-end gap-2">
@@ -145,10 +152,16 @@ export function TransferPointsTab() {
                   />
                 </FormField>
                 <FormField label="Time" error={errors.dropPoints?.[idx]?.time?.message}>
-                  <input
-                    {...register(`dropPoints.${idx}.time`)}
-                    placeholder="e.g. 08:00 PM"
-                    className="input"
+                  <Controller
+                    name={`dropPoints.${idx}.time`}
+                    control={control}
+                    render={({ field }) => (
+                      <TimePicker
+                        value={field.value ?? undefined}
+                        onChange={field.onChange}
+                        placeholder="Pick time"
+                      />
+                    )}
                   />
                 </FormField>
                 <div className="flex items-end gap-2">
