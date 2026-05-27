@@ -1673,6 +1673,325 @@
     }
 
     /* ============================================
+       DATETIME PICKER
+       ============================================ */
+    .dtpicker-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dtpicker-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-lg);
+      font-size: 15px;
+      font-family: var(--font-sans);
+      color: var(--neutral-800);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      min-width: 200px;
+    }
+
+    .dtpicker-input:hover { border-color: var(--primary-400); background: var(--neutral-0); }
+
+    .dtpicker-input.open {
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 3px var(--primary-100);
+      background: var(--neutral-0);
+    }
+
+    .dtpicker-input .placeholder { color: var(--neutral-400); }
+    .dtpicker-icon { color: var(--neutral-400); flex-shrink: 0; }
+    .dtpicker-input.open .dtpicker-icon { color: var(--primary-500); }
+
+    .dtpicker-popup {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      z-index: 100;
+      overflow: hidden;
+      animation: dtpicker-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      min-width: 300px;
+    }
+
+    @keyframes dtpicker-in {
+      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Calendar header */
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .cal-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--neutral-900);
+    }
+
+    .cal-nav-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--neutral-100);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--neutral-600);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      font-family: var(--font-sans);
+      line-height: 1;
+    }
+
+    .cal-nav-btn:hover { background: var(--primary-50); color: var(--primary-600); }
+
+    /* Calendar grid */
+    .cal-body { padding: 12px 16px 16px; }
+
+    .cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      margin-bottom: 4px;
+    }
+
+    .cal-weekday {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--neutral-400);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 4px 0;
+    }
+
+    .cal-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--neutral-700);
+      cursor: pointer;
+      border-radius: var(--radius-md);
+      border: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      transition: all 0.1s;
+      position: relative;
+      padding: 0;
+    }
+
+    .cal-day:hover:not(:disabled) { background: var(--primary-50); color: var(--primary-700); }
+
+    .cal-day.today { font-weight: 700; color: var(--primary-600); }
+
+    .cal-day.today::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background: var(--primary-400);
+    }
+
+    .cal-day.selected {
+      background: var(--primary-500);
+      color: white;
+      font-weight: 700;
+    }
+
+    .cal-day.selected:hover { background: var(--primary-600); }
+    .cal-day.selected.today::after { background: rgba(255,255,255,0.6); }
+
+    .cal-day.in-range { background: var(--primary-50); color: var(--primary-700); border-radius: 0; }
+    .cal-day.range-start { background: var(--primary-500); color: white; border-radius: var(--radius-md) 0 0 var(--radius-md); font-weight: 700; }
+    .cal-day.range-end   { background: var(--primary-500); color: white; border-radius: 0 var(--radius-md) var(--radius-md) 0; font-weight: 700; }
+    .cal-day.range-start.range-end { border-radius: var(--radius-md); }
+
+    .cal-day.other-month { color: var(--neutral-300); }
+    .cal-day.other-month:hover:not(:disabled) { background: var(--neutral-50); color: var(--neutral-400); }
+
+    .cal-day:disabled { color: var(--neutral-300); cursor: not-allowed; opacity: 0.5; }
+    .cal-day:disabled:hover { background: transparent; }
+
+    /* Time picker drum */
+    .time-picker-section {
+      padding: 12px 16px;
+      border-top: 1px solid var(--neutral-100);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .time-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--neutral-600);
+      flex-shrink: 0;
+    }
+
+    .time-drum-group { display: flex; align-items: center; gap: 6px; }
+
+    .time-drum {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      width: 52px;
+    }
+
+    .time-drum-btn {
+      width: 100%;
+      padding: 5px 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--neutral-400);
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-sans);
+    }
+
+    .time-drum-btn:hover { background: var(--primary-50); color: var(--primary-600); }
+
+    .time-drum-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--neutral-900);
+      padding: 6px 0;
+      width: 100%;
+      text-align: center;
+      border-top: 1px solid var(--neutral-100);
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .time-sep { font-size: 20px; font-weight: 700; color: var(--neutral-700); line-height: 1; }
+
+    .time-ampm {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .time-ampm-btn {
+      padding: 7px 10px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-sans);
+      color: var(--neutral-500);
+      transition: all 0.15s;
+      line-height: 1;
+    }
+
+    .time-ampm-btn:hover { background: var(--primary-50); color: var(--primary-700); }
+    .time-ampm-btn.active { background: var(--primary-500); color: white; }
+
+    /* Picker footer */
+    .dtpicker-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--neutral-100);
+      background: var(--neutral-50);
+    }
+
+    /* Range: dual-calendar layout */
+    .range-calendars { display: flex; }
+
+    .range-cal-col { flex: 1; min-width: 240px; }
+    .range-cal-col:first-child { border-right: 1px solid var(--neutral-100); }
+
+    /* Quick presets */
+    .dtpicker-presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--neutral-100);
+      background: var(--neutral-50);
+    }
+
+    .dtpicker-preset-btn {
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      border: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      color: var(--neutral-600);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .dtpicker-preset-btn:hover { border-color: var(--primary-400); color: var(--primary-700); background: var(--primary-50); }
+    .dtpicker-preset-btn.active { background: var(--primary-50); border-color: var(--primary-500); color: var(--primary-700); font-weight: 600; }
+
+    /* Selected value display */
+    .dtpicker-value-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: var(--primary-50);
+      border: 1px solid var(--primary-200);
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-700);
+      margin-top: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .dtpicker-popup { min-width: 280px; left: 0; right: 0; }
+      .range-calendars { flex-direction: column; }
+      .range-cal-col:first-child { border-right: none; border-bottom: 1px solid var(--neutral-100); }
+      .range-cal-col { min-width: unset; }
+    }
+
+    /* ============================================
        UTILITY
        ============================================ */
     .flex { display: flex; }
@@ -3212,6 +3531,217 @@
     <button class="btn btn-md btn-danger" onclick="document.getElementById('modal-2').classList.add('active')" style="margin-left: 12px;">Open Cancel Modal</button>
   </div>
 
+  <!-- ======================== DATETIME PICKER ======================== -->
+  <div class="section">
+    <h2 class="section-title">Datetime Picker</h2>
+    <p class="section-desc">Single date, date + time, and date-range pickers — used for trip departure times, booking windows, and search filters</p>
+
+    <!-- Single Date Picker -->
+    <div class="component-group">
+      <div class="component-label">Date Picker — Single Selection</div>
+      <div class="component-row" style="gap: 32px; flex-wrap: wrap; align-items: flex-start;">
+
+        <!-- Basic -->
+        <div>
+          <div class="dtpicker-wrapper" id="dp-wrapper">
+            <div class="dtpicker-input" id="dp-input" onclick="dtpToggle('dp')">
+              <span class="dtpicker-icon">📅</span>
+              <span id="dp-display" class="placeholder">Select date</span>
+            </div>
+            <div class="dtpicker-popup" id="dp-popup" style="display:none;">
+              <div class="cal-header">
+                <button class="cal-nav-btn" onclick="dtpNav('dp',-1)">‹</button>
+                <div class="cal-title" id="dp-title"></div>
+                <button class="cal-nav-btn" onclick="dtpNav('dp',1)">›</button>
+              </div>
+              <div class="cal-body">
+                <div class="cal-weekdays">
+                  <div class="cal-weekday">Su</div><div class="cal-weekday">Mo</div><div class="cal-weekday">Tu</div>
+                  <div class="cal-weekday">We</div><div class="cal-weekday">Th</div><div class="cal-weekday">Fr</div>
+                  <div class="cal-weekday">Sa</div>
+                </div>
+                <div class="cal-days" id="dp-days"></div>
+              </div>
+              <div class="dtpicker-footer">
+                <button class="btn btn-sm btn-ghost" onclick="dtpClear('dp')">Clear</button>
+                <button class="btn btn-sm btn-primary" onclick="dtpClose('dp')">Done</button>
+              </div>
+            </div>
+          </div>
+          <div id="dp-badge" style="display:none;" class="dtpicker-value-badge">
+            <span>📅</span><span id="dp-badge-text"></span>
+          </div>
+        </div>
+
+        <!-- Future-only (trip booking) -->
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px;">Future only — trip departure</div>
+          <div class="dtpicker-wrapper" id="dpf-wrapper">
+            <div class="dtpicker-input" id="dpf-input" onclick="dtpToggle('dpf')">
+              <span class="dtpicker-icon">📅</span>
+              <span id="dpf-display" class="placeholder">Pick a departure date</span>
+            </div>
+            <div class="dtpicker-popup" id="dpf-popup" style="display:none;">
+              <div class="cal-header">
+                <button class="cal-nav-btn" onclick="dtpNav('dpf',-1)">‹</button>
+                <div class="cal-title" id="dpf-title"></div>
+                <button class="cal-nav-btn" onclick="dtpNav('dpf',1)">›</button>
+              </div>
+              <div class="cal-body">
+                <div class="cal-weekdays">
+                  <div class="cal-weekday">Su</div><div class="cal-weekday">Mo</div><div class="cal-weekday">Tu</div>
+                  <div class="cal-weekday">We</div><div class="cal-weekday">Th</div><div class="cal-weekday">Fr</div>
+                  <div class="cal-weekday">Sa</div>
+                </div>
+                <div class="cal-days" id="dpf-days"></div>
+              </div>
+              <div class="dtpicker-footer">
+                <button class="btn btn-sm btn-ghost" onclick="dtpClear('dpf')">Clear</button>
+                <button class="btn btn-sm btn-primary" onclick="dtpClose('dpf')">Done</button>
+              </div>
+            </div>
+          </div>
+          <div id="dpf-badge" style="display:none;" class="dtpicker-value-badge">
+            <span>📅</span><span id="dpf-badge-text"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Date + Time Picker -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Date + Time Picker — Trip Pickup Time</div>
+      <div class="dtpicker-wrapper" id="dtp-wrapper">
+        <div class="dtpicker-input" id="dtp-input" onclick="dtpToggle('dtp')" style="min-width: 260px;">
+          <span class="dtpicker-icon">🕐</span>
+          <span id="dtp-display" class="placeholder">Select date &amp; time</span>
+        </div>
+        <div class="dtpicker-popup" id="dtp-popup" style="display:none;">
+          <div class="cal-header">
+            <button class="cal-nav-btn" onclick="dtpNav('dtp',-1)">‹</button>
+            <div class="cal-title" id="dtp-title"></div>
+            <button class="cal-nav-btn" onclick="dtpNav('dtp',1)">›</button>
+          </div>
+          <div class="cal-body">
+            <div class="cal-weekdays">
+              <div class="cal-weekday">Su</div><div class="cal-weekday">Mo</div><div class="cal-weekday">Tu</div>
+              <div class="cal-weekday">We</div><div class="cal-weekday">Th</div><div class="cal-weekday">Fr</div>
+              <div class="cal-weekday">Sa</div>
+            </div>
+            <div class="cal-days" id="dtp-days"></div>
+          </div>
+          <div class="time-picker-section">
+            <span class="time-label">Time</span>
+            <div class="time-drum-group">
+              <div class="time-drum">
+                <button class="time-drum-btn" onclick="dtpAdjustTime('h',1)">▲</button>
+                <div class="time-drum-value" id="dtp-hour">06</div>
+                <button class="time-drum-btn" onclick="dtpAdjustTime('h',-1)">▼</button>
+              </div>
+              <span class="time-sep">:</span>
+              <div class="time-drum">
+                <button class="time-drum-btn" onclick="dtpAdjustTime('m',1)">▲</button>
+                <div class="time-drum-value" id="dtp-minute">00</div>
+                <button class="time-drum-btn" onclick="dtpAdjustTime('m',-1)">▼</button>
+              </div>
+              <div class="time-ampm">
+                <button class="time-ampm-btn active" id="dtp-am" onclick="dtpSetAmPm('AM')">AM</button>
+                <button class="time-ampm-btn" id="dtp-pm" onclick="dtpSetAmPm('PM')">PM</button>
+              </div>
+            </div>
+          </div>
+          <div class="dtpicker-footer">
+            <button class="btn btn-sm btn-ghost" onclick="dtpClear('dtp')">Clear</button>
+            <button class="btn btn-sm btn-primary" onclick="dtpConfirmDatetime()">Confirm</button>
+          </div>
+        </div>
+      </div>
+      <div id="dtp-badge" style="display:none;" class="dtpicker-value-badge">
+        <span>🕐</span><span id="dtp-badge-text"></span>
+      </div>
+    </div>
+
+    <!-- Date Range Picker -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Date Range Picker — Payment Filters / Search</div>
+      <div class="dtpicker-wrapper" id="rng-wrapper">
+        <div class="dtpicker-input" id="rng-input" onclick="rngToggle()" style="min-width: 280px;">
+          <span class="dtpicker-icon">📅</span>
+          <span id="rng-from-text" class="placeholder">Start date</span>
+          <span id="rng-arrow" style="color: var(--neutral-300); font-size: 13px; margin: 0 4px;">→</span>
+          <span id="rng-to-text" style="color: var(--neutral-400); font-size: 14px;">End date</span>
+        </div>
+        <div class="dtpicker-popup" id="rng-popup" style="display:none;">
+          <div class="cal-header">
+            <button class="cal-nav-btn" onclick="rngNav(-1)">‹</button>
+            <div class="cal-title" id="rng-title"></div>
+            <button class="cal-nav-btn" onclick="rngNav(1)">›</button>
+          </div>
+          <div class="cal-body">
+            <div class="cal-weekdays">
+              <div class="cal-weekday">Su</div><div class="cal-weekday">Mo</div><div class="cal-weekday">Tu</div>
+              <div class="cal-weekday">We</div><div class="cal-weekday">Th</div><div class="cal-weekday">Fr</div>
+              <div class="cal-weekday">Sa</div>
+            </div>
+            <div class="cal-days" id="rng-days"></div>
+          </div>
+          <div class="dtpicker-footer">
+            <span id="rng-status" style="font-size: 13px; color: var(--neutral-400); flex: 1; text-align: left;">Click to select start date</span>
+            <button class="btn btn-sm btn-ghost" onclick="rngClear()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="rng-badge" style="display:none;" class="dtpicker-value-badge">
+        <span>📅</span><span id="rng-badge-text"></span>
+      </div>
+    </div>
+
+    <!-- Static Calendar Preview -->
+    <div class="component-group" style="margin-top: 32px;">
+      <div class="component-label">Static Calendar — All Day States</div>
+      <div style="max-width: 300px; background: var(--neutral-0); border: 1px solid var(--neutral-200); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-card);">
+        <div class="cal-header">
+          <button class="cal-nav-btn">‹</button>
+          <div class="cal-title">June 2025</div>
+          <button class="cal-nav-btn">›</button>
+        </div>
+        <div class="cal-body">
+          <div class="cal-weekdays">
+            <div class="cal-weekday">Su</div><div class="cal-weekday">Mo</div><div class="cal-weekday">Tu</div>
+            <div class="cal-weekday">We</div><div class="cal-weekday">Th</div><div class="cal-weekday">Fr</div>
+            <div class="cal-weekday">Sa</div>
+          </div>
+          <div class="cal-days">
+            <div class="cal-day other-month">25</div><div class="cal-day other-month">26</div><div class="cal-day other-month">27</div><div class="cal-day other-month">28</div><div class="cal-day other-month">29</div><div class="cal-day other-month">30</div><div class="cal-day other-month">31</div>
+            <div class="cal-day">1</div><div class="cal-day">2</div><div class="cal-day">3</div><div class="cal-day">4</div><div class="cal-day">5</div><div class="cal-day range-start">6</div><div class="cal-day in-range">7</div>
+            <div class="cal-day in-range">8</div><div class="cal-day range-end">9</div><div class="cal-day">10</div><div class="cal-day today">11</div><div class="cal-day">12</div><div class="cal-day">13</div><div class="cal-day selected">14</div>
+            <div class="cal-day">15</div><div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day">18</div><div class="cal-day">19</div><div class="cal-day">20</div><div class="cal-day">21</div>
+            <div class="cal-day">22</div><div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day">25</div><div class="cal-day">26</div><div class="cal-day">27</div><div class="cal-day">28</div>
+            <div class="cal-day">29</div><div class="cal-day">30</div><div class="cal-day other-month">1</div><div class="cal-day other-month disabled" disabled>2</div><div class="cal-day other-month disabled" disabled>3</div><div class="cal-day other-month disabled" disabled>4</div><div class="cal-day other-month disabled" disabled>5</div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--neutral-600);">
+          <div style="width:20px;height:20px;border-radius:4px;background:var(--primary-500);"></div> Selected
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--neutral-600);">
+          <div style="width:20px;height:20px;border-radius:4px;background:var(--primary-500);"></div> Range Start/End
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--neutral-600);">
+          <div style="width:20px;height:20px;border-radius:0;background:var(--primary-50);border:1px solid var(--primary-200);"></div> In Range
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--neutral-600);">
+          <div style="width:20px;height:20px;border-radius:4px;border-bottom:3px solid var(--primary-400);"></div> Today
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--neutral-600);">
+          <div style="width:20px;height:20px;border-radius:4px;background:var(--neutral-100);opacity:0.5;"></div> Disabled
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================== VEHICLE & SEAT LAYOUT ======================== -->
   <div class="section">
     <h2 class="section-title">Vehicle & Seat Layout</h2>
@@ -3745,6 +4275,387 @@ function startFullDemo() {
       }, 800)
     }
   }
+})()
+
+// ============================================
+// Datetime Picker Demo
+// ============================================
+;(function () {
+  'use strict'
+
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  var SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  var today = new Date(); today.setHours(0,0,0,0)
+
+  // ── Shared helpers ────────────────────────
+  function pad(n) { return String(n).padStart(2,'0') }
+
+  function fmtDate(d) {
+    return SHORT_MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear()
+  }
+
+  function buildCalDays(containerId, viewYear, viewMonth, opts) {
+    opts = opts || {}
+    var firstDay = new Date(viewYear, viewMonth, 1).getDay()
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
+    var daysInPrev = new Date(viewYear, viewMonth, 0).getDate()
+    var html = ''
+
+    for (var i = firstDay - 1; i >= 0; i--) {
+      html += '<button class="cal-day other-month">' + (daysInPrev - i) + '</button>'
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      var date = new Date(viewYear, viewMonth, d)
+      var cls = 'cal-day'
+      if (date.toDateString() === today.toDateString()) cls += ' today'
+      if (opts.selected && date.toDateString() === opts.selected.toDateString()) cls += ' selected'
+      if (opts.isStart && date.toDateString() === opts.isStart.toDateString()) cls += ' range-start'
+      if (opts.isEnd && date.toDateString() === opts.isEnd.toDateString()) cls += ' range-end'
+      if (opts.inRange && opts.inRange(date)) cls += ' in-range'
+      var disabled = opts.minDate && date < opts.minDate
+      if (disabled) {
+        html += '<button class="' + cls + ' disabled" disabled>' + d + '</button>'
+      } else {
+        html += '<button class="' + cls + '" data-y="' + viewYear + '" data-m="' + viewMonth + '" data-d="' + d + '">' + d + '</button>'
+      }
+    }
+    var totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
+    for (var nd = 1; nd <= totalCells - firstDay - daysInMonth; nd++) {
+      html += '<button class="cal-day other-month">' + nd + '</button>'
+    }
+    var el = document.getElementById(containerId)
+    if (el) el.innerHTML = html
+  }
+
+  // ── Single Date Picker (dp) ───────────────
+  var dpState = { open: false, year: today.getFullYear(), month: today.getMonth(), selected: null }
+
+  function dpRender() {
+    document.getElementById('dp-title').textContent = MONTHS[dpState.month] + ' ' + dpState.year
+    buildCalDays('dp-days', dpState.year, dpState.month, {
+      selected: dpState.selected,
+    })
+    document.getElementById('dp-days').querySelectorAll('[data-d]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        dpState.selected = new Date(+btn.dataset.y, +btn.dataset.m, +btn.dataset.d)
+        dpRender()
+        dpUpdateDisplay()
+      })
+    })
+  }
+
+  function dpUpdateDisplay() {
+    var disp = document.getElementById('dp-display')
+    var badge = document.getElementById('dp-badge')
+    var badgeText = document.getElementById('dp-badge-text')
+    if (dpState.selected) {
+      disp.textContent = fmtDate(dpState.selected)
+      disp.classList.remove('placeholder')
+      badge.style.display = 'inline-flex'
+      badgeText.textContent = fmtDate(dpState.selected)
+    } else {
+      disp.textContent = 'Select date'
+      disp.classList.add('placeholder')
+      badge.style.display = 'none'
+    }
+  }
+
+  window.dtpToggle = function(id) {
+    if (id === 'dp') {
+      dpState.open = !dpState.open
+      var popup = document.getElementById('dp-popup')
+      var input = document.getElementById('dp-input')
+      popup.style.display = dpState.open ? 'block' : 'none'
+      input.classList.toggle('open', dpState.open)
+      if (dpState.open) dpRender()
+    } else if (id === 'dpf') {
+      dpfState.open = !dpfState.open
+      var popup2 = document.getElementById('dpf-popup')
+      var input2 = document.getElementById('dpf-input')
+      popup2.style.display = dpfState.open ? 'block' : 'none'
+      input2.classList.toggle('open', dpfState.open)
+      if (dpfState.open) dpfRender()
+    } else if (id === 'dtp') {
+      dtpState.open = !dtpState.open
+      var popup3 = document.getElementById('dtp-popup')
+      var input3 = document.getElementById('dtp-input')
+      popup3.style.display = dtpState.open ? 'block' : 'none'
+      input3.classList.toggle('open', dtpState.open)
+      if (dtpState.open) dtpRender()
+    }
+  }
+
+  window.dtpNav = function(id, dir) {
+    if (id === 'dp') {
+      dpState.month += dir
+      if (dpState.month > 11) { dpState.month = 0; dpState.year++ }
+      if (dpState.month < 0) { dpState.month = 11; dpState.year-- }
+      dpRender()
+    } else if (id === 'dpf') {
+      dpfState.month += dir
+      if (dpfState.month > 11) { dpfState.month = 0; dpfState.year++ }
+      if (dpfState.month < 0) { dpfState.month = 11; dpfState.year-- }
+      dpfRender()
+    } else if (id === 'dtp') {
+      dtpState.month += dir
+      if (dtpState.month > 11) { dtpState.month = 0; dtpState.year++ }
+      if (dtpState.month < 0) { dtpState.month = 11; dtpState.year-- }
+      dtpRender()
+    }
+  }
+
+  window.dtpClear = function(id) {
+    if (id === 'dp') { dpState.selected = null; dpRender(); dpUpdateDisplay() }
+    if (id === 'dpf') { dpfState.selected = null; dpfRender(); dpfUpdateDisplay() }
+    if (id === 'dtp') { dtpState.selected = null; dtpRender(); dtpUpdateDisplay() }
+  }
+
+  window.dtpClose = function(id) {
+    if (id === 'dp') {
+      dpState.open = false
+      document.getElementById('dp-popup').style.display = 'none'
+      document.getElementById('dp-input').classList.remove('open')
+      dpUpdateDisplay()
+    } else if (id === 'dpf') {
+      dpfState.open = false
+      document.getElementById('dpf-popup').style.display = 'none'
+      document.getElementById('dpf-input').classList.remove('open')
+      dpfUpdateDisplay()
+    }
+  }
+
+  // ── Future-only Date Picker (dpf) ────────
+  var dpfState = { open: false, year: today.getFullYear(), month: today.getMonth(), selected: null }
+
+  function dpfRender() {
+    document.getElementById('dpf-title').textContent = MONTHS[dpfState.month] + ' ' + dpfState.year
+    buildCalDays('dpf-days', dpfState.year, dpfState.month, {
+      selected: dpfState.selected,
+      minDate: today,
+    })
+    document.getElementById('dpf-days').querySelectorAll('[data-d]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        dpfState.selected = new Date(+btn.dataset.y, +btn.dataset.m, +btn.dataset.d)
+        dpfRender()
+        dpfUpdateDisplay()
+      })
+    })
+  }
+
+  function dpfUpdateDisplay() {
+    var disp = document.getElementById('dpf-display')
+    var badge = document.getElementById('dpf-badge')
+    var badgeText = document.getElementById('dpf-badge-text')
+    if (dpfState.selected) {
+      disp.textContent = fmtDate(dpfState.selected)
+      disp.classList.remove('placeholder')
+      badge.style.display = 'inline-flex'
+      badgeText.textContent = fmtDate(dpfState.selected)
+    } else {
+      disp.textContent = 'Pick a departure date'
+      disp.classList.add('placeholder')
+      badge.style.display = 'none'
+    }
+  }
+
+  // ── Date + Time Picker (dtp) ──────────────
+  var dtpState = { open: false, year: today.getFullYear(), month: today.getMonth(), selected: null, hour: '06', minute: '00', ampm: 'AM' }
+
+  function dtpRender() {
+    document.getElementById('dtp-title').textContent = MONTHS[dtpState.month] + ' ' + dtpState.year
+    buildCalDays('dtp-days', dtpState.year, dtpState.month, {
+      selected: dtpState.selected,
+      minDate: today,
+    })
+    document.getElementById('dtp-days').querySelectorAll('[data-d]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        dtpState.selected = new Date(+btn.dataset.y, +btn.dataset.m, +btn.dataset.d)
+        dtpRender()
+        dtpUpdateDisplay()
+      })
+    })
+  }
+
+  function dtpUpdateDisplay() {
+    var disp = document.getElementById('dtp-display')
+    var badge = document.getElementById('dtp-badge')
+    var badgeText = document.getElementById('dtp-badge-text')
+    if (dtpState.selected) {
+      var text = fmtDate(dtpState.selected) + ' · ' + dtpState.hour + ':' + dtpState.minute + ' ' + dtpState.ampm
+      disp.textContent = text
+      disp.classList.remove('placeholder')
+      badge.style.display = 'inline-flex'
+      badgeText.textContent = text
+    } else {
+      disp.textContent = 'Select date & time'
+      disp.classList.add('placeholder')
+      badge.style.display = 'none'
+    }
+  }
+
+  window.dtpAdjustTime = function(part, dir) {
+    if (part === 'h') {
+      var h = parseInt(dtpState.hour, 10) + dir
+      if (h > 12) h = 1
+      if (h < 1) h = 12
+      dtpState.hour = pad(h)
+      document.getElementById('dtp-hour').textContent = dtpState.hour
+    } else {
+      var mins = [0, 15, 30, 45]
+      var idx = mins.indexOf(parseInt(dtpState.minute, 10))
+      idx = (idx + dir + 4) % 4
+      dtpState.minute = pad(mins[idx])
+      document.getElementById('dtp-minute').textContent = dtpState.minute
+    }
+    if (dtpState.selected) dtpUpdateDisplay()
+  }
+
+  window.dtpSetAmPm = function(val) {
+    dtpState.ampm = val
+    document.getElementById('dtp-am').classList.toggle('active', val === 'AM')
+    document.getElementById('dtp-pm').classList.toggle('active', val === 'PM')
+    if (dtpState.selected) dtpUpdateDisplay()
+  }
+
+  window.dtpConfirmDatetime = function() {
+    dtpState.open = false
+    document.getElementById('dtp-popup').style.display = 'none'
+    document.getElementById('dtp-input').classList.remove('open')
+    dtpUpdateDisplay()
+  }
+
+  // ── Range Picker (rng) ────────────────────
+  var rngState = {
+    open: false, year: today.getFullYear(), month: today.getMonth(),
+    start: null, end: null, hovering: null,
+  }
+
+  function rngRender() {
+    document.getElementById('rng-title').textContent = MONTHS[rngState.month] + ' ' + rngState.year
+    var effectiveEnd = rngState.end || rngState.hovering
+    buildCalDays('rng-days', rngState.year, rngState.month, {
+      isStart: rngState.start,
+      isEnd: rngState.end,
+      inRange: function(date) {
+        if (!rngState.start || !effectiveEnd) return false
+        return date > rngState.start && date < effectiveEnd
+      },
+    })
+    document.getElementById('rng-days').querySelectorAll('[data-d]').forEach(function(btn) {
+      btn.addEventListener('click', function() { rngSelectDay(new Date(+btn.dataset.y, +btn.dataset.m, +btn.dataset.d)) })
+      btn.addEventListener('mouseenter', function() { rngHover(new Date(+btn.dataset.y, +btn.dataset.m, +btn.dataset.d)) })
+    })
+  }
+
+  function rngSelectDay(date) {
+    date.setHours(0,0,0,0)
+    if (!rngState.start || rngState.end) {
+      // start fresh
+      rngState.start = date; rngState.end = null; rngState.hovering = null
+      document.getElementById('rng-status').textContent = 'Now select an end date'
+      rngRender()
+    } else if (date <= rngState.start) {
+      // clicked before or on start — reset start
+      rngState.start = date; rngState.end = null
+      document.getElementById('rng-status').textContent = 'Now select an end date'
+      rngRender()
+    } else {
+      // end date chosen — close automatically
+      rngState.end = date
+      document.getElementById('rng-status').textContent = fmtDate(rngState.start) + ' → ' + fmtDate(rngState.end)
+      rngRender()
+      setTimeout(function() {
+        rngState.open = false
+        document.getElementById('rng-popup').style.display = 'none'
+        document.getElementById('rng-input').classList.remove('open')
+        rngUpdateDisplay()
+      }, 120)
+    }
+  }
+
+  function rngHover(date) {
+    if (rngState.start && !rngState.end && date > rngState.start) {
+      rngState.hovering = date
+      rngRender()
+    }
+  }
+
+  window.rngNav = function(dir) {
+    rngState.month += dir
+    if (rngState.month > 11) { rngState.month = 0; rngState.year++ }
+    if (rngState.month < 0) { rngState.month = 11; rngState.year-- }
+    rngRender()
+  }
+
+  window.rngToggle = function() {
+    rngState.open = !rngState.open
+    var popup = document.getElementById('rng-popup')
+    var input = document.getElementById('rng-input')
+    popup.style.display = rngState.open ? 'block' : 'none'
+    input.classList.toggle('open', rngState.open)
+    if (rngState.open) rngRender()
+  }
+
+  window.rngClear = function() {
+    rngState.start = null; rngState.end = null; rngState.hovering = null
+    document.getElementById('rng-status').textContent = 'Click to select start date'
+    rngRender()
+    rngUpdateDisplay()
+  }
+
+  function rngUpdateDisplay() {
+    var fromEl = document.getElementById('rng-from-text')
+    var toEl   = document.getElementById('rng-to-text')
+    var arrowEl = document.getElementById('rng-arrow')
+    var badge  = document.getElementById('rng-badge')
+    var badgeText = document.getElementById('rng-badge-text')
+    if (rngState.start && rngState.end) {
+      var fromTxt = fmtDate(rngState.start)
+      var toTxt   = fmtDate(rngState.end)
+      fromEl.textContent = fromTxt; fromEl.classList.remove('placeholder'); fromEl.style.color = ''
+      toEl.textContent   = toTxt;   toEl.style.color = 'var(--neutral-800)'
+      arrowEl.style.color = 'var(--neutral-500)'
+      badge.style.display = 'inline-flex'; badgeText.textContent = fromTxt + ' → ' + toTxt
+    } else if (rngState.start) {
+      fromEl.textContent = fmtDate(rngState.start); fromEl.classList.remove('placeholder'); fromEl.style.color = ''
+      toEl.textContent   = 'End date'; toEl.style.color = 'var(--neutral-400)'
+      arrowEl.style.color = 'var(--neutral-300)'
+      badge.style.display = 'none'
+    } else {
+      fromEl.textContent = 'Start date'; fromEl.classList.add('placeholder'); fromEl.style.color = ''
+      toEl.textContent   = 'End date';   toEl.style.color = 'var(--neutral-400)'
+      arrowEl.style.color = 'var(--neutral-300)'
+      badge.style.display = 'none'
+    }
+  }
+
+  // ── Close on outside click ────────────────
+  document.addEventListener('click', function(e) {
+    var pickers = [
+      { id: 'dp', state: dpState },
+      { id: 'dpf', state: dpfState },
+      { id: 'dtp', state: dtpState },
+    ]
+    pickers.forEach(function(p) {
+      if (!p.state.open) return
+      var popup = document.getElementById(p.id + '-popup')
+      var input = document.getElementById(p.id + '-input')
+      if (popup && input && !popup.contains(e.target) && !input.contains(e.target)) {
+        p.state.open = false
+        popup.style.display = 'none'
+        input.classList.remove('open')
+      }
+    })
+    if (rngState.open) {
+      var rngPopup = document.getElementById('rng-popup')
+      var rngInput = document.getElementById('rng-input')
+      if (rngPopup && rngInput && !rngPopup.contains(e.target) && !rngInput.contains(e.target)) {
+        rngState.open = false
+        rngPopup.style.display = 'none'
+        rngInput.classList.remove('open')
+      }
+    }
+  })
 })()
 
 // ============================================
