@@ -1,4 +1,5 @@
 import { PAYMENT_TYPES, PAYMENT_STATUSES } from '@shared/validators/payment.schema'
+import { DateRangePicker } from '@/components/shared/date-range-picker'
 
 /** Human-readable labels for payment type dropdown */
 const TYPE_LABELS: Record<string, string> = {
@@ -82,37 +83,23 @@ export function PaymentFilters({
         </select>
       </div>
 
-      {/* From date */}
+      {/* Date range */}
       <div className="flex flex-col gap-1">
-        <label htmlFor="filter-from" className="text-xs font-medium text-neutral-500">
-          From
-        </label>
-        <input
-          id="filter-from"
-          type="date"
-          value={fromDate ?? ''}
-          onChange={(e) => onFromDateChange(e.target.value || undefined)}
-          className="input w-auto py-2 text-sm"
-        />
-      </div>
-
-      {/* To date */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="filter-to" className="text-xs font-medium text-neutral-500">
-          To
-        </label>
-        <input
-          id="filter-to"
-          type="date"
-          value={toDate ?? ''}
-          onChange={(e) => onToDateChange(e.target.value || undefined)}
-          className="input w-auto py-2 text-sm"
+        <label className="text-xs font-medium text-neutral-500">Date range</label>
+        <DateRangePicker
+          from={fromDate}
+          to={toDate}
+          onFromChange={onFromDateChange}
+          onToChange={onToDateChange}
+          placeholder="Select date range"
+          className="w-auto py-2 text-sm"
         />
       </div>
 
       {/* Clear filters */}
       {hasActiveFilters && (
         <button
+          type="button"
           onClick={() => {
             onTypeChange(undefined)
             onStatusChange(undefined)
