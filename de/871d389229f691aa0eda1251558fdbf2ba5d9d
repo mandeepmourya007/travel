@@ -1,0 +1,46 @@
+apps/web/src/components/trips/trip-detail-header.tsx
+  s_4001cee008f2c1::t_e083737f0b44d0 74
+apps/web/src/components/bookings/__tests__/my-bookings-list.test.tsx
+  s_4001cee008f2c1::t_9b3598bb110247 31
+apps/web/src/components/trips/trip-card.tsx
+  s_4001cee008f2c1::t_de6a7232e18eba 79
+apps/web/src/components/trips/trip-comparison-table.tsx
+  s_4001cee008f2c1::t_f07473f8c35e10 70
+apps/web/src/components/trips/compare-bar.tsx
+  s_4001cee008f2c1::t_1f97bd7e092d13 67
+apps/api/prisma/seed.prod.ts
+  s_4001cee008f2c1::t_e81b57fdd4016d 277-293,396,421,442,464,493,513,532,558,590,618,638,661,684,709,732,755,781,810,829,852,1009-1010,1012-1013,1015,1017-1018,1021-1024,1026,1028-1031,1033,1250-1266,1663-1681,2485
+apps/api/prisma/seed.ts
+  s_4001cee008f2c1::t_e81b57fdd4016d 187,190,193,196,199,202,205,208,211,246,273,309,337,371,398,427,454,484,522,555,591,698,715,909,993,1060,1150-1156,1158,1160-1161,1163-1164,1242,1329-1332,1334-1335,1337-1340,1417
+docker/web.Dockerfile
+  s_4001cee008f2c1::t_03607b79e942eb 30
+apps/web/src/components/destinations/destination-detail-client.tsx
+  s_4001cee008f2c1::t_e2d4617b1c0619 96
+apps/web/package.json
+  s_4001cee008f2c1::t_fac93ad83e684d 56
+apps/web/src/components/home/popular-destinations.tsx
+  s_4001cee008f2c1::t_b96307f2d02d5f 82
+apps/web/src/components/destinations/destination-card.tsx
+  s_4001cee008f2c1::t_85d03e2de43d8c 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "de871d389229f691aa0eda1251558fdbf2ba5d9d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4001cee008f2c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afda199c-816f-4fc0-b34e-0f3c5e041608",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
