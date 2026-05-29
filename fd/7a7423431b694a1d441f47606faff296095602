@@ -1,0 +1,26 @@
+apps/web/src/hooks/use-destinations.ts
+  s_4001cee008f2c1::t_717197aff5815c 6,14-16
+apps/web/src/components/destinations/destinations-list-client.tsx
+  s_4001cee008f2c1::t_26a94e994d3864 6,14-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "fd7a7423431b694a1d441f47606faff296095602",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4001cee008f2c1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afda199c-816f-4fc0-b34e-0f3c5e041608",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
