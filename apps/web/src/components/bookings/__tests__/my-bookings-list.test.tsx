@@ -28,7 +28,7 @@ vi.mock('@/store/auth.store', () => {
     accessToken: 'test-jwt',
     user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'TRAVELER' },
   }
-  const useAuthStore = (selector?: (s: any) => any) =>
+  const useAuthStore = (selector?: (s: typeof state) => unknown) =>
     selector ? selector(state) : state
   useAuthStore.getState = () => state
   return { useAuthStore }

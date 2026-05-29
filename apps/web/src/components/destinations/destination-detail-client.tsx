@@ -93,6 +93,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
             fill
             priority
             sizes="(max-width: 1280px) 100vw, 1280px"
+            quality={65}
             className="object-cover"
           />
         ) : (

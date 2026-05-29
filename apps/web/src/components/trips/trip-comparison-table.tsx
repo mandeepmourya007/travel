@@ -67,6 +67,7 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
                 alt={trip.title}
                 fill
                 sizes="176px"
+                quality={60}
                 className="object-cover"
               />
             </div>

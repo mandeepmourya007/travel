@@ -184,31 +184,31 @@ async function main() {
 
   // ── Destinations ────────────────────────────────────
   const goa = await prisma.destination.create({
-    data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800' },
+    data: { name: 'Goa', slug: 'goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=60&auto=format&fit=crop' },
   })
   const lonavala = await prisma.destination.create({
-    data: { name: 'Lonavala', slug: 'lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800' },
+    data: { name: 'Lonavala', slug: 'lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800&q=60&auto=format&fit=crop' },
   })
   const ladakh = await prisma.destination.create({
-    data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800' },
+    data: { name: 'Ladakh', slug: 'ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=60&auto=format&fit=crop' },
   })
   const manali = await prisma.destination.create({
-    data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800' },
+    data: { name: 'Manali', slug: 'manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800&q=60&auto=format&fit=crop' },
   })
   const rishikesh = await prisma.destination.create({
-    data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800' },
+    data: { name: 'Rishikesh', slug: 'rishikesh', state: 'Uttarakhand', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800&q=60&auto=format&fit=crop' },
   })
   const alibaug = await prisma.destination.create({
-    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800' },
+    data: { name: 'Alibaug', slug: 'alibaug', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=60&auto=format&fit=crop' },
   })
   const hampi = await prisma.destination.create({
-    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800' },
+    data: { name: 'Hampi', slug: 'hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800&q=60&auto=format&fit=crop' },
   })
   const jaipur = await prisma.destination.create({
-    data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800' },
+    data: { name: 'Jaipur', slug: 'jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800&q=60&auto=format&fit=crop' },
   })
   const mumbai = await prisma.destination.create({
-    data: { name: 'Mumbai to Goa', slug: 'mumbai-goa-highway', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800' },
+    data: { name: 'Mumbai to Goa', slug: 'mumbai-goa-highway', state: 'Maharashtra', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=60&auto=format&fit=crop' },
   })
 
   console.log('  ✓ Created 9 destinations')
@@ -243,7 +243,7 @@ async function main() {
       inclusions: ['AC bus from Pune', 'Hotel stay (3N)', 'Breakfast & dinner', 'Water sports (3 activities)', 'Sightseeing'],
       exclusions: ['Lunch', 'Personal expenses', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', time: '6:00 AM' }] },
     },
@@ -270,7 +270,7 @@ async function main() {
       inclusions: ['Transport from Pune', 'Breakfast & lunch', 'Trek guide', 'First aid'],
       exclusions: ['Dinner', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
+      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:30 AM' }] },
     },
@@ -306,7 +306,7 @@ async function main() {
       inclusions: ['Accommodation (7N)', 'All meals', 'Bike/car rental', 'Permits', 'Guide', 'Oxygen cylinder'],
       exclusions: ['Flights', 'Personal shopping', 'Tips', 'Travel insurance'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
+      photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
     },
   })
@@ -334,7 +334,7 @@ async function main() {
       inclusions: ['Transport', 'Hotel (2N)', 'NYE party entry', 'Meals'],
       exclusions: ['Drinks', 'Personal expenses'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800'],
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=60&auto=format&fit=crop'],
       status: 'DRAFT',
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Swargate', time: '10:00 PM' }] },
     },
@@ -368,7 +368,7 @@ async function main() {
       inclusions: ['Volvo bus', 'Hotel (5N)', 'All meals', 'Rohtang permit', 'Snow activities'],
       exclusions: ['Paragliding', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
+      photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
     },
   })
@@ -395,7 +395,7 @@ async function main() {
       inclusions: ['Transport from Delhi', 'Camping (1N)', 'Rafting', 'Meals', 'Bonfire'],
       exclusions: ['Personal expenses', 'Tips'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
+      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: { create: [{ type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM' }] },
     },
@@ -424,7 +424,7 @@ async function main() {
       inclusions: ['Flight booking assistance', 'Luxury resort (2N)', 'All meals', 'Spa', 'Boat cruise'],
       exclusions: ['Flights', 'Drinks', 'Personal shopping'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800'],
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
     },
   })
@@ -451,7 +451,7 @@ async function main() {
       inclusions: ['Transport', 'Villa stay (1N)', 'All meals', 'Team activities', 'BBQ'],
       exclusions: ['Drinks', 'Personal expenses'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
+      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Hinjewadi Phase 1', time: '8:00 AM' }] },
     },
@@ -481,7 +481,7 @@ async function main() {
       inclusions: ['Train from Pune', 'Hotel (2N)', 'Breakfast & dinner', 'Fort entry tickets', 'Heritage guide'],
       exclusions: ['Lunch', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800'],
+      photos: ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: {
         create: [
@@ -519,7 +519,7 @@ async function main() {
       inclusions: ['SUV rental', 'Fuel', 'Hotel + camping (3N)', 'Breakfast & dinner', 'Fort tickets'],
       exclusions: ['Flights', 'Lunch', 'Personal expenses'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      photos: ['https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       transferPoints: {
         create: [
@@ -552,7 +552,7 @@ async function main() {
       inclusions: ['Ferry tickets', 'Lunch', 'Beach activities'],
       exclusions: ['Snacks', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      photos: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=60&auto=format&fit=crop'],
       status: 'FULL',
       acceptingBookings: false,
       transferPoints: {
@@ -588,7 +588,7 @@ async function main() {
       inclusions: ['Transport from Pune', 'Hotel (2N)', 'All meals', 'Guide', 'Entry tickets'],
       exclusions: ['Shopping', 'Tips'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800'],
+      photos: ['https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?w=800&q=60&auto=format&fit=crop'],
       status: 'CANCELLED',
       acceptingBookings: false,
     },
@@ -695,7 +695,7 @@ async function main() {
       safetyRating: 5,
       accuracyRating: 5,
       comment: 'Amazing trip! The organizer was super helpful and everything was well planned. Goa beaches were stunning. Highly recommend TripVibes!',
-      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60&auto=format&fit=crop'],
       organizerReply: 'Thank you Amit! So glad you and Riya had a great time. The monsoon Goa vibes are unbeatable. See you next season! 🏖️',
       organizerReplyAt: new Date(now.getTime() - 2 * 86400000),
       createdAt: new Date(now.getTime() - 5 * 86400000),
@@ -712,7 +712,7 @@ async function main() {
       safetyRating: 4,
       accuracyRating: 4,
       comment: 'Great monsoon trek. The waterfall was breathtaking. Only downside was the early morning pickup, but totally worth it.',
-      photos: ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600'],
+      photos: ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=60&auto=format&fit=crop'],
       organizerReply: 'Thanks Sneha! The early pickup is to beat the crowd at the waterfall — worth it, right? 😄 Hope to see you on our next trek!',
       organizerReplyAt: new Date(now.getTime() - 3 * 86400000),
       createdAt: new Date(now.getTime() - 6 * 86400000),
@@ -906,7 +906,7 @@ async function main() {
       inclusions: ['Flights assistance', 'Hotel + camping (6N)', 'All meals', 'Permits', 'Bike rental', 'Guide'],
       exclusions: ['Flights', 'Travel insurance', 'Personal expenses'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800'],
+      photos: ['https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       acceptingBookings: true,
       transferPoints: { create: [{ type: 'PICKUP', label: 'Leh Airport', time: '10:00 AM' }] },
@@ -990,7 +990,7 @@ async function main() {
       inclusions: ['AC bus from Pune', 'Hotel (2N)', 'Breakfast & dinner', 'Water sports (2)'],
       exclusions: ['Lunch', 'Drinks', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800'],
+      photos: ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       acceptingBookings: true,
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Shivaji Nagar', time: '6:00 AM' }] },
@@ -1057,7 +1057,7 @@ async function main() {
       inclusions: ['Transport', 'Breakfast & lunch', 'Guide', 'First aid'],
       exclusions: ['Dinner', 'Rain gear'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
+      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED',
       acceptingBookings: false,
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:00 AM' }] },
@@ -1147,21 +1147,21 @@ async function main() {
 
   // Seed photos — real Unsplash travel/nature thumbnails
   const reviewPhotos = [
-    ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600', 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600'],
-    ['https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600'],
-    ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600', 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=600'],
-    ['https://images.unsplash.com/photo-1465188162913-8fb5709d6d57?w=600', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600'],
-    ['https://images.unsplash.com/photo-1500534314263-c43bff5ab8e4?w=600'],
-    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600', 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600', 'https://images.unsplash.com/photo-1517760444937-f6397edcbbcd?w=600'],
-    ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600'],
+    ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1465188162913-8fb5709d6d57?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1500534314263-c43bff5ab8e4?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1517760444937-f6397edcbbcd?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600'],
+    ['https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600'],
-    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600', 'https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600'],
+    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600'],
-    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600'],
+    ['https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600&q=60&auto=format&fit=crop'],
   ]
 
   // Reviews for completed Trip C — 15 reviews for pagination testing
@@ -1239,7 +1239,7 @@ async function main() {
       inclusions: ['Volvo bus', 'Hotel (3N)', 'All meals', 'Snow activities', 'Bonfire'],
       exclusions: ['Shopping', 'Paragliding', 'Insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800'],
+      photos: ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED',
       acceptingBookings: false,
       transferPoints: { create: [{ type: 'PICKUP', label: 'Pune — Swargate', time: '6:00 PM' }] },
@@ -1326,18 +1326,18 @@ async function main() {
 
   // Manali winter review photos
   const manaliPhotos = [
-    ['https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=600', 'https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=600', 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600'],
-    ['https://images.unsplash.com/photo-1545652985-5edd365b12eb?w=600'],
-    ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600', 'https://images.unsplash.com/photo-1542359649-6066040e1f1f?w=600'],
-    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600'],
+    ['https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1545652985-5edd365b12eb?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1542359649-6066040e1f1f?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600'],
-    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600'],
+    ['https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600'],
-    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600'],
-    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600', 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600'],
-    ['https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600'],
+    ['https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1490682143684-14369e18dce8?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1477346611705-65d1883cee1e?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=600&q=60&auto=format&fit=crop'],
   ]
 
   // Reviews for Trip D — 12 reviews for pagination testing
@@ -1414,7 +1414,7 @@ async function main() {
       inclusions: ['Transport from Delhi', 'Camping + hostel (3N)', 'All meals', 'Rafting', 'Yoga sessions', 'Trek guide'],
       exclusions: ['Personal expenses', 'Bungee jumping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800'],
+      photos: ['https://images.unsplash.com/photo-1588083949468-c1c1f79104f6?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE',
       acceptingBookings: true,
     },

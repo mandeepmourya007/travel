@@ -71,6 +71,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
                     alt={`${trip.title} ${i + 1}`}
                     fill
                     sizes="(max-width: 768px) 100vw, 66vw"
+                    quality={65}
                     className="object-cover"
                     priority={i === 0}
                   />

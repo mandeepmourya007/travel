@@ -64,7 +64,7 @@ export function CompareBar({ items, onRemove, onClose, isOpen, maxItems = 3 }: C
               </button>
               <div className="relative w-full aspect-square max-w-20 sm:max-w-24 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
                 {item.photo ? (
-                  <Image src={item.photo} alt={item.title} fill sizes="96px" className="object-cover" />
+                  <Image src={item.photo} alt={item.title} fill sizes="96px" quality={60} className="object-cover" />
                 ) : (
                   <div className="h-full w-full bg-neutral-200" />
                 )}
