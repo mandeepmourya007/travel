@@ -1,0 +1,28 @@
+docker/nginx/templates/default.conf.template.http-only
+  s_cbd64f904b1303::t_2208d5b0e5d031 50,58-67
+docker/web.prod.Dockerfile
+  s_cbd64f904b1303::t_c1172c8c8eece2 38,52
+docker/nginx/ssl.conf.template
+  s_cbd64f904b1303::t_da84261020ec7c 83,91-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "c5b40559bef00994a2b5f0f09411be4ec27de911",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_cbd64f904b1303": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "9ca3a8e0-cb6b-4881-a427-6ac4f4c46e6d",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
