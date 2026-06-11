@@ -79,6 +79,7 @@ export function PopularDestinations({ initialData }: PopularDestinationsProps) {
                   alt={dest.name}
                   fill
                   sizes="(max-width: 640px) 50vw, 25vw"
+                  quality={60}
                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                 />
               )}

@@ -274,23 +274,23 @@ async function main() {
   // ── DESTINATIONS ──────────────────────────────────────
   // ══════════════════════════════════════════════════════
 
-  const goa = await upsertDestination('goa', { name: 'Goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=800', description: 'India\'s #1 party and beach destination — every college student\'s first trip and every young couple\'s favourite escape. North Goa buzzes with beach parties at Baga, Anjuna flea market, and Calangute nightlife. South Goa offers Instagram-worthy shores at Palolem, Agonda, and Cola Beach. Dudhsagar waterfalls, Fontainhas Latin Quarter, and water sports galore. The vibe is unmatched: sunsets, bonfires, new friends, and memories that become your best stories. Group trip packages from Pune (6 hrs), Mumbai (10 hrs), and Bangalore starting at ₹3,999. Best time: October to March.' })
-  const manali = await upsertDestination('manali', { name: 'Manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=800', description: 'Every young Indian\'s dream destination — snow-capped peaks, Solang Valley paragliding that\'ll make your reels go viral, and Old Manali cafe culture that feels like a different country. River rafting on the Beas, Atal Tunnel road trips, Vashisht hot springs after a cold trek, and cherry blossom season (Mar-Apr) for couples. The Volvo night bus from Delhi is practically a rite of passage for every 20-something. Group trip packages from Delhi (12 hrs) starting at ₹6,999. Best time: year-round.' })
-  const ladakh = await upsertDestination('ladakh', { name: 'Ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1593118845043-359e5f628214?w=800', description: 'The ultimate bucket-list road trip for every young Indian — if you haven\'t dreamed of biking Manali to Leh, are you even in your 20s? Dramatic lunar landscapes, the iconic Pangong Tso lake (3 Idiots fame), Nubra Valley sand dunes, Khardung La selfie at 18,380 ft, and ancient Buddhist monasteries. Whether you ride a Royal Enfield or go by SUV, this trip changes you. Group packages starting at ₹14,999 with bike rental options. Best time: June to September.' })
-  const rishikesh = await upsertDestination('rishikesh', { name: 'Rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=800', description: 'The adrenaline capital of India and the cheapest adventure trip from Delhi (just 5 hrs!). 16 km white-water rafting for ₹2,999, India\'s highest bungee jump (83m at Jumpin Heights), cliff jumping into the Ganges, and riverside camping with bonfire nights. Also the yoga capital of the world with ashrams and the mesmerizing Ganga Aarti. The ultimate weekend escape for college students, young couples, and friend groups. Most bookings are 20-30 year olds travelling in groups of 4-8. Best time: September to June.' })
-  const jaipur = await upsertDestination('jaipur', { name: 'Jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=800', description: 'The Pink City of Rajasthan — a royal blend of UNESCO-worthy forts, vibrant bazaars, and legendary Rajasthani cuisine. Explore Amber Fort by elephant ride, photograph Hawa Mahal\'s honeycomb facade, shop at Johari Bazaar, and savour dal baati churma at Chokhi Dhani. Hot-air balloon rides, block printing workshops, and camel safaris. Heritage trip packages from Delhi (5 hrs) starting at ₹5,999. Best time to visit: October to March.' })
-  const kasol = await upsertDestination('kasol', { name: 'Kasol', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=800', description: 'India\'s backpacker capital and Gen Z\'s favourite mountain escape — if you know, you know. Pine forest treks to Kheerganga hot springs (12 km), riverside Israeli cafes where time stops, Tosh village camping with mountain views, and the legendary Malana trail. The vibe is unmatched: cheap stays, great food, bonfire jam sessions, and strangers who become friends. Budget trip packages from Delhi starting at ₹3,999. Best time: March to June and September to November.' })
-  const udaipur = await upsertDestination('udaipur', { name: 'Udaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=800', description: 'India\'s most romantic city and the #1 couples destination — floating lake palaces, sunset boat rides on Lake Pichola that make your partner fall in love all over again, the majestic City Palace, and old-world Rajasthani charm. Perfect for anniversary trips, pre-wedding photoshoots, and young couples who want luxury without burning their savings. Nearby Kumbhalgarh Fort and Mount Abu hill station. Group trip packages starting at ₹8,499. Best time: September to March.' })
-  const meghalaya = await upsertDestination('meghalaya', { name: 'Meghalaya', state: 'Meghalaya', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=800', description: 'The offbeat flex every young traveler wants on their feed — double-decker living root bridges (3,500-step trek), the crystal-clear Dawki river where boats look like they\'re floating in air (yes, that viral reel is real), Asia\'s cleanest village Mawlynnong, and Shillong\'s Scotland-like cafe culture. If you\'ve done Goa and Manali and want something different, Meghalaya is your answer. Group adventure packages from Guwahati starting at ₹11,999. Best time: October to May.' })
-  const hampi = await upsertDestination('hampi', { name: 'Hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=800', description: 'India\'s most Instagrammable ruins and the ultimate backpacker flex — surreal boulder landscapes, 500-year-old Vijayanagara Empire ruins, Hippie Island cafe culture (the vibe is *chef\'s kiss*), coracle rides on the Tungabhadra, and Matanga Hill sunrise that\'ll blow your mind. World-class bouldering, the iconic Stone Chariot, and nights spent in riverside cafes with people from around the world. Budget backpacker packages from Bangalore (6 hrs) starting at ₹2,999. Popular with college students and young creatives. Best time: October to February.' })
-  const lonavala = await upsertDestination('lonavala', { name: 'Lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=800', description: 'The go-to weekend escape for Pune and Mumbai youngsters — literally 1.5 hrs from Pune! Pawna Lake camping with bonfire, guitars, and stargazing is basically a rite of passage for every college student. Monsoon waterfalls at Bhushi Dam, fort treks (Rajmachi, Lohagad, Tikona), waterfall rappelling, and firefly treks in June that look straight out of a fairy tale. Weekend packages starting at ₹999 — the cheapest adventure you can have. Best time for monsoon treks: June to September.' })
-  const spiti = await upsertDestination('spiti-valley', { name: 'Spiti Valley', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=800', description: 'India\'s cold desert mountain valley and the ultimate high-altitude road trip — stark lunar landscapes, 1,000-year-old Key and Tabo monasteries, the world\'s highest post office at Hikkim (4,400m), and the pristine Chandratal Moon Lake. Spiti circuit from Manali to Shimla via Kunzum La and Kinnaur Valley. Winter snow leopard tracking in Kibber. Group expedition packages starting at ₹14,999. Best time: June to October (roads open).' })
-  const coorg = await upsertDestination('coorg', { name: 'Coorg', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1699819551081-48095fe86265?w=800', description: 'The Scotland of India and Karnataka\'s coffee country paradise — misty hills with 200-year-old coffee plantations, Abbey Falls, Dubare Elephant Camp, and the Namdroling Tibetan Golden Temple. Summit Tadiandamol (1,748m), Coorg\'s highest peak. Barapole river rafting (Grade III) in monsoon and authentic Kodava cuisine. Perfect weekend escape from Bangalore (5 hrs). Plantation homestay packages starting at ₹3,499. Best time to visit: October to March.' })
-  const varanasi = await upsertDestination('varanasi', { name: 'Varanasi', state: 'Uttar Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=800', description: 'One of the world\'s oldest continuously inhabited cities and India\'s spiritual capital. The legendary Ganga Aarti at Dashashwamedh Ghat, sunrise boat rides on the Ganges, 2,000-year-old temples, silk weaving heritage, and iconic street food trails through Kachori Gali. Visit Sarnath where Buddha gave his first sermon. The Dev Deepawali festival lights up every ghat with a million diyas. Spiritual and cultural packages starting at ₹5,499.' })
-  const andaman = await upsertDestination('andaman', { name: 'Andaman Islands', state: 'Andaman & Nicobar', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=800', description: 'India\'s tropical island paradise in the Bay of Bengal — turquoise crystal-clear waters, pristine white-sand beaches, and Asia\'s best scuba diving. Havelock Island\'s Radhanagar Beach (rated Asia\'s best), Elephant Beach snorkeling, bioluminescent kayaking at night, and PADI certification courses. Neil Island cycling, Cellular Jail heritage, and glass-bottom boat coral viewing. Honeymoon packages, scuba courses, and island-hopping trips starting at ₹14,499. Best time: November to May.' })
-  const dharamshala = await upsertDestination('dharamshala', { name: 'Dharamshala', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=800', description: 'McLeod Ganj — the backpacker and digital nomad hub of Himachal. Tibetan momos that change your life, Triund trek with Dhauladhar mountain views (one of India\'s most Instagrammed treks), Bhagsunag waterfall chill sessions, and cafe-hopping in McLeod Ganj\'s narrow lanes. Home of the Dalai Lama with spiritual monastery visits and mountain yoga. Perfect for solo travelers, couples, and anyone who needs a mountain recharge. Weekend trip packages from Delhi (10 hrs) starting at ₹4,999. Best time: March to June and September to November.' })
-  const ooty = await upsertDestination('ooty', { name: 'Ooty', state: 'Tamil Nadu', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1638886540342-240980f60d25?w=800', description: 'South India\'s favourite hill station and the go-to romantic escape for Bangalore couples — ride the UNESCO toy train through misty mountains, walk through Coonoor tea plantations, catch sunrise at Doddabetta Peak, and cozy up in colonial-era cafes. Ooty Lake boating, Pykara waterfalls, and Mudumalai Tiger Reserve safari. Just 5 hrs from Bangalore — perfect for a long weekend with your partner or friend group. Hill station packages starting at ₹4,499. Best time: October to June.' })
-  const rannOfKutch = await upsertDestination('rann-of-kutch', { name: 'Rann of Kutch', state: 'Gujarat', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=800', description: 'India\'s surreal white salt desert — the Great Rann of Kutch stretches endlessly under full moon nights. Experience the vibrant Rann Utsav cultural festival (Nov-Feb), Kutchi handicraft villages, Banni grasslands wildlife, Dholavira archaeological site (Indus Valley Civilization), and the India-Pakistan border viewpoint at Kala Dungar. One of the most unique landscapes on Earth. Festival packages from Ahmedabad starting at ₹6,999. Best time: November to February.' })
+  const goa = await upsertDestination('goa', { name: 'Goa', state: 'Goa', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=800&q=60&auto=format&fit=crop', description: 'India\'s #1 party and beach destination — every college student\'s first trip and every young couple\'s favourite escape. North Goa buzzes with beach parties at Baga, Anjuna flea market, and Calangute nightlife. South Goa offers Instagram-worthy shores at Palolem, Agonda, and Cola Beach. Dudhsagar waterfalls, Fontainhas Latin Quarter, and water sports galore. The vibe is unmatched: sunsets, bonfires, new friends, and memories that become your best stories. Group trip packages from Pune (6 hrs), Mumbai (10 hrs), and Bangalore starting at ₹3,999. Best time: October to March.' })
+  const manali = await upsertDestination('manali', { name: 'Manali', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=800&q=60&auto=format&fit=crop', description: 'Every young Indian\'s dream destination — snow-capped peaks, Solang Valley paragliding that\'ll make your reels go viral, and Old Manali cafe culture that feels like a different country. River rafting on the Beas, Atal Tunnel road trips, Vashisht hot springs after a cold trek, and cherry blossom season (Mar-Apr) for couples. The Volvo night bus from Delhi is practically a rite of passage for every 20-something. Group trip packages from Delhi (12 hrs) starting at ₹6,999. Best time: year-round.' })
+  const ladakh = await upsertDestination('ladakh', { name: 'Ladakh', state: 'Ladakh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1593118845043-359e5f628214?w=800&q=60&auto=format&fit=crop', description: 'The ultimate bucket-list road trip for every young Indian — if you haven\'t dreamed of biking Manali to Leh, are you even in your 20s? Dramatic lunar landscapes, the iconic Pangong Tso lake (3 Idiots fame), Nubra Valley sand dunes, Khardung La selfie at 18,380 ft, and ancient Buddhist monasteries. Whether you ride a Royal Enfield or go by SUV, this trip changes you. Group packages starting at ₹14,999 with bike rental options. Best time: June to September.' })
+  const rishikesh = await upsertDestination('rishikesh', { name: 'Rishikesh', state: 'Uttarakhand', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=800&q=60&auto=format&fit=crop', description: 'The adrenaline capital of India and the cheapest adventure trip from Delhi (just 5 hrs!). 16 km white-water rafting for ₹2,999, India\'s highest bungee jump (83m at Jumpin Heights), cliff jumping into the Ganges, and riverside camping with bonfire nights. Also the yoga capital of the world with ashrams and the mesmerizing Ganga Aarti. The ultimate weekend escape for college students, young couples, and friend groups. Most bookings are 20-30 year olds travelling in groups of 4-8. Best time: September to June.' })
+  const jaipur = await upsertDestination('jaipur', { name: 'Jaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=800&q=60&auto=format&fit=crop', description: 'The Pink City of Rajasthan — a royal blend of UNESCO-worthy forts, vibrant bazaars, and legendary Rajasthani cuisine. Explore Amber Fort by elephant ride, photograph Hawa Mahal\'s honeycomb facade, shop at Johari Bazaar, and savour dal baati churma at Chokhi Dhani. Hot-air balloon rides, block printing workshops, and camel safaris. Heritage trip packages from Delhi (5 hrs) starting at ₹5,999. Best time to visit: October to March.' })
+  const kasol = await upsertDestination('kasol', { name: 'Kasol', state: 'Himachal Pradesh', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=800&q=60&auto=format&fit=crop', description: 'India\'s backpacker capital and Gen Z\'s favourite mountain escape — if you know, you know. Pine forest treks to Kheerganga hot springs (12 km), riverside Israeli cafes where time stops, Tosh village camping with mountain views, and the legendary Malana trail. The vibe is unmatched: cheap stays, great food, bonfire jam sessions, and strangers who become friends. Budget trip packages from Delhi starting at ₹3,999. Best time: March to June and September to November.' })
+  const udaipur = await upsertDestination('udaipur', { name: 'Udaipur', state: 'Rajasthan', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=800&q=60&auto=format&fit=crop', description: 'India\'s most romantic city and the #1 couples destination — floating lake palaces, sunset boat rides on Lake Pichola that make your partner fall in love all over again, the majestic City Palace, and old-world Rajasthani charm. Perfect for anniversary trips, pre-wedding photoshoots, and young couples who want luxury without burning their savings. Nearby Kumbhalgarh Fort and Mount Abu hill station. Group trip packages starting at ₹8,499. Best time: September to March.' })
+  const meghalaya = await upsertDestination('meghalaya', { name: 'Meghalaya', state: 'Meghalaya', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=800&q=60&auto=format&fit=crop', description: 'The offbeat flex every young traveler wants on their feed — double-decker living root bridges (3,500-step trek), the crystal-clear Dawki river where boats look like they\'re floating in air (yes, that viral reel is real), Asia\'s cleanest village Mawlynnong, and Shillong\'s Scotland-like cafe culture. If you\'ve done Goa and Manali and want something different, Meghalaya is your answer. Group adventure packages from Guwahati starting at ₹11,999. Best time: October to May.' })
+  const hampi = await upsertDestination('hampi', { name: 'Hampi', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=800&q=60&auto=format&fit=crop', description: 'India\'s most Instagrammable ruins and the ultimate backpacker flex — surreal boulder landscapes, 500-year-old Vijayanagara Empire ruins, Hippie Island cafe culture (the vibe is *chef\'s kiss*), coracle rides on the Tungabhadra, and Matanga Hill sunrise that\'ll blow your mind. World-class bouldering, the iconic Stone Chariot, and nights spent in riverside cafes with people from around the world. Budget backpacker packages from Bangalore (6 hrs) starting at ₹2,999. Popular with college students and young creatives. Best time: October to February.' })
+  const lonavala = await upsertDestination('lonavala', { name: 'Lonavala', state: 'Maharashtra', isPopular: true, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=800&q=60&auto=format&fit=crop', description: 'The go-to weekend escape for Pune and Mumbai youngsters — literally 1.5 hrs from Pune! Pawna Lake camping with bonfire, guitars, and stargazing is basically a rite of passage for every college student. Monsoon waterfalls at Bhushi Dam, fort treks (Rajmachi, Lohagad, Tikona), waterfall rappelling, and firefly treks in June that look straight out of a fairy tale. Weekend packages starting at ₹999 — the cheapest adventure you can have. Best time for monsoon treks: June to September.' })
+  const spiti = await upsertDestination('spiti-valley', { name: 'Spiti Valley', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=800&q=60&auto=format&fit=crop', description: 'India\'s cold desert mountain valley and the ultimate high-altitude road trip — stark lunar landscapes, 1,000-year-old Key and Tabo monasteries, the world\'s highest post office at Hikkim (4,400m), and the pristine Chandratal Moon Lake. Spiti circuit from Manali to Shimla via Kunzum La and Kinnaur Valley. Winter snow leopard tracking in Kibber. Group expedition packages starting at ₹14,999. Best time: June to October (roads open).' })
+  const coorg = await upsertDestination('coorg', { name: 'Coorg', state: 'Karnataka', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1699819551081-48095fe86265?w=800&q=60&auto=format&fit=crop', description: 'The Scotland of India and Karnataka\'s coffee country paradise — misty hills with 200-year-old coffee plantations, Abbey Falls, Dubare Elephant Camp, and the Namdroling Tibetan Golden Temple. Summit Tadiandamol (1,748m), Coorg\'s highest peak. Barapole river rafting (Grade III) in monsoon and authentic Kodava cuisine. Perfect weekend escape from Bangalore (5 hrs). Plantation homestay packages starting at ₹3,499. Best time to visit: October to March.' })
+  const varanasi = await upsertDestination('varanasi', { name: 'Varanasi', state: 'Uttar Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=800&q=60&auto=format&fit=crop', description: 'One of the world\'s oldest continuously inhabited cities and India\'s spiritual capital. The legendary Ganga Aarti at Dashashwamedh Ghat, sunrise boat rides on the Ganges, 2,000-year-old temples, silk weaving heritage, and iconic street food trails through Kachori Gali. Visit Sarnath where Buddha gave his first sermon. The Dev Deepawali festival lights up every ghat with a million diyas. Spiritual and cultural packages starting at ₹5,499.' })
+  const andaman = await upsertDestination('andaman', { name: 'Andaman Islands', state: 'Andaman & Nicobar', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=800&q=60&auto=format&fit=crop', description: 'India\'s tropical island paradise in the Bay of Bengal — turquoise crystal-clear waters, pristine white-sand beaches, and Asia\'s best scuba diving. Havelock Island\'s Radhanagar Beach (rated Asia\'s best), Elephant Beach snorkeling, bioluminescent kayaking at night, and PADI certification courses. Neil Island cycling, Cellular Jail heritage, and glass-bottom boat coral viewing. Honeymoon packages, scuba courses, and island-hopping trips starting at ₹14,499. Best time: November to May.' })
+  const dharamshala = await upsertDestination('dharamshala', { name: 'Dharamshala', state: 'Himachal Pradesh', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=800&q=60&auto=format&fit=crop', description: 'McLeod Ganj — the backpacker and digital nomad hub of Himachal. Tibetan momos that change your life, Triund trek with Dhauladhar mountain views (one of India\'s most Instagrammed treks), Bhagsunag waterfall chill sessions, and cafe-hopping in McLeod Ganj\'s narrow lanes. Home of the Dalai Lama with spiritual monastery visits and mountain yoga. Perfect for solo travelers, couples, and anyone who needs a mountain recharge. Weekend trip packages from Delhi (10 hrs) starting at ₹4,999. Best time: March to June and September to November.' })
+  const ooty = await upsertDestination('ooty', { name: 'Ooty', state: 'Tamil Nadu', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1638886540342-240980f60d25?w=800&q=60&auto=format&fit=crop', description: 'South India\'s favourite hill station and the go-to romantic escape for Bangalore couples — ride the UNESCO toy train through misty mountains, walk through Coonoor tea plantations, catch sunrise at Doddabetta Peak, and cozy up in colonial-era cafes. Ooty Lake boating, Pykara waterfalls, and Mudumalai Tiger Reserve safari. Just 5 hrs from Bangalore — perfect for a long weekend with your partner or friend group. Hill station packages starting at ₹4,499. Best time: October to June.' })
+  const rannOfKutch = await upsertDestination('rann-of-kutch', { name: 'Rann of Kutch', state: 'Gujarat', isPopular: false, tripCount: 0, photoUrl: 'https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=800&q=60&auto=format&fit=crop', description: 'India\'s surreal white salt desert — the Great Rann of Kutch stretches endlessly under full moon nights. Experience the vibrant Rann Utsav cultural festival (Nov-Feb), Kutchi handicraft villages, Banni grasslands wildlife, Dholavira archaeological site (Indus Valley Civilization), and the India-Pakistan border viewpoint at Kala Dungar. One of the most unique landscapes on Earth. Festival packages from Ahmedabad starting at ₹6,999. Best time: November to February.' })
   console.log('  ✓ Created 17 destinations')
 
   // ══════════════════════════════════════════════════════
@@ -393,7 +393,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['AC Volvo bus from Pune', 'Beachfront resort (3N)', 'Breakfast & dinner daily', 'Water sports package', 'Fort Aguada & Old Goa sightseeing', 'Spice plantation entry', 'All local transfers'],
       exclusions: ['Lunch', 'Alcoholic beverages', 'Personal expenses', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1698430184854-17aa542d247c?w=800', 'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=800'],
+      photos: ['https://images.unsplash.com/photo-1698430184854-17aa542d247c?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
     }, [
       { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '8:00 PM', sortOrder: 0 },
@@ -418,7 +418,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Manali-Delhi Volvo', 'Cottage stay (4N)', 'All meals', 'Skiing at Solang', 'Atal Tunnel day trip', 'Bonfire', 'Local transport'],
       exclusions: ['Gondola ride', 'Paragliding', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1616942986550-ea6469c08530?w=800', 'https://images.unsplash.com/photo-1618500508371-d0158e696eb0?w=800'],
+      photos: ['https://images.unsplash.com/photo-1616942986550-ea6469c08530?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1618500508371-d0158e696eb0?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
     }, [
       { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', address: 'ISBT Kashmere Gate', time: '6:00 PM', sortOrder: 0 },
@@ -439,7 +439,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Rishikesh-Delhi AC bus', '16 km rafting', 'Riverside camping (1N)', 'All meals', 'Bonfire', 'Yoga session', 'Safety gear'],
       exclusions: ['Bungee jumping', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1718383537744-13289af20e12?w=800', 'https://images.unsplash.com/photo-1653282768163-04a56f9c0d46?w=800'],
+      photos: ['https://images.unsplash.com/photo-1718383537744-13289af20e12?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1653282768163-04a56f9c0d46?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
     }, [
       { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '5:30 AM', sortOrder: 0 },
@@ -461,7 +461,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Heritage haveli (2N)', 'Breakfast & dinner', 'Amber Fort entry & jeep', 'All monument tickets', 'Block printing workshop', 'Chokhi Dhani dinner', 'AC tempo traveller'],
       exclusions: ['Train/flight tickets', 'Lunch', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1629890030060-80703e074e7e?w=800', 'https://images.unsplash.com/photo-1650450888332-a76185277321?w=800'],
+      photos: ['https://images.unsplash.com/photo-1629890030060-80703e074e7e?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1650450888332-a76185277321?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
     }, [
       { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
@@ -490,7 +490,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Royal Enfield rental', 'Fuel', 'Accommodation (8N)', 'All meals', 'Backup vehicle', 'Permits', 'First aid & oxygen', 'Ride captain'],
       exclusions: ['Flights', 'Riding gear', 'Alcohol', 'Travel insurance'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1633259422382-5ead30efb697?w=800', 'https://images.unsplash.com/photo-1648851460314-ba293ba2cdcf?w=800'],
+      photos: ['https://images.unsplash.com/photo-1633259422382-5ead30efb697?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1648851460314-ba293ba2cdcf?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
   })
 
@@ -510,7 +510,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Hospet station pickup/drop', 'Guesthouse (2N)', 'Breakfast & dinner', 'Coracle ride', 'Monument tickets', 'Local guide'],
       exclusions: ['Train tickets to Hospet', 'Lunch', 'Personal expenses'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1696239118208-e3bacef45a63?w=800', 'https://images.unsplash.com/photo-1695981202846-7150a1adc0d8?w=800'],
+      photos: ['https://images.unsplash.com/photo-1696239118208-e3bacef45a63?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1695981202846-7150a1adc0d8?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
   })
 
@@ -529,7 +529,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Pune pickup/drop', 'Trek guide', 'Camping (1N)', 'All meals', 'First aid', 'Bonfire'],
       exclusions: ['Rain gear', 'Personal snacks', 'Travel insurance'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800'],
+      photos: ['https://images.unsplash.com/photo-1625505826533-5c80aca7d157?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
     }, [
       { type: 'PICKUP', label: 'Pune — Wakad Bridge', time: '5:30 AM', sortOrder: 0 },
@@ -555,7 +555,7 @@ async function seedCompletedTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Shillong airport pickup/drop', 'Accommodation (5N)', 'All meals', 'Dawki boating', 'All sightseeing by Innova', 'Trek guide', 'All entry tickets'],
       exclusions: ['Flights', 'Personal shopping', 'Travel insurance', 'Porter charges'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1689089526066-c7e6e95ee265?w=800', 'https://images.unsplash.com/photo-1629465659213-d28388bc05ff?w=800'],
+      photos: ['https://images.unsplash.com/photo-1689089526066-c7e6e95ee265?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1629465659213-d28388bc05ff?w=800&q=60&auto=format&fit=crop'],
       status: 'COMPLETED', acceptingBookings: false,
   })
 
@@ -587,7 +587,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Kasol-Delhi Volvo', 'Riverside camp (2N) + Kheerganga camp (1N)', 'All meals', 'Trek guide', 'Bonfire', 'Manikaran visit', 'Local transfers'],
       exclusions: ['Lunch on Day 1', 'Personal snacks', 'Travel insurance', 'Porter (optional ₹800)'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1681176323164-bd4eeb724b81?w=800', 'https://images.unsplash.com/photo-1644008114609-2c8a09b26841?w=800'],
+      photos: ['https://images.unsplash.com/photo-1681176323164-bd4eeb724b81?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1644008114609-2c8a09b26841?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Delhi — Majnu Ka Tila', address: 'Majnu Ka Tila Gurudwara', time: '7:00 PM', sortOrder: 0 },
@@ -615,7 +615,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Shimla to Manali transport (Innova/Xylo)', 'Accommodation (6N)', 'All meals', 'Monastery tickets', 'Inner Line Permit', 'Local driver', 'Oxygen & first aid'],
       exclusions: ['Travel to Shimla / from Manali', 'Personal expenses', 'Travel insurance (mandatory)'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1639776020915-922f56acf66d?w=800', 'https://images.unsplash.com/photo-1723575409854-b8bd40109081?w=800'],
+      photos: ['https://images.unsplash.com/photo-1639776020915-922f56acf66d?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1723575409854-b8bd40109081?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
   })
 
@@ -635,7 +635,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Lakeside hotel (2N)', 'Breakfast & dinner', 'Lake Pichola boat ride', 'City Palace & fort tickets', 'Cooking class', 'Dharohar show ticket', 'Kumbhalgarh day trip by AC vehicle'],
       exclusions: ['Train/flight tickets', 'Lunch', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1675772120474-b9d7811220f9?w=800', 'https://images.unsplash.com/photo-1718812771168-3b3dc283cc78?w=800'],
+      photos: ['https://images.unsplash.com/photo-1675772120474-b9d7811220f9?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1718812771168-3b3dc283cc78?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Udaipur Railway Station', time: '9:30 AM', sortOrder: 0 },
@@ -658,7 +658,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Bangalore/Mysore pickup & drop', 'Plantation homestay (2N)', 'All meals (Kodava cuisine)', 'Coffee estate tour', 'Abbey Falls & Iruppu entry', 'Dubare entry', 'Coracle ride', 'Innova transfers'],
       exclusions: ['Elephant ride (₹500)', 'Personal expenses', 'Travel insurance', 'Alcohol'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1694537623159-52f5c5a98029?w=800', 'https://images.unsplash.com/photo-1699819436460-407a842e4ef6?w=800'],
+      photos: ['https://images.unsplash.com/photo-1694537623159-52f5c5a98029?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1699819436460-407a842e4ef6?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Bangalore — Majestic Bus Stand', time: '6:00 AM', sortOrder: 0 },
@@ -681,7 +681,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Heritage haveli near ghats (2N)', 'Breakfast & dinner + street food walk', 'Sunrise boat ride', 'Sarnath entry & guide', 'Silk weaving workshop', 'Yoga session', 'Local rickshaw transfers'],
       exclusions: ['Flight/train tickets', 'Lunch', 'Shopping', 'Temple donations', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1665413793087-d58c23e3a177?w=800', 'https://images.unsplash.com/photo-1665413790985-f57f5cfaaadc?w=800'],
+      photos: ['https://images.unsplash.com/photo-1665413793087-d58c23e3a177?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1665413790985-f57f5cfaaadc?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Varanasi Airport', address: 'Lal Bahadur Shastri Airport, Arrivals', time: '10:00 AM', sortOrder: 0 },
@@ -706,7 +706,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Port Blair hotel (1N) + Havelock resort (3N)', 'All meals', 'Ferry tickets (Port Blair-Havelock-Neil-Port Blair)', 'Scuba diving session', 'Snorkeling gear', 'Mangrove kayaking', 'All entry tickets', 'Local transfers'],
       exclusions: ['Flights to/from Port Blair', 'Lunch on Day 1', 'Water sports beyond package', 'Travel insurance (mandatory)', 'Personal expenses'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1710790980336-8dea6a8d432d?w=800', 'https://images.unsplash.com/photo-1710790980317-7bf33539f67f?w=800'],
+      photos: ['https://images.unsplash.com/photo-1710790980336-8dea6a8d432d?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1710790980317-7bf33539f67f?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
   })
 
@@ -729,7 +729,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['AC sleeper bus Pune-Goa-Pune', 'Boutique resort in South Goa (3N)', 'Breakfast & dinner daily', 'Dudhsagar trek guide', 'Spice plantation entry + lunch', 'Mangrove kayaking', 'Divar Island ferry + cycling', 'All monument entries'],
       exclusions: ['Lunch (Day 1 & 4)', 'Alcoholic beverages', 'Water sports', 'Personal expenses', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1698430184854-17aa542d247c?w=800', 'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=800'],
+      photos: ['https://images.unsplash.com/photo-1698430184854-17aa542d247c?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1558894930-0e1f89b9f0ce?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Pune — Shivaji Nagar Bus Stand', address: 'Shivaji Nagar Bus Depot, Pune 411005', time: '10:00 PM', sortOrder: 0 },
@@ -752,7 +752,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Pune pickup & drop (Wakad + Chandni Chowk)', 'Trek guide', 'Camping at Pawna Lake (1N)', 'Tent + sleeping bag + mat', 'All meals (2 breakfast, 1 lunch, 1 dinner)', 'Bonfire', 'First aid kit'],
       exclusions: ['Kayaking (₹300 optional)', 'Personal snacks', 'Rain gear (bring your own)', 'Travel insurance'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1692214661061-085e8c99a9d4?w=800', 'https://images.unsplash.com/photo-1664872045208-4aea6475f843?w=800'],
+      photos: ['https://images.unsplash.com/photo-1692214661061-085e8c99a9d4?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1664872045208-4aea6475f843?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Pune — Wakad Bridge', address: 'Near Wakad Bridge, Hinjewadi Road', time: '5:30 AM', sortOrder: 0 },
@@ -778,7 +778,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Cottage stay with mountain views (5N)', 'All meals', 'Paragliding (tandem)', 'Zorbing + ATV', 'River crossing session', 'Atal Tunnel day trip', 'Naggar Castle & gallery entry', 'Bonfire', 'All local transfers by Innova'],
       exclusions: ['Travel to/from Manali (flight or bus)', 'Lunch on Day 3 & 6', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1616942986550-ea6469c08530?w=800', 'https://images.unsplash.com/photo-1618500508371-d0158e696eb0?w=800'],
+      photos: ['https://images.unsplash.com/photo-1616942986550-ea6469c08530?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1618500508371-d0158e696eb0?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Kullu-Manali Airport', address: 'Bhuntar Airport, Kullu', time: '9:30 AM', sortOrder: 0 },
@@ -807,7 +807,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Royal Enfield 350cc rental + fuel', 'Accommodation (8N — hotel + camps)', 'All meals', 'Backup vehicle + mechanic', 'Inner Line Permits', 'First aid & oxygen cylinder', 'Experienced ride captain', 'Pangong lakeside camping'],
       exclusions: ['Flights to Manali / from Leh', 'Riding gear (can rent at ₹800/day)', 'Alcohol', 'Travel insurance (mandatory)', 'Personal expenses'],
       cancellationPolicy: 'STRICT',
-      photos: ['https://images.unsplash.com/photo-1633259422382-5ead30efb697?w=800', 'https://images.unsplash.com/photo-1648851460314-ba293ba2cdcf?w=800'],
+      photos: ['https://images.unsplash.com/photo-1633259422382-5ead30efb697?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1648851460314-ba293ba2cdcf?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
   })
 
@@ -826,7 +826,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Delhi-Rishikesh-Delhi AC bus', '16 km rafting + safety gear', 'Bungee jump at Jumpin Heights', 'Riverside camping (1N)', 'All meals (2 breakfast, 1 lunch, 1 dinner)', 'Bonfire + music', 'Yoga session', 'Ganga Aarti visit'],
       exclusions: ['Giant swing / flying fox (₹3,500 combo)', 'Personal snacks', 'Travel insurance'],
       cancellationPolicy: 'FLEXIBLE',
-      photos: ['https://images.unsplash.com/photo-1718383537744-13289af20e12?w=800', 'https://images.unsplash.com/photo-1653282768163-04a56f9c0d46?w=800'],
+      photos: ['https://images.unsplash.com/photo-1718383537744-13289af20e12?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1653282768163-04a56f9c0d46?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Delhi — Kashmere Gate ISBT', time: '11:00 PM', sortOrder: 0 },
@@ -849,7 +849,7 @@ async function seedUpcomingTrips(deps: Record<string, { id: string }>) {
       inclusions: ['Heritage haveli stay (2N)', 'Breakfast & dinner daily', 'Amber Fort entry + jeep ride', 'City Palace & Hawa Mahal tickets', 'Cooking class with local family', 'Block printing workshop', 'Dharohar dance show', 'Chokhi Dhani dinner', 'Street food trail', 'AC tempo traveller'],
       exclusions: ['Train/flight tickets', 'Hot-air balloon (₹8,000 optional)', 'Lunch', 'Shopping', 'Travel insurance'],
       cancellationPolicy: 'MODERATE',
-      photos: ['https://images.unsplash.com/photo-1629890030060-80703e074e7e?w=800', 'https://images.unsplash.com/photo-1650450888332-a76185277321?w=800'],
+      photos: ['https://images.unsplash.com/photo-1629890030060-80703e074e7e?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1650450888332-a76185277321?w=800&q=60&auto=format&fit=crop'],
       status: 'ACTIVE', acceptingBookings: true,
     }, [
       { type: 'PICKUP', label: 'Jaipur Junction Railway Station', time: '9:30 AM', sortOrder: 0 },
@@ -1006,31 +1006,31 @@ async function seedBookingsAndReviews(deps: {
   ]
 
   const reviewPhotos = [
-    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
-    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600'],
+    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
-    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
+    ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'],
+    ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600'],
-    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600&q=60&auto=format&fit=crop'],
     [],
     [],
-    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600', 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600'],
-    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600'],
-    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
-    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1571401835393-8c5f35328320?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600'],
-    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600', 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600'],
-    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'],
-    ['https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600', 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'],
+    ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600&q=60&auto=format&fit=crop'],
+    ['https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600&q=60&auto=format&fit=crop'],
     [],
-    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600'],
+    ['https://images.unsplash.com/photo-1477587458883-47145ed94245?w=600&q=60&auto=format&fit=crop'],
     [],
   ]
 
@@ -1247,23 +1247,23 @@ async function seedBookingsAndReviews(deps: {
 // ══════════════════════════════════════════════════════════
 
 const DEST_PHOTOS: Record<string, string[]> = {
-  goa: ['https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=800', 'https://images.unsplash.com/photo-1590393275627-0c48482c60e3?w=800', 'https://images.unsplash.com/photo-1646748019366-3f1c922bfe3b?w=800'],
-  manali: ['https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=800', 'https://images.unsplash.com/photo-1606667544139-81e47935d769?w=800', 'https://images.unsplash.com/photo-1679407985687-08a86c5c53ba?w=800'],
-  ladakh: ['https://images.unsplash.com/photo-1593118845043-359e5f628214?w=800', 'https://images.unsplash.com/photo-1606857090627-27ca46667290?w=800', 'https://images.unsplash.com/photo-1652204597589-962156b9483d?w=800'],
-  rishikesh: ['https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=800', 'https://images.unsplash.com/photo-1711992437606-bd676fb6fdf2?w=800', 'https://images.unsplash.com/photo-1718383537411-6f9e727ae0bb?w=800'],
-  jaipur: ['https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=800', 'https://images.unsplash.com/photo-1677868819682-b17554d29622?w=800', 'https://images.unsplash.com/photo-1714168442131-7b10f314915e?w=800'],
-  kasol: ['https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=800', 'https://images.unsplash.com/photo-1609961245797-9cc9231012d8?w=800', 'https://images.unsplash.com/photo-1580465874672-a34623c30beb?w=800'],
-  lonavala: ['https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=800', 'https://images.unsplash.com/photo-1521206644285-8db1549e484f?w=800', 'https://images.unsplash.com/photo-1692626453173-7af2d5b64426?w=800'],
-  udaipur: ['https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=800', 'https://images.unsplash.com/photo-1770665567877-72ee8a7c9051?w=800', 'https://images.unsplash.com/photo-1710987759549-db4263464211?w=800'],
-  meghalaya: ['https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=800', 'https://images.unsplash.com/photo-1521437620269-f477f5437820?w=800', 'https://images.unsplash.com/photo-1534531409543-069f6204c5b4?w=800'],
-  hampi: ['https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=800', 'https://images.unsplash.com/photo-1631986683754-7d511e03864d?w=800', 'https://images.unsplash.com/photo-1631601147889-7260bbb25a1f?w=800'],
-  spiti: ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=800', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=800', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=800'],
-  coorg: ['https://images.unsplash.com/photo-1699819551081-48095fe86265?w=800', 'https://images.unsplash.com/photo-1641701212196-dec15e3bdf59?w=800', 'https://images.unsplash.com/photo-1694537623072-a1172819c577?w=800'],
-  varanasi: ['https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=800', 'https://images.unsplash.com/photo-1728272355917-f41c61fe9842?w=800', 'https://images.unsplash.com/photo-1713922548844-82c63df42ac3?w=800'],
-  andaman: ['https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=800', 'https://images.unsplash.com/photo-1704314315344-cd10b9779ce6?w=800', 'https://images.unsplash.com/photo-1497258149552-cf39daacceaa?w=800'],
-  dharamshala: ['https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=800', 'https://images.unsplash.com/photo-1649951692609-cfb7f753b356?w=800', 'https://images.unsplash.com/photo-1641356918719-41ce2f5c15fb?w=800'],
-  ooty: ['https://images.unsplash.com/photo-1638886540342-240980f60d25?w=800', 'https://images.unsplash.com/photo-1660918738010-295b09857f93?w=800', 'https://images.unsplash.com/photo-1707655315272-33a54a771068?w=800'],
-  rannOfKutch: ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=800', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=800', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=800'],
+  goa: ['https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1590393275627-0c48482c60e3?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1646748019366-3f1c922bfe3b?w=800&q=60&auto=format&fit=crop'],
+  manali: ['https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1606667544139-81e47935d769?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1679407985687-08a86c5c53ba?w=800&q=60&auto=format&fit=crop'],
+  ladakh: ['https://images.unsplash.com/photo-1593118845043-359e5f628214?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1606857090627-27ca46667290?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1652204597589-962156b9483d?w=800&q=60&auto=format&fit=crop'],
+  rishikesh: ['https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1711992437606-bd676fb6fdf2?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1718383537411-6f9e727ae0bb?w=800&q=60&auto=format&fit=crop'],
+  jaipur: ['https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1677868819682-b17554d29622?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1714168442131-7b10f314915e?w=800&q=60&auto=format&fit=crop'],
+  kasol: ['https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1609961245797-9cc9231012d8?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1580465874672-a34623c30beb?w=800&q=60&auto=format&fit=crop'],
+  lonavala: ['https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1521206644285-8db1549e484f?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1692626453173-7af2d5b64426?w=800&q=60&auto=format&fit=crop'],
+  udaipur: ['https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1770665567877-72ee8a7c9051?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1710987759549-db4263464211?w=800&q=60&auto=format&fit=crop'],
+  meghalaya: ['https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1521437620269-f477f5437820?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1534531409543-069f6204c5b4?w=800&q=60&auto=format&fit=crop'],
+  hampi: ['https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1631986683754-7d511e03864d?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1631601147889-7260bbb25a1f?w=800&q=60&auto=format&fit=crop'],
+  spiti: ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=800&q=60&auto=format&fit=crop'],
+  coorg: ['https://images.unsplash.com/photo-1699819551081-48095fe86265?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1641701212196-dec15e3bdf59?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1694537623072-a1172819c577?w=800&q=60&auto=format&fit=crop'],
+  varanasi: ['https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1728272355917-f41c61fe9842?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1713922548844-82c63df42ac3?w=800&q=60&auto=format&fit=crop'],
+  andaman: ['https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1704314315344-cd10b9779ce6?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1497258149552-cf39daacceaa?w=800&q=60&auto=format&fit=crop'],
+  dharamshala: ['https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1649951692609-cfb7f753b356?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1641356918719-41ce2f5c15fb?w=800&q=60&auto=format&fit=crop'],
+  ooty: ['https://images.unsplash.com/photo-1638886540342-240980f60d25?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1660918738010-295b09857f93?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1707655315272-33a54a771068?w=800&q=60&auto=format&fit=crop'],
+  rannOfKutch: ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=800&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=800&q=60&auto=format&fit=crop'],
 }
 
 function bulkD(y: number, m: number, day: number) { return new Date(y, m - 1, day) }
@@ -1660,25 +1660,25 @@ async function seedBulkPart3(_deps: Record<string, { id: string }>, mk: (o: Bulk
 // ══════════════════════════════════════════════════════════
 
 const REVIEW_PHOTOS: Record<string, string[]> = {
-  goa: ['https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=600', 'https://images.unsplash.com/photo-1590393275627-0c48482c60e3?w=600', 'https://images.unsplash.com/photo-1646748019366-3f1c922bfe3b?w=600'],
-  manali: ['https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=600', 'https://images.unsplash.com/photo-1606667544139-81e47935d769?w=600', 'https://images.unsplash.com/photo-1679407985687-08a86c5c53ba?w=600'],
-  ladakh: ['https://images.unsplash.com/photo-1593118845043-359e5f628214?w=600', 'https://images.unsplash.com/photo-1606857090627-27ca46667290?w=600', 'https://images.unsplash.com/photo-1652204597589-962156b9483d?w=600'],
-  rishikesh: ['https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=600', 'https://images.unsplash.com/photo-1711992437606-bd676fb6fdf2?w=600', 'https://images.unsplash.com/photo-1718383537411-6f9e727ae0bb?w=600'],
-  jaipur: ['https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=600', 'https://images.unsplash.com/photo-1677868819682-b17554d29622?w=600', 'https://images.unsplash.com/photo-1714168442131-7b10f314915e?w=600'],
-  kasol: ['https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=600', 'https://images.unsplash.com/photo-1609961245797-9cc9231012d8?w=600', 'https://images.unsplash.com/photo-1580465874672-a34623c30beb?w=600'],
-  lonavala: ['https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=600', 'https://images.unsplash.com/photo-1521206644285-8db1549e484f?w=600', 'https://images.unsplash.com/photo-1692626453173-7af2d5b64426?w=600'],
-  udaipur: ['https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=600', 'https://images.unsplash.com/photo-1770665567877-72ee8a7c9051?w=600', 'https://images.unsplash.com/photo-1710987759549-db4263464211?w=600'],
-  meghalaya: ['https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=600', 'https://images.unsplash.com/photo-1521437620269-f477f5437820?w=600', 'https://images.unsplash.com/photo-1534531409543-069f6204c5b4?w=600'],
-  hampi: ['https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=600', 'https://images.unsplash.com/photo-1631986683754-7d511e03864d?w=600', 'https://images.unsplash.com/photo-1631601147889-7260bbb25a1f?w=600'],
-  spiti: ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=600', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=600', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=600'],
-  'spiti-valley': ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=600', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=600', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=600'],
-  coorg: ['https://images.unsplash.com/photo-1699819551081-48095fe86265?w=600', 'https://images.unsplash.com/photo-1641701212196-dec15e3bdf59?w=600', 'https://images.unsplash.com/photo-1694537623072-a1172819c577?w=600'],
-  varanasi: ['https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=600', 'https://images.unsplash.com/photo-1728272355917-f41c61fe9842?w=600', 'https://images.unsplash.com/photo-1713922548844-82c63df42ac3?w=600'],
-  andaman: ['https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=600', 'https://images.unsplash.com/photo-1704314315344-cd10b9779ce6?w=600', 'https://images.unsplash.com/photo-1497258149552-cf39daacceaa?w=600'],
-  dharamshala: ['https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=600', 'https://images.unsplash.com/photo-1649951692609-cfb7f753b356?w=600', 'https://images.unsplash.com/photo-1641356918719-41ce2f5c15fb?w=600'],
-  ooty: ['https://images.unsplash.com/photo-1638886540342-240980f60d25?w=600', 'https://images.unsplash.com/photo-1660918738010-295b09857f93?w=600', 'https://images.unsplash.com/photo-1707655315272-33a54a771068?w=600'],
-  rannOfKutch: ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=600', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=600', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=600'],
-  'rann-of-kutch': ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=600', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=600', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=600'],
+  goa: ['https://images.unsplash.com/photo-1652820330085-82a0c2b88d78?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1590393275627-0c48482c60e3?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1646748019366-3f1c922bfe3b?w=600&q=60&auto=format&fit=crop'],
+  manali: ['https://images.unsplash.com/photo-1692719058797-2954b100c8fe?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1606667544139-81e47935d769?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1679407985687-08a86c5c53ba?w=600&q=60&auto=format&fit=crop'],
+  ladakh: ['https://images.unsplash.com/photo-1593118845043-359e5f628214?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1606857090627-27ca46667290?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1652204597589-962156b9483d?w=600&q=60&auto=format&fit=crop'],
+  rishikesh: ['https://images.unsplash.com/photo-1718431108073-7f61fb5dfefb?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1711992437606-bd676fb6fdf2?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1718383537411-6f9e727ae0bb?w=600&q=60&auto=format&fit=crop'],
+  jaipur: ['https://images.unsplash.com/photo-1595280769531-a25c4c76116a?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1677868819682-b17554d29622?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1714168442131-7b10f314915e?w=600&q=60&auto=format&fit=crop'],
+  kasol: ['https://images.unsplash.com/photo-1673815994546-9913f4d76b77?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1609961245797-9cc9231012d8?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1580465874672-a34623c30beb?w=600&q=60&auto=format&fit=crop'],
+  lonavala: ['https://images.unsplash.com/photo-1621578847110-61f6cf5a3d9e?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1521206644285-8db1549e484f?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1692626453173-7af2d5b64426?w=600&q=60&auto=format&fit=crop'],
+  udaipur: ['https://images.unsplash.com/photo-1622018135960-249abd263aeb?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1770665567877-72ee8a7c9051?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1710987759549-db4263464211?w=600&q=60&auto=format&fit=crop'],
+  meghalaya: ['https://images.unsplash.com/photo-1552978534-9d01e1f91517?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1521437620269-f477f5437820?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1534531409543-069f6204c5b4?w=600&q=60&auto=format&fit=crop'],
+  hampi: ['https://images.unsplash.com/photo-1696239105346-4e48185eb001?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1631986683754-7d511e03864d?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1631601147889-7260bbb25a1f?w=600&q=60&auto=format&fit=crop'],
+  spiti: ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=600&q=60&auto=format&fit=crop'],
+  'spiti-valley': ['https://images.unsplash.com/photo-1709907153050-a668b4473c47?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1652131812743-07bc5dde8b91?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1671609856557-13a95d395fa6?w=600&q=60&auto=format&fit=crop'],
+  coorg: ['https://images.unsplash.com/photo-1699819551081-48095fe86265?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1641701212196-dec15e3bdf59?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1694537623072-a1172819c577?w=600&q=60&auto=format&fit=crop'],
+  varanasi: ['https://images.unsplash.com/photo-1665413793441-13aedeb062d3?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1728272355917-f41c61fe9842?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1713922548844-82c63df42ac3?w=600&q=60&auto=format&fit=crop'],
+  andaman: ['https://images.unsplash.com/photo-1586359716568-3e1907e4cf9f?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1704314315344-cd10b9779ce6?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1497258149552-cf39daacceaa?w=600&q=60&auto=format&fit=crop'],
+  dharamshala: ['https://images.unsplash.com/photo-1581321863389-ef7d7bfe4b75?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1649951692609-cfb7f753b356?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1641356918719-41ce2f5c15fb?w=600&q=60&auto=format&fit=crop'],
+  ooty: ['https://images.unsplash.com/photo-1638886540342-240980f60d25?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1660918738010-295b09857f93?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1707655315272-33a54a771068?w=600&q=60&auto=format&fit=crop'],
+  rannOfKutch: ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=600&q=60&auto=format&fit=crop'],
+  'rann-of-kutch': ['https://images.unsplash.com/photo-1670923331633-be262e035a9a?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1669015881702-951de590db31?w=600&q=60&auto=format&fit=crop', 'https://images.unsplash.com/photo-1709917524188-3f442929bacd?w=600&q=60&auto=format&fit=crop'],
 }
 
 const REVIEW_TEMPLATES = [
@@ -2482,7 +2482,7 @@ async function seedTripCategoriesAndRequests(deps: {
     editedById: deps.org1User.id,
     changedFields: ['photos', 'itinerary'],
     editNote: 'Added actual trip photos from the February batch for better listing accuracy',
-    snapshot: { photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800'], itinerary: [{ day: 1, title: 'Arrive Rishikesh' }] },
+    snapshot: { photos: ['https://images.unsplash.com/photo-1482938289607-e9573fc25ebb?w=800&q=60&auto=format&fit=crop'], itinerary: [{ day: 1, title: 'Arrive Rishikesh' }] },
     createdAt: d(2026, 3, 1),
   } })
 

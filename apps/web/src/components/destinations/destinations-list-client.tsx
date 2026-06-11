@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Search, X } from 'lucide-react'
 import { DestinationCard } from './destination-card'
+import { useDestinations } from '@/hooks/use-destinations'
 import { cn } from '@/lib/utils'
 import type { Destination } from '@shared/types/destination.types'
 
@@ -10,7 +11,12 @@ interface DestinationsListClientProps {
   destinations: Destination[]
 }
 
-export function DestinationsListClient({ destinations }: DestinationsListClientProps) {
+export function DestinationsListClient({ destinations: initialDestinations }: DestinationsListClientProps) {
+  // Refetch live on the client so a stale/empty SSR (ISR) snapshot self-heals in the
+  // browser — mirrors the home page's usePopularDestinations(initialData) pattern.
+  const { data } = useDestinations(initialDestinations)
+  const destinations = data ?? initialDestinations
+
   const [search, setSearch] = useState('')
   const [selectedState, setSelectedState] = useState<string | null>(null)
 

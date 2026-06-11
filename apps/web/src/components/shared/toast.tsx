@@ -58,7 +58,6 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
     }, 50)
 
     return () => clearInterval(intervalRef.current)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast.id, duration])
 
   function dismissWithAnimation() {
