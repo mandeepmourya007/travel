@@ -278,10 +278,30 @@ validate_secret() {
 
 validate_secret "REDIS_PASSWORD" 32
 validate_secret "JWT_SECRET" 48
+if [ "$DB_MODE" = "docker" ]; then
+  validate_secret "POSTGRES_PASSWORD" 32
+fi
 
 if [ "$PATCHED" -gt 0 ]; then
   echo ""
   echo "  ⚠️  ${PATCHED} secret(s) were auto-generated. Review ${ENV_FILE} if needed."
+fi
+
+# ── Ensure Docker Postgres DB URLs match POSTGRES_PASSWORD ──
+if [ "$DB_MODE" = "docker" ]; then
+  PG_PW=$(grep "^POSTGRES_PASSWORD=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
+  EXPECTED_DB="postgresql://travel:${PG_PW}@postgres:5432/travel?schema=public"
+  for KEY in DATABASE_URL DIRECT_URL; do
+    CURRENT=$(grep "^${KEY}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
+    if [ -z "$CURRENT" ] || [[ "$CURRENT" == *"CHANGE_ME"* ]] || [[ "$CURRENT" != *"${PG_PW}"* ]]; then
+      if grep -q "^${KEY}=" "$ENV_FILE" 2>/dev/null; then
+        sed -i "s|^${KEY}=.*|${KEY}=${EXPECTED_DB}|" "$ENV_FILE"
+      else
+        echo "${KEY}=${EXPECTED_DB}" >> "$ENV_FILE"
+      fi
+      echo "  🔧 ${KEY} — synced with POSTGRES_PASSWORD"
+    fi
+  done
 fi
 
 # ── Validate database URLs ────────────────────────────
@@ -326,12 +346,19 @@ echo "   HOST: $HOST_IP"
 echo "   DB:   $DB_MODE"
 echo ""
 
+# ── Image versioning (git SHA for rollback) ──────────
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo "📌 Git SHA: $GIT_SHA"
+
 # ── Stop existing containers ──────────────────────────
 $DC down --remove-orphans 2>/dev/null || true
 
 # ── Build API image ───────────────────────────────
 echo "📦 Building API image..."
 $DC build api
+
+# Tag with git SHA for rollback capability
+docker tag travel-api:prod "travel-api:$GIT_SHA" 2>/dev/null || true
 
 # Prune only dangling images — keep build cache so layer reuse speeds future deploys
 docker image prune -f 2>/dev/null || true
@@ -376,6 +403,20 @@ for svc in $INFRA_SERVICES; do
   fi
 done
 
+# ── Backup database before migration ─────────────────
+if [ "$DB_MODE" = "docker" ]; then
+  echo ""
+  echo "📸 Backing up database before migration..."
+  BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql.gz"
+  if docker exec travel-postgres-prod pg_dump -U "${POSTGRES_USER:-travel}" travel 2>/dev/null | gzip > "$BACKUP_FILE"; then
+    BACKUP_SIZE=$(du -h "$BACKUP_FILE" 2>/dev/null | cut -f1)
+    echo "  ✅ Backup saved: $BACKUP_FILE ($BACKUP_SIZE)"
+  else
+    rm -f "$BACKUP_FILE"
+    echo "  ⚠️  Backup failed (new DB or empty). Continuing..."
+  fi
+fi
+
 # ── Run migrations ────────────────────────────────
 echo ""
 echo "🔧 Running Prisma migrations..."
@@ -398,6 +439,10 @@ fi
 echo ""
 echo "📦 Building Web image..."
 $DC build web
+
+# Tag with git SHA for rollback capability
+docker tag travel-web:prod "travel-web:$GIT_SHA" 2>/dev/null || true
+
 # Prune only dangling images — keep build cache for future deploys
 docker image prune -f 2>/dev/null || true
 
@@ -498,9 +543,19 @@ if [ -n "$DOMAIN" ] && [ -n "$ACME_EMAIL" ]; then
     --email "$ACME_EMAIL" --agree-tos --no-eff-email \
     -d "$DOMAIN" --keep-until-expiring; then
     cp docker/nginx/ssl.conf.template docker/nginx/templates/default.conf.template
-    $DC restart nginx
-    sleep 5
+    # Graceful reload preserves active connections (vs restart which drops them)
+    docker exec travel-nginx-prod nginx -s reload 2>/dev/null || $DC restart nginx
+    sleep 3
     echo "  ✅ HTTPS enabled for $DOMAIN"
+
+    # ── Set up certbot auto-renewal cron ────────────
+    CRON_CMD="0 3 1,15 * * cd $ROOT_DIR && $DC --profile certbot run --rm certbot renew --quiet && docker exec travel-nginx-prod nginx -s reload"
+    if ! crontab -l 2>/dev/null | grep -qF 'certbot renew'; then
+      (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
+      echo "  ✅ Certbot auto-renewal cron installed (1st & 15th of each month, 3 AM)"
+    else
+      echo "  ✅ Certbot auto-renewal cron already exists"
+    fi
   else
     echo "  ❌ Certbot failed. Continuing with HTTP."
   fi
@@ -523,11 +578,13 @@ else
   echo "  Health:     http://${HOST_IP}:${API_PORT}/health"
 fi
 echo ""
+echo "  Image tag:  $GIT_SHA"
 echo "  Logs:       $DC logs -f"
 echo "  API logs:   $DC logs -f api"
 echo "  Restart:    $DC restart api web nginx"
 echo "  Stop:       $DC down"
 echo "  Stop+data:  $DC down -v"
+echo "  Rollback:   docker tag travel-api:<sha> travel-api:prod && docker tag travel-web:<sha> travel-web:prod && $DC up -d api web"
 echo ""
 if [ -z "${DOMAIN:-}" ]; then
   echo "To enable HTTPS:"
