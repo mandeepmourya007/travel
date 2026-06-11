@@ -235,6 +235,10 @@ services:
     command: ['npx', 'prisma', 'migrate', 'deploy']
     working_dir: /app/apps/api
     profiles: ['migrate']
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
     deploy:
       resources:
         limits:
@@ -257,6 +261,10 @@ services:
     command: ['node', '--import=tsx', 'prisma/seed.prod.ts']
     working_dir: /app/apps/api
     profiles: ['seed']
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
     deploy:
       resources:
         limits:
