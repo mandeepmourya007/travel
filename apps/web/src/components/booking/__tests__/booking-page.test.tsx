@@ -55,6 +55,8 @@ vi.mock('@/store/auth.store', () => {
 const mockToast = vi.fn()
 vi.mock('@/components/shared/toast', () => ({
   useToast: () => ({ toast: mockToast }),
+  // Pass-through provider — test-utils wraps with the real provider tree
+  ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 // Mock Razorpay — captures options so tests can trigger handler callback
@@ -427,6 +429,133 @@ describe('BookingPage', () => {
         expect.objectContaining({ variant: 'error' }),
       )
     })
+  })
+
+  // ── 7b. CONFLICT Error Branching (seat race vs duplicate booking) ──
+
+  /** Fills the traveler form and submits — shared setup for the flows below */
+  async function fillFormAndPay(user: ReturnType<typeof userEvent.setup>) {
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+    })
+    await user.type(screen.getByLabelText('Phone'), '9876543210')
+    await user.type(screen.getByLabelText('Age'), '28')
+    await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
+    await user.click(screen.getByRole('button', { name: /pay/i }))
+  }
+
+  it('should NOT show "Already Booked" when losing a seat race — warns and keeps the form', async () => {
+    setupTripHandler()
+    server.use(
+      http.post(`${API}/bookings`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'CONFLICT', message: 'One or more selected seats are no longer available' },
+          },
+          { status: 409 },
+        ),
+      ),
+    )
+
+    renderBookingPage()
+    const user = userEvent.setup()
+    await fillFormAndPay(user)
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'warning',
+          title: expect.stringMatching(/seats were just taken/i),
+        }),
+      )
+    })
+
+    // The user stays in the booking flow — no false "Already Booked" dead-end
+    expect(screen.queryByText(/already booked this trip/i)).not.toBeInTheDocument()
+  })
+
+  it('should show "Already Booked" only for a genuine duplicate booking conflict', async () => {
+    setupTripHandler()
+    server.use(
+      http.post(`${API}/bookings`, () =>
+        HttpResponse.json(
+          {
+            success: false,
+            error: { code: 'CONFLICT', message: 'You already have a confirmed booking for this trip' },
+          },
+          { status: 409 },
+        ),
+      ),
+    )
+
+    renderBookingPage()
+    const user = userEvent.setup()
+    await fillFormAndPay(user)
+
+    await waitFor(() => {
+      expect(screen.getByText(/already booked this trip/i)).toBeInTheDocument()
+    })
+  })
+
+  // ── 7c. Seat-hold countdown (P1-1) ──
+
+  it('should show the seat-hold countdown after booking creation (visible after Razorpay dismiss)', async () => {
+    setupTripHandler()
+    setupBookingHandlers()
+    renderBookingPage()
+    const user = userEvent.setup()
+    await fillFormAndPay(user)
+
+    await waitFor(() => {
+      expect(capturedRazorpayOptions).not.toBeNull()
+    })
+    simulateRazorpayDismiss()
+
+    // Booking exists with a 30-min hold — the user must see the deadline
+    await waitFor(() => {
+      expect(screen.getByText(/your seats are reserved/i)).toBeInTheDocument()
+    })
+  })
+
+  it('should include the booking ref and refund reassurance when verification fails', async () => {
+    setupTripHandler()
+    const createResponse = makeCreateBookingResponse()
+    server.use(
+      http.post(`${API}/bookings`, () =>
+        HttpResponse.json({ success: true, data: createResponse }, { status: 201 }),
+      ),
+      http.post(`${API}/bookings/:id/verify-payment`, () =>
+        HttpResponse.json(
+          { success: false, error: { code: 'PAYMENT_ERROR', message: 'Signature mismatch' } },
+          { status: 400 },
+        ),
+      ),
+    )
+
+    renderBookingPage()
+    const user = userEvent.setup()
+    await fillFormAndPay(user)
+
+    await waitFor(() => {
+      expect(capturedRazorpayOptions).not.toBeNull()
+    })
+    simulateRazorpaySuccess()
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'error',
+          title: expect.stringMatching(/verification failed/i),
+          description: expect.stringContaining(createResponse.bookingRef),
+        }),
+      )
+    })
+    // The worst-anxiety moment gets refund reassurance, not just "contact support"
+    const refundCall = mockToast.mock.calls.find(
+      (c) => typeof c[0]?.description === 'string' && c[0].description.includes(createResponse.bookingRef),
+    )
+    expect(refundCall?.[0].description).toMatch(/refunded automatically/i)
   })
 
   it('should keep form visible when Razorpay modal is dismissed', async () => {

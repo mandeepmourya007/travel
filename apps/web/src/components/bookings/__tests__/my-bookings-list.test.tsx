@@ -38,6 +38,8 @@ vi.mock('@/store/auth.store', () => {
 const mockToast = vi.fn()
 vi.mock('@/components/shared/toast', () => ({
   useToast: () => ({ toast: mockToast }),
+  // Pass-through provider — test-utils wraps with the real provider tree
+  ToastProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 // Import AFTER mocks

@@ -1,6 +1,7 @@
 import React from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ToastProvider } from '@/components/shared/toast'
 import { CompareQueueProvider } from '@/hooks/use-compare-queue'
 
 function createTestQueryClient() {
@@ -24,9 +25,13 @@ export function renderWithQuery(
   const queryClient = createTestQueryClient()
 
   function Wrapper({ children }: { children: React.ReactNode }) {
+    // Mirrors the production provider order in app/providers.tsx:
+    // ToastProvider wraps CompareQueueProvider (compare overflow shows a toast)
     return (
       <QueryClientProvider client={queryClient}>
-        <CompareQueueProvider>{children}</CompareQueueProvider>
+        <ToastProvider>
+          <CompareQueueProvider>{children}</CompareQueueProvider>
+        </ToastProvider>
       </QueryClientProvider>
     )
   }

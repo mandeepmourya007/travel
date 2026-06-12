@@ -74,7 +74,10 @@ describe('TravelerDetailsAccordion', () => {
   it('should render nothing when travelers array is empty', () => {
     const { container } = renderWithQuery(<TravelerDetailsAccordion travelers={[]} />)
 
-    expect(container.firstChild).toBeNull()
+    // The wrapper's always-mounted (empty) toast live-region is the only child —
+    // the accordion itself contributes no content
+    expect(container.textContent).toBe('')
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('should collapse when clicked a second time', async () => {

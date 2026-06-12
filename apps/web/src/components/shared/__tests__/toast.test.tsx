@@ -107,4 +107,46 @@ describe('ToastProvider + useToast', () => {
     const alert = screen.getByRole('alert')
     expect(alert.className).toContain('error')
   })
+
+  it('renders an action button that fires the callback and dismisses the toast', () => {
+    const onAction = vi.fn()
+
+    function ActionTrigger() {
+      const { toast } = useToast()
+      return (
+        <button
+          onClick={() =>
+            toast({
+              variant: 'info',
+              title: 'New message',
+              action: { label: 'View', onClick: onAction },
+            })
+          }
+        >
+          Trigger
+        </button>
+      )
+    }
+
+    renderWithProvider(<ActionTrigger />)
+
+    fireEvent.click(screen.getByText('Trigger'))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('View'))
+    expect(onAction).toHaveBeenCalledTimes(1)
+
+    // Acting on the toast also dismisses it (after the exit animation)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('does not render an action button when no action is provided', () => {
+    renderWithProvider(<TestTrigger />)
+
+    fireEvent.click(screen.getByText('Trigger'))
+    expect(screen.queryByText('View')).not.toBeInTheDocument()
+  })
 })
