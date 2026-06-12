@@ -608,6 +608,10 @@ model Message {
   sender         User         @relation("sender", fields: [senderId], references: [id])
   type           MessageType  @default(TEXT)
   content        String
+  /// Client-generated idempotency key — a retried send (socket ack timeout →
+  /// REST fallback) maps onto the same row instead of creating a duplicate.
+  /// Nullable: system messages and older clients don't send one.
+  clientMsgId    String?
   originalContent String?
   isFlagged      Boolean      @default(false)
   readAt         DateTime?
@@ -625,6 +629,9 @@ model Message {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Scoped to sender so one user's key can never collide with (or block) another's.
+  // Postgres treats NULLs as distinct, so legacy/system rows are unaffected.
+  @@unique([conversationId, senderId, clientMsgId])
   @@index([conversationId, createdAt])
   @@index([conversationId, readAt])
   @@index([isFlagged])
