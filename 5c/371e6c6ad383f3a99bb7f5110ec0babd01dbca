@@ -1,0 +1,25 @@
+apps/web/src/app/messages/page.tsx
+  s_eda3b97af222fb::t_9f7ddf089b99eb 5,7,11-16,22-23,39-65,69
+apps/web/src/components/chat/message-bubble.tsx
+  s_eda3b97af222fb::t_9f7ddf089b99eb 39-40,44-45
+apps/web/src/components/chat/chat-window.tsx
+  s_eda3b97af222fb::t_9f7ddf089b99eb 3-4,16-18,25-38,57-91,93-98,100-101,133,143
+apps/web/src/components/chat/chat-layout.tsx
+  s_eda3b97af222fb::t_9f7ddf089b99eb 11-21,58,60-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "5c371e6c6ad383f3a99bb7f5110ec0babd01dbca",
+  "prompts": {},
+  "sessions": {
+    "s_eda3b97af222fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "df5fb5c5-d584-4e0d-9f00-b9c43622245e",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
