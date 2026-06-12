@@ -7,6 +7,8 @@
  * Uses native `fetch()` (not axios) to integrate with Next.js ISR cache.
  */
 
+import { cache } from 'react'
+
 const SSR_SLOW_THRESHOLD_MS = 500
 
 function getApiBaseUrl(): string {
@@ -62,6 +64,21 @@ export async function fetchApi<T>(
   const json = await res.json() as { success: boolean; data: T }
   return json.data
 }
+
+/**
+ * Popular trips used by `generateStaticParams` on the trip detail and
+ * organizer profile pages. Wrapped in `cache()` so a single build-time
+ * request serves both routes; each caller maps the slugs it needs.
+ */
+export const getPopularTripsForStaticParams = cache(
+  async (): Promise<{ slug: string; organizer: { slug: string } | null }[]> => {
+    const result = await fetchApi<{ data: { slug: string; organizer: { slug: string } | null }[] }>(
+      '/trips?limit=50&sort=popularity',
+      { revalidate: false },
+    )
+    return result.data
+  },
+)
 
 export async function fetchApiWithPagination<T>(
   path: string,

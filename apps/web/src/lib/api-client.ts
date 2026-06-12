@@ -7,8 +7,15 @@ import { feLogger } from '@/lib/logger'
 import { API_TIMEOUT_MS } from '@/lib/constants'
 import { useConnectionStore } from '@/store/connection.store'
 
+/** How long to keep the "Session expired" overlay before force-hiding it.
+ *  DismissLoader clears on pathname change; this timeout is a safety net
+ *  for same-path navigation or failed redirects. */
+const SESSION_EXPIRY_LOADER_TIMEOUT_MS = 3000
+
 export interface AppApiError extends Error {
   code?: string
+  /** Discriminator within the same `code` (e.g. SEAT_CONFLICT vs ALREADY_BOOKED) */
+  subCode?: string
   status?: number
   details?: { field: string; message: string }[]
 }
@@ -98,11 +105,26 @@ apiClient.interceptors.response.use(
       }
 
       useLoadingStore.getState().show('Session expired...')
+      const overlayEpoch = useLoadingStore.getState().epoch
       useAuthStore.getState().clearAuth()
-      const appRouter = getAppRouter()
-      if (appRouter) {
+      if (typeof window !== 'undefined') {
         const returnTo = window.location.pathname + window.location.search
-        appRouter.replace(`/login/email?returnTo=${encodeURIComponent(returnTo)}`)
+        const loginUrl = `/login/email?returnTo=${encodeURIComponent(returnTo)}`
+        const appRouter = getAppRouter()
+        if (appRouter) {
+          appRouter.replace(loginUrl)
+        } else {
+          // Router not registered yet — hard-navigate so the user is never stuck
+          window.location.assign(loginUrl)
+        }
+        // Safety net: DismissLoader only clears the pinned overlay on a pathname
+        // change. If navigation lands on the same path (or fails), force-hide so
+        // the blocking overlay can never strand the user. The epoch check ensures
+        // we never clear a NEWER overlay (e.g. "Signing in…" after a quick re-login).
+        setTimeout(() => {
+          const store = useLoadingStore.getState()
+          if (store.epoch === overlayEpoch) store.hide(true)
+        }, SESSION_EXPIRY_LOADER_TIMEOUT_MS)
       }
     }
 
@@ -136,6 +158,7 @@ apiClient.interceptors.response.use(
     // Attach original details for components that need them
     const extended = friendlyError as AppApiError
     extended.code = apiError.error?.code
+    extended.subCode = apiError.error?.subCode
     extended.status = error.response?.status
     extended.details = apiError.error?.details as AppApiError['details']
 
