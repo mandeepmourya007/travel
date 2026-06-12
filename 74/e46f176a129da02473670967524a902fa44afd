@@ -1,0 +1,39 @@
+apps/web/src/components/bookings/__tests__/my-bookings-list.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 41-42
+apps/web/src/store/__tests__/loading.store.test.ts
+  s_eda3b97af222fb::t_037b291c663563 1-59
+apps/web/src/test/test-utils.tsx
+  s_eda3b97af222fb::t_037b291c663563 4,28-29,32-34
+apps/web/src/components/booking/__tests__/hold-countdown-banner.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 1-53
+apps/web/src/components/shared/__tests__/modal.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 1-112
+apps/web/src/components/bookings/__tests__/traveler-details-accordion.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 77-80
+apps/web/src/hooks/__tests__/use-compare-queue.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 1-77
+apps/web/src/components/shared/__tests__/toast.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 110-151
+apps/web/src/components/booking/__tests__/booking-page.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 58-59,434-558
+apps/web/src/lib/__tests__/booking-errors.test.ts
+  s_eda3b97af222fb::t_037b291c663563 1-66
+apps/web/src/hooks/__tests__/use-send-message.test.tsx
+  s_eda3b97af222fb::t_037b291c663563 1-279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "74e46f176a129da02473670967524a902fa44afd",
+  "prompts": {},
+  "sessions": {
+    "s_eda3b97af222fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "df5fb5c5-d584-4e0d-9f00-b9c43622245e",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
