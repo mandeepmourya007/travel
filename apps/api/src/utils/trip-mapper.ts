@@ -13,7 +13,9 @@ export function mapTripToSummary(trip: any) {
     tripTypeLabel: trip._tripTypeLabel ?? trip.tripType?.replace(/_/g, ' ') ?? '',
     bookingMode: trip.bookingMode,
     pricePerPerson: trip.pricePerPerson,
-    earlyBirdPrice: trip.earlyBirdPrice,
+    earlyBirdPrice: (trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date())
+      ? trip.earlyBirdPrice
+      : null,
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxGroupSize: trip.maxGroupSize,

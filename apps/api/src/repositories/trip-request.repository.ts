@@ -206,6 +206,8 @@ export class TripRequestRepository {
             endDate: true,
             photos: true,
             pricePerPerson: true,
+            earlyBirdPrice: true,
+            earlyBirdDeadline: true,
             destination: { select: { id: true, name: true, slug: true } },
             organizer: { select: { id: true, businessName: true, verificationStatus: true } },
           },
