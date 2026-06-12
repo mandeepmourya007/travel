@@ -24,22 +24,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   useEffect(() => { setAppRouter(router) }, [router])
 
-  // Hide the pre-hydration inline loader once React mounts
-  // Note: use display:none instead of el.remove() to avoid React removeChild crash
-  useEffect(() => {
-    const el = document.getElementById('__initial-loader')
-    if (el) {
-      el.style.display = 'none'
-      el.setAttribute('aria-hidden', 'true')
-    }
-  }, [])
-
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
             staleTime: 60 * 1000,
+            refetchOnWindowFocus: false,
             retry: (failureCount, error) => {
               if ((error as { status?: number }).status === 404) return false
               return failureCount < 2
@@ -56,19 +47,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const content = (
     <QueryClientProvider client={queryClient}>
-      <ServerDownBanner />
-      <SocketConnector />
-      <FullScreenLoader />
-      <DismissLoader />
-      <Suspense fallback={null}>
-        <RouteProgress />
-      </Suspense>
-      <CompareQueueProvider>
-        <ToastProvider>
+      {/* ToastProvider wraps SocketConnector + CompareQueueProvider so both can show toasts */}
+      <ToastProvider>
+        <ServerDownBanner />
+        <SocketConnector />
+        <FullScreenLoader />
+        <DismissLoader />
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
+        <CompareQueueProvider>
           {children}
           <GlobalCompareBar />
-        </ToastProvider>
-      </CompareQueueProvider>
+        </CompareQueueProvider>
+      </ToastProvider>
       {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   )
