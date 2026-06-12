@@ -1,0 +1,31 @@
+apps/web/src/components/shared/toast.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 3,9-13,20-21,133-143,170-176,178
+apps/web/src/components/shared/avatar.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 1-2,29-54,67,70-72
+apps/web/src/components/shared/image-lightbox.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 3,5,16,27-37,40
+apps/web/src/components/layout/header.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 20,40-44,110,125,157,163
+apps/web/src/components/layout/mobile-bottom-nav.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 97
+apps/web/src/components/shared/modal.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 3,6,18-20,22-25,28-61,66-77,89-103,123-124,126
+apps/web/src/components/shared/socket-connector.tsx
+  s_eda3b97af222fb::t_c9286d582ba111 11,27,55-57,73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "78b3958828fa5fe8f043cc363fdf88422df1ac22",
+  "prompts": {},
+  "sessions": {
+    "s_eda3b97af222fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "df5fb5c5-d584-4e0d-9f00-b9c43622245e",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
