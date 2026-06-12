@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { Loader2, MessageCircle } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMessages, useChatConnection, useSendMessage, useTypingIndicator, useMarkAsRead } from '@/hooks/use-chat'
 import { useChatStore } from '@/store/chat.store'
@@ -13,10 +13,27 @@ import { ChatHeader } from './chat-header'
 import { CONVERSATION_STATUS } from '@shared/types/chat.types'
 import type { ConversationListItem } from '@shared/types/chat.types'
 
+/** If the user is within this many px of the chat bottom, auto-scroll on new messages */
+const NEAR_BOTTOM_THRESHOLD_PX = 150
+
 interface ChatWindowProps {
   conversation: ConversationListItem | null
   onBack?: () => void
   className?: string
+}
+
+/** Message-shaped shimmer placeholders (project rule: skeletons, not spinners) */
+function ChatMessagesSkeleton() {
+  return (
+    <div className="space-y-3 px-4 py-2" data-testid="chat-messages-skeleton">
+      {[64, 40, 56, 32, 48].map((width, i) => (
+        <div key={i} className={cn('flex gap-2', i % 2 === 1 && 'flex-row-reverse')}>
+          <div className="skeleton h-8 w-8 shrink-0 rounded-full" />
+          <div className="skeleton h-10 rounded-2xl" style={{ width: `${width}%` }} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function ChatWindow({ conversation, onBack, className }: ChatWindowProps) {
@@ -37,11 +54,51 @@ export function ChatWindow({ conversation, onBack, className }: ChatWindowProps)
     ? Array.from(typingUsers.get(conversationId) ?? [])
     : []
 
+  // Scroll anchoring: loading older pages must NOT yank the view to the bottom.
+  // - prevScrollHeightRef is set right before fetching an older page; after the
+  //   page renders we restore the visual position (new height - old height).
+  // - Autoscroll to bottom only on first load or when a NEW newest message
+  //   arrives while the user is already near the bottom.
+  const prevScrollHeightRef = useRef<number | null>(null)
+  const isFirstScrollRef = useRef(true)
+  const newestMessage = messages.length > 0 ? messages[messages.length - 1] : null
+  const newestMessageId = newestMessage?.id ?? null
+  const newestIsOwn = !!newestMessage && newestMessage.senderId === user?.id
+
+  // Reset scroll behaviour when switching conversations
   useEffect(() => {
-    if (scrollRef.current && messages.length > 0) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    isFirstScrollRef.current = true
+    prevScrollHeightRef.current = null
+  }, [conversationId])
+
+  const handleLoadEarlier = () => {
+    prevScrollHeightRef.current = scrollRef.current?.scrollHeight ?? null
+    fetchNextPage()
+  }
+
+  // Restore anchor after an older page is prepended (before paint)
+  useLayoutEffect(() => {
+    const el = scrollRef.current
+    if (el && prevScrollHeightRef.current !== null && !isFetchingNextPage) {
+      el.scrollTop = el.scrollHeight - prevScrollHeightRef.current
+      prevScrollHeightRef.current = null
     }
-  }, [messages.length])
+  }, [data?.pages.length, isFetchingNextPage])
+
+  // Autoscroll to bottom for the initial load and new incoming/sent messages.
+  // Own sends always scroll (the sender must see their message land); others'
+  // messages only scroll when the user is already near the bottom, so reading
+  // history is never yanked away.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !newestMessageId) return
+    if (prevScrollHeightRef.current !== null) return // older-page load in flight
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_THRESHOLD_PX
+    if (isFirstScrollRef.current || nearBottom || newestIsOwn) {
+      el.scrollTop = el.scrollHeight
+    }
+    isFirstScrollRef.current = false
+  }, [newestMessageId, newestIsOwn])
 
   useEffect(() => {
     if (conversationId) markAsRead()
@@ -73,7 +130,7 @@ export function ChatWindow({ conversation, onBack, className }: ChatWindowProps)
           <div className="flex justify-center py-2">
             <button
               type="button"
-              onClick={() => fetchNextPage()}
+              onClick={handleLoadEarlier}
               disabled={isFetchingNextPage}
               className="text-xs text-primary-600 hover:underline disabled:opacity-50"
             >
@@ -83,9 +140,7 @@ export function ChatWindow({ conversation, onBack, className }: ChatWindowProps)
         )}
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-          </div>
+          <ChatMessagesSkeleton />
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <span className="text-4xl">😕</span>

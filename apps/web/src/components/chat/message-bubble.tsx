@@ -36,9 +36,13 @@ export function MessageBubble({ message, isOwn, showAvatar = true }: MessageBubb
           {message.type === MESSAGE_TYPE.SYSTEM ? (
             <p className="text-xs italic text-neutral-500">{message.content}</p>
           ) : message.type === MESSAGE_TYPE.IMAGE && message.fileUrl ? (
+            // Chat images have unknown intrinsic dimensions — next/image would
+            // force a fixed box, so use <img> with native lazy-loading
             <img
               src={message.fileUrl}
               alt={message.fileName ?? 'Image'}
+              loading="lazy"
+              decoding="async"
               className="max-w-full rounded-lg"
             />
           ) : message.type === MESSAGE_TYPE.FILE && message.fileUrl ? (
