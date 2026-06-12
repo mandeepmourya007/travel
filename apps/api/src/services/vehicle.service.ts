@@ -337,7 +337,7 @@ export class VehicleService {
     if (updatedCount < seatIds.length) {
       // Rollback any that were partially held
       await this.vehicleRepo.releaseSeatsByBookingId(bookingId)
-      throw new ConflictError('One or more selected seats are no longer available')
+      throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
     }
 
     this.logger.info({ seatIds, userId, bookingId }, 'Seats held')
@@ -352,7 +352,7 @@ export class VehicleService {
    */
   async confirmSeats(bookingId: string, userId: string, assignments: TravelerSeatAssignment[]) {
     const confirmedCount = await this.vehicleRepo.confirmSeats(bookingId, userId)
-    if (confirmedCount === 0) throw new ConflictError('No held seats found for this booking')
+    if (confirmedCount === 0) throw new ConflictError('No held seats found for this booking', 'HOLD_EXPIRED')
 
     // Assign travelers to seats
     for (const a of assignments) {

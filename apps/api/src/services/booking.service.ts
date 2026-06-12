@@ -281,19 +281,25 @@ export class BookingService {
     const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
     if (existing) {
       if (existing.bookingStatus === BOOKING_STATUS.CONFIRMED) {
-        throw new ConflictError('You already have a confirmed booking for this trip')
+        throw new ConflictError('You already have a confirmed booking for this trip', 'ALREADY_BOOKED')
       }
-      // PENDING_PAYMENT — return same order
-      const paymentTx = existing.paymentTransactions[0]
-      return {
-        bookingId: existing.id,
-        bookingRef: existing.bookingRef,
-        razorpayOrderId: paymentTx?.razorpayOrderId || '',
-        razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
-        amountInRupees: existing.totalAmount,
-        currency: CURRENCY,
-        expiresAt: existing.expiresAt!.toISOString(),
+      if (existing.expiresAt) {
+        // PENDING_PAYMENT — return same order
+        const paymentTx = existing.paymentTransactions[0]
+        return {
+          bookingId: existing.id,
+          bookingRef: existing.bookingRef,
+          razorpayOrderId: paymentTx?.razorpayOrderId || '',
+          razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
+          amountInRupees: existing.totalAmount,
+          currency: CURRENCY,
+          expiresAt: existing.expiresAt.toISOString(),
+        }
       }
+      // PENDING_PAYMENT without expiresAt — the expiry cron can never reap it
+      // (matches expiresAt < now only), so supersede it and create a fresh order
+      this.logger.warn({ bookingId: existing.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
+      await this.bookingRepo.updateStatus(existing.id, BOOKING_STATUS.EXPIRED)
     }
 
     // 2. Validations
@@ -380,7 +386,7 @@ export class BookingService {
     if (input.seatIds?.length && this.vehicleService) {
       const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
       if (!availableSeats) {
-        throw new ConflictError('One or more selected seats are no longer available')
+        throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
       }
     }
 
@@ -488,7 +494,7 @@ export class BookingService {
       booking.trip.version,
     )
     if (rowsUpdated === 0) {
-      throw new ConflictError('Not enough seats available — trip may be full')
+      throw new ConflictError('Not enough seats available — trip may be full', 'CAPACITY_FULL')
     }
 
     // Capture payment (H1 fix: exact amount from DB)
@@ -641,7 +647,9 @@ export class BookingService {
         startDate: r.trip.startDate.toISOString(),
         endDate: r.trip.endDate.toISOString(),
         photos: r.trip.photos,
-        pricePerPerson: r.trip.pricePerPerson,
+        pricePerPerson: (r.trip.earlyBirdPrice && r.trip.earlyBirdDeadline && new Date(r.trip.earlyBirdDeadline) > new Date())
+          ? r.trip.earlyBirdPrice
+          : r.trip.pricePerPerson,
         destination: r.trip.destination,
         organizer: {
           id: r.trip.organizer.id,
