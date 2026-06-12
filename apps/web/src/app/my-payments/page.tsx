@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { useMyPayments, useMyPaymentSummary } from '@/hooks/use-payments'
-import { TravelerPaymentSummaryCards, StatItemSkeleton } from '@/components/payments/payment-summary-cards'
+import { TravelerPaymentSummaryCards, PaymentSummaryCardsSkeleton } from '@/components/payments/payment-summary-cards'
 import { PaymentFilters } from '@/components/payments/payment-filters'
 import { PaymentTransactionList } from '@/components/payments/payment-transaction-list'
 import { ErrorState } from '@/components/shared/data-states'
@@ -23,9 +23,7 @@ export default function MyPaymentsPage() {
 
         {/* Summary cards */}
         {summary.isLoading ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => <StatItemSkeleton key={i} />)}
-          </div>
+          <PaymentSummaryCardsSkeleton />
         ) : summary.error ? (
           <ErrorState title="Failed to load payment summary" message={summary.error?.message} onRetry={() => summary.refetch()} />
         ) : summary.data ? (

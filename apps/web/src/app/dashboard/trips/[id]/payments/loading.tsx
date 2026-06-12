@@ -1,4 +1,4 @@
-import { StatItemSkeleton } from '@/components/payments/payment-summary-cards'
+import { PaymentSummaryCardsSkeleton } from '@/components/payments/payment-summary-cards'
 
 export default function TripPaymentsLoading() {
   return (
@@ -7,9 +7,7 @@ export default function TripPaymentsLoading() {
         <div className="skeleton h-10 w-10 rounded-lg" />
         <div className="skeleton h-8 w-48" />
       </div>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => <StatItemSkeleton key={i} />)}
-      </div>
+      <PaymentSummaryCardsSkeleton />
       <div className="flex gap-3">
         <div className="skeleton h-10 w-32" />
         <div className="skeleton h-10 w-32" />

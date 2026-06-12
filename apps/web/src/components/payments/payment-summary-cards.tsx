@@ -26,6 +26,22 @@ export function StatItemSkeleton() {
   )
 }
 
+interface PaymentSummaryCardsSkeletonProps {
+  /** Breakpoint at which the grid expands to 4 columns — `lg` mirrors the admin cards, `md` the rest. */
+  cols?: 'md' | 'lg'
+}
+
+export function PaymentSummaryCardsSkeleton({ cols = 'md' }: PaymentSummaryCardsSkeletonProps) {
+  return (
+    <div className={cn(
+      'grid grid-cols-1 gap-4 sm:grid-cols-2',
+      cols === 'lg' ? 'lg:grid-cols-4' : 'md:grid-cols-4',
+    )}>
+      {[1, 2, 3, 4].map((i) => <StatItemSkeleton key={i} />)}
+    </div>
+  )
+}
+
 // ─── Traveler Summary ────────────────────────────────
 
 interface TravelerSummaryProps {
@@ -37,7 +53,7 @@ interface TravelerSummaryProps {
 
 export function TravelerPaymentSummaryCards(props: TravelerSummaryProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
       <StatItem label="Total Paid" value={props.totalPaid} colorClass="text-primary-600" />
       <StatItem label="Total Refunded" value={props.totalRefunded} colorClass="text-success-600" />
       <StatItem label="Pending Refunds" value={props.pendingRefunds} colorClass="text-warning-600" />
@@ -60,7 +76,7 @@ interface TripSummaryProps {
 
 export function TripPaymentSummaryCards(props: TripSummaryProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
       <StatItem label="Revenue" value={props.totalRevenue} colorClass="text-primary-600" />
       <StatItem label="Refunds" value={props.totalRefunded} colorClass="text-accent-600" />
       <StatItem label="Your Earnings" value={props.organizerEarnings} colorClass="text-success-600" />
@@ -82,7 +98,7 @@ interface AdminSummaryProps {
 
 export function AdminPaymentSummaryCards(props: AdminSummaryProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatItem label="Total Revenue" value={props.totalRevenue} colorClass="text-primary-600" />
       <StatItem label="Total Refunded" value={props.totalRefunded} colorClass="text-accent-600" />
       <StatItem label="Net Revenue" value={props.netRevenue} colorClass="text-success-600" />

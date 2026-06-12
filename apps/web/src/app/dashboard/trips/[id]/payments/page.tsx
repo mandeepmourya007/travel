@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { deslugify } from '@shared/utils/slug'
 import { useTripPayments, useTripPaymentSummary } from '@/hooks/use-payments'
-import { TripPaymentSummaryCards, StatItemSkeleton } from '@/components/payments/payment-summary-cards'
+import { TripPaymentSummaryCards, PaymentSummaryCardsSkeleton } from '@/components/payments/payment-summary-cards'
 import { PaymentFilters } from '@/components/payments/payment-filters'
 import { PaymentTransactionList } from '@/components/payments/payment-transaction-list'
 import { ErrorState } from '@/components/shared/data-states'
@@ -29,7 +29,7 @@ export default function TripPaymentsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/trips" className="btn-ghost p-2">
+        <Link href="/dashboard/trips" className="btn-ghost p-2" aria-label="Back to my trips">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
@@ -42,9 +42,7 @@ export default function TripPaymentsPage() {
 
       {/* Summary cards */}
       {summary.isLoading ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => <StatItemSkeleton key={i} />)}
-        </div>
+        <PaymentSummaryCardsSkeleton />
       ) : summary.error ? (
         <ErrorState message="Failed to load payment summary" onRetry={() => summary.refetch()} />
       ) : summary.data ? (
