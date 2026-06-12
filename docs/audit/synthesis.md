@@ -1,49 +1,32 @@
-# TripCompare Repository Audit — Synthesis
+# TripCompare Repository Audit — Synthesis (Updated)
 
 > Audited: 2026-06-12 @ commit `9a9c643`. Synthesized from three parallel audits: [backend-audit.md](./backend-audit.md), [frontend-audit.md](./frontend-audit.md), [product-audit.md](./product-audit.md).
-
-**Headline:** the refund path doesn't exist — cancellations tell users a refund was processed but never move money, and the escrow cron then pays organizers for those cancelled bookings.
+> **Week 1 (all money bugs) and most of Week 2 (high-intent frontend path) are resolved.** This document reflects what remains open.
 
 ---
 
-## (a) Critical bugs to fix first (money paths)
+## (a) Remaining reliability risk
 
-**1. Refunds are never issued.** `cancelBooking` computes the refund amount, flips the booking status, and sends a notification saying "Refund: ₹X" — but `initiateRefund` has **zero call sites** in the codebase, and no wallet credit or REFUND transaction is ever created (`apps/api/src/services/booking.service.ts:175-248`). The docs' claim "refunds go to your wallet instantly" is false. Every paid cancellation silently keeps 100% of the customer's money. Fix: in one `$transaction`, create the REFUND `PaymentTransaction`, call `initiateRefund` (it's already implemented at `payment.service.ts:124`) or credit the wallet, and mark REFUNDED on the `refund.processed` webhook.
+**Cron distributed lock is missing.** `index.ts:30` boots cron jobs on every process with no Redis lock; the escrow-release idempotency check is check-then-create with no unique constraint — first scaling event creates duplicate payouts. Fix: Redis `SET NX` lock per job + a partial unique index on `PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'`. Fine on today's single container, but cheap insurance before any horizontal scale.
 
-**2. Escrow is released to organizers for cancelled bookings.** The escrow-release queries filter only on `type: PAYMENT, status: CAPTURED` with **no bookingStatus filter** (`payment-transaction.repository.ts:309-386`), so the completion cron pays out money for bookings the traveler cancelled (`trip-lifecycle.service.ts:91-128`). Combined with bug 1, a cancel-then-trip-completes sequence permanently transfers the customer's money to the organizer. Fix: filter to CONFIRMED/COMPLETED and reverse the Razorpay transfer on cancellation (`reverse_all: 1` already supported).
+---
 
-**3. Webhook HMAC verified against an empty string.** `RAZORPAY_WEBHOOK_SECRET` is optional in env validation (`config/env.ts:12`) and the route is mounted with `env.RAZORPAY_WEBHOOK_SECRET || ''` (`dependencies.ts:242-244`). If unset in prod, anyone can forge webhooks that corrupt the payment ledger. Fix: require it whenever Razorpay keys are set; refuse to mount the route with an empty secret.
+## (b) Performance — remaining items
 
-**4. `confirmBooking` resurrects EXPIRED/CANCELLED bookings and swallows seat-confirmation failure.** The only guard is "already CONFIRMED → return" (`booking.service.ts:467-477`). A late payment on an expired booking re-confirms it, and since the 1-minute cron already freed the held seats, `confirmSeats` fails — and that failure is caught and ignored ("booking still confirmed", `booking.service.ts:527-529`). Result: a charged, confirmed traveler with no seat while the same seat is sold to someone else. Fix: an atomic `UPDATE ... WHERE bookingStatus='PENDING_PAYMENT'` gate before capture; refund (not confirm) paid-but-expired bookings; treat seat re-acquisition failure as a hard error.
+1. **Stop double-fetching on /trips filters.** Every filter change does a full server navigation *and* a duplicate client-side TanStack fetch of the same query (`components/trips/trip-filters.tsx:38-71` + `trip-grid.tsx:20`). `nuqs` is a declared dependency, imported nowhere — use it for shallow URL state after first paint.
+2. **Trip list over-fetching:** list queries pull full rows including `itinerary`/`photos`/`description` JSON for every card (`trip.repository.ts:62-169`). Switch to an explicit summary `select`.
+3. **Add the Socket.IO Redis adapter** (`socket/index.ts:16-24` — docs claim it exists; it doesn't) and replace per-disconnect `io.fetchSockets()` scans with Redis counters. Prerequisite for ever running 2+ API replicas.
+4. **Unbounded queries:** unpaginated `findByOrganizerId`, `findAllPendingForOrganizer`, `findExpiredPendingBookings` (the last makes the cron poll Razorpay serially per booking).
+5. **Frontend polish:** replace the 11 raw `<img>` usages (avatars, seat-map thumbs) with `next/image`; stop the 30s seat-map polling on the public trip-detail preview.
 
-**5. Confirmation isn't transactional → double seat-count increment.** Increment, Razorpay capture (network call), and status update are three separate steps (`booking.service.ts:485-510`). A crash between capture and status update leaves money taken + booking PENDING; the retry increments `currentBookings` a second time, and the expiry cron sees "paid" and skips it forever — permanent limbo. Closely related: the trip-wide `version` CAS makes concurrent confirms of *different* bookings spuriously fail after payment was authorized (`trip.repository.ts:402-413`), and double-cancel is a read-then-write race (`booking.service.ts:177-211`).
+---
 
-**6. Crons have no distributed lock** (`index.ts:30`, plain `setInterval`s). Fine on today's single container, but the escrow-release idempotency check is check-then-create with no unique constraint — first scaling event creates duplicate payouts. Cheap insurance now: Redis `SET NX` lock + a partial unique index on `PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'`.
+## (c) Remaining UX gaps
 
-Worth noting what's **solid**: wallet credit/debit are atomic SQL with balance guards in transactions, cashback dedup has a real unique constraint, webhook signature compare is timing-safe with raw body, refresh tokens rotate with reuse detection, MockPaymentService hard-throws in prod, and the rate limiter is a real Redis Lua sliding window applied to auth/OTP/webhooks.
+1. **Chat:** "Load earlier messages" yanks scroll to the bottom (`chat-window.tsx:40-44`), and socket sends are fire-and-forget — a rejected message looks delivered forever (`use-chat.ts:363-366`). Add scroll anchoring and ack-with-timeout.
+2. **Accessibility:** the custom `Modal` (used for approve/reject and cancellation) has no focus trap while an unused Radix Dialog sits installed (`components/shared/modal.tsx:40-81`); 10 icon-only back links lack `aria-label`; vehicle deletion uses `window.confirm`.
 
-## (b) Top performance fixes, ranked by impact
-
-1. **Delete the pre-hydration full-screen overlay** (`apps/web/src/app/layout.tsx:64-91`). The app does real SSR/ISR on home, trips, trip detail, and destinations — then covers all of it with an opaque spinner until React hydrates. This single element nullifies the entire SSR investment and is the biggest "feels slow" item in the product.
-2. **Stop double-fetching on /trips filters.** Every filter change does a full server navigation *and* a duplicate client-side TanStack fetch of the same query (`components/trips/trip-filters.tsx:38-71` + `trip-grid.tsx:20`). `nuqs` is a declared dependency, imported nowhere — use it for shallow URL state after first paint.
-3. **Trip list over-fetching:** list queries pull full rows including `itinerary`/`photos`/`description` JSON for every card (`trip.repository.ts:62-169`). Switch to an explicit summary `select`.
-4. **Add missing indexes:** `Trip(isDeleted, status, tripType)`, `Trip(status, endDate)` (the completion cron's exact predicate), `Conversation.lastMessageAt` (every conversation list sorts on it).
-5. **Add the Socket.IO Redis adapter** (`socket/index.ts:16-24` — docs claim it exists; it doesn't) and replace per-disconnect `io.fetchSockets()` scans with Redis counters. Prerequisite for ever running 2+ API replicas.
-6. **N+1s and unbounded queries:** escrow release queries per-payment in a loop (`trip-lifecycle.service.ts:104-110`); unpaginated `findByOrganizerId`, `findAllPendingForOrganizer`, `findExpiredPendingBookings` (the last makes the cron poll Razorpay serially per booking).
-7. **Frontend polish:** `dynamic()`-import recharts on admin pages, replace the 11 raw `<img>` usages (avatars, seat-map thumbs) with `next/image`, re-enable prefetch on TripCard links, and stop the 30s seat-map polling on the public trip-detail preview.
-
-Redis caching, by the way, is **real** — trip search/detail, destinations, and organizer stats are cached with sensible TTLs and invalidation. That doc claim checks out.
-
-## (c) Top UX improvements
-
-1. **Seat-race loser is told "You've Already Booked This Trip."** Any `CONFLICT` error in the booking flow maps to the already-booked screen (`app/trips/[slug]/book/page.tsx:176-177`), but the backend uses CONFLICT for "seats no longer available" too. Highest-intent user, factually wrong dead-end. Branch the error and return them to seat selection with a refreshed map.
-2. **The 30-minute seat hold is invisible.** No countdown, no "reserved until" anywhere in the booking flow; `useHoldSeats` is dead code. When the hold expires mid-payment the user gets "Payment verification failed. Please contact support." (`hooks/use-verify-payment.ts:38`) — possibly with money debited. Add a countdown banner and auto-refund reassurance copy.
-3. **Real-time toasts never render.** `SocketConnector` fires sonner toasts for every notification event, but sonner's `<Toaster />` is mounted nowhere (`components/shared/socket-connector.tsx:56-62`). All live "booking approved / payment received" feedback is silently dropped. One-line fix.
-4. **Chat:** "Load earlier messages" yanks scroll to the bottom (`chat-window.tsx:40-44`), and socket sends are fire-and-forget — a rejected message looks delivered forever (`use-chat.ts:363-366`). Add scroll anchoring and ack-with-timeout.
-5. **Compare flow gaps:** the 4th add is a silent no-op, and the compare bar only renders on `/trips` while home-page cards wire compare toggles — adding from home gives zero feedback (`global-compare-bar.tsx:19`).
-6. **Accessibility:** the custom `Modal` (used for approve/reject and cancellation) has no focus trap while an unused Radix Dialog sits installed (`components/shared/modal.tsx:40-81`); 10 icon-only back links lack `aria-label`; vehicle deletion uses `window.confirm`.
-
-The claimed 4-state (loading/error/empty/data) discipline is ~90% real across sampled components — credit where due.
+---
 
 ## (d) Ranked new ideas (filtered against mvp-plan and rnd docs)
 
@@ -67,15 +50,18 @@ Big-bet: **Book-together invite link with per-person payment** — per-seat hold
 
 Also: `docs/mvp/mvp-plan.md` is stale — Destination Pages are listed "Not Started" but are shipped with SSR + JSON-LD.
 
+---
+
 ## (e) Suggested order of attack
 
-**Week 1 — stop losing money (backend, all in `booking.service.ts` / `payment-transaction.repository.ts` territory):** implement the refund path → filter cancelled bookings out of escrow release + reverse transfers on cancel → atomic `PENDING_PAYMENT→CONFIRMED` status gate (fixes resurrection, double-increment, and double-cancel together) → require the webhook secret in prod. These four close every money-loss hole found.
+**Now (Week 3) — reliability insurance + remaining perf:**
+- Cron distributed lock + escrow unique index
+- Trip-list `select` discipline
+- Booking-endpoint rate-limit tier
+- Missing DB indexes for remaining queries (unpaginated findManys)
 
-**Week 2 — make it feel fast + unbreak conversion (frontend):** delete the hydration overlay; fix the seat-conflict→"already booked" mismap; add the seat-hold countdown; mount the sonner Toaster. Four small changes, all on the highest-intent path.
-
-**Week 3 — reliability insurance + cheap perf:** cron distributed lock + escrow unique index; expiry cron releases seats explicitly (today it works only because two constants happen to be equal); missing DB indexes; trip-list `select` discipline; booking-endpoint rate-limit tier.
-
-**Week 4 — the lifecycle-cron product sprint:** review prompts, auto-cashback, trip reminders — three S-sized features sharing one cron and the existing notification infra, hitting trust and retention simultaneously.
+**Week 4 — the lifecycle-cron product sprint:**
+Review prompts, auto-cashback, trip reminders — three S-sized features sharing one cron and the existing notification infra, hitting trust and retention simultaneously.
 
 **Then:** organizer retention (payout statements, trip duplication, analytics) → search → chat fixes + Socket.IO Redis adapter → web push foundation → book-together as the big bet.
 
