@@ -19,6 +19,7 @@ const mockTripRepo = {
 const mockPaymentTxRepo = {
   findCapturedTransfersForTrip: vi.fn(),
   findByBookingId: vi.fn(),
+  findReleasedBookingIdsForTrip: vi.fn().mockResolvedValue(new Set()),
   findUnreleasedEscrows: vi.fn(),
   create: vi.fn(),
   updateStatus: vi.fn(),
@@ -136,7 +137,7 @@ describe('TripLifecycleService', () => {
     it('should not rollback trip completion when escrow release fails', async () => {
       mockTripRepo.findTripsToComplete.mockResolvedValue([createMockTrip()])
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([createMockCapturedPayment()])
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([]) // No existing releases
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.releaseTransferHold.mockRejectedValue(new Error('Razorpay down'))
 
       const result = await service.completeEndedTrips()
@@ -155,7 +156,7 @@ describe('TripLifecycleService', () => {
     it('should release escrow and record ESCROW_RELEASE transaction', async () => {
       const payment = createMockCapturedPayment()
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([]) // No existing releases
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
@@ -177,8 +178,8 @@ describe('TripLifecycleService', () => {
     it('should skip already-released bookings (idempotency)', async () => {
       const payment = createMockCapturedPayment()
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
-      // Existing ESCROW_RELEASE for this booking
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([{ type: 'ESCROW_RELEASE' }])
+      // booking-1 already released — skip it
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set(['booking-1']))
 
       const result = await service.releaseEscrowForTrip('trip-1')
 
@@ -191,7 +192,7 @@ describe('TripLifecycleService', () => {
       const payment1 = createMockCapturedPayment({ id: 'ptx-1', bookingId: 'b1' })
       const payment2 = createMockCapturedPayment({ id: 'ptx-2', bookingId: 'b2', razorpayTransferId: 'trf_def456' })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment1, payment2])
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([]) // No releases
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.releaseTransferHold
         .mockRejectedValueOnce(new Error('Razorpay error'))
         .mockResolvedValueOnce(undefined)
@@ -228,7 +229,7 @@ describe('TripLifecycleService', () => {
     it('should lazy-fetch transfer ID when missing', async () => {
       const payment = createMockCapturedPayment({ razorpayTransferId: null })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.fetchTransferId.mockResolvedValue('trf_lazy_123')
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
@@ -251,7 +252,7 @@ describe('TripLifecycleService', () => {
         },
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
-      mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 

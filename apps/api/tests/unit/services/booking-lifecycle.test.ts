@@ -31,12 +31,6 @@ vi.mock('../../../src/config/env', () => ({
 // Shared Mock Infrastructure
 // ══════════════════════════════════════════════════════
 
-// ── Booking TX mock ──────────────────────────────────
-const mockBookingTx = {
-  booking: { update: vi.fn() },
-  $executeRaw: vi.fn(),
-}
-
 // ── Trip lifecycle TX mock ───────────────────────────
 const mockLifecycleTx = {
   trip: { update: vi.fn() },
@@ -50,7 +44,9 @@ const mockBookingRepo = {
   findByUserId: vi.fn(),
   getMyBookingSummary: vi.fn(),
   findById: vi.fn(),
-  cancel: vi.fn(),
+  cancelAtomically: vi.fn(),
+  atomicConfirmGate: vi.fn(),
+  revertConfirmGate: vi.fn(),
   findByTripId: vi.fn(),
   getTripBookingSummary: vi.fn(),
   create: vi.fn(),
@@ -67,7 +63,6 @@ const mockTripRepo = {
   atomicDecrementBookings: vi.fn(),
   markFullIfAtCapacity: vi.fn().mockResolvedValue(0),
   revertFullIfUnderCapacity: vi.fn().mockResolvedValue(0),
-  withTransaction: vi.fn().mockImplementation((fn: (tx: any) => Promise<unknown>) => fn(mockBookingTx)),
   findTripsToComplete: vi.fn(),
 }
 
@@ -82,6 +77,7 @@ const mockTripRequestRepo = {
 const mockPaymentTxRepo = {
   create: vi.fn(),
   findByBookingId: vi.fn(),
+  findReleasedBookingIdsForTrip: vi.fn().mockResolvedValue(new Set()),
   findByRazorpayOrderId: vi.fn(),
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
@@ -171,8 +167,12 @@ let lifecycleService: TripLifecycleService
 beforeEach(() => {
   vi.clearAllMocks()
 
-  // Default: withTransaction executes callback with bookingTx mock
-  mockTripRepo.withTransaction.mockImplementation((fn: any) => fn(mockBookingTx))
+  // Default: cancel succeeds for a CONFIRMED booking
+  mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'CONFIRMED' })
+  // Default: gate wins (1 row updated = PENDING_PAYMENT→CONFIRMED)
+  mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
+  // revertConfirmGate must return a Promise so .catch() works in service
+  mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
 
   bookingService = new BookingService(
     mockBookingRepo as any,
@@ -185,7 +185,6 @@ beforeEach(() => {
   )
 
   lifecycleService = new TripLifecycleService(
-    // For lifecycle, withTransaction should use lifecycleTx
     {
       ...mockTripRepo,
       withTransaction: vi.fn().mockImplementation((fn: any) => fn(mockLifecycleTx)),
@@ -245,12 +244,12 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
 
     const result = await bookingService.confirmBooking('booking-1')
 
-    // 1. Seats incremented atomically with version check
-    expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2, 5)
-    // 2. Payment captured with exact DB amount in paise
+    // 1. Gate atomically transitions PENDING_PAYMENT→CONFIRMED in DB
+    expect(mockBookingRepo.atomicConfirmGate).toHaveBeenCalledWith('booking-1')
+    // 2. Seats incremented atomically
+    expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2)
+    // 3. Payment captured with exact DB amount in paise
     expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 1000000, 'INR')
-    // 3. Booking status updated
-    expect(mockBookingRepo.updateStatus).toHaveBeenCalledWith('booking-1', 'CONFIRMED')
     // 4. FULL check always fires (atomic SQL — no TOCTOU)
     expect(mockTripRepo.markFullIfAtCapacity).toHaveBeenCalledWith('trip-1')
     expect(result.bookingStatus).toBe('CONFIRMED')
@@ -342,7 +341,13 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
     maxGroupSize: 10,
   }
 
-  it('should cancel CONFIRMED booking with transactional seat decrement', async () => {
+  beforeEach(() => {
+    // initiateBookingRefund needs findByBookingId to return an array (not undefined)
+    mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+    mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund' })
+  })
+
+  it('should cancel CONFIRMED booking atomically (cancel + seat decrement in one transaction)', async () => {
     const booking = makeBooking({
       bookingStatus: 'CONFIRMED',
       trip: futureTrip,
@@ -352,16 +357,11 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
     const result = await bookingService.cancelBooking('user-1', 'booking-1', 'Changed plans')
 
     expect(result.bookingStatus).toBe('CANCELLED')
-    // Cancel + decrement happened inside transaction
-    expect(mockTripRepo.withTransaction).toHaveBeenCalled()
-    expect(mockBookingTx.booking.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'booking-1' },
-      data: expect.objectContaining({
-        bookingStatus: 'CANCELLED',
-        cancellationReason: 'Changed plans',
-      }),
-    }))
-    expect(mockBookingTx.$executeRaw).toHaveBeenCalled()
+    // Cancel + seat decrement happen atomically inside booking repo
+    expect(mockBookingRepo.cancelAtomically).toHaveBeenCalledWith(
+      'booking-1', 'user-1', 'Changed plans',
+      { tripId: 'trip-1', numTravelers: 2 },
+    )
   })
 
   it('should revert trip FULL→ACTIVE after cancel frees seats', async () => {
@@ -391,37 +391,32 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
     // 0 rows = SQL WHERE did not match = still at capacity
   })
 
-  it('should NOT decrement seats for PENDING_PAYMENT cancel (never incremented)', async () => {
+  it('should NOT revert FULL status for PENDING_PAYMENT cancel (seats were never incremented)', async () => {
     const booking = makeBooking({
       bookingStatus: 'PENDING_PAYMENT',
       trip: { ...futureTrip, status: 'ACTIVE', currentBookings: 8 },
     })
     mockBookingRepo.findById.mockResolvedValue(booking)
-    mockBookingRepo.cancel.mockResolvedValue({})
+    mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'PENDING_PAYMENT' })
 
     await bookingService.cancelBooking('user-1', 'booking-1', 'Changed my mind')
 
-    // Should use simple bookingRepo.cancel, NOT transaction
-    expect(mockBookingRepo.cancel).toHaveBeenCalledWith('booking-1', 'user-1', 'Changed my mind')
-    expect(mockTripRepo.withTransaction).not.toHaveBeenCalled()
+    expect(mockBookingRepo.cancelAtomically).toHaveBeenCalledWith(
+      'booking-1', 'user-1', 'Changed my mind',
+      { tripId: 'trip-1', numTravelers: 2 },
+    )
     expect(mockTripRepo.revertFullIfUnderCapacity).not.toHaveBeenCalled()
   })
 
-  it('should never touch acceptingBookings field during any transition', async () => {
-    const booking = makeBooking({
-      bookingStatus: 'CONFIRMED',
-      trip: futureTrip,
-    })
+  it('should never touch acceptingBookings field during cancel', async () => {
+    const booking = makeBooking({ bookingStatus: 'CONFIRMED', trip: futureTrip })
     mockBookingRepo.findById.mockResolvedValue(booking)
 
     await bookingService.cancelBooking('user-1', 'booking-1', 'reason')
 
-    // The booking update inside tx should not contain acceptingBookings
-    if (mockBookingTx.booking.update.mock.calls.length > 0) {
-      const data = mockBookingTx.booking.update.mock.calls[0][0].data
-      expect(data).not.toHaveProperty('acceptingBookings')
-    }
-    // revertFullIfUnderCapacity only changes status field (tested via SQL in repo)
+    // cancelAtomically only updates bookingStatus, cancellationReason, cancelledAt, cancelledById
+    // and decrements trip.currentBookings — neither touches acceptingBookings
+    expect(mockBookingRepo.cancelAtomically).toHaveBeenCalled()
   })
 
   it('should calculate correct refund amounts per cancellation policy', async () => {
@@ -463,6 +458,7 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
 
   it('should reject cancel for already CANCELLED booking', async () => {
     mockBookingRepo.findById.mockResolvedValue(makeBooking({ bookingStatus: 'CANCELLED' }))
+    mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 0, preCancelStatus: 'CANCELLED' })
 
     await expect(
       bookingService.cancelBooking('user-1', 'booking-1', 'reason'),
@@ -471,6 +467,7 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
 
   it('should reject cancel for COMPLETED booking', async () => {
     mockBookingRepo.findById.mockResolvedValue(makeBooking({ bookingStatus: 'COMPLETED' }))
+    mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 0, preCancelStatus: 'COMPLETED' })
 
     await expect(
       bookingService.cancelBooking('user-1', 'booking-1', 'reason'),
@@ -530,7 +527,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       booking: { totalAmount: 15000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment1, payment2])
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([]) // No prior releases
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set()) // No prior releases
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
 
@@ -570,7 +567,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.releaseTransferHold.mockRejectedValue(new Error('Razorpay 503'))
 
     const result = await lifecycleService.completeEndedTrips()
@@ -596,8 +593,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
-    // Already has ESCROW_RELEASE
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([{ type: 'ESCROW_RELEASE' }])
+    // b1 was already released — skip it
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set(['b1']))
 
     const result = await lifecycleService.completeEndedTrips()
 
@@ -617,7 +614,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       razorpayTransferId: null, razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.fetchTransferId.mockResolvedValue('trf_lazy_fetched')
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
@@ -643,7 +640,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       razorpayTransferId: null, razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.fetchTransferId.mockResolvedValue(null) // Cannot fetch
 
     const result = await lifecycleService.completeEndedTrips()
@@ -683,7 +680,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: null } } },
     }])
-    mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+    mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
 

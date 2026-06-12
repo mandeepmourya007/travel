@@ -11,6 +11,7 @@ const mockRazorpay = {
 const mockPaymentTxRepo = {
   create: vi.fn(),
   findByBookingId: vi.fn(),
+  findInitiatedRefundByBookingId: vi.fn(),
   findByRazorpayOrderId: vi.fn(),
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
@@ -193,8 +194,10 @@ describe('PaymentService', () => {
       expect(result).toEqual(alreadyCaptured)
     })
 
-    it('should throw PaymentError when capture fails', async () => {
+    it('should throw PaymentError when capture fails and fetch confirms non-captured status', async () => {
       mockRazorpay.payments.capture.mockRejectedValue(new Error('Capture failed'))
+      // Fetch confirms payment is NOT captured — service should throw
+      mockRazorpay.payments.fetch.mockResolvedValue({ status: 'failed' })
 
       await expect(
         service.capturePayment('pay_test456', 500000, 'INR'),
@@ -575,12 +578,15 @@ describe('PaymentService', () => {
   // handleRefundProcessed
   // ═══════════════════════════════════════════════════
   describe('handleRefundProcessed', () => {
-    it('should update payment transaction to REFUNDED', async () => {
+    it('should mark PAYMENT tx and REFUND tx as REFUNDED', async () => {
       const paymentTx = createMockPaymentTx({
         status: 'CAPTURED',
         razorpayPaymentId: 'pay_test456',
+        bookingId: 'booking-1',
       })
+      const refundTx = { id: 'ptx-refund-1', bookingId: 'booking-1', type: 'REFUND', status: 'INITIATED' }
       mockPaymentTxRepo.findByRazorpayPaymentId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(refundTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
 
       const payload = {
@@ -597,8 +603,14 @@ describe('PaymentService', () => {
 
       await service.handleRefundProcessed(payload)
 
+      // PAYMENT tx marked REFUNDED (ledger record)
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
         'ptx-1', 'REFUNDED',
+        expect.objectContaining({ razorpayRefundId: 'rfnd_test789' }),
+      )
+      // REFUND tx also marked REFUNDED (audit trail)
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
+        'ptx-refund-1', 'REFUNDED',
         expect.objectContaining({ razorpayRefundId: 'rfnd_test789' }),
       )
     })
