@@ -1,0 +1,35 @@
+.gitignore
+  s_b2594a9520e122::t_5c9c8d981839ad 54-56
+docker-compose.prod.yml
+  s_b2594a9520e122::t_27ba99dfd71349 54
+  s_b2594a9520e122::t_e229b088b78204 235
+  s_b2594a9520e122::t_0ce9b72b8c46a6 130
+  s_b2594a9520e122::t_8d39373c0ead6f 204
+scripts/deploy-prod.sh
+  s_b2594a9520e122::t_86566542d91f76 427-429
+  s_b2594a9520e122::t_310ba7d032c17d 366,368-391,393,401-403,414,418,420,422,426,430,434-435,442,448,459-467
+  s_b2594a9520e122::t_e9849a7324910e 597-599
+  s_b2594a9520e122::t_1c01a36fbbaf06 285-298
+docker/web.prod.Dockerfile
+  s_b2594a9520e122::t_55adbc3722ccfd 65
+docker/nginx/ssl.conf.template
+  s_b2594a9520e122::t_af1e171c501dc3 141-142
+docker/nginx/templates/default.conf.template
+  s_b2594a9520e122::t_f17b6a9c222f60 1-4,21,32,52,60-71,81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "88fceee1bc6539a2f8f0df550e5f5ba09a40e3de",
+  "prompts": {},
+  "sessions": {
+    "s_b2594a9520e122": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7c95f894-c064-4117-beac-61897dd991b2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
