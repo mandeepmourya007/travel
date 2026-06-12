@@ -3,14 +3,18 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
 import { SeatSelectionCard } from '@/components/booking/seat-selection-card'
+import { HoldCountdownBanner } from '@/components/booking/hold-countdown-banner'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { ErrorState } from '@/components/shared/data-states'
 import { useToast } from '@/components/shared/toast'
 import { useTripDetail } from '@/hooks/use-trip-detail'
 import { useCreateBooking } from '@/hooks/use-create-booking'
-import { isAppApiError } from '@/lib/api-client'
+import { getErrorMessage } from '@/lib/api-client'
+import { getBookingConflictKind } from '@/lib/booking-errors'
+import { vehicleKeys } from '@/lib/query-keys'
 import { useVerifyPayment } from '@/hooks/use-verify-payment'
 import { useAuthStore } from '@/store/auth.store'
 import { loadRazorpayScript } from '@/lib/razorpay'
@@ -41,6 +45,7 @@ export default function BookingPage({
   const { slug } = params
   const searchParams = useSearchParams()
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
 
   const { data: trip, isLoading, error, refetch } = useTripDetail(slug)
@@ -72,6 +77,10 @@ export default function BookingPage({
   const showSeatStep = !!trip?.seatSelectionEnabled
   const [bookingStep, setBookingStep] = useState<'travelers' | 'seats'>('travelers')
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([])
+  // Set once a booking is created — backend holds seats until this timestamp
+  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null)
+  // Bumped on seat conflicts to remount the seat picker (clears its internal selection)
+  const [seatMapResetKey, setSeatMapResetKey] = useState(0)
   const [pendingTravelerData, setPendingTravelerData] = useState<{
     travelers: TravelerFormValues['travelers']
     pickupPointId?: string
@@ -129,54 +138,96 @@ export default function BookingPage({
         return
       }
 
-      const RazorpayClass = await loadRazorpayScript()
+      // Seats are now held — surface the payment deadline to the user (P1-1)
+      setHoldExpiresAt(result.expiresAt)
 
-      new RazorpayClass({
-        key: result.razorpayKeyId,
-        amount: result.amountInRupees * 100,
-        currency: 'INR',
-        order_id: result.razorpayOrderId,
-        name: APP_NAME,
-        description: `Booking for ${trip.title}`,
-        prefill: { name: user.name, email: user.email },
+      // Inner try: booking already created at this point. Any failure here
+      // (CDN blocked, Razorpay init error) must surface the booking ref so
+      // the user isn't left wondering whether money was taken.
+      try {
+        const RazorpayClass = await loadRazorpayScript()
 
-        handler: async (response) => {
-          try {
-            await verifyPayment.mutateAsync({
-              bookingId: result.bookingId,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            })
-            setBookingResult({
-              bookingRef: result.bookingRef,
-              tripTitle: trip.title,
-              tripDates: { start: trip.startDate, end: trip.endDate },
-              numTravelers,
-              amountPaid: result.amountInRupees,
-            })
-            // Clear stashed traveler details after successful payment
-            if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
-            setPhase('success')
-          } catch {
-            // verifyPayment hook already shows error toast
-          } finally {
-            setIsProcessing(false)
-          }
-        },
+        new RazorpayClass({
+          key: result.razorpayKeyId,
+          amount: result.amountInRupees * 100,
+          currency: 'INR',
+          order_id: result.razorpayOrderId,
+          name: APP_NAME,
+          description: `Booking for ${trip.title}`,
+          prefill: { name: user.name, email: user.email },
 
-        modal: {
-          ondismiss: () => {
-            toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
-            setIsProcessing(false)
+          handler: async (response) => {
+            try {
+              await verifyPayment.mutateAsync({
+                bookingId: result.bookingId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                tripSlug: trip.slug,
+                tripId: trip.id,
+              })
+              setBookingResult({
+                bookingRef: result.bookingRef,
+                tripTitle: trip.title,
+                tripDates: { start: trip.startDate, end: trip.endDate },
+                numTravelers,
+                amountPaid: result.amountInRupees,
+              })
+              // Clear stashed traveler details after successful payment
+              if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
+              setHoldExpiresAt(null)
+              setPhase('success')
+            } catch {
+              // Money may already be debited — give the user their booking ref
+              // and refund reassurance instead of a bare "contact support"
+              toast({
+                variant: 'error',
+                title: 'Payment verification failed',
+                description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
+                duration: 15000,
+              })
+            } finally {
+              setIsProcessing(false)
+            }
           },
-        },
-      }).open()
+
+          modal: {
+            ondismiss: () => {
+              toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
+              setIsProcessing(false)
+            },
+          },
+        }).open()
+      } catch {
+        // Script load failure or Razorpay init error — booking is already created,
+        // so surface the ref so the user can contact support if needed.
+        toast({
+          variant: 'error',
+          title: 'Could not open payment',
+          description: `Your booking (ref: ${result.bookingRef}) is reserved. Please try again or contact support.`,
+          duration: 15000,
+        })
+        setIsProcessing(false)
+      }
     } catch (err) {
-      if (isAppApiError(err) && err.code === 'CONFLICT') {
+      const conflictKind = getBookingConflictKind(err)
+      if (conflictKind === 'seat-conflict') {
+        // Someone else grabbed the seats mid-flow — NOT a duplicate booking.
+        // Refresh the seat map, clear the stale selection, and send the user
+        // back to the seat step to re-pick.
+        toast({
+          variant: 'warning',
+          title: 'Those seats were just taken',
+          description: 'Someone booked one of your selected seats. Please pick different seats.',
+        })
+        setSelectedSeatIds([])
+        setSeatMapResetKey((k) => k + 1)
+        if (showSeatStep) setBookingStep('seats')
+        queryClient.invalidateQueries({ queryKey: vehicleKeys.seatMap(trip.id) })
+      } else if (conflictKind === 'already-booked') {
         setPhase('alreadyBooked')
       } else {
-        toast({ variant: 'error', title: (err as Error).message || 'Failed to create booking. Please try again.' })
+        toast({ variant: 'error', title: getErrorMessage(err as Error, 'Failed to create booking. Please try again.')! })
       }
       setIsProcessing(false)
     }
@@ -283,6 +334,13 @@ export default function BookingPage({
               </h1>
             </div>
 
+            {/* Seat-hold countdown — appears once a booking is created */}
+            {holdExpiresAt && (
+              <div className="mb-6">
+                <HoldCountdownBanner expiresAt={holdExpiresAt} />
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
                 {isPayOnlyMode && savedTravelers ? (
@@ -315,6 +373,7 @@ export default function BookingPage({
 
                     {showSeatStep && (
                       <SeatSelectionCard
+                        key={seatMapResetKey}
                         tripId={trip.id}
                         numTravelers={numTravelers}
                         onSelectionChange={handleSeatSelectionChange}
@@ -362,6 +421,7 @@ export default function BookingPage({
                     </div>
 
                     <SeatSelectionCard
+                      key={seatMapResetKey}
                       tripId={trip.id}
                       numTravelers={numTravelers}
                       onSelectionChange={handleSeatSelectionChange}

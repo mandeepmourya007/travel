@@ -17,7 +17,7 @@ interface SeatMapViewerProps {
 
 function SeatMapViewerSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
+    <div className="space-y-4">
       <div className="h-5 w-40 skeleton rounded" />
       <div className="flex flex-col items-center gap-2">
         {Array.from({ length: 4 }).map((_, r) => (

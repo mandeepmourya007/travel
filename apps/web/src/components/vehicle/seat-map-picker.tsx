@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import Image from 'next/image'
 import { useSeatMap } from '@/hooks/use-vehicle'
 import { SeatGrid } from './seat-grid'
 import { SeatLegend } from './seat-legend'
@@ -118,10 +119,12 @@ function VehicleSeatPanel({ entry, selectedIds, selectionOrder, onSeatClick }: V
               onClick={() => { setLightboxIdx(idx); setLightboxOpen(true) }}
               className="group relative h-16 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 transition-all hover:ring-2 hover:ring-primary-400"
             >
-              <img
+              <Image
                 src={url}
                 alt={`${vehicle.label} photo ${idx + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                sizes="96px"
+                className="object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
                 <ImageIcon className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />
@@ -162,7 +165,8 @@ function VehicleSeatPanel({ entry, selectedIds, selectionOrder, onSeatClick }: V
 // ─── Component ──────────────────────────────────────
 
 export function SeatMapPicker({ tripId, maxSeats, onSelectionChange }: SeatMapPickerProps) {
-  const { data, isLoading, error, refetch } = useSeatMap(tripId)
+  // Poll while picking seats — other travelers may grab them mid-flow
+  const { data, isLoading, error, refetch } = useSeatMap(tripId, { poll: true })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const selectionOrderRef = useRef<string[]>([])
   const [activeVehicleIdx, setActiveVehicleIdx] = useState(0)
