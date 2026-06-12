@@ -23,9 +23,18 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { ChatService } from '../../../src/services/chat.service'
 import { logger } from '../../../src/utils/logger'
 import { NotFoundError, ForbiddenError, ValidationError } from '../../../src/errors/app-error'
+
+/** Build a Prisma unique-constraint error the same way the real client does */
+function makePrismaP2002(): Prisma.PrismaClientKnownRequestError {
+  return new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: '5.17.0',
+  })
+}
 
 // ─── Mock repositories ──────────────────────────────
 const mockConversationRepo = {
@@ -44,6 +53,7 @@ const mockConversationRepo = {
 
 const mockMessageRepo = {
   create: vi.fn(),
+  findByClientMsgId: vi.fn(),
   findByConversationId: vi.fn(),
   markAsRead: vi.fn(),
   search: vi.fn(),
@@ -61,6 +71,9 @@ const mockOrganizerProfileRepo = {
   findByUserId: vi.fn(),
 }
 
+const mockIoEmit = vi.fn()
+const mockIo = { to: vi.fn(() => ({ emit: mockIoEmit })) }
+
 let service: ChatService
 
 beforeEach(() => {
@@ -72,6 +85,7 @@ beforeEach(() => {
     mockTripRepo as any,
     mockOrganizerProfileRepo as any,
     logger as any,
+    () => mockIo as any,
   )
   /* eslint-enable @typescript-eslint/no-explicit-any */
 })
@@ -267,6 +281,110 @@ describe('ChatService', () => {
 
       await expect(service.sendMessage(CONVERSATION_ID, TRAVELER_ID, { content: 'hi' }))
         .rejects.toThrow(ValidationError)
+    })
+
+    it('should pass clientMsgId through to the repository', async () => {
+      const conversation = makeConversation()
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockResolvedValue(makeMessage())
+      mockConversationRepo.incrementUnread.mockResolvedValue(undefined)
+      mockConversationRepo.updateLastMessage.mockResolvedValue(undefined)
+
+      await service.sendMessage(CONVERSATION_ID, TRAVELER_ID, {
+        content: 'hi',
+        clientMsgId: 'a1b2c3d4-0000-4000-8000-000000000001',
+      })
+
+      expect(mockMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ clientMsgId: 'a1b2c3d4-0000-4000-8000-000000000001' }),
+      )
+    })
+
+    it('should broadcast chat:message and chat:conversation-update to the room after persisting (socket AND REST paths)', async () => {
+      const conversation = makeConversation()
+      const message = makeMessage()
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockResolvedValue(message)
+      mockConversationRepo.incrementUnread.mockResolvedValue(undefined)
+      mockConversationRepo.updateLastMessage.mockResolvedValue(undefined)
+
+      await service.sendMessage(CONVERSATION_ID, TRAVELER_ID, { content: 'hi' })
+
+      expect(mockIo.to).toHaveBeenCalledWith(`conversation:${CONVERSATION_ID}`)
+      expect(mockIoEmit).toHaveBeenCalledWith('chat:message', message)
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        'chat:conversation-update',
+        expect.objectContaining({ conversationId: CONVERSATION_ID }),
+      )
+    })
+
+    it('should not throw when no io instance is available (e.g. before server start)', async () => {
+      /* eslint-disable @typescript-eslint/no-explicit-any -- mock constructor injection */
+      const serviceWithoutIo = new ChatService(
+        mockConversationRepo as any,
+        mockMessageRepo as any,
+        mockTripRepo as any,
+        mockOrganizerProfileRepo as any,
+        logger as any,
+      )
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+      const conversation = makeConversation()
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockResolvedValue(makeMessage())
+
+      await expect(
+        serviceWithoutIo.sendMessage(CONVERSATION_ID, TRAVELER_ID, { content: 'hi' }),
+      ).resolves.toBeDefined()
+    })
+
+    it('should return the ORIGINAL message (no duplicate, no side effects) when a retried clientMsgId hits the unique constraint', async () => {
+      const conversation = makeConversation()
+      const original = makeMessage({ id: 'msg-original', content: 'hi' })
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockRejectedValue(makePrismaP2002())
+      mockMessageRepo.findByClientMsgId.mockResolvedValue(original)
+
+      const result = await service.sendMessage(CONVERSATION_ID, TRAVELER_ID, {
+        content: 'hi',
+        clientMsgId: 'a1b2c3d4-0000-4000-8000-000000000001',
+      })
+
+      expect(result).toBe(original)
+      expect(mockMessageRepo.findByClientMsgId).toHaveBeenCalledWith(
+        CONVERSATION_ID,
+        TRAVELER_ID,
+        'a1b2c3d4-0000-4000-8000-000000000001',
+      )
+      // Counters already ran for the original insert — a replay must not double them
+      expect(mockConversationRepo.incrementUnread).not.toHaveBeenCalled()
+      expect(mockConversationRepo.updateLastMessage).not.toHaveBeenCalled()
+      // The original insert already broadcast — a replay must not re-emit
+      expect(mockIo.to).not.toHaveBeenCalled()
+    })
+
+    it('should rethrow P2002 when no clientMsgId was provided (not a dedupe case)', async () => {
+      const conversation = makeConversation()
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockRejectedValue(makePrismaP2002())
+
+      await expect(service.sendMessage(CONVERSATION_ID, TRAVELER_ID, { content: 'hi' }))
+        .rejects.toThrow(Prisma.PrismaClientKnownRequestError)
+      expect(mockMessageRepo.findByClientMsgId).not.toHaveBeenCalled()
+    })
+
+    it('should throw ConflictError (not raw Prisma error) when P2002 fires but the deduped row cannot be found', async () => {
+      const conversation = makeConversation()
+      mockConversationRepo.findById.mockResolvedValue(conversation)
+      mockMessageRepo.create.mockRejectedValue(makePrismaP2002())
+      // Simulates a race where the row was deleted between the failed INSERT and this lookup
+      mockMessageRepo.findByClientMsgId.mockResolvedValue(null)
+
+      await expect(
+        service.sendMessage(CONVERSATION_ID, TRAVELER_ID, {
+          content: 'hi',
+          clientMsgId: 'a1b2c3d4-0000-4000-8000-000000000001',
+        }),
+      ).rejects.toMatchObject({ statusCode: 409, code: 'CONFLICT' })
     })
 
     it('should not apply filter for IMAGE type messages', async () => {
