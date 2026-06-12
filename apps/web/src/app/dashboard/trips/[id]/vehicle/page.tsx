@@ -8,6 +8,7 @@ import { SeatMapViewer } from '@/components/vehicle/seat-map-viewer'
 import { VehicleImageGallery } from '@/components/vehicle/vehicle-image-gallery'
 import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
 import { useToast } from '@/components/shared/toast'
+import { Modal } from '@/components/shared/modal'
 import { ArrowLeft, Trash2, AlertCircle, RefreshCw, Truck, ImageIcon } from 'lucide-react'
 import { useLogError } from '@/hooks/use-log-error'
 import { MAX_VEHICLE_PHOTOS } from '@shared/constants/vehicle'
@@ -128,6 +129,7 @@ export default function VehicleManagePage() {
 
   const [mode, setMode] = useState<'view' | 'create'>('view')
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleCreate = (dto: CreateVehicleDto) => {
     createVehicle.mutate(dto, {
@@ -135,11 +137,10 @@ export default function VehicleManagePage() {
     })
   }
 
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     const firstVehicle = data?.vehicles?.[0]
     if (!firstVehicle?.vehicle?.id) return
-    if (!window.confirm('Delete this vehicle layout? All seat assignments will be removed.')) return
-
+    setShowDeleteConfirm(false)
     setIsDeleting(true)
     deleteVehicle.mutate(firstVehicle.vehicle.id, {
       onSettled: () => setIsDeleting(false),
@@ -170,7 +171,7 @@ export default function VehicleManagePage() {
 
         {hasVehicle && mode === 'view' && (
           <button
-            onClick={handleDelete}
+            onClick={() => setShowDeleteConfirm(true)}
             disabled={isDeleting}
             className="inline-flex items-center gap-1.5 rounded-lg border border-error-300 px-3 py-1.5 text-sm font-medium text-error-600 hover:bg-error-50 disabled:opacity-50 transition-colors"
           >
@@ -206,6 +207,25 @@ export default function VehicleManagePage() {
           />
         </>
       )}
+
+      {/* Delete confirmation — accessible modal instead of window.confirm */}
+      <Modal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Remove Vehicle Layout"
+      >
+        <p className="text-sm text-neutral-600">
+          Delete this vehicle layout? All seat assignments will be removed. This action cannot be undone.
+        </p>
+        <div className="mt-6 flex justify-end gap-3">
+          <button onClick={() => setShowDeleteConfirm(false)} className="btn-ghost">
+            Cancel
+          </button>
+          <button onClick={handleConfirmDelete} className="btn-danger">
+            Remove Vehicle
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

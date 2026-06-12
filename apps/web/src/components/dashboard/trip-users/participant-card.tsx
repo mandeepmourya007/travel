@@ -97,7 +97,8 @@ interface RequestCardProps {
   request: TripRequestListItem
   onApprove: (request: TripRequestListItem) => void
   onReject: (request: TripRequestListItem) => void
-  onViewDetails: (request: TripRequestListItem) => void
+  /** When omitted, the view-details control is hidden (never render a dead button) */
+  onViewDetails?: (request: TripRequestListItem) => void
   isResponding?: boolean
 }
 
@@ -157,7 +158,7 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
               <X className="h-4 w-4" />
             </button>
           </div>
-        ) : (
+        ) : onViewDetails ? (
           <button
             onClick={(e) => { e.stopPropagation(); onViewDetails(request) }}
             className="btn-ghost shrink-0 p-2"
@@ -165,7 +166,7 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
           >
             <Eye className="h-4 w-4" />
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Expandable traveler details */}

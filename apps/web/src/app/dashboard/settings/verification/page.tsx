@@ -116,7 +116,7 @@ export default function VerificationDocsPage() {
     <div className="mx-auto max-w-2xl">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/profile" className="btn-ghost p-2">
+        <Link href="/profile" className="btn-ghost p-2" aria-label="Back to profile">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>

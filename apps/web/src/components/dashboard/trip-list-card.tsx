@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Edit, Eye, BookOpen, BookX, Trash2, History, Users, Wallet, Star, Armchair } from 'lucide-react'
 import { Modal } from '@/components/shared/modal'
 import { formatDateRange, formatCurrency } from '@/lib/format'
@@ -37,9 +38,15 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
     <>
       <div className="card flex flex-col gap-4 p-4 md:flex-row">
         {/* Cover thumbnail */}
-        <div className="h-32 w-full shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-24 md:h-28 md:w-36">
+        <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-24 md:h-28 md:w-36">
           {coverPhoto ? (
-            <img src={coverPhoto} alt={trip.title} className="h-full w-full object-cover" />
+            <Image
+              src={coverPhoto}
+              alt={trip.title}
+              fill
+              sizes="(max-width: 768px) 100vw, 144px"
+              className="object-cover"
+            />
           ) : (
             <div className="flex h-full items-center justify-center text-neutral-300 text-sm">
               No photo

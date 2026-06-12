@@ -21,7 +21,7 @@ export default function DashboardTripReviewsPage() {
 
   const header = (
     <div className="flex items-center gap-3 mb-6">
-      <Link href="/dashboard/trips" className="btn-ghost p-2">
+      <Link href="/dashboard/trips" className="btn-ghost p-2" aria-label="Back to my trips">
         <ArrowLeft className="h-5 w-5" />
       </Link>
       <h1 className="font-display text-xl font-bold text-neutral-800">

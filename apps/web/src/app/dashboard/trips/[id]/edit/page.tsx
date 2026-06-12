@@ -87,7 +87,7 @@ export default function EditTripPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/trips" className="btn-ghost p-2">
+        <Link href="/dashboard/trips" className="btn-ghost p-2" aria-label="Back to my trips">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>

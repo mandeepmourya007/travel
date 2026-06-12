@@ -70,7 +70,7 @@ export default function PendingRequestsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="btn-ghost p-2">
+        <Link href="/dashboard" className="btn-ghost p-2" aria-label="Back to dashboard">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
@@ -120,7 +120,6 @@ export default function PendingRequestsPage() {
                     request={r}
                     onApprove={(req) => handleApprove(req, group.trip.id)}
                     onReject={(req) => handleReject(req, group.trip.id)}
-                    onViewDetails={() => {}}
                     isResponding={respondMutation.isPending}
                   />
                 ))}

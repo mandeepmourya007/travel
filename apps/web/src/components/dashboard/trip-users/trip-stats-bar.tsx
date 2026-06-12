@@ -16,7 +16,7 @@ export function TripStatsBar({ summary }: TripStatsBarProps) {
     : 0
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <StatMini
         label="Paid & Booked"
         value={`${summary.totalTravelers}/${summary.maxGroupSize}`}
@@ -77,7 +77,7 @@ function StatMini({
 
 export function TripStatsBarSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="card-static flex items-center gap-3 p-4">
           <div className="skeleton h-10 w-10 rounded-lg" />

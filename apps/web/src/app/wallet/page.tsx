@@ -43,7 +43,7 @@ export default function WalletPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-xl bg-white/10 px-4 py-3">
                 <div className="flex items-center gap-1.5">
                   <ArrowDownLeft className="h-3.5 w-3.5 text-success-300" />

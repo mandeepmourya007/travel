@@ -142,7 +142,7 @@ export default function CreateTripPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/dashboard/trips" className="btn-ghost p-2">
+        <Link href="/dashboard/trips" className="btn-ghost p-2" aria-label="Back to my trips">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h2 className="font-display text-2xl font-bold text-neutral-900">Create New Trip</h2>
