@@ -1,0 +1,31 @@
+packages/shared/src/types/api-response.types.ts
+  s_979970bac6a17c::t_6d5db939e05add 11-12
+packages/shared/src/types/chat.types.ts
+  s_ec3fd04cd7f735::t_79a7763aa5b2bb 91-93,117-118
+packages/shared/src/validators/chat.schema.ts
+  s_ec3fd04cd7f735::t_76b73b7a187fdb 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "2b3d26d0a57e31e522e5db4627f232d0581af1cf",
+  "prompts": {},
+  "sessions": {
+    "s_979970bac6a17c": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "3001ab91-ea65-4d53-b386-c26b55ad6cbd",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_ec3fd04cd7f735": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f79c7f56-fedb-4ae4-93c8-328edc47d1b7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
