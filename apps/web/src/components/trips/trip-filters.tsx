@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { SlidersHorizontal, X } from 'lucide-react'
 import { NumberInput } from '@/components/shared/number-input'
@@ -20,8 +20,23 @@ interface TripFiltersProps {
   currentFilters: TripFiltersType
 }
 
+/**
+ * Shallow URL update — changes the query string WITHOUT re-running the
+ * server component. Next 14.1+ patches `window.history.pushState` to
+ * sync its internal router state, so `useSearchParams()` re-renders and
+ * the client-side `useTrips` query refetches. RSC stays reserved for
+ * initial load / SEO. (Was `router.push`, which cost a full server
+ * roundtrip per filter tweak + a duplicate client fetch.)
+ *
+ * ⚠️  REQUIRES Next ≥ 14.1 (see next.js/pull/61244). If the framework
+ * ever removes the pushState patch, replace with `router.push(url, { scroll: false })`.
+ */
+function pushShallowUrl(pathname: string, params: URLSearchParams) {
+  const query = params.toString()
+  window.history.pushState(null, '', query ? `${pathname}?${query}` : pathname)
+}
+
 export function TripFilters({ currentFilters }: TripFiltersProps) {
-  const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { data: destinations } = useDestinations()
@@ -44,9 +59,9 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
         params.delete(key)
       }
       params.delete('page')
-      router.push(`${pathname}?${params.toString()}`)
+      pushShallowUrl(pathname, params)
     },
-    [router, pathname, searchParams],
+    [pathname, searchParams],
   )
 
   useEffect(() => {
@@ -67,14 +82,14 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
     debouncedMin ? params.set('minPrice', debouncedMin) : params.delete('minPrice')
     debouncedMax ? params.set('maxPrice', debouncedMax) : params.delete('maxPrice')
     params.delete('page')
-    router.push(`${pathname}?${params.toString()}`)
-  }, [debouncedMin, debouncedMax, router, pathname])
+    pushShallowUrl(pathname, params)
+  }, [debouncedMin, debouncedMax, pathname])
 
   const clearFilters = useCallback(() => {
     setLocalMinPrice('')
     setLocalMaxPrice('')
-    router.push(pathname)
-  }, [router, pathname])
+    pushShallowUrl(pathname, new URLSearchParams())
+  }, [pathname])
 
   const hasActiveFilters =
     currentFilters.destinationId ||
@@ -201,7 +216,7 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="relative ml-auto w-80 bg-white p-6 shadow-lg overflow-y-auto">
+          <div className="relative ml-auto w-4/5 max-w-80 bg-white p-6 shadow-lg overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display text-lg font-bold text-neutral-800">Filters</h3>
               <button onClick={() => setMobileOpen(false)} aria-label="Close filters">

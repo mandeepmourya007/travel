@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { notFound, redirect } from 'next/navigation'
 import type { Metadata } from 'next'
-import { fetchApi } from '@/lib/api-server'
+import { fetchApi, getPopularTripsForStaticParams } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildOrganizerProfileJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { OrganizerProfileClient } from '@/components/trips/organizer-profile-client'
@@ -67,7 +67,15 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
 }
 
 export async function generateStaticParams() {
-  return []
+  try {
+    const trips = await getPopularTripsForStaticParams()
+    const slugs = trips
+      .map((t) => t.organizer?.slug)
+      .filter((s): s is string => !!s)
+    return [...new Set(slugs)].map((slug) => ({ slug }))
+  } catch {
+    return []
+  }
 }
 
 export default async function OrganizerPublicProfilePage({ params }: OrganizerPageProps) {

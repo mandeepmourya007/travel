@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useSeatMap } from '@/hooks/use-vehicle'
 import { SeatGrid } from '@/components/vehicle/seat-grid'
 import { SeatLegend } from '@/components/vehicle/seat-legend'
@@ -81,10 +82,12 @@ function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
               }}
               className="group relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-lg bg-neutral-100 transition-all hover:ring-2 hover:ring-primary-400"
             >
-              <img
+              <Image
                 src={url}
                 alt={`${vehicle.label} photo ${idx + 1}`}
-                className="h-full w-full object-cover"
+                fill
+                sizes="128px"
+                className="object-cover"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/20">
                 <ImageIcon className="h-4 w-4 text-white opacity-0 transition-opacity group-hover:opacity-100" />

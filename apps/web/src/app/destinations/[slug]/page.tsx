@@ -55,7 +55,12 @@ export async function generateMetadata({ params }: DestinationPageProps): Promis
 }
 
 export async function generateStaticParams() {
-  return []
+  try {
+    const result = await fetchApi<{ data: { slug: string }[] }>('/destinations', { revalidate: false })
+    return result.data.map((d) => ({ slug: d.slug }))
+  } catch {
+    return []
+  }
 }
 
 export default async function DestinationPage({ params }: DestinationPageProps) {

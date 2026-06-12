@@ -74,7 +74,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
     <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
       {/* Breadcrumb */}
       <nav className="mt-4 flex items-center gap-2 text-sm text-neutral-500">
-        <Link href="/destinations" prefetch={false} className="btn-ghost p-1.5 -ml-1.5">
+        <Link href="/destinations" prefetch={false} className="btn-ghost p-1.5 -ml-1.5" aria-label="Back to destinations">
           <ArrowLeft className="h-4 w-4" />
         </Link>
         <Link href="/" prefetch={false} className="hover:text-primary-600 transition-colors">Home</Link>

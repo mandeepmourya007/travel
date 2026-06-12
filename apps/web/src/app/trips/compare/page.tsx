@@ -7,11 +7,13 @@ import { ArrowLeft } from 'lucide-react'
 import { useCompareTrips } from '@/hooks/use-compare-trips'
 import { TripComparisonTable } from '@/components/trips/trip-comparison-table'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
+import { useToast } from '@/components/shared/toast'
 import { cn } from '@/lib/utils'
 
 function CompareContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const slugsParam = searchParams.get('trips') || ''
   const slugs = slugsParam.split(',').filter(Boolean).slice(0, 3)
 
@@ -20,6 +22,12 @@ function CompareContent() {
   function handleRemove(slug: string) {
     const remaining = slugs.filter((s) => s !== slug)
     if (remaining.length < 2) {
+      // Tell the user why they're leaving the compare view (P2-12)
+      toast({
+        variant: 'info',
+        title: 'Comparison closed',
+        description: 'A comparison needs at least 2 trips. Pick more trips to compare again.',
+      })
       router.push('/trips')
     } else {
       router.replace(`/trips/compare?trips=${remaining.join(',')}`)

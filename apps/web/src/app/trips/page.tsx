@@ -58,7 +58,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {/* Server-rendered h1 + trip links for SEO */}
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/" className="btn-ghost p-2">
+          <Link href="/" className="btn-ghost p-2" aria-label="Back to home">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="font-display text-2xl font-bold text-neutral-800">

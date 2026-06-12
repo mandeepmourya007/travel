@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { fetchApi } from '@/lib/api-server'
+import { fetchApi, getPopularTripsForStaticParams } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildTripJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { TripDetailClient } from '@/components/trips/trip-detail-client'
@@ -53,7 +53,12 @@ export async function generateMetadata({ params }: TripDetailPageProps): Promise
 }
 
 export async function generateStaticParams() {
-  return []
+  try {
+    const trips = await getPopularTripsForStaticParams()
+    return trips.map((t) => ({ slug: t.slug }))
+  } catch {
+    return []
+  }
 }
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {

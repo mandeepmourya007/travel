@@ -1,8 +1,9 @@
 'use client'
 
-import { memo, useRef, useCallback } from 'react'
+import { memo, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows, Armchair } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
@@ -11,6 +12,9 @@ import { cn } from '@/lib/utils'
 import { tripKeys } from '@/lib/query-keys'
 import { fetchTripDetail } from '@/hooks/use-trip-detail'
 import type { TripSummary } from '@shared/types/trip.types'
+
+/** Hover-intent delay before prefetching — avoids firing for every card the cursor sweeps across */
+const PREFETCH_HOVER_DELAY_MS = 150
 
 interface TripCardProps {
   trip: TripSummary
@@ -32,19 +36,41 @@ interface TripCardProps {
  */
 export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = false, priority = false }: TripCardProps) {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
   const hasInteracted = useRef(false)
 
+  // Warm BOTH caches on hover: the RSC route (links have prefetch={false} to
+  // avoid 12+ eager prefetches per grid) and the React Query detail used by /book.
   const prefetchTripDetail = useCallback(() => {
+    router.prefetch(`/trips/${trip.slug}`)
     queryClient.prefetchQuery({
       queryKey: tripKeys.detail(trip.slug),
       queryFn: () => fetchTripDetail(trip.slug),
       staleTime: 60 * 1000,
     })
-  }, [queryClient, trip.slug])
+  }, [queryClient, router, trip.slug])
+
+  // Hover-intent: only prefetch once the cursor rests on the card
+  const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const schedulePrefetch = useCallback(() => {
+    prefetchTimerRef.current = setTimeout(prefetchTripDetail, PREFETCH_HOVER_DELAY_MS)
+  }, [prefetchTripDetail])
+  const cancelScheduledPrefetch = useCallback(() => {
+    if (prefetchTimerRef.current) {
+      clearTimeout(prefetchTimerRef.current)
+      prefetchTimerRef.current = null
+    }
+  }, [])
+  useEffect(() => cancelScheduledPrefetch, [cancelScheduledPrefetch])
+
   return (
-    <div className={cn('card group relative', isSelected && 'ring-2 ring-primary-500 border-primary-200')}>
+    <div
+      className={cn('card group relative', isSelected && 'ring-2 ring-primary-500 border-primary-200')}
+      onMouseEnter={schedulePrefetch}
+      onMouseLeave={cancelScheduledPrefetch}
+    >
       {/* Compare button */}
       {onCompare && (
         <button
@@ -184,6 +210,7 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
             prefetch={false}
             className="whitespace-nowrap rounded-lg bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 transition-all hover:bg-primary-100"
             onMouseEnter={prefetchTripDetail}
+            onFocus={prefetchTripDetail}
           >
             View Details
           </Link>
