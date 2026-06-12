@@ -42,7 +42,3 @@ export function BookingsChart({ data }: BookingsChartProps) {
     </ResponsiveContainer>
   )
 }
-
-export function BookingsChartSkeleton() {
-  return <div className="skeleton h-[280px] w-full rounded-lg" />
-}

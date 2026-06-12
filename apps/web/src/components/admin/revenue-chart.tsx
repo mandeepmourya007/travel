@@ -58,7 +58,3 @@ export function RevenueChart({ data }: RevenueChartProps) {
     </ResponsiveContainer>
   )
 }
-
-export function RevenueChartSkeleton() {
-  return <div className="skeleton h-[280px] w-full rounded-lg" />
-}

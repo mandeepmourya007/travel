@@ -19,7 +19,7 @@ import {
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { Spinner } from '@/components/shared/spinner'
 import { useCashbackTripDetail, useIssueCashback } from '@/hooks/use-admin-cashback'
-import { toast } from 'sonner'
+import { useToast } from '@/components/shared/toast'
 import type { AppApiError } from '@/lib/api-client'
 
 interface CashbackInput {
@@ -32,6 +32,7 @@ export default function CashbackIssuePage() {
   const { tripId } = useParams<{ tripId: string }>()
   const { data: travelers, isLoading, error, refetch } = useCashbackTripDetail(tripId)
   const mutation = useIssueCashback()
+  const { toast } = useToast()
 
   const [inputs, setInputs] = useState<Map<string, string>>(new Map())
   const [flatAmount, setFlatAmount] = useState('')
@@ -69,7 +70,7 @@ export default function CashbackIssuePage() {
     }
 
     if (items.length === 0) {
-      toast.error('Enter valid amounts for at least one traveler')
+      toast({ variant: 'error', title: 'Enter valid amounts for at least one traveler' })
       return
     }
 
@@ -84,18 +85,18 @@ export default function CashbackIssuePage() {
       },
       {
         onSuccess: (result) => {
-          toast.success(`Cashback issued to ${result.issued} traveler(s) — ₹${result.totalAmount.toLocaleString('en-IN')}`)
+          toast({ variant: 'success', title: `Cashback issued to ${result.issued} traveler(s) — ₹${result.totalAmount.toLocaleString('en-IN')}` })
           setInputs(new Map())
           setFlatAmount('')
         },
         onError: (err) => {
           const apiErr = err as AppApiError
           const details = apiErr.details?.map((d) => `${d.field}: ${d.message}`).join(', ')
-          toast.error(details || apiErr.message || 'Failed to issue cashback')
+          toast({ variant: 'error', title: details || apiErr.message || 'Failed to issue cashback' })
         },
       },
     )
-  }, [travelers, inputs, tripId, mutation])
+  }, [travelers, inputs, tripId, mutation, toast])
 
   if (error) {
     return (

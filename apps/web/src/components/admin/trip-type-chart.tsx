@@ -58,7 +58,3 @@ export function TripTypeChart({ data }: TripTypeChartProps) {
     </ResponsiveContainer>
   )
 }
-
-export function TripTypeChartSkeleton() {
-  return <div className="skeleton h-[280px] w-full rounded-lg" />
-}

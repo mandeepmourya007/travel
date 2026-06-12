@@ -1,13 +1,27 @@
 'use client'
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { Users, Package, IndianRupee, Map, AlertTriangle, MessageSquare } from 'lucide-react'
 import { useAdminStats } from '@/hooks/use-admin-stats'
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import { RevenueChart, RevenueChartSkeleton } from '@/components/admin/revenue-chart'
-import { BookingsChart, BookingsChartSkeleton } from '@/components/admin/bookings-chart'
-import { TripTypeChart, TripTypeChartSkeleton } from '@/components/admin/trip-type-chart'
+import { ChartSkeleton } from '@/components/admin/chart-skeletons'
+
+// Charts are dynamically imported — recharts (+d3) stays out of the initial
+// admin chunk and streams in behind the existing skeletons.
+const RevenueChart = dynamic(
+  () => import('@/components/admin/revenue-chart').then((m) => ({ default: m.RevenueChart })),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+)
+const BookingsChart = dynamic(
+  () => import('@/components/admin/bookings-chart').then((m) => ({ default: m.BookingsChart })),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+)
+const TripTypeChart = dynamic(
+  () => import('@/components/admin/trip-type-chart').then((m) => ({ default: m.TripTypeChart })),
+  { ssr: false, loading: () => <ChartSkeleton /> },
+)
 
 export default function AdminOverviewPage() {
   const { data, isLoading, error, refetch } = useAdminStats()
@@ -21,18 +35,20 @@ export default function AdminOverviewPage() {
             <StatCardSkeleton key={i} />
           ))}
         </div>
+        {/* Chart skeletons — imported from chart-skeletons.tsx (same source as the
+            dynamic() loading fallbacks), so a design change updates both in one place */}
         <div className="card-static p-6">
           <div className="skeleton mb-4 h-5 w-40" />
-          <RevenueChartSkeleton />
+          <ChartSkeleton />
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="card-static p-6">
             <div className="skeleton mb-4 h-5 w-40" />
-            <BookingsChartSkeleton />
+            <ChartSkeleton />
           </div>
           <div className="card-static p-6">
             <div className="skeleton mb-4 h-5 w-40" />
-            <TripTypeChartSkeleton />
+            <ChartSkeleton />
           </div>
         </div>
       </div>
