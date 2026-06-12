@@ -100,14 +100,8 @@ export class TripLifecycleService {
       return { released: 0, failed: 0, skipped: 0 }
     }
 
-    // Filter out already-released bookings (idempotency)
-    const releasedBookingIds = new Set<string>()
-    for (const payment of capturedPayments) {
-      const existing = await this.paymentTxRepo.findByBookingId(payment.bookingId)
-      if (existing.some((tx) => tx.type === PAYMENT_TX_TYPE.ESCROW_RELEASE)) {
-        releasedBookingIds.add(payment.bookingId)
-      }
-    }
+    // P2-2: Single query instead of N+1 findByBookingId calls
+    const releasedBookingIds = await this.paymentTxRepo.findReleasedBookingIdsForTrip(tripId)
 
     let released = 0
     let failed = 0

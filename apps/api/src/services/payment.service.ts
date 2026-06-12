@@ -58,21 +58,39 @@ export class PaymentService {
 
   /**
    * Captures a previously authorized payment.
-   * Amount MUST exactly match the authorized amount (H1 fix).
+   * Amount MUST exactly match the authorized amount.
    *
-   * Idempotent: if already captured, fetches and returns the payment.
+   * Idempotent under all transient failures:
+   *   - "already been captured" error → fetch and return existing capture
+   *   - Network timeout / unknown error → verify actual Razorpay status before throwing.
+   *     If the payment shows as 'captured', the capture succeeded and we return it.
+   *     This prevents confirmBooking from reverting the gate on a successful capture that
+   *     happened to time out from our perspective.
    *
-   * @throws PaymentError — capture failure (non-idempotent)
+   * @throws PaymentError — only when capture genuinely failed (Razorpay status ≠ captured)
    */
   async capturePayment(paymentId: string, amount: number, currency = CURRENCY) {
     try {
       return await this.razorpay.payments.capture(paymentId, amount, currency)
     } catch (error: unknown) {
-      // Idempotent: Razorpay returns error if already captured — fetch instead
       if (error instanceof Error && error.message?.includes('already been captured')) {
-        this.logger.info({ paymentId }, 'Payment already captured, fetching existing')
+        this.logger.info({ paymentId }, 'Payment already captured — fetching existing')
         return await this.razorpay.payments.fetch(paymentId)
       }
+
+      // For transient errors (timeout, network) the capture may have gone through on Razorpay's
+      // side. Verify the actual status before declaring failure to avoid incorrectly reverting
+      // a successful capture.
+      try {
+        const payment = await this.razorpay.payments.fetch(paymentId)
+        if (payment?.status === 'captured') {
+          this.logger.warn({ paymentId }, 'Capture threw but payment shows as captured — treating as success')
+          return payment
+        }
+      } catch (fetchErr) {
+        this.logger.error({ paymentId, fetchErr }, 'Could not verify payment status after capture error')
+      }
+
       this.logger.error({ error, paymentId, amount }, 'Payment capture failed')
       throw new PaymentError('Failed to capture payment', error)
     }
@@ -255,8 +273,9 @@ export class PaymentService {
    * Handles payment.authorized webhook.
    * Updates PaymentTransaction to AUTHORIZED and sets razorpayPaymentId.
    *
-   * Note (M3 fix): Entity status might already be 'captured' even when event is
-   * 'payment.authorized'. We still update — confirmBooking handles idempotency.
+   * Guards against out-of-order delivery — a late payment.authorized event must not
+   * downgrade an already-CAPTURED transaction back to AUTHORIZED, which would corrupt
+   * the payment ledger and cause the cron's "already paid" check to misfire.
    */
   async handlePaymentAuthorized(payload: RazorpayWebhookPayload) {
     const payment = payload.payment?.entity
@@ -265,6 +284,15 @@ export class PaymentService {
     const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
     if (!paymentTx) {
       this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for authorized payment')
+      return
+    }
+
+    // Only advance status — never downgrade (CAPTURED must stay CAPTURED)
+    if (paymentTx.status === PAYMENT_TX_STATUS.CAPTURED || paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
+      this.logger.info(
+        { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
+        'payment.authorized received but tx is already at a terminal/advanced status — skipping update',
+      )
       return
     }
 
@@ -467,7 +495,12 @@ export class PaymentService {
 
   /**
    * Handles refund.processed webhook.
-   * Updates the PaymentTransaction to REFUNDED.
+   * Marks both the PAYMENT tx (for ledger accuracy) and the REFUND tx (for audit trail)
+   * as REFUNDED when refund.processed fires.
+   *
+   * The REFUND tx (created in BookingService.initiateBookingRefund) has no razorpayPaymentId,
+   * so it cannot be found via findByRazorpayPaymentId. We look it up separately by bookingId
+   * to close the INITIATED → REFUNDED lifecycle correctly.
    */
   async handleRefundProcessed(payload: RazorpayWebhookPayload) {
     const refund = payload.refund?.entity
@@ -480,8 +513,22 @@ export class PaymentService {
       return
     }
 
+    // Mark the PAYMENT tx as REFUNDED (ledger: this payment was refunded)
     await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.REFUNDED, {
       razorpayRefundId: refund.id,
     })
+
+    // Mark the REFUND tx as REFUNDED (audit trail: this refund request is fulfilled)
+    const refundTx = await this.paymentTxRepo.findInitiatedRefundByBookingId(paymentTx.bookingId)
+    if (refundTx) {
+      await this.paymentTxRepo.updateStatus(refundTx.id, PAYMENT_TX_STATUS.REFUNDED, {
+        razorpayRefundId: refund.id,
+      })
+    } else {
+      this.logger.warn(
+        { bookingId: paymentTx.bookingId, razorpayRefundId: refund.id },
+        'refund.processed: no INITIATED REFUND tx found for booking — refund was likely triggered externally',
+      )
+    }
   }
 }

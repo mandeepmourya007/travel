@@ -161,15 +161,22 @@ export class BookingService {
   }
 
   /**
-   * Cancels a booking and calculates refund based on cancellation policy.
+   * Cancels a booking and issues a refund based on the cancellation policy.
    *
    * Refund rules:
    * - FLEXIBLE: 100% if >=48h, 50% if <48h
    * - MODERATE: 50% if >=48h, 0% if <48h
    * - STRICT: 0% always
    *
+   * Uses an atomic transaction gate (SELECT FOR UPDATE + UPDATE + conditional seat
+   * decrement) to prevent double-cancel and stale-read races. Only the first concurrent
+   * cancel request that wins the gate proceeds; the other gets a validation error.
+   *
+   * For CONFIRMED cancellations with refundAmount > 0, creates a REFUND PaymentTransaction
+   * and calls Razorpay initiateRefund. The refund.processed webhook marks it REFUNDED.
+   *
    * @throws NotFoundError — booking doesn't exist
-   * @throws ForbiddenError — user doesn't own the booking (IDOR — AR-2)
+   * @throws ForbiddenError — user doesn't own the booking
    * @throws ValidationError — booking can't be cancelled (wrong status)
    */
   async cancelBooking(userId: string, bookingId: string, reason: string): Promise<CancelBookingResult> {
@@ -178,46 +185,36 @@ export class BookingService {
     if (!booking) throw new NotFoundError('Booking')
     if (booking.userId !== userId) throw new ForbiddenError('You can only cancel your own bookings')
 
-    if (booking.bookingStatus !== BOOKING_STATUS.CONFIRMED && booking.bookingStatus !== BOOKING_STATUS.PENDING_PAYMENT) {
-      throw new ValidationError(`Cannot cancel a booking with status ${booking.bookingStatus}`)
-    }
-
     const hoursUntilTrip = (booking.trip.startDate.getTime() - Date.now()) / (1000 * 60 * 60)
     const refundPercent = this.calculateRefundPercent(booking.trip.cancellationPolicy, hoursUntilTrip)
     const refundAmount = Math.round((booking.totalAmount * refundPercent) / 100)
 
-    this.logger.info({ bookingId, userId, refundPercent, refundAmount, durationMs: timer.elapsed() }, 'Cancelling booking')
+    // Atomic gate with SELECT FOR UPDATE: captures the true pre-cancel status and atomically
+    // decrements trip seats if it was CONFIRMED — all in one transaction.
+    const { rows: cancelledRows, preCancelStatus } = await this.bookingRepo.cancelAtomically(
+      bookingId, userId, reason,
+      { tripId: booking.trip.id, numTravelers: booking.numTravelers },
+    )
+    if (cancelledRows === 0) {
+      const status = preCancelStatus ?? booking.bookingStatus
+      throw new ValidationError(`Cannot cancel a booking with status ${status}`)
+    }
 
-    if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
-      // Cancel + decrement seats atomically in a transaction
-      await this.tripRepo.withTransaction(async (tx) => {
-        await tx.booking.update({
-          where: { id: bookingId },
-          data: {
-            bookingStatus: BOOKING_STATUS.CANCELLED,
-            cancellationReason: reason,
-            cancelledAt: new Date(),
-            cancelledById: userId,
-          },
-        })
-        await tx.$executeRaw`
-          UPDATE "Trip"
-          SET "currentBookings" = GREATEST("currentBookings" - ${booking.numTravelers}, 0),
-              "version" = "version" + 1,
-              "updatedAt" = NOW()
-          WHERE id = ${booking.trip.id}
-            AND "isDeleted" = false
-        `
-      })
+    this.logger.info({ bookingId, userId, refundPercent, refundAmount, durationMs: timer.elapsed() }, 'Booking cancelled')
 
-      // Revert FULL → ACTIVE if under capacity (idempotent, outside tx is safe)
+    const wasConfirmed = preCancelStatus === BOOKING_STATUS.CONFIRMED
+
+    if (wasConfirmed) {
+      // Seats were already decremented atomically inside cancelAtomically.
+      // Revert FULL → ACTIVE if now under capacity (idempotent — safe outside tx).
       const revertedRows = await this.tripRepo.revertFullIfUnderCapacity(booking.trip.id)
       if (revertedRows > 0) {
         this.logger.info({ tripId: booking.trip.id }, 'Trip reverted from FULL to ACTIVE after cancellation')
       }
-    } else {
-      // PENDING_PAYMENT — never incremented seats, just cancel the booking
-      await this.bookingRepo.cancel(bookingId, userId, reason)
+
+      if (refundAmount > 0) {
+        await this.initiateBookingRefund(bookingId, refundAmount, reason)
+      }
     }
 
     // Release any held/booked seats
@@ -244,6 +241,45 @@ export class BookingService {
       refundAmount,
       refundPercent,
       cancellationPolicy: booking.trip.cancellationPolicy,
+    }
+  }
+
+  /**
+   * Creates a REFUND PaymentTransaction and calls Razorpay initiateRefund.
+   * The refund.processed webhook finalises the transaction status to REFUNDED.
+   * Logs errors but does not throw — cancellation is already committed; the INITIATED
+   * REFUND record is the retry target for ops/admin.
+   */
+  private async initiateBookingRefund(bookingId: string, refundAmount: number, reason: string): Promise<void> {
+    const txList = await this.paymentTxRepo.findByBookingId(bookingId)
+    const capturedTx = txList.find(
+      (tx) => tx.type === PAYMENT_TX_TYPE.PAYMENT && tx.status === PAYMENT_TX_STATUS.CAPTURED && tx.razorpayPaymentId,
+    )
+
+    if (!capturedTx?.razorpayPaymentId) {
+      this.logger.warn({ bookingId }, 'No captured payment tx found — skipping Razorpay refund')
+      return
+    }
+
+    // Create the INITIATED record first — provides audit trail and retry target if the API call fails
+    const refundTx = await this.paymentTxRepo.create({
+      bookingId,
+      type: PAYMENT_TX_TYPE.REFUND,
+      amount: refundAmount,
+      status: PAYMENT_TX_STATUS.INITIATED,
+      metadata: { reason },
+    })
+
+    try {
+      await this.paymentService.initiateRefund(
+        capturedTx.razorpayPaymentId,
+        refundAmount * 100,
+        { bookingId, reason },
+      )
+      this.logger.info({ bookingId, refundTxId: refundTx.id, amount: refundAmount }, 'Refund initiated with Razorpay')
+    } catch (err) {
+      // REFUND tx with INITIATED status remains — ops/admin can retry; Razorpay async may still process it
+      this.logger.error({ err, bookingId, refundTxId: refundTx.id }, 'Razorpay refund initiation failed — REFUND tx remains INITIATED for retry')
     }
   }
 
@@ -451,17 +487,24 @@ export class BookingService {
   /**
    * Confirms a booking after payment — captures payment + reserves seats.
    *
+   * Uses an atomic gate (PENDING_PAYMENT → CONFIRMED) before any seat increment or
+   * network call. This prevents:
+   *   - Resurrection of EXPIRED/CANCELLED bookings via a late payment webhook
+   *   - Double seat-increment on concurrent confirms of the same booking (only the
+   *     request that wins the gate proceeds; retries see CONFIRMED and return idempotently)
+   *
    * Flow:
-   * 1. Find booking with payment details
-   * 2. Idempotent — if already CONFIRMED, return success
-   * 3. Atomically increment seats (optimistic locking)
-   * 4. Capture payment with exact authorized amount (H1 fix)
-   * 5. If capture fails → rollback seats
-   * 6. Update booking → CONFIRMED
+   * 1. Load booking — if CONFIRMED already, return idempotent success
+   * 2. Reject non-PENDING_PAYMENT statuses (EXPIRED/CANCELLED) with a clear error
+   * 3. Atomic gate: UPDATE WHERE bookingStatus='PENDING_PAYMENT' → CONFIRMED
+   * 4. Increment seat counter (capacity check)
+   * 5. Capture payment (exact authorized amount — verified against Razorpay on timeout)
+   * 6. If either step 4 or 5 fails → rollback seats + revert gate (CONFIRMED → PENDING_PAYMENT)
    *
    * @throws NotFoundError — booking doesn't exist
+   * @throws ValidationError — booking is in a non-confirmable state (EXPIRED, CANCELLED)
    * @throws ConflictError — seats full
-   * @throws PaymentError — capture fails (seats auto-rollback)
+   * @throws PaymentError — capture fails (seats and gate auto-rollback)
    */
   async confirmBooking(
     bookingId: string,
@@ -473,13 +516,19 @@ export class BookingService {
     const booking = preloadedBooking ?? await this.bookingRepo.findWithPaymentDetails(bookingId)
     if (!booking) throw new NotFoundError('Booking')
 
-    // Idempotent
-    if (booking.bookingStatus === 'CONFIRMED') {
+    // Idempotent — already confirmed
+    if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
       return {
         bookingId: booking.id,
-        bookingStatus: 'CONFIRMED',
-        paymentStatus: booking.paymentTransactions[0]?.status || 'CAPTURED',
+        bookingStatus: BOOKING_STATUS.CONFIRMED,
+        paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
       }
+    }
+
+    // Reject EXPIRED/CANCELLED bookings — do not resurrect them
+    if (booking.bookingStatus !== BOOKING_STATUS.PENDING_PAYMENT) {
+      this.logger.warn({ bookingId, status: booking.bookingStatus }, 'confirmBooking called on non-pending booking — rejecting')
+      throw new ValidationError(`Cannot confirm a booking with status ${booking.bookingStatus}`)
     }
 
     const paymentTx = booking.paymentTransactions[0]
@@ -487,33 +536,43 @@ export class BookingService {
       throw new ValidationError('No payment transaction found for this booking')
     }
 
-    // Reserve seats first (optimistic locking)
-    const rowsUpdated = await this.tripRepo.atomicIncrementBookings(
-      booking.trip.id,
-      booking.numTravelers,
-      booking.trip.version,
-    )
+    // Atomic gate — only the first concurrent call transitions PENDING_PAYMENT→CONFIRMED.
+    // Subsequent retries see CONFIRMED and return idempotently without re-incrementing seats.
+    const gateRows = await this.bookingRepo.atomicConfirmGate(bookingId)
+    if (gateRows === 0) {
+      // Lost the race — re-read to return idempotent response
+      const fresh = await this.bookingRepo.findWithPaymentDetails(bookingId)
+      if (fresh?.bookingStatus === BOOKING_STATUS.CONFIRMED) {
+        return {
+          bookingId,
+          bookingStatus: BOOKING_STATUS.CONFIRMED,
+          paymentStatus: fresh.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+        }
+      }
+      throw new ConflictError('Booking confirmation is already in progress', 'CONFIRM_RACE')
+    }
+
+    // We won the gate — proceed with seat increment then capture
+    const rowsUpdated = await this.tripRepo.atomicIncrementBookings(booking.trip.id, booking.numTravelers)
     if (rowsUpdated === 0) {
+      // Trip is at capacity — revert the gate so the customer can be refunded or retry later
+      await this.bookingRepo.revertConfirmGate(bookingId)
+        .catch((err) => this.logger.error({ err, bookingId }, 'Failed to revert confirmation gate after capacity check'))
       throw new ConflictError('Not enough seats available — trip may be full', 'CAPACITY_FULL')
     }
 
-    // Capture payment (H1 fix: exact amount from DB)
+    // Capture payment (exact amount from DB — prevents amount tampering)
     try {
-      const amountInPaise = paymentTx.amount * 100
-      await this.paymentService.capturePayment(
-        paymentTx.razorpayPaymentId!,
-        amountInPaise,
-        CURRENCY,
-      )
+      await this.paymentService.capturePayment(paymentTx.razorpayPaymentId!, paymentTx.amount * 100, CURRENCY)
     } catch (error) {
-      // Rollback seats on capture failure
-      this.logger.error({ bookingId, error }, 'Payment capture failed, rolling back seats')
-      await this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers)
+      // Rollback seats and revert the gate so webhook retries can re-attempt
+      this.logger.error({ bookingId, error }, 'Payment capture failed — rolling back seat increment and confirmation gate')
+      await Promise.allSettled([
+        this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers),
+        this.bookingRepo.revertConfirmGate(bookingId),
+      ])
       throw error
     }
-
-    // Update booking to CONFIRMED
-    await this.bookingRepo.updateStatus(bookingId, BOOKING_STATUS.CONFIRMED)
 
     // Confirm held seats → BOOKED and auto-assign travelers
     if (this.vehicleService) {
@@ -531,11 +590,12 @@ export class BookingService {
           await this.vehicleService.confirmSeats(booking.id, booking.userId, assignments)
         }
       } catch (seatErr) {
+        // Seat assignment is non-critical — booking and payment are already committed
         this.logger.error({ bookingId, seatErr }, 'Seat confirmation failed — booking still confirmed')
       }
     }
 
-    // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow (C1 fix)
+    // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow
     if (booking.tripRequest && booking.tripRequest.status === TRIP_REQUEST_STATUS.APPROVED) {
       await this.tripRequestRepo.markConverted(booking.tripRequest.id, bookingId)
     }
@@ -548,7 +608,7 @@ export class BookingService {
 
     this.logger.info({ bookingId, durationMs: timer.elapsed() }, 'Booking confirmed')
 
-    // Fire-and-forget: notify traveler of booking confirmation
+    // Fire-and-forget: notify traveler
     this.notificationService.send({
       userId: booking.userId,
       type: NOTIFICATION_TYPE.BOOKING_CONFIRMED,
@@ -557,7 +617,6 @@ export class BookingService {
       data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking confirmation notification'))
 
-    // Invalidate trip caches (currentBookings changed)
     await this.invalidateTripCaches(booking.trip.slug)
 
     return {

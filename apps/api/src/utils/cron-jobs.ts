@@ -24,6 +24,7 @@ const ONE_MINUTE = 60 * 1000
 async function expireStaleBookings(
   bookingRepo: BookingRepository,
   paymentService: PaymentService | null,
+  vehicleService: VehicleService,
 ) {
   try {
     const expiredBookings = await bookingRepo.findExpiredPendingBookings()
@@ -57,6 +58,10 @@ async function expireStaleBookings(
 
         await bookingRepo.updateStatus(booking.id, 'EXPIRED')
         logger.info({ bookingId: booking.id }, 'Booking expired')
+
+        // Explicitly release seats — seat-hold timer may not coincide with booking expiry
+        vehicleService.releaseSeats(booking.id)
+          .catch((err) => logger.error({ err, bookingId: booking.id }, 'Failed to release seats on booking expiry'))
       } catch (error) {
         logger.error({ bookingId: booking.id, error }, 'Failed to expire booking')
       }
@@ -131,6 +136,33 @@ async function completeTripsAndReleaseEscrow(tripLifecycleService: TripLifecycle
 }
 
 /**
+ * Reverts CONFIRMED bookings that have no CAPTURED payment after 30 minutes.
+ * These are created when the process crashes after atomicConfirmGate but before
+ * capturePayment completes. Reverting to PENDING_PAYMENT lets the expiry cron or
+ * a webhook retry resolve them normally.
+ *
+ * Intended to be called via setInterval() every 30 minutes.
+ */
+async function sweepOrphanedConfirmedBookings(bookingRepo: BookingRepository) {
+  try {
+    const orphans = await bookingRepo.findOrphanedConfirmedBookings(30)
+    if (orphans.length === 0) return
+
+    logger.warn({ count: orphans.length }, 'Sweeping orphaned CONFIRMED bookings (no captured payment)')
+    for (const booking of orphans) {
+      try {
+        await bookingRepo.revertConfirmGate(booking.id)
+        logger.info({ bookingId: booking.id }, 'Orphaned CONFIRMED booking reverted to PENDING_PAYMENT')
+      } catch (err) {
+        logger.error({ err, bookingId: booking.id }, 'Failed to revert orphaned CONFIRMED booking')
+      }
+    }
+  } catch (error) {
+    logger.error({ error }, 'Orphaned confirmed booking sweep failed')
+  }
+}
+
+/**
  * Expires HELD seats whose hold window has passed.
  * Runs every minute to keep seat availability fresh.
  */
@@ -161,8 +193,9 @@ export function startCronJobs(deps: {
   logger.info('Starting background cron jobs')
 
   const intervals = [
-    setInterval(() => expireStaleBookings(deps.bookingRepo, deps.paymentService), FIVE_MINUTES),
+    setInterval(() => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService), FIVE_MINUTES),
     setInterval(() => expireStaleRequests(deps.tripRequestRepo), FIVE_MINUTES),
+    setInterval(() => sweepOrphanedConfirmedBookings(deps.bookingRepo), THIRTY_MINUTES),
     setInterval(() => cleanupExpiredCodes(deps.verifCodeRepo), ONE_HOUR),
     setInterval(() => cleanupStaleTokens(deps.refreshTokenRepo), ONE_HOUR),
     setInterval(() => completeTripsAndReleaseEscrow(deps.tripLifecycleService), THIRTY_MINUTES),
