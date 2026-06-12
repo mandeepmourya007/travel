@@ -1,4 +1,8 @@
 export class AppError extends Error {
+  /** Optional discriminator within the same `code` — lets clients branch on
+   *  structure instead of parsing message text (e.g. SEAT_CONFLICT vs ALREADY_BOOKED) */
+  public subCode?: string
+
   constructor(
     public message: string,
     public statusCode: number,
@@ -38,8 +42,9 @@ export class ForbiddenError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string) {
+  constructor(message: string, subCode?: string) {
     super(message, 409, 'CONFLICT')
+    this.subCode = subCode
   }
 }
 

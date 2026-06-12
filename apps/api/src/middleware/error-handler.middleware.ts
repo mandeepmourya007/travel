@@ -19,6 +19,7 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
       success: false,
       error: {
         code: err.code,
+        ...(err.subCode ? { subCode: err.subCode } : {}),
         message: err.message,
         ...(err instanceof ValidationError && err.details ? { details: err.details } : {}),
       },
