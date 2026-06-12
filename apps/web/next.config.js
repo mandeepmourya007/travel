@@ -1,3 +1,5 @@
+const { IMAGE_HOSTS } = require('./src/config/image-hosts')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -7,16 +9,10 @@ const nextConfig = {
   trailingSlash: false,
   transpilePackages: ['@travel/shared'],
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-    ],
+    remotePatterns: IMAGE_HOSTS.map((hostname) => ({
+      protocol: 'https',
+      hostname,
+    })),
   },
   headers: async () => [
     {

@@ -48,3 +48,6 @@ yarn-error.log*
 
 # Misc
 *.tsbuildinfo
+
+# Local tool artifacts (MCP logs, audit scratch)
+logs/
