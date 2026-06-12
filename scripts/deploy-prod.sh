@@ -282,6 +282,20 @@ if [ "$DB_MODE" = "docker" ]; then
   validate_secret "POSTGRES_PASSWORD" 32
 fi
 
+# Razorpay: if key is set the webhook secret must also be set (empty HMAC secret
+# accepts any caller — see backend P0-3 in backend-audit.md)
+RAZORPAY_KEY=$(grep "^RAZORPAY_KEY_ID=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
+if [ -n "$RAZORPAY_KEY" ]; then
+  RAZORPAY_WH=$(grep "^RAZORPAY_WEBHOOK_SECRET=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2- || true)
+  if [ -z "$RAZORPAY_WH" ]; then
+    echo "  ❌ RAZORPAY_WEBHOOK_SECRET — empty but RAZORPAY_KEY_ID is set"
+    echo "     Payment webhooks will accept any caller without a secret."
+    echo "     Add RAZORPAY_WEBHOOK_SECRET to ${ENV_FILE} and re-run."
+    exit 1
+  fi
+  echo "  ✅ RAZORPAY_WEBHOOK_SECRET — set"
+fi
+
 if [ "$PATCHED" -gt 0 ]; then
   echo ""
   echo "  ⚠️  ${PATCHED} secret(s) were auto-generated. Review ${ENV_FILE} if needed."
@@ -349,19 +363,43 @@ echo ""
 # ── Image versioning (git SHA for rollback) ──────────
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 echo "📌 Git SHA: $GIT_SHA"
+HEALTH_TIMEOUT=180
 
-# ── Stop existing containers ──────────────────────────
-$DC down --remove-orphans 2>/dev/null || true
+# ── Reusable health-wait helper ───────────────────────
+# Waits until a container reports healthy (or no-healthcheck + running).
+# Exits the script on unhealthy/missing/timeout.
+_wait_healthy() {
+  local svc="$1" container="$2" elapsed=0
+  echo "  ⏳ Waiting for ${svc}..."
+  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
+    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
+    if [ "$status" = "healthy" ]; then
+      echo "  ✅ ${svc} — healthy"
+      return 0
+    elif [ "$status" = "no-healthcheck" ]; then
+      running=$(docker inspect --format='{{.State.Status}}' "$container" 2>/dev/null || echo "missing")
+      if [ "$running" = "running" ]; then echo "  ✅ ${svc} — running"; return 0; fi
+    elif [ "$status" = "unhealthy" ] || [ "$status" = "missing" ]; then
+      echo "  ❌ ${svc} — ${status}"
+      $DC logs "$svc" --tail 20 2>/dev/null || true
+      exit 1
+    fi
+    sleep 5; elapsed=$((elapsed + 5))
+  done
+  echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s"
+  exit 1
+}
 
-# ── Build API image ───────────────────────────────
+# ── Build API image (old containers stay up — zero build-time downtime) ──
 echo "📦 Building API image..."
 $DC build api
 
 # Tag with git SHA for rollback capability
 docker tag travel-api:prod "travel-api:$GIT_SHA" 2>/dev/null || true
-
-# Prune only dangling images — keep build cache so layer reuse speeds future deploys
 docker image prune -f 2>/dev/null || true
+
+# ── Stop existing containers (start of actual downtime) ──
+$DC down --remove-orphans 2>/dev/null || true
 
 # ── Start infrastructure (Redis + optional Postgres) ──
 echo ""
@@ -373,57 +411,41 @@ else
   $DC up -d redis
 fi
 
-# ── Wait for infrastructure health ────────────────
+# ── Wait for infrastructure health ────────────────────
 echo ""
 echo "🔍 Waiting for infrastructure..."
-HEALTH_TIMEOUT=180
-INFRA_SERVICES="redis"
 if [ "$DB_MODE" = "docker" ]; then
-  INFRA_SERVICES="postgres redis"
+  _wait_healthy postgres travel-postgres-prod
 fi
-for svc in $INFRA_SERVICES; do
-  elapsed=0
-  container="travel-${svc}-prod"
-  while [ $elapsed -lt $HEALTH_TIMEOUT ]; do
-    status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$container" 2>/dev/null || echo "missing")
-    if [ "$status" = "healthy" ]; then
-      echo "  ✅ ${svc} — healthy"
-      break
-    elif [ "$status" = "missing" ] || [ "$status" = "unhealthy" ]; then
-      echo "  ❌ ${svc} — ${status}"
-      $DC logs "$svc" --tail 15
-      exit 1
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-  if [ $elapsed -ge $HEALTH_TIMEOUT ]; then
-    echo "  ⏰ ${svc} — timed out after ${HEALTH_TIMEOUT}s"
-    exit 1
-  fi
-done
+_wait_healthy redis travel-redis-prod
 
-# ── Backup database before migration ─────────────────
+# ── Backup database before migration ──────────────────
 if [ "$DB_MODE" = "docker" ]; then
   echo ""
   echo "📸 Backing up database before migration..."
-  BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql.gz"
+  BACKUP_DIR="/var/backups/travel"
+  # Fall back to repo root if we can't write to /var/backups (non-root deploy users).
+  # The repo root is a worse location but avoids aborting the deploy under set -e.
+  mkdir -p "$BACKUP_DIR" 2>/dev/null || BACKUP_DIR="$ROOT_DIR"
+  BACKUP_FILE="${BACKUP_DIR}/backup_$(date +%Y%m%d_%H%M%S).sql.gz"
   if docker exec travel-postgres-prod pg_dump -U "${POSTGRES_USER:-travel}" travel 2>/dev/null | gzip > "$BACKUP_FILE"; then
     BACKUP_SIZE=$(du -h "$BACKUP_FILE" 2>/dev/null | cut -f1)
     echo "  ✅ Backup saved: $BACKUP_FILE ($BACKUP_SIZE)"
+    # Keep last 5 backups — remove older ones
+    ls -t "${BACKUP_DIR}"/backup_*.sql.gz 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
   else
     rm -f "$BACKUP_FILE"
     echo "  ⚠️  Backup failed (new DB or empty). Continuing..."
   fi
 fi
 
-# ── Run migrations ────────────────────────────────
+# ── Run migrations ─────────────────────────────────────
 echo ""
 echo "🔧 Running Prisma migrations..."
 $DC --profile migrate run --rm migrate
 echo "  ✅ Migrations complete"
 
-# ── Seed (optional — answered at start) ────────────────────
+# ── Seed (optional — answered at start) ───────────────
 echo ""
 if [[ "$RUN_SEED" == "y" || "$RUN_SEED" == "Y" ]]; then
   echo "🌱 Seeding database..."
@@ -434,22 +456,22 @@ else
   echo "  ⏭️  Seed skipped"
 fi
 
-# ── Build Web image ──────────────────────────────────
-# Pages fetch data at runtime (SSR), so API does not need to be running during build.
+# ── Start API (must be healthy before building web) ────
+# The web image build runs `next build` with --network=host so ISR pages can
+# prerender against the live API (http://127.0.0.1:4001/api/v1).
+echo ""
+echo "🔧 Starting API..."
+$DC up -d api
+_wait_healthy api travel-api-prod
+
+# ── Build Web image (API is live — ISR prerenders get real data) ──
 echo ""
 echo "📦 Building Web image..."
 $DC build web
 
 # Tag with git SHA for rollback capability
 docker tag travel-web:prod "travel-web:$GIT_SHA" 2>/dev/null || true
-
-# Prune only dangling images — keep build cache for future deploys
 docker image prune -f 2>/dev/null || true
-
-# ── Start API ─────────────────────────────────────
-echo ""
-echo "🔧 Starting API..."
-$DC up -d api
 
 # ── Prepare Nginx template ───────────────────────
 # Use HTTP-only template until SSL certs exist (Certbot runs after health checks)
@@ -572,10 +594,9 @@ if [ -n "${DOMAIN:-}" ]; then
   echo "  API:        https://$DOMAIN/api/v1"
   echo "  Health:     https://$DOMAIN/health"
 else
-  echo "  Nginx:      http://${HOST_IP}        (port 80)"
-  echo "  Frontend:   http://${HOST_IP}:${WEB_PORT_HOST}"
-  echo "  API:        http://${HOST_IP}:${API_PORT}"
-  echo "  Health:     http://${HOST_IP}:${API_PORT}/health"
+  echo "  Nginx:      http://${HOST_IP}        (port 80 — public)"
+  echo "  Health:     http://${HOST_IP}/health"
+  echo "  (API/web ports 4001/3001 are loopback-only — access via nginx on port 80)"
 fi
 echo ""
 echo "  Image tag:  $GIT_SHA"

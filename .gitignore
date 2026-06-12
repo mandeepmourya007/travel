@@ -51,3 +51,6 @@ yarn-error.log*
 
 # Local tool artifacts (MCP logs, audit scratch)
 logs/
+
+# DB backups (written by deploy-prod.sh — kept in /var/backups/travel/ on server)
+backup_*.sql.gz

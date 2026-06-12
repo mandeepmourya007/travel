@@ -51,7 +51,7 @@ services:
       - --maxmemory
       - 128mb
       - --maxmemory-policy
-      - allkeys-lru
+      - volatile-lru
       - --save
       - '60'
       - '1'
@@ -127,7 +127,7 @@ services:
       context: .
       dockerfile: docker/web.prod.Dockerfile
       args:
-        # Build-time placeholder — overridden at runtime by environment section
+        # deploy-prod.sh starts the API before this build so --network=host can reach it
         API_URL_INTERNAL: http://127.0.0.1:4001/api/v1
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL}
@@ -201,7 +201,7 @@ services:
       web:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'kill -0 $(cat /var/run/nginx.pid 2>/dev/null) 2>/dev/null || exit 1']
+      test: ['CMD-SHELL', 'wget -qO /dev/null http://127.0.0.1/health || exit 1']
       interval: 10s
       timeout: 3s
       retries: 3
@@ -232,7 +232,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DIRECT_URL: ${DIRECT_URL}
-    command: ['npx', 'prisma', 'migrate', 'deploy']
+    command: ['npx', '--yes', 'prisma@5', 'migrate', 'deploy']
     working_dir: /app/apps/api
     profiles: ['migrate']
     depends_on:
