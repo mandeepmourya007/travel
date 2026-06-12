@@ -393,13 +393,18 @@ export class TripRepository {
   // ─── Atomic Seat Operations (Optimistic Locking) ──────────
 
   /**
-   * Atomically increments currentBookings using optimistic locking (version column).
-   * Returns the number of rows updated: 0 = seats full or version mismatch, 1 = success.
+   * Atomically increments currentBookings with a capacity check.
+   * Returns rows updated: 0 = trip is at or over capacity, 1 = success.
+   *
+   * Version CAS removed — it caused spurious CAPACITY_FULL errors when two different
+   * bookings on the same trip confirmed concurrently (any concurrent confirm bumps the
+   * version, making the loser fail even when capacity is fine).
+   * The capacity predicate alone is the correct guard here.
    *
    * Raw SQL because Prisma doesn't support `WHERE currentBookings + N <= maxGroupSize`.
    * Used by: BookingService.confirmBooking()
    */
-  async atomicIncrementBookings(tripId: string, count: number, expectedVersion: number): Promise<number> {
+  async atomicIncrementBookings(tripId: string, count: number): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Trip"
       SET "currentBookings" = "currentBookings" + ${count},
@@ -407,7 +412,6 @@ export class TripRepository {
           "updatedAt" = NOW()
       WHERE id = ${tripId}
         AND "currentBookings" + ${count} <= "maxGroupSize"
-        AND "version" = ${expectedVersion}
         AND "isDeleted" = false
     `
   }

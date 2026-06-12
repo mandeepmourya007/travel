@@ -311,7 +311,8 @@ export class PaymentTransactionRepository {
       where: {
         type: 'PAYMENT',
         status: 'CAPTURED',
-        booking: { tripId, isDeleted: false },
+        // Only release escrow for bookings that completed — CANCELLED bookings must never receive a transfer
+        booking: { tripId, isDeleted: false, bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] } },
       },
       select: {
         id: true,
@@ -355,8 +356,10 @@ export class PaymentTransactionRepository {
       where: {
         type: 'PAYMENT',
         status: 'CAPTURED',
+        // Only crash-recover escrow for bookings that actually completed
         booking: {
           isDeleted: false,
+          bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] },
           trip: { status: 'COMPLETED', isDeleted: false },
         },
       },
@@ -383,6 +386,41 @@ export class PaymentTransactionRepository {
     })
 
     return unreleased.filter((tx) => !releasedSet.has(tx.bookingId))
+  }
+
+  /**
+   * Finds the most recent REFUND transaction in INITIATED state for a booking.
+   * Used by handleRefundProcessed to mark the correct tx as REFUNDED when the
+   * refund.processed webhook fires — the REFUND tx has no razorpayPaymentId so it
+   * cannot be found via findByRazorpayPaymentId.
+   * Used by: PaymentService.handleRefundProcessed()
+   */
+  async findInitiatedRefundByBookingId(bookingId: string) {
+    return this.prisma.paymentTransaction.findFirst({
+      where: {
+        bookingId,
+        type: 'REFUND',
+        status: 'INITIATED',
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  /**
+   * Returns the set of bookingIds on a trip that already have an ESCROW_RELEASE record.
+   * Replaces the N+1 findByBookingId loop in TripLifecycleService.releaseEscrowForTrip().
+   * Used by: TripLifecycleService.releaseEscrowForTrip()
+   */
+  async findReleasedBookingIdsForTrip(tripId: string): Promise<Set<string>> {
+    const rows = await this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'ESCROW_RELEASE',
+        booking: { tripId },
+      },
+      select: { bookingId: true },
+      distinct: ['bookingId'],
+    })
+    return new Set(rows.map((r) => r.bookingId))
   }
 
   // ─── Private helpers ────────────────────────────────

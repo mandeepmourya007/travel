@@ -224,18 +224,117 @@ export class BookingRepository {
   }
 
   /**
-   * Cancels a booking — sets status to CANCELLED, stores reason and timestamp.
+   * Cancels a booking atomically inside a transaction:
+   *   1. SELECT FOR UPDATE locks the row to capture the authoritative pre-cancel status.
+   *   2. UPDATE sets status to CANCELLED only if it is currently CONFIRMED or PENDING_PAYMENT.
+   *   3. If the booking was CONFIRMED and seatArgs is provided, the Trip seat counter is
+   *      decremented in the same transaction — guaranteeing cancel + decrement are atomic.
+   *
+   * Returns { rows: 1, preCancelStatus } on success, { rows: 0, preCancelStatus: null }
+   * if the booking was already in a terminal state (prevents double-cancel race).
    * Used by: BookingService.cancelBooking()
    */
-  async cancel(id: string, userId: string, reason: string) {
-    return this.prisma.booking.update({
-      where: { id },
-      data: {
-        bookingStatus: 'CANCELLED',
-        cancellationReason: reason,
-        cancelledAt: new Date(),
-        cancelledById: userId,
+  async cancelAtomically(
+    id: string,
+    userId: string,
+    reason: string,
+    seatArgs?: { tripId: string; numTravelers: number },
+  ): Promise<{ rows: number; preCancelStatus: string | null }> {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ bookingStatus: string }>>`
+        SELECT "bookingStatus" FROM "Booking"
+        WHERE id = ${id} AND "isDeleted" = false
+        FOR UPDATE
+      `
+      const row = rows[0]
+      if (!row || !['CONFIRMED', 'PENDING_PAYMENT'].includes(row.bookingStatus)) {
+        return { rows: 0, preCancelStatus: row?.bookingStatus ?? null }
+      }
+
+      await tx.$executeRaw`
+        UPDATE "Booking"
+        SET "bookingStatus"      = 'CANCELLED',
+            "cancellationReason" = ${reason},
+            "cancelledAt"        = NOW(),
+            "cancelledById"      = ${userId},
+            "updatedAt"          = NOW()
+        WHERE id = ${id}
+      `
+
+      if (row.bookingStatus === 'CONFIRMED' && seatArgs) {
+        await tx.$executeRaw`
+          UPDATE "Trip"
+          SET "currentBookings" = GREATEST("currentBookings" - ${seatArgs.numTravelers}, 0),
+              "version"         = "version" + 1,
+              "updatedAt"       = NOW()
+          WHERE id = ${seatArgs.tripId}
+            AND "isDeleted" = false
+        `
+      }
+
+      return { rows: 1, preCancelStatus: row.bookingStatus }
+    })
+  }
+
+  /**
+   * Atomic confirmation gate: transitions PENDING_PAYMENT → CONFIRMED in one UPDATE.
+   * Returns 1 if the caller won the race, 0 if status was already changed by another request.
+   * Used by: BookingService.confirmBooking() — prevents EXPIRED/CANCELLED resurrection and double seat-increment.
+   */
+  async atomicConfirmGate(id: string): Promise<number> {
+    return this.prisma.$executeRaw`
+      UPDATE "Booking"
+      SET "bookingStatus" = 'CONFIRMED',
+          "updatedAt"     = NOW()
+      WHERE id = ${id}
+        AND "bookingStatus" = 'PENDING_PAYMENT'
+        AND "isDeleted" = false
+    `
+  }
+
+  /**
+   * Reverts CONFIRMED → PENDING_PAYMENT when capture or seat-increment fails
+   * after the confirmation gate was already won. Compensating action only.
+   * Used by: BookingService.confirmBooking() error rollback path.
+   */
+  async revertConfirmGate(id: string): Promise<void> {
+    const rows = await this.prisma.$executeRaw`
+      UPDATE "Booking"
+      SET "bookingStatus" = 'PENDING_PAYMENT',
+          "updatedAt"     = NOW()
+      WHERE id = ${id}
+        AND "bookingStatus" = 'CONFIRMED'
+        AND "isDeleted" = false
+    `
+    if (rows === 0) {
+      // Booking was not in CONFIRMED state — already cancelled, expired, or never reached the gate.
+      // This is not an error but worth logging for operational visibility (L1).
+      const { logger } = await import('../utils/logger')
+      logger.warn({ bookingId: id }, 'revertConfirmGate: booking was not CONFIRMED — no rows updated')
+    }
+  }
+
+  /**
+   * Finds bookings that are stuck in CONFIRMED status with no captured payment.
+   * These are created when the process crashes after atomicConfirmGate but before
+   * capturePayment completes. The cron uses this to revert them to PENDING_PAYMENT
+   * so the expiry sweep or a webhook retry can resolve them.
+   *
+   * "Stuck" = CONFIRMED for more than {olderThanMinutes} minutes with no CAPTURED PaymentTransaction.
+   * Used by: cron-jobs.ts sweepOrphanedConfirmedBookings()
+   */
+  async findOrphanedConfirmedBookings(olderThanMinutes = 30) {
+    const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000)
+    return this.prisma.booking.findMany({
+      where: {
+        bookingStatus: 'CONFIRMED',
+        isDeleted: false,
+        updatedAt: { lt: cutoff },
+        paymentTransactions: {
+          none: { type: 'PAYMENT', status: 'CAPTURED' },
+        },
       },
+      select: { id: true, updatedAt: true },
     })
   }
 
