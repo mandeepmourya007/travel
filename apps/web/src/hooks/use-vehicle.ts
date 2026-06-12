@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { apiClient, type AppApiError } from '@/lib/api-client'
 import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
 import { vehicleKeys, tripKeys } from '@/lib/query-keys'
@@ -9,8 +9,15 @@ import type { ApiResponse } from '@shared/types/api-response.types'
 
 // ── Queries ─────────────────────────────────────────
 
-/** Fetch seat map for traveler view (public) — returns all vehicles */
-export function useSeatMap(tripId: string) {
+/**
+ * Fetch seat map for traveler view (public) — returns all vehicles.
+ *
+ * @param options.poll — live-poll for seat changes. Enable during the booking
+ * flow where freshness matters; leave off for read-only previews (e.g. the
+ * public trip-detail page) to avoid background refetch traffic.
+ */
+export function useSeatMap(tripId: string, options?: { poll?: boolean }) {
+  const poll = options?.poll ?? false
   return useQuery<MultiVehicleSeatMapResponse, AppApiError>({
     queryKey: vehicleKeys.seatMap(tripId),
     queryFn: async () => {
@@ -21,7 +28,7 @@ export function useSeatMap(tripId: string) {
     },
     enabled: !!tripId,
     staleTime: STALE_TIME_REALTIME,
-    refetchInterval: REFETCH_INTERVAL_REALTIME,
+    ...(poll && { refetchInterval: REFETCH_INTERVAL_REALTIME }),
   })
 }
 
@@ -55,6 +62,19 @@ export function useOrganizerVehicles(tripId: string) {
   })
 }
 
+// ── Helpers ─────────────────────────────────────────
+
+/** Invalidate all vehicle + trip caches scoped to a single trip.
+ *  Shared by create/update/delete mutations — one place to maintain. */
+function invalidateVehicleCaches(qc: QueryClient, tripId: string) {
+  qc.invalidateQueries({ queryKey: vehicleKeys.seatMap(tripId) })
+  qc.invalidateQueries({ queryKey: vehicleKeys.organizerSeatMap(tripId) })
+  qc.invalidateQueries({ queryKey: vehicleKeys.vehicleList(tripId) })
+  qc.invalidateQueries({ queryKey: vehicleKeys.vehicle(tripId) })
+  // tripKeys.detail is keyed by slug, which callers don't have — invalidate the prefix
+  qc.invalidateQueries({ queryKey: tripKeys.details() })
+}
+
 // ── Mutations ───────────────────────────────────────
 
 /** Create vehicle with seat layout */
@@ -66,10 +86,7 @@ export function useCreateVehicle(tripId: string) {
       const { data } = await apiClient.post(`/trips/${tripId}/vehicle`, dto)
       return data.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: vehicleKeys.all })
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) })
-    },
+    onSuccess: () => invalidateVehicleCaches(queryClient, tripId),
   })
 }
 
@@ -82,10 +99,7 @@ export function useUpdateVehicle(tripId: string, vehicleId: string) {
       const { data } = await apiClient.put(`/trips/${tripId}/vehicle/${vehicleId}`, dto)
       return data.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: vehicleKeys.all })
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) })
-    },
+    onSuccess: () => invalidateVehicleCaches(queryClient, tripId),
   })
 }
 
@@ -98,10 +112,7 @@ export function useDeleteVehicle(tripId: string) {
       const { data } = await apiClient.delete(`/trips/${tripId}/vehicle/${vehicleId}`)
       return data.data
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: vehicleKeys.all })
-      queryClient.invalidateQueries({ queryKey: tripKeys.detail(tripId) })
-    },
+    onSuccess: () => invalidateVehicleCaches(queryClient, tripId),
   })
 }
 

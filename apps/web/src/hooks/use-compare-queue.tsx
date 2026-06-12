@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useToast } from '@/components/shared/toast'
 import type { TripSummary } from '@shared/types/trip.types'
 
 const STORAGE_KEY = 'compare-queue'
@@ -75,6 +76,11 @@ export function CompareQueueProvider({ children }: { children: React.ReactNode }
   const [items, setItems] = useState<CompareItem[]>([])
   const [dismissed, setDismissed] = useState(false)
   const [hydrated, setHydrated] = useState(false)
+  const { toast } = useToast()
+  // Ref mirror so `toggle` can read current items without depending on them —
+  // keeps its identity stable across renders (TripCard is memo'd on onCompare)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   // Hydrate from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -105,9 +111,20 @@ export function CompareQueueProvider({ children }: { children: React.ReactNode }
   const isOpen = items.length > 0 && !dismissed
 
   const toggle = useCallback((trip: TripSummary) => {
+    // Adding past the limit must give feedback — a silent no-op reads as a dead click
+    const current = itemsRef.current
+    const exists = current.some((item) => item.id === trip.id)
+    if (!exists && current.length >= MAX_ITEMS) {
+      toast({
+        variant: 'info',
+        title: `You can compare up to ${MAX_ITEMS} trips`,
+        description: 'Remove a trip from the compare bar to add this one.',
+      })
+      return
+    }
+
     setItems((prev) => {
-      const exists = prev.find((item) => item.id === trip.id)
-      if (exists) {
+      if (prev.some((item) => item.id === trip.id)) {
         return prev.filter((item) => item.id !== trip.id)
       }
       if (prev.length >= MAX_ITEMS) return prev
@@ -124,7 +141,7 @@ export function CompareQueueProvider({ children }: { children: React.ReactNode }
     })
     // Re-open if user had dismissed but is now toggling
     setDismissed(false)
-  }, [])
+  }, [toast])
 
   const remove = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id))

@@ -1,6 +1,8 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type InfiniteData, type QueryClient } from '@tanstack/react-query'
 import { useEffect, useCallback, useRef, useMemo } from 'react'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, getErrorMessage } from '@/lib/api-client'
+import { feLogger } from '@/lib/logger'
+import { useToast } from '@/components/shared/toast'
 import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_REALTIME } from '@/lib/constants'
 import { chatKeys } from '@/lib/query-keys'
 import { getSocket } from '@/lib/socket'
@@ -17,6 +19,49 @@ import type {
 
 type MessagesPage = { data: Message[]; hasMore: boolean; nextCursor: string | null }
 type MessagesInfiniteData = InfiniteData<MessagesPage, string | undefined>
+
+/**
+ * Insert or reconcile a server message into the cached first page.
+ * Replaces the matching optimistic placeholder (by clientMsgId when present,
+ * falling back to content + sender), dedupes by id, otherwise prepends.
+ * Shared by the socket echo handler and the REST send path so both reconcile
+ * identically without a full-page refetch.
+ */
+function upsertMessageIntoCache(queryClient: QueryClient, conversationId: string, message: Message) {
+  queryClient.setQueryData<MessagesInfiniteData>(
+    chatKeys.messages(conversationId),
+    (old) => {
+      if (!old) return old
+      const firstPage = old.pages[0]
+      if (!firstPage) return old
+
+      // Deduplicate: skip if this exact message ID is already in cache
+      if (firstPage.data.some((m) => m.id === message.id)) return old
+
+      const tempIdx = firstPage.data.findIndex(
+        (m) =>
+          m.id.startsWith('temp-') &&
+          (message.clientMsgId
+            ? m.clientMsgId === message.clientMsgId
+            : m.content === message.content && m.senderId === message.senderId),
+      )
+      if (tempIdx >= 0) {
+        const newData = [...firstPage.data]
+        newData[tempIdx] = message
+        return { ...old, pages: [{ ...firstPage, data: newData }, ...old.pages.slice(1)] }
+      }
+
+      // New message from other participant — prepend
+      return {
+        ...old,
+        pages: [
+          { ...firstPage, data: [message, ...firstPage.data] },
+          ...old.pages.slice(1),
+        ],
+      }
+    },
+  )
+}
 
 // ─── Read Hooks ─────────────────────────────────────
 
@@ -140,28 +185,6 @@ export function useCreateSupportConversation() {
 }
 
 /**
- * Send a message via REST (fallback when socket fails).
- */
-export function useSendMessageRest(conversationId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (dto: SendMessageDto) => {
-      const res = await apiClient.post<{ success: true; data: Message }>(
-        `/chat/conversations/${conversationId}/messages`,
-        dto,
-      )
-      return res.data.data
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) })
-      queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
-      queryClient.invalidateQueries({ queryKey: chatKeys.unreadCount() })
-    },
-  })
-}
-
-/**
  * Add a reaction to a message.
  */
 export function useAddReaction(conversationId: string) {
@@ -224,36 +247,7 @@ export function useChatConnection(conversationId: string | null) {
       if (message.conversationId !== conversationId) return
 
       // Direct cache update instead of invalidation — avoids full refetch
-      queryClient.setQueryData<MessagesInfiniteData>(
-        chatKeys.messages(conversationId),
-        (old) => {
-          if (!old) return old
-          const firstPage = old.pages[0]
-          if (!firstPage) return old
-
-          // Deduplicate: skip if this exact message ID is already in cache
-          if (firstPage.data.some((m) => m.id === message.id)) return old
-
-          // Replace optimistic placeholder (temp-*) if one matches content + sender
-          const tempIdx = firstPage.data.findIndex(
-            (m) => m.id.startsWith('temp-') && m.content === message.content && m.senderId === message.senderId,
-          )
-          if (tempIdx >= 0) {
-            const newData = [...firstPage.data]
-            newData[tempIdx] = message
-            return { ...old, pages: [{ ...firstPage, data: newData }, ...old.pages.slice(1)] }
-          }
-
-          // New message from other participant — prepend
-          return {
-            ...old,
-            pages: [
-              { ...firstPage, data: [message, ...firstPage.data] },
-              ...old.pages.slice(1),
-            ],
-          }
-        },
-      )
+      upsertMessageIntoCache(queryClient, conversationId, message)
       queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
     }
 
@@ -313,25 +307,53 @@ export function useChatConnection(conversationId: string | null) {
   }, [conversationId, queryClient, setTyping, clearTyping])
 }
 
+/** How long to wait for the server to acknowledge a socket send before falling back to REST */
+const SOCKET_SEND_ACK_TIMEOUT_MS = 5000
+
 /**
  * Send a message via socket (preferred) with REST fallback.
+ *
+ * The socket path waits for a server ack (with timeout):
+ * - ack ok      → the service broadcast echoes the message, reconciling the bubble
+ * - ack not-ok  → server rejected (rate limit, closed, invalid) — roll back + toast
+ * - ack timeout → delivery unknown — retry over REST (idempotent via clientMsgId)
+ * - disconnected → send over REST directly
+ * A failed REST send rolls back the optimistic message and shows an error
+ * toast. Messages never sit in the UI looking delivered when they aren't.
  */
 export function useSendMessage(conversationId: string | null) {
   const queryClient = useQueryClient()
   const user = useAuthStore((s) => s.user)
+  const { toast } = useToast()
 
   const sendMessage = useCallback(
     async (dto: SendMessageDto) => {
       if (!conversationId || !user) return
 
+      // Idempotency key: the server dedupes retried sends (socket timeout →
+      // REST fallback) on this, and the echo carries it back so the optimistic
+      // bubble is reconciled deterministically.
+      // crypto.randomUUID requires a secure context (HTTPS / localhost). When
+      // unavailable we omit the key — the REST retry path is blocked in that
+      // case to prevent silent duplicates (no server-side P2002 guard without a key).
+      const clientMsgId =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : undefined
+      if (!clientMsgId) {
+        feLogger.warn('crypto.randomUUID unavailable — message deduplication disabled (insecure context?)')
+      }
+      const sendDto: SendMessageDto = clientMsgId ? { ...dto, clientMsgId } : dto
+
       // Optimistic update: immediately show the message in the chat
       const optimisticMsg: Message = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${clientMsgId ?? Date.now()}`,
         conversationId,
         senderId: user.id,
         sender: { id: user.id, name: user.name, avatarUrl: user.avatarUrl ?? null, role: user.role } satisfies ChatUser,
         type: dto.type ?? 'TEXT',
         content: dto.content,
+        clientMsgId: clientMsgId ?? null,
         originalContent: null,
         isFlagged: false,
         readAt: null,
@@ -360,39 +382,77 @@ export function useSendMessage(conversationId: string | null) {
         },
       )
 
+      const rollbackOptimistic = () => {
+        queryClient.setQueryData<MessagesInfiniteData>(
+          chatKeys.messages(conversationId),
+          (old) => {
+            if (!old) return old
+            const firstPage = old.pages[0]
+            if (!firstPage) return old
+            return {
+              ...old,
+              pages: [
+                { ...firstPage, data: firstPage.data.filter((m) => m.id !== optimisticMsg.id) },
+                ...old.pages.slice(1),
+              ],
+            }
+          },
+        )
+      }
+
+      const failSend = (description: string) => {
+        rollbackOptimistic()
+        toast({ variant: 'error', title: 'Message not sent', description })
+      }
+
+      // REST path — writes the returned message straight into the cache
+      // (replacing the optimistic bubble); on failure, rolls back and tells
+      // the user (never silently lose a message)
+      const sendViaRest = async () => {
+        try {
+          const res = await apiClient.post<{ success: true; data: Message }>(
+            `/chat/conversations/${conversationId}/messages`,
+            sendDto,
+          )
+          upsertMessageIntoCache(queryClient, conversationId, res.data.data)
+        } catch (err) {
+          failSend(getErrorMessage(err as Error, 'Please try again.') ?? 'Please try again.')
+        }
+      }
+
       const socket = getSocket()
       if (socket?.connected) {
-        socket.emit('chat:send', { conversationId, ...dto })
-      } else {
-        // REST fallback — on success, refetch to replace optimistic message
         try {
-          await apiClient.post(`/chat/conversations/${conversationId}/messages`, dto)
-          queryClient.invalidateQueries({ queryKey: chatKeys.messages(conversationId) })
+          const res = await socket
+            .timeout(SOCKET_SEND_ACK_TIMEOUT_MS)
+            .emitWithAck('chat:send', { conversationId, ...sendDto }) as
+            { ok: boolean; messageId?: string; error?: string } | undefined
+          if (!res?.ok) {
+            // Server explicitly rejected (rate limit, closed conversation,
+            // invalid payload). Retrying over REST would just bypass the
+            // rejection — surface the server's reason instead.
+            failSend(res?.error || 'Please try again.')
+          }
+          // On success the server broadcast echoes `chat:message`, which replaces the optimistic bubble
         } catch {
-          // Rollback optimistic message on failure
-          queryClient.setQueryData<MessagesInfiniteData>(
-            chatKeys.messages(conversationId),
-            (old) => {
-              if (!old) return old
-              const firstPage = old.pages[0]
-              if (!firstPage) return old
-              return {
-                ...old,
-                pages: [
-                  { ...firstPage, data: firstPage.data.filter((m) => m.id !== optimisticMsg.id) },
-                  ...old.pages.slice(1),
-                ],
-              }
-            },
-          )
-          throw new Error('Failed to send message')
+          // Ack timed out — delivery unknown. With a clientMsgId the REST
+          // retry is idempotent (the server dedupes on the unique key and
+          // returns the original row), so retry unconditionally. Without a
+          // key a retry could create a real duplicate — roll back instead.
+          if (clientMsgId) {
+            await sendViaRest()
+          } else {
+            failSend('Please try again.')
+          }
         }
+      } else {
+        await sendViaRest()
       }
 
       // Only refresh conversation list (for preview), not messages
       queryClient.invalidateQueries({ queryKey: chatKeys.conversations() })
     },
-    [conversationId, queryClient, user],
+    [conversationId, queryClient, user, toast],
   )
 
   return { sendMessage }
