@@ -8,7 +8,7 @@ import { useNotificationStore } from '@/store/notification.store'
 import { connectSocket, disconnectSocket } from '@/lib/socket'
 import { notificationKeys } from '@/lib/query-keys'
 import { getNotificationRedirectUrl } from '@/lib/notification-redirect'
-import { toast } from 'sonner'
+import { useToast } from '@/components/shared/toast'
 import type { NotificationSocketPayload, NotificationListItem } from '@shared/types/notification.types'
 
 /**
@@ -24,6 +24,7 @@ export function SocketConnector() {
   const _hasHydrated = useAuthStore((s) => s._hasHydrated)
   const addNotification = useNotificationStore((s) => s.addNotification)
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!_hasHydrated) return
@@ -51,7 +52,9 @@ export function SocketConnector() {
       addNotification(item)
 
       const redirectUrl = getNotificationRedirectUrl(payload.type, payload.data)
-      toast(payload.title, {
+      toast({
+        variant: 'info',
+        title: payload.title,
         description: payload.body,
         duration: 5000,
         action: redirectUrl
@@ -67,7 +70,7 @@ export function SocketConnector() {
     return () => {
       socket.off('notification:new', handleNewNotification)
     }
-  }, [_hasHydrated, isAuthenticated, accessToken, addNotification, queryClient, router])
+  }, [_hasHydrated, isAuthenticated, accessToken, addNotification, queryClient, router, toast])
 
   return null
 }

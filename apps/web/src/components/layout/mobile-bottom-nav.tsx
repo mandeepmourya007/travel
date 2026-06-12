@@ -94,6 +94,7 @@ export function MobileBottomNav() {
             key={item.id}
             href={item.href}
             prefetch={false}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'relative flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1.5 text-xs leading-tight',
               active ? 'text-primary-600' : 'text-neutral-400',

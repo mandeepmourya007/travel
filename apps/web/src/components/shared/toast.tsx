@@ -1,10 +1,15 @@
 'use client'
 
-import { createContext, useContext, useCallback, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
 
 type ToastVariant = 'success' | 'warning' | 'error' | 'info'
+
+interface ToastAction {
+  label: string
+  onClick: () => void
+}
 
 interface Toast {
   id: string
@@ -12,6 +17,8 @@ interface Toast {
   title: string
   description?: string
   duration?: number
+  /** Optional action button (e.g. "View" on a notification toast) */
+  action?: ToastAction
 }
 
 interface ToastContextValue {
@@ -123,6 +130,17 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
         {toast.description && (
           <p className="mt-0.5 opacity-80">{toast.description}</p>
         )}
+        {toast.action && (
+          <button
+            onClick={() => {
+              toast.action?.onClick()
+              handleManualDismiss()
+            }}
+            className="mt-2 rounded-md bg-white/60 px-3 py-1 text-xs font-semibold shadow-sm transition-colors hover:bg-white"
+          >
+            {toast.action.label}
+          </button>
+        )}
       </div>
 
       {/* Dismiss */}
@@ -149,8 +167,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, { ...opts, id }])
   }, [])
 
+  // Stable context value — consumers (providers, hooks) shouldn't re-render
+  // every time a toast is added or removed
+  const contextValue = useMemo<ToastContextValue>(
+    () => ({ toast: addToast, dismiss }),
+    [addToast, dismiss],
+  )
+
   return (
-    <ToastContext.Provider value={{ toast: addToast, dismiss }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       {/* Toast container — fixed, mobile-first responsive */}
       <div

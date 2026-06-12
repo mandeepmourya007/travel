@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Image from 'next/image'
+import { pushOverlay, popOverlay, isTopOverlay } from '@/lib/overlay-stack'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ImageLightboxProps {
@@ -12,6 +13,7 @@ interface ImageLightboxProps {
 
 export function ImageLightbox({ images, initialIndex = 0, onClose }: ImageLightboxProps) {
   const [current, setCurrent] = useState(initialIndex)
+  const overlayIdRef = useRef<symbol | null>(null)
   const hasMultiple = images.length > 1
 
   const goPrev = useCallback(() => {
@@ -22,8 +24,20 @@ export function ImageLightbox({ images, initialIndex = 0, onClose }: ImageLightb
     setCurrent((i) => (i < images.length - 1 ? i + 1 : 0))
   }, [images.length])
 
+  // Register on the overlay stack strictly per mount — when opened from inside
+  // a Modal, the lightbox is the top layer and owns Escape (one layer at a time)
+  useEffect(() => {
+    const id = pushOverlay('lightbox')
+    overlayIdRef.current = id
+    return () => {
+      popOverlay(id)
+      overlayIdRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      if (overlayIdRef.current && !isTopOverlay(overlayIdRef.current)) return
       if (e.key === 'Escape') onClose()
       if (e.key === 'ArrowLeft') goPrev()
       if (e.key === 'ArrowRight') goNext()

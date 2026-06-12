@@ -1,3 +1,5 @@
+import Image from 'next/image'
+import { IMAGE_HOSTS } from '@/config/image-hosts'
 import { cn } from '@/lib/utils'
 
 type AvatarSize = 'sm' | 'md' | 'lg'
@@ -24,6 +26,32 @@ const COLOR_CLASSES: Record<AvatarColor, string> = {
   success: 'bg-success-50 text-success-500',
 }
 
+/** Rendered pixel size per avatar size (matches the h-/w- classes above) */
+const SIZE_PX: Record<AvatarSize, number> = {
+  sm: 32,
+  md: 40,
+  lg: 56,
+}
+
+/** Hosts configured in next.config.js images.remotePatterns */
+const OPTIMIZABLE_HOSTS = new Set(IMAGE_HOSTS)
+
+/**
+ * next/image hard-errors on hostnames missing from remotePatterns.
+ * Avatar URLs are user-supplied, so unknown hosts skip optimization
+ * (still get lazy-loading) instead of crashing the page.
+ */
+function isOptimizableSrc(src: string): boolean {
+  // App-relative paths optimize; protocol-relative ("//host/…") have an
+  // unknown host and must not be sent to the optimizer
+  if (src.startsWith('/')) return !src.startsWith('//')
+  try {
+    return OPTIMIZABLE_HOSTS.has(new URL(src).hostname)
+  } catch {
+    return false
+  }
+}
+
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -36,9 +64,12 @@ function getInitials(name: string): string {
 export function Avatar({ name, src, size = 'md', color = 'primary', className }: AvatarProps) {
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={name}
+        width={SIZE_PX[size]}
+        height={SIZE_PX[size]}
+        unoptimized={!isOptimizableSrc(src)}
         className={cn(
           'flex-shrink-0 rounded-full object-cover',
           SIZE_CLASSES[size],

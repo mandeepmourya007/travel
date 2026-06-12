@@ -17,6 +17,7 @@ import {
   BookOpen,
   CreditCard,
   UserCircle,
+  MessageSquare,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/use-logout'
@@ -36,10 +37,11 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: ['ORGANIZER'] },
-  { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: ['ORGANIZER'] },
-  { href: '/my-bookings', label: 'My Bookings', icon: BookOpen, hideForRoles: ['ORGANIZER'] },
-  { href: '/my-payments', label: 'My Payments', icon: CreditCard, hideForRoles: ['ORGANIZER'] },
+  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: ['ORGANIZER', 'ADMIN'] },
+  { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: ['ORGANIZER', 'ADMIN'] },
+  { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: ['ORGANIZER', 'ADMIN'] },
+  { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: ['ORGANIZER', 'ADMIN'] },
+  { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ORGANIZER'], variant: 'primary' },
@@ -105,7 +107,7 @@ export function Header() {
         {/* Search bar — hidden on mobile, visible md+ */}
         <form
           onSubmit={handleSearch}
-          className="hidden items-center mx-8 flex-1 max-w-lg md:flex"
+          className="hidden items-center mx-4 lg:mx-8 flex-1 max-w-xs lg:max-w-lg md:flex"
         >
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
@@ -120,7 +122,7 @@ export function Header() {
         </form>
 
         {/* Desktop nav — hidden on mobile, visible md+ */}
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-0.5 md:flex">
           {visibleLinks.map((link) => {
             const active = isActive(link.href)
             const Icon = link.icon
@@ -152,13 +154,13 @@ export function Header() {
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
                   active
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
                 )}
               >
-                {Icon && <Icon className="h-4 w-4" />}
+                {Icon && <Icon className="hidden xl:block h-4 w-4" />}
                 {link.label}
               </Link>
             )

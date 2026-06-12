@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
+import { pushOverlay, popOverlay, isTopOverlay } from '@/lib/overlay-stack'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -14,13 +15,65 @@ interface ModalProps {
   className?: string
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null)
+  const overlayIdRef = useRef<symbol | null>(null)
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      // A child overlay (e.g. image lightbox) is on top — it owns the keyboard
+      if (overlayIdRef.current && !isTopOverlay(overlayIdRef.current)) return
+
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+
+      // Focus trap: keep Tab cycling inside the dialog panel (WCAG 2.1.2)
+      if (e.key === 'Tab' && panelRef.current) {
+        const focusables = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+        )
+        if (focusables.length === 0) {
+          e.preventDefault()
+          panelRef.current.focus()
+          return
+        }
+        const first = focusables[0]
+        const last = focusables[focusables.length - 1]
+        const active = document.activeElement as HTMLElement | null
+        const inPanel = !!active && panelRef.current.contains(active)
+
+        if (!inPanel) {
+          e.preventDefault()
+          first.focus()
+        } else if (e.shiftKey && active === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     },
     [onClose],
   )
+
+  // Register on the overlay stack strictly per open/close — must not re-run on
+  // re-renders (a re-push would hoist this modal above a child lightbox)
+  useEffect(() => {
+    if (!open) return
+    const id = pushOverlay('modal')
+    overlayIdRef.current = id
+    return () => {
+      popOverlay(id)
+      overlayIdRef.current = null
+    }
+  }, [open])
 
   useEffect(() => {
     if (open) {
@@ -32,6 +85,21 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
       document.body.style.overflow = ''
     }
   }, [open, handleKeyDown])
+
+  // Initial focus on open + restore focus to the trigger on close (WCAG 2.4.3)
+  useEffect(() => {
+    if (!open) return
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null
+
+    const panel = panelRef.current
+    const firstFocusable = panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
+    ;(firstFocusable ?? panel)?.focus()
+
+    return () => {
+      previouslyFocusedRef.current?.focus?.()
+      previouslyFocusedRef.current = null
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -52,8 +120,10 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
       />
       {/* Panel */}
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
-          'relative flex max-h-[90vh] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl animate-slide-up',
+          'relative flex max-h-[90vh] w-full max-w-[520px] flex-col overflow-hidden rounded-2xl bg-white shadow-xl animate-slide-up focus:outline-none',
           className,
         )}
       >
