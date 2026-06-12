@@ -4,6 +4,7 @@ import { env } from './env'
 const origins = new Set([env.CLIENT_URL])
 if (env.NODE_ENV === 'development') {
   origins.add('http://localhost:3000')
+  origins.add('http://localhost:3001')
 }
 const allowedOrigins = [...origins]
 
