@@ -6,6 +6,8 @@ export const CHAT_MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 export const sendMessageSchema = z.object({
   content: z.string().min(1, 'Message cannot be empty').max(CHAT_MAX_MESSAGE_LENGTH, `Message must be under ${CHAT_MAX_MESSAGE_LENGTH} characters`).trim(),
+  // Idempotency key for send retries (socket ack timeout -> REST fallback)
+  clientMsgId: z.string().uuid().optional(),
   type: z.enum([MESSAGE_TYPE.TEXT, MESSAGE_TYPE.IMAGE, MESSAGE_TYPE.FILE, MESSAGE_TYPE.SYSTEM]).default(MESSAGE_TYPE.TEXT),
   fileUrl: z.string().url().optional(),
   fileName: z.string().max(255).optional(),

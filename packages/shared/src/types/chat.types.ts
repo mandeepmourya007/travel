@@ -88,6 +88,9 @@ export interface Message {
   senderId: string
   type: MessageType
   content: string
+  /** Client-generated idempotency key — lets the sender reconcile its
+   *  optimistic message with the server echo deterministically. */
+  clientMsgId?: string | null
   originalContent?: string | null
   isFlagged: boolean
   readAt?: string | null
@@ -111,6 +114,8 @@ export interface Message {
 
 export interface SendMessageDto {
   content: string
+  /** Client-generated UUID — the server dedupes retried sends on it */
+  clientMsgId?: string
   type?: MessageType
   fileUrl?: string
   fileName?: string
