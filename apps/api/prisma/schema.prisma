@@ -354,6 +354,8 @@ model Trip {
   @@index([isDeleted, status, startDate])
   @@index([isDeleted, status, pricePerPerson])
   @@index([isDeleted, status, currentBookings])
+  @@index([isDeleted, status, tripType])  // tripType filtered in search/countByType queries
+  @@index([status, endDate])             // findTripsToComplete filters on status + endDate
 }
 
 model Booking {
@@ -598,6 +600,7 @@ model Conversation {
   @@index([adminId])
   @@index([type, status])
   @@index([isDeleted])
+  @@index([lastMessageAt])  // conversation lists sort by lastMessageAt
 }
 
 model Message {
