@@ -2,7 +2,7 @@ import type { Server } from 'socket.io'
 import type { AuthenticatedSocket } from '../middleware/socket-auth.middleware'
 import { ChatService } from '../../services/chat.service'
 import { logger } from '../../utils/logger'
-import { MESSAGE_PREVIEW_LENGTH } from '../../utils/constants'
+import { sendMessageSchema } from '@shared/validators/chat.schema'
 import type { SendMessageDto } from '@shared/types/chat.types'
 
 const SOCKET_MSG_LIMIT = 10
@@ -34,35 +34,44 @@ export function registerChatHandlers(io: Server, socket: AuthenticatedSocket, ch
     log.debug({ conversationId }, 'User left conversation room')
   })
 
-  /** Send a message */
-  socket.on('chat:send', async (data: SendMessageDto & { conversationId: string }) => {
+  /** Send a message — supports socket.io ack callback so the client can detect failures */
+  socket.on('chat:send', async (
+    data: SendMessageDto & { conversationId: string },
+    ack?: (res: { ok: boolean; messageId?: string; error?: string }) => void,
+  ) => {
+    const reply = typeof ack === 'function' ? ack : undefined
+
     // Per-socket rate limit: max SOCKET_MSG_LIMIT messages per SOCKET_MSG_WINDOW_MS
     const now = Date.now()
     while (msgTimestamps.length > 0 && msgTimestamps[0]! <= now - SOCKET_MSG_WINDOW_MS) {
       msgTimestamps.shift()
     }
     if (msgTimestamps.length >= SOCKET_MSG_LIMIT) {
-      socket.emit('chat:send:error', { error: 'You are sending messages too fast. Please slow down.' })
+      reply?.({ ok: false, error: 'You are sending messages too fast. Please slow down.' })
       return
     }
     msgTimestamps.push(now)
 
     try {
-      const { conversationId, ...dto } = data
-      const message = await chatService.sendMessage(conversationId, userId, dto)
+      const { conversationId, ...rawDto } = data
+      if (typeof conversationId !== 'string' || !conversationId) {
+        reply?.({ ok: false, error: 'Invalid conversation' })
+        return
+      }
 
-      io.to(`conversation:${conversationId}`).emit('chat:message', message)
+      // Same contract as the REST route — the socket path must not be a
+      // validation bypass (content length, uuid clientMsgId, file fields)
+      const parsed = sendMessageSchema.safeParse(rawDto)
+      if (!parsed.success) {
+        reply?.({ ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid message payload' })
+        return
+      }
 
-      io.to(`conversation:${conversationId}`).emit('chat:conversation-update', {
-        conversationId,
-        lastMessagePreview: message.content.substring(0, MESSAGE_PREVIEW_LENGTH),
-        lastMessageAt: message.createdAt,
-      })
-
-      socket.emit('chat:send:ack', { messageId: message.id, status: 'sent' })
+      const message = await chatService.sendMessage(conversationId, userId, parsed.data)
+      reply?.({ ok: true, messageId: message.id })
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message'
-      socket.emit('chat:send:error', { error: errorMessage })
+      reply?.({ ok: false, error: errorMessage })
       log.error({ error }, 'Socket message send failed')
     }
   })

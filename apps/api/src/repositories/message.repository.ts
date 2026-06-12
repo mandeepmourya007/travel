@@ -16,6 +16,7 @@ const MESSAGE_SELECT = {
   senderId: true,
   type: true,
   content: true,
+  clientMsgId: true,
   originalContent: true,
   isFlagged: true,
   readAt: true,
@@ -48,6 +49,7 @@ export class MessageRepository {
     senderId: string
     type?: typeof MESSAGE_TYPE[keyof typeof MESSAGE_TYPE]
     content: string
+    clientMsgId?: string | null
     originalContent?: string | null
     isFlagged?: boolean
     fileUrl?: string | null
@@ -61,6 +63,7 @@ export class MessageRepository {
         senderId: data.senderId,
         type: data.type ?? MESSAGE_TYPE.TEXT,
         content: data.content,
+        clientMsgId: data.clientMsgId ?? null,
         originalContent: data.originalContent ?? null,
         isFlagged: data.isFlagged ?? false,
         fileUrl: data.fileUrl ?? null,
@@ -68,6 +71,18 @@ export class MessageRepository {
         fileSize: data.fileSize ?? null,
         replyToId: data.replyToId ?? null,
       },
+      select: MESSAGE_SELECT,
+    })
+  }
+
+  /**
+   * Look up a message by its client idempotency key (scoped to conversation +
+   * sender). Used to return the original row when a retried send hits the
+   * unique constraint.
+   */
+  async findByClientMsgId(conversationId: string, senderId: string, clientMsgId: string) {
+    return this.prisma.message.findFirst({
+      where: { conversationId, senderId, clientMsgId },
       select: MESSAGE_SELECT,
     })
   }
@@ -89,7 +104,9 @@ export class MessageRepository {
       where,
       select: MESSAGE_SELECT,
       take: pagination.limit + 1,
-      orderBy: { createdAt: 'desc' },
+      // id tiebreaker: equal createdAt (bulk inserts, same-ms sends) must not
+      // produce arbitrary — and across pages, unstable — ordering
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(pagination.cursor && {
         cursor: { id: pagination.cursor },
         skip: 1,

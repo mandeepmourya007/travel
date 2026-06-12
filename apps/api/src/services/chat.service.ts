@@ -1,4 +1,6 @@
+import { Prisma } from '@prisma/client'
 import { Logger } from 'pino'
+import type { Server } from 'socket.io'
 import {
   CONVERSATION_STATUS,
   MESSAGE_TYPE,
@@ -12,9 +14,9 @@ import type {
 } from '@shared/types/chat.types'
 import { ConversationRepository } from '../repositories/conversation.repository'
 import { MessageRepository } from '../repositories/message.repository'
-import { NotFoundError, ForbiddenError, ValidationError } from '../errors/app-error'
+import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
 import { filterChatMessage } from '../utils/chat-filter'
-import { PAGINATION_DEFAULTS } from '../utils/constants'
+import { PAGINATION_DEFAULTS, MESSAGE_PREVIEW_LENGTH } from '../utils/constants'
 
 interface TripLookup {
   findById(id: string): Promise<{ id: string; organizerId: string } | null>
@@ -31,6 +33,8 @@ export class ChatService {
     private tripRepo: TripLookup,
     private organizerProfileRepo: OrganizerProfileLookup,
     private logger: Logger,
+    // Lazy getter — io doesn't exist yet when services are constructed
+    private getIo: () => Server | null = () => null,
   ) {}
 
   /**
@@ -82,6 +86,12 @@ export class ChatService {
    * - Anti-leakage filter applied
    * - Unread count incremented for the other participant
    * - Last message preview updated
+   *
+   * Idempotency: when dto.clientMsgId is set, a retried send (e.g. socket ack
+   * timeout followed by REST fallback) returns the originally created message
+   * instead of inserting a duplicate. Enforced by the DB unique constraint on
+   * (conversationId, senderId, clientMsgId) — create-first, so concurrent
+   * retries cannot race past a check.
    */
   async sendMessage(conversationId: string, senderId: string, dto: SendMessageDto) {
     const conversation = await this.conversationRepo.findById(conversationId)
@@ -108,20 +118,47 @@ export class ChatService {
       }
     }
 
-    const message = await this.messageRepo.create({
-      conversationId,
-      senderId,
-      type: dto.type ?? MESSAGE_TYPE.TEXT,
-      content,
-      originalContent,
-      isFlagged,
-      fileUrl: dto.fileUrl ?? null,
-      fileName: dto.fileName ?? null,
-      fileSize: dto.fileSize ?? null,
-      replyToId: dto.replyToId ?? null,
-    })
+    let message
+    try {
+      message = await this.messageRepo.create({
+        conversationId,
+        senderId,
+        type: dto.type ?? MESSAGE_TYPE.TEXT,
+        content,
+        clientMsgId: dto.clientMsgId ?? null,
+        originalContent,
+        isFlagged,
+        fileUrl: dto.fileUrl ?? null,
+        fileName: dto.fileName ?? null,
+        fileSize: dto.fileSize ?? null,
+        replyToId: dto.replyToId ?? null,
+      })
+    } catch (err: unknown) {
+      // P2002 = unique constraint violation -> this clientMsgId was already
+      // persisted (retried send). Return the original row; counters and
+      // broadcasts already ran for it, so skip the side effects.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' && dto.clientMsgId) {
+        const existing = await this.messageRepo.findByClientMsgId(conversationId, senderId, dto.clientMsgId)
+        if (existing) {
+          this.logger.info(
+            { conversationId, messageId: existing.id, senderId, clientMsgId: dto.clientMsgId },
+            'Duplicate send deduped via clientMsgId',
+          )
+          return existing
+        }
+        // Row was deleted between our INSERT attempt and this lookup (extremely rare
+        // race). Throw a proper conflict error rather than leaking a raw Prisma P2002.
+        throw new ConflictError('Message key conflict — please retry', 'DUPLICATE_MSG')
+      }
+      throw err
+    }
 
     this.logger.info({ conversationId, messageId: message.id, senderId }, 'Message sent')
+
+    // Broadcast from the service so every persistence path (socket AND the
+    // REST fallback) reaches online participants. The dedup path above returns
+    // early on purpose — the original insert already broadcast this message.
+    this.broadcastNewMessage(conversationId, message)
 
     // Fire-and-forget: denormalized counter updates don't affect the returned message
     const senderRole = this.getSenderRole(conversation, senderId)
@@ -131,6 +168,22 @@ export class ChatService {
     ]).catch((err) => this.logger.error({ err, conversationId }, 'Failed to update conversation counters'))
 
     return message
+  }
+
+  private broadcastNewMessage(
+    conversationId: string,
+    message: { id: string; content: string; createdAt: Date | string },
+  ) {
+    const io = this.getIo()
+    if (!io) return
+
+    const room = `conversation:${conversationId}`
+    io.to(room).emit('chat:message', message)
+    io.to(room).emit('chat:conversation-update', {
+      conversationId,
+      lastMessagePreview: message.content.substring(0, MESSAGE_PREVIEW_LENGTH),
+      lastMessageAt: message.createdAt,
+    })
   }
 
   /**

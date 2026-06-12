@@ -115,6 +115,13 @@ export const cacheService = new CacheService(redis, logger)
 // ── Security ────────────────────────────────────────
 const loginAttemptTracker = new LoginAttemptTracker(redis)
 
+// ── Socket.IO (lazy) ────────────────────────────────
+// Instance is set via setIoInstance() after the HTTP server starts; services
+// that broadcast must read it through the getter, never capture it directly.
+let ioInstance: import('socket.io').Server | null = null
+export function setIoInstance(io: import('socket.io').Server) { ioInstance = io }
+const getIo = () => ioInstance
+
 // ── Services ─────────────────────────────────────────
 export const authService = new AuthService(
   userRepo,
@@ -148,7 +155,7 @@ const paymentService = razorpayClient
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
 export const walletService = new WalletService(walletRepo, logger)
-export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger)
+export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger, getIo)
 const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
 export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organizerProfileRepo, logger)
 
@@ -165,11 +172,7 @@ export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && 
   : new MockEmailProvider(logger)
 
 // ── Notification Channel Providers ──────────────────
-// Socket.IO instance is set later via setIoInstance() after server starts
-let ioInstance: import('socket.io').Server | null = null
-export function setIoInstance(io: import('socket.io').Server) { ioInstance = io }
-
-const inAppProvider = new InAppNotificationProvider(notificationRepo, () => ioInstance, logger)
+const inAppProvider = new InAppNotificationProvider(notificationRepo, getIo, logger)
 const emailNotifProvider = new EmailNotificationProvider(emailProvider, logger)
 const smsProvider = new SmsNotificationProvider(logger)
 const pushProvider = new PushNotificationProvider(logger)
