@@ -242,9 +242,15 @@ export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddlewa
 export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCategoryController)
 export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)
 export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
-export const webhookRoutes = webhookController
-  ? createWebhookRoutes(webhookController, env.RAZORPAY_WEBHOOK_SECRET || '')
-  : null
+export const webhookRoutes = (() => {
+  if (!webhookController) return null
+  const secret = env.RAZORPAY_WEBHOOK_SECRET || ''
+  if (!secret) {
+    logger.warn('RAZORPAY_WEBHOOK_SECRET is not set — webhook routes will NOT be mounted. Set it to accept Razorpay callbacks.')
+    return null
+  }
+  return createWebhookRoutes(webhookController, secret)
+})()
 
 // ── Sitemap Dependencies ─────────────────────────────
 // Lightweight export for the inline /sitemap-data route — no service layer needed

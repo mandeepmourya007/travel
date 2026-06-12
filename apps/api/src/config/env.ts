@@ -50,6 +50,23 @@ const envSchema = z.object({
       message: 'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY must all be set together',
     })
   }
+
+  if (data.NODE_ENV === 'production') {
+    // P0-3: Webhook secret required in prod — empty secret allows anyone to forge signed events
+    if (data.RAZORPAY_KEY_ID && !data.RAZORPAY_WEBHOOK_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'RAZORPAY_WEBHOOK_SECRET is required in production when RAZORPAY_KEY_ID is set',
+      })
+    }
+    // P3-1: Redis required in prod — without it rate-limiting is per-process and caching is disabled
+    if (!data.REDIS_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'REDIS_URL is required in production',
+      })
+    }
+  }
 })
 
 export const env = envSchema.parse(process.env)
