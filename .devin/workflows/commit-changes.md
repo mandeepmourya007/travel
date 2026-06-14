@@ -169,6 +169,7 @@ git add apps/web/src/hooks/use-trips.ts apps/web/src/components/trips/trip-card.
 - **Commit in dependency order** — shared types first, then BE, then FE, then tests, then docs, then config
 - **One `run_command` call** — combine all `git add && git commit` pairs with `&&` into a single command string
 - **If any group fails, the chain stops** — this is intentional; fix the issue and re-run the remaining groups
+- **Never add `Co-Authored-By` trailers** — do not append any co-author lines to commit messages
 - **Verify after all commits**:
 
 ```bash
