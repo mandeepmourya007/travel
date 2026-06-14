@@ -437,6 +437,245 @@ describe('BookingService', () => {
         { tripId: 'trip-1', numTravelers: 2 },
       )
     })
+
+    // ── Refund amount unit conversion ───────────────────────────────────────
+
+    it('should store REFUND tx in rupees and call Razorpay in paise (100% refund)', async () => {
+      const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE >=48h → 100%, totalAmount=9000
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-1', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc123' },
+      ])
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-1' })
+      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_x', status: 'processed' })
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(result.refundAmount).toBe(9000)
+      // REFUND tx stored in rupees — never paise
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'REFUND',
+        amount: 9000,
+        status: 'INITIATED',
+      }))
+      // Razorpay API receives amount in paise
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_abc123',
+        900000, // 9000 rupees × 100
+        expect.objectContaining({ bookingId: 'booking-1' }),
+      )
+    })
+
+    it('should store REFUND tx in rupees and call Razorpay in paise (50% partial refund)', async () => {
+      const booking = createMockBooking({
+        totalAmount: 8000,
+        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-2', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_def456' },
+      ])
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-2' })
+      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_y', status: 'processed' })
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'Emergency')
+
+      expect(result.refundPercent).toBe(50)
+      expect(result.refundAmount).toBe(4000) // Math.round(8000 * 50 / 100)
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        amount: 4000, // rupees, not paise
+        status: 'INITIATED',
+      }))
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_def456',
+        400000, // 4000 rupees × 100
+        expect.any(Object),
+      )
+    })
+
+    it('should NOT create REFUND tx or call initiateRefund when STRICT policy (0% refund)', async () => {
+      const booking = createMockBooking({
+        trip: { ...futureTrip, cancellationPolicy: 'STRICT' },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-3', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_strict' },
+      ])
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundAmount).toBe(0)
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    it('should NOT call initiateRefund when preCancelStatus is PENDING_PAYMENT (no captured payment)', async () => {
+      const booking = createMockBooking({ bookingStatus: 'PENDING_PAYMENT', trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'PENDING_PAYMENT' })
+      // Even if a CAPTURED tx somehow exists, refund must NOT fire for non-CONFIRMED cancels
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-4', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_pp' },
+      ])
+
+      await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      // wasConfirmed = false → initiateBookingRefund never entered at all
+      expect(mockPaymentTxRepo.findByBookingId).not.toHaveBeenCalled()
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    it('should swallow Razorpay error and leave REFUND tx INITIATED for ops retry', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-5', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_err' },
+      ])
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-err' })
+      mockPaymentService.initiateRefund.mockRejectedValue(new Error('Razorpay gateway timeout'))
+
+      // Cancellation is committed — the Razorpay failure must NOT propagate
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.bookingStatus).toBe('CANCELLED')
+      expect(result.refundAmount).toBe(9000)
+      // REFUND tx was created (INITIATED) before the Razorpay call — remains as retry target
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'REFUND',
+        status: 'INITIATED',
+      }))
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalled()
+    })
+
+    it('should skip Razorpay call when no CAPTURED payment tx exists (only AUTHORIZED tx)', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-auth', type: 'PAYMENT', status: 'AUTHORIZED', razorpayPaymentId: 'pay_auth' },
+      ])
+
+      await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    it('should skip Razorpay call when PAYMENT tx has no razorpayPaymentId', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap-6', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: null },
+      ])
+
+      await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    // ── Math.round edge cases ───────────────────────────────────────────────
+
+    it('should Math.round refund amount for odd totalAmount (50% of 9001 = 4501)', async () => {
+      const booking = createMockBooking({
+        totalAmount: 9001,
+        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      // Math.round(9001 * 50 / 100) = Math.round(4500.5) = 4501
+      expect(result.refundAmount).toBe(4501)
+      expect(result.refundPercent).toBe(50)
+    })
+
+    it('should Math.round refund amount for odd totalAmount (50% of 8999 = 4500)', async () => {
+      const booking = createMockBooking({
+        totalAmount: 8999,
+        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      // Math.round(8999 * 50 / 100) = Math.round(4499.5) = 4500
+      expect(result.refundAmount).toBe(4500)
+    })
+
+    // ── 48-hour boundary ────────────────────────────────────────────────────
+
+    it('should give 100% refund for FLEXIBLE at >=48h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'FLEXIBLE',
+          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 + 5000), // 48h + 5s buffer
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(100)
+    })
+
+    it('should give 50% refund for FLEXIBLE just under 48h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'FLEXIBLE',
+          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 - 1), // 1ms under 48h
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(50)
+    })
+
+    it('should give 50% refund for MODERATE at >=48h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'MODERATE',
+          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 + 5000),
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(50)
+    })
+
+    it('should give 0% refund for MODERATE just under 48h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'MODERATE',
+          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 - 1),
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(0)
+    })
+
+    it('should give 0% refund for unknown/null cancellation policy (defensive default)', async () => {
+      const booking = createMockBooking({
+        trip: { ...futureTrip, cancellationPolicy: 'UNKNOWN_POLICY' },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(0)
+      expect(result.refundAmount).toBe(0)
+    })
   })
 
   // ═══════════════════════════════════════════════════

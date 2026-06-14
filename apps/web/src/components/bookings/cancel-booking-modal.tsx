@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import type { MyBookingListItem } from '@shared/types/booking.types'
+import { estimateRefund } from '@shared/utils/refund'
 import { useCancelBooking } from '@/hooks/use-cancel-booking'
 
 interface CancelBookingModalProps {
@@ -31,6 +32,7 @@ export function CancelBookingModal({ booking, onClose }: CancelBookingModalProps
 
   const isReasonValid = reason.trim().length >= 5
   const showValidation = reason.length > 0 && !isReasonValid
+  const refundEstimate = estimateRefund(booking.totalAmount, booking.trip.cancellationPolicy, booking.trip.startDate)
 
   const handleConfirm = () => {
     if (!isReasonValid) return
@@ -72,6 +74,18 @@ export function CancelBookingModal({ booking, onClose }: CancelBookingModalProps
           <div className="flex justify-between">
             <span className="text-neutral-500">Cancellation Policy</span>
             <span className="font-medium">{booking.trip.cancellationPolicy}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Amount Paid</span>
+            <span className="font-medium">₹{booking.totalAmount.toLocaleString('en-IN')}</span>
+          </div>
+          <div className="flex justify-between rounded-md bg-neutral-100 px-2 py-1.5">
+            <span className="font-medium text-neutral-700">Estimated Refund</span>
+            <span className={`font-semibold ${refundEstimate.amount > 0 ? 'text-success-600' : 'text-error-600'}`}>
+              {refundEstimate.amount > 0
+                ? `₹${refundEstimate.amount.toLocaleString('en-IN')} (${refundEstimate.percent}%)`
+                : 'No refund'}
+            </span>
           </div>
         </div>
 

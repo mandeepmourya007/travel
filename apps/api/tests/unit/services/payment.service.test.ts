@@ -626,5 +626,45 @@ describe('PaymentService', () => {
 
       expect(mockLogger.warn).toHaveBeenCalled()
     })
+
+    it('should still mark PAYMENT tx REFUNDED when no INITIATED REFUND tx found (external refund)', async () => {
+      const paymentTx = createMockPaymentTx({ status: 'CAPTURED', razorpayPaymentId: 'pay_test456', bookingId: 'booking-1' })
+      mockPaymentTxRepo.findByRazorpayPaymentId.mockResolvedValue(paymentTx)
+      // No INITIATED REFUND tx — refund was triggered externally (e.g. Razorpay dashboard)
+      mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(null)
+      mockPaymentTxRepo.updateStatus.mockResolvedValue({})
+
+      const payload = {
+        refund: { entity: { id: 'rfnd_ext', payment_id: 'pay_test456', amount: 500000, status: 'processed' } },
+        payment: { entity: createMockPayment({ status: 'refunded' }) },
+      }
+
+      await service.handleRefundProcessed(payload)
+
+      // PAYMENT tx still marked REFUNDED for ledger accuracy
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
+        'ptx-1', 'REFUNDED',
+        expect.objectContaining({ razorpayRefundId: 'rfnd_ext' }),
+      )
+      // Only one updateStatus call — no REFUND tx to update
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledTimes(1)
+      expect(mockLogger.warn).toHaveBeenCalled()
+    })
+
+    it('should return early without throwing when refund entity is missing from payload', async () => {
+      const payload = { refund: undefined, payment: { entity: createMockPayment() } }
+
+      await service.handleRefundProcessed(payload as any)
+
+      expect(mockPaymentTxRepo.findByRazorpayPaymentId).not.toHaveBeenCalled()
+    })
+
+    it('should return early without throwing when payment entity is missing from payload', async () => {
+      const payload = { refund: { entity: { id: 'rfnd_test789', payment_id: 'pay_test456' } }, payment: undefined }
+
+      await service.handleRefundProcessed(payload as any)
+
+      expect(mockPaymentTxRepo.findByRazorpayPaymentId).not.toHaveBeenCalled()
+    })
   })
 })

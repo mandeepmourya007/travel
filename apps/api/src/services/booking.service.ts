@@ -14,7 +14,8 @@ import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
 import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
-import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, CANCELLATION_POLICY } from '@shared/constants'
+import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
+import { calculateRefundPercent } from '@shared/utils/refund'
 import { env } from '../config/env'
 
 /** Maps Prisma's nested assignedSeat → flat API shape */
@@ -186,7 +187,7 @@ export class BookingService {
     if (booking.userId !== userId) throw new ForbiddenError('You can only cancel your own bookings')
 
     const hoursUntilTrip = (booking.trip.startDate.getTime() - Date.now()) / (1000 * 60 * 60)
-    const refundPercent = this.calculateRefundPercent(booking.trip.cancellationPolicy, hoursUntilTrip)
+    const refundPercent = calculateRefundPercent(booking.trip.cancellationPolicy, hoursUntilTrip)
     const refundAmount = Math.round((booking.totalAmount * refundPercent) / 100)
 
     // Atomic gate with SELECT FOR UPDATE: captures the true pre-cancel status and atomically
@@ -737,13 +738,4 @@ export class BookingService {
     }
   }
 
-  /** Refund % based on cancellation policy and hours until trip */
-  private calculateRefundPercent(policy: string, hoursUntilTrip: number): number {
-    switch (policy) {
-      case CANCELLATION_POLICY.FLEXIBLE: return hoursUntilTrip >= 48 ? 100 : 50
-      case CANCELLATION_POLICY.MODERATE: return hoursUntilTrip >= 48 ? 50 : 0
-      case CANCELLATION_POLICY.STRICT: return 0
-      default: return 0
-    }
-  }
 }
