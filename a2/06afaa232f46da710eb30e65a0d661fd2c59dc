@@ -1,0 +1,19 @@
+apps/api/src/utils/constants.ts
+  s_0cb8bffee350f9::t_a8c408e97d211d 107-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a206afaa232f46da710eb30e65a0d661fd2c59dc",
+  "prompts": {},
+  "sessions": {
+    "s_0cb8bffee350f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "50073554-d14f-48e6-b20f-fe54252893d0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
