@@ -139,6 +139,57 @@ function organizerRejected(title: string, body: string, _data: TemplateData): Te
   }
 }
 
+function reviewRequest(title: string, body: string, data: TemplateData): TemplateResult {
+  const tripName = (data?.tripName as string) || 'your trip'
+  const tripSlug = (data?.tripSlug as string) || ''
+  return {
+    subject: `How was ${tripName}? Share your experience`,
+    html: baseLayout(
+      heading('Share Your Experience!') +
+      paragraph(body) +
+      paragraph('Your review helps fellow travelers make better decisions and rewards great organizers.') +
+      cta('Leave a Review', tripSlug ? `${CLIENT_URL}/trips/${tripSlug}#reviews` : `${CLIENT_URL}/bookings`),
+    ),
+    text: `${title}\n\n${body}\n\nLeave a review: ${CLIENT_URL}/bookings`,
+  }
+}
+
+function tripReminder(title: string, body: string, data: TemplateData): TemplateResult {
+  const tripName = (data?.tripName as string) || 'your upcoming trip'
+  const pickupTime = (data?.pickupTime as string) || ''
+  const pickupLabel = (data?.pickupLabel as string) || ''
+  const tripSlug = (data?.tripSlug as string) || ''
+  const pickupDetails = pickupLabel || pickupTime
+    ? `Pickup: ${[pickupLabel, pickupTime].filter(Boolean).join(' @ ')}`
+    : ''
+  return {
+    subject: `Reminder — ${tripName} is coming up!`,
+    html: baseLayout(
+      heading(`Your trip is almost here!`) +
+      paragraph(body) +
+      (pickupDetails ? highlight(pickupDetails) : '') +
+      cta('View Trip Details', tripSlug ? `${CLIENT_URL}/trips/${tripSlug}` : `${CLIENT_URL}/bookings`),
+    ),
+    text: `${title}\n\n${body}${pickupDetails ? `\n\n${pickupDetails}` : ''}`,
+  }
+}
+
+function walletCreditExpiring(title: string, body: string, data: TemplateData): TemplateResult {
+  const amount = (data?.amount as number) || 0
+  const daysLeft = (data?.daysLeft as number) || 7
+  return {
+    subject: `₹${amount} wallet credit expiring in ${daysLeft} days`,
+    html: baseLayout(
+      heading('Use Your Wallet Balance!') +
+      paragraph(body) +
+      highlight(`₹${amount} expiring in ${daysLeft} days`) +
+      paragraph('Book a trip to use your balance before it expires.') +
+      cta('Explore Trips', `${CLIENT_URL}/trips`),
+    ),
+    text: `${title}\n\n${body}`,
+  }
+}
+
 function generic(title: string, body: string, _data: TemplateData): TemplateResult {
   return {
     subject: title,
@@ -154,6 +205,9 @@ const templateMap: Partial<Record<NotificationType, (title: string, body: string
   TRIP_REQUEST_APPROVED: tripRequestApproved,
   ORGANIZER_APPROVED: organizerApproved,
   ORGANIZER_REJECTED: organizerRejected,
+  REVIEW_REQUEST: reviewRequest,
+  TRIP_REMINDER: tripReminder,
+  WALLET_CREDIT_EXPIRING: walletCreditExpiring,
 }
 
 export function getEmailTemplate(
