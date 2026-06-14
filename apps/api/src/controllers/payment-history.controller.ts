@@ -53,4 +53,11 @@ export class PaymentHistoryController {
     const summary = await this.paymentHistoryService.getGlobalSummary()
     res.json({ success: true, data: summary })
   })
+
+  getPayoutStatement = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.id
+    const tripId = req.params.tripId as string | undefined
+    const statement = await this.paymentHistoryService.getPayoutStatement(userId, tripId)
+    res.json({ success: true, data: statement })
+  })
 }

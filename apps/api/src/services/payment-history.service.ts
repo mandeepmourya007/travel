@@ -94,6 +94,66 @@ export class PaymentHistoryService {
     }
   }
 
+  // ─── Organizer Payout Methods ──────────────────────
+
+  /**
+   * GET /payments/payouts — Organizer's payout statement.
+   *
+   * Returns:
+   * - Released payouts: ESCROW_RELEASE records with per-trip breakdown
+   * - Pending estimate: captured payments with no escrow release yet
+   *
+   * Ownership is enforced via the organizer profile lookup.
+   */
+  async getPayoutStatement(userId: string, tripId?: string) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new ForbiddenError('Organizer profile not found')
+
+    const [released, pendingPayments] = await Promise.all([
+      this.paymentTxRepo.findEscrowReleasesForOrganizer(profile.id, tripId),
+      this.paymentTxRepo.findPendingEscrowForOrganizer(profile.id),
+    ])
+
+    const releasedTotal = released.reduce((sum, r) => sum + r.amount, 0)
+
+    const pendingTotal = pendingPayments.reduce((sum, p) => {
+      const commissionRate = (p.booking.trip.organizer.commissionRate ?? DEFAULT_COMMISSION_RATE) / 100
+      return sum + Math.round(p.amount * (1 - commissionRate))
+    }, 0)
+
+    // Group released payouts by trip for the statement view
+    const byTrip = new Map<string, {
+      tripId: string; tripTitle: string; tripSlug: string; startDate: Date
+      payouts: Array<{ id: string; amount: number; releasedAt: string; razorpayTransferId: string | null }>
+    }>()
+
+    for (const r of released) {
+      const key = r.booking.trip.id
+      if (!byTrip.has(key)) {
+        byTrip.set(key, {
+          tripId: r.booking.trip.id,
+          tripTitle: r.booking.trip.title,
+          tripSlug: r.booking.trip.slug,
+          startDate: r.booking.trip.startDate,
+          payouts: [],
+        })
+      }
+      const meta = r.metadata as Record<string, unknown> | null
+      byTrip.get(key)!.payouts.push({
+        id: r.id,
+        amount: r.amount,
+        releasedAt: meta?.releasedAt as string ?? r.createdAt.toISOString(),
+        razorpayTransferId: r.razorpayTransferId ?? null,
+      })
+    }
+
+    return {
+      releasedTotal,
+      pendingTotal,
+      trips: Array.from(byTrip.values()),
+    }
+  }
+
   // ─── Admin Methods ─────────────────────────────────
 
   /** GET /payments/admin — Admin global view */

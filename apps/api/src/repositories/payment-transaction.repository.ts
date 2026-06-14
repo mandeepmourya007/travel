@@ -423,6 +423,74 @@ export class PaymentTransactionRepository {
     return new Set(rows.map((r) => r.bookingId))
   }
 
+  /**
+   * Returns ESCROW_RELEASE transactions for an organizer's trips, scoped to
+   * a specific trip if provided. Used for payout statements.
+   */
+  async findEscrowReleasesForOrganizer(organizerId: string, tripId?: string) {
+    return this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'ESCROW_RELEASE',
+        booking: {
+          trip: {
+            organizerId,
+            ...(tripId ? { id: tripId } : {}),
+          },
+        },
+      },
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        razorpayTransferId: true,
+        metadata: true,
+        createdAt: true,
+        booking: {
+          select: {
+            id: true,
+            bookingRef: true,
+            totalAmount: true,
+            trip: {
+              select: { id: true, slug: true, title: true, startDate: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+  }
+
+  /**
+   * Returns total captured-payment amount for an organizer's trips that do NOT
+   * yet have an ESCROW_RELEASE record — i.e., the pending payout amount.
+   */
+  async findPendingEscrowForOrganizer(organizerId: string) {
+    return this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'PAYMENT',
+        status: 'CAPTURED',
+        booking: {
+          trip: { organizerId },
+          NOT: {
+            paymentTransactions: {
+              some: { type: 'ESCROW_RELEASE' },
+            },
+          },
+        },
+      },
+      select: {
+        amount: true,
+        booking: {
+          select: {
+            trip: {
+              select: { id: true, title: true, organizerId: true, organizer: { select: { commissionRate: true } } },
+            },
+          },
+        },
+      },
+    })
+  }
+
   // ─── Private helpers ────────────────────────────────
 
   /**

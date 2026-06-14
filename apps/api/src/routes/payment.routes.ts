@@ -42,6 +42,21 @@ export function createPaymentRoutes(
     paymentHistoryController.getTripPaymentSummary,
   )
 
+  // ─── Organizer payout statement ───────────────────
+  router.get(
+    '/payouts',
+    authMiddleware,
+    requireRole('ORGANIZER', 'ADMIN'),
+    paymentHistoryController.getPayoutStatement,
+  )
+
+  router.get(
+    '/trip/:tripId/payouts',
+    authMiddleware,
+    requireRole('ORGANIZER', 'ADMIN'),
+    paymentHistoryController.getPayoutStatement,
+  )
+
   // ─── Admin routes ──────────────────────────────────
   router.get(
     '/admin',
