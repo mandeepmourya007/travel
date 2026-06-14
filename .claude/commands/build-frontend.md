@@ -1,1 +1,1 @@
-../../.windsurf/workflows/build-frontend.md
+../../.devin/workflows/build-frontend.md

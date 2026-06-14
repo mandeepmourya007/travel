@@ -1,1 +1,1 @@
-../../.windsurf/workflows/commit-changes.md
+../../.devin/workflows/commit-changes.md

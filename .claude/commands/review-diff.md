@@ -1,1 +1,1 @@
-../../.windsurf/workflows/review-diff.md
+../../.devin/workflows/review-diff.md

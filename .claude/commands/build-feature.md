@@ -1,1 +1,1 @@
-../../.windsurf/workflows/build-feature.md
+../../.devin/workflows/build-feature.md
