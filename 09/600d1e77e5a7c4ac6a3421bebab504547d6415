@@ -1,0 +1,21 @@
+apps/api/prisma/migrations/20260614092125_add_wallet_expiry_booking_reminder_notification_type/migration.sql
+  s_315c2e140c977c::t_cb11edf606f5ca 1-15
+apps/api/prisma/schema.prisma
+  s_315c2e140c977c::t_face9e32e56ba8 103,392-395,407,784-788,796
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "09600d1e77e5a7c4ac6a3421bebab504547d6415",
+  "prompts": {},
+  "sessions": {
+    "s_315c2e140c977c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5333237b-b75c-4125-ad17-d20656d461d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
