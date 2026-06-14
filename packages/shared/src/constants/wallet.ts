@@ -2,6 +2,7 @@
 export const WALLET_REFERENCE_MODELS = {
   BOOKING: 'Booking',
   ADMIN_ACTION: 'AdminAction',
+  WALLET_TRANSACTION: 'WalletTransaction', // used by EXPIRY debit (references the credit tx id)
 } as const
 
 export type WalletReferenceModel =

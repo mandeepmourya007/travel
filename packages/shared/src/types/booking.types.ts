@@ -1,4 +1,5 @@
 import type { TripRequestStatus } from './trip-request.types'
+import type { CancellationPolicy } from './trip.types'
 
 export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'REFUNDED' | 'EXPIRED'
 
@@ -116,7 +117,7 @@ export interface MyBookingListItem {
     endDate: string
     photos: string[]
     tripType: string
-    cancellationPolicy: string
+    cancellationPolicy: CancellationPolicy
     destination: { id: string; name: string; slug: string }
     organizer: { id: string; businessName: string; rating: number; verified: boolean }
   }

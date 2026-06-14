@@ -99,6 +99,8 @@ export interface CreateTransferPointDto {
 export interface TripFilters {
   destinationId?: string
   destination?: string
+  /** Free-text search: OR-matches title, description, destination name (ILIKE) */
+  q?: string
   tripType?: string
   bookingMode?: BookingMode
   minPrice?: number

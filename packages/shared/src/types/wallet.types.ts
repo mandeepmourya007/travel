@@ -72,6 +72,8 @@ export interface WalletTransactionDto {
   referenceModel?: string
   referenceId?: string
   description: string
+  /** Optional expiry date — set for expirable credits (cashback, promotional). Null = never expires. */
+  expiresAt?: Date | null
 }
 
 /** Admin credit/debit request body */
