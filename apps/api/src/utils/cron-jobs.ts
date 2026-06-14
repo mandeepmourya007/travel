@@ -10,7 +10,8 @@ import { VehicleService } from '../services/vehicle.service'
 import { WalletService } from '../services/wallet.service'
 import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE } from '@shared/constants'
-import { WALLET_EXPIRY_WARN_DAYS } from './constants'
+import { BOOKING_STATUS } from '@shared/constants/booking-status'
+import { RAZORPAY_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
 
 // ── Intervals (ms) ───────────────────────────────────
 const FIVE_MINUTES = 5 * 60 * 1000
@@ -56,7 +57,7 @@ async function expireStaleBookings(
         if (paymentService && paymentTx?.razorpayOrderId) {
           try {
             const orderStatus = await paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
-            if (orderStatus === 'paid') {
+            if (orderStatus === RAZORPAY_ORDER_STATUS.PAID) {
               logger.warn(
                 { bookingId: booking.id, orderId: paymentTx.razorpayOrderId },
                 'Order already paid on Razorpay — skipping expiry, webhook may have been missed',
@@ -71,7 +72,7 @@ async function expireStaleBookings(
           }
         }
 
-        await bookingRepo.updateStatus(booking.id, 'EXPIRED')
+        await bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
         logger.info({ bookingId: booking.id }, 'Booking expired')
 
         // Explicitly release seats — seat-hold timer may not coincide with booking expiry

@@ -247,13 +247,13 @@ export class BookingRepository {
         FOR UPDATE
       `
       const row = rows[0]
-      if (!row || !['CONFIRMED', 'PENDING_PAYMENT'].includes(row.bookingStatus)) {
+      if (!row || ![BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.PENDING_PAYMENT].includes(row.bookingStatus)) {
         return { rows: 0, preCancelStatus: row?.bookingStatus ?? null }
       }
 
       await tx.$executeRaw`
         UPDATE "Booking"
-        SET "bookingStatus"      = 'CANCELLED',
+        SET "bookingStatus"      = ${BOOKING_STATUS.CANCELLED},
             "cancellationReason" = ${reason},
             "cancelledAt"        = NOW(),
             "cancelledById"      = ${userId},
@@ -261,7 +261,7 @@ export class BookingRepository {
         WHERE id = ${id}
       `
 
-      if (row.bookingStatus === 'CONFIRMED' && seatArgs) {
+      if (row.bookingStatus === BOOKING_STATUS.CONFIRMED && seatArgs) {
         await tx.$executeRaw`
           UPDATE "Trip"
           SET "currentBookings" = GREATEST("currentBookings" - ${seatArgs.numTravelers}, 0),
@@ -284,10 +284,10 @@ export class BookingRepository {
   async atomicConfirmGate(id: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Booking"
-      SET "bookingStatus" = 'CONFIRMED',
+      SET "bookingStatus" = ${BOOKING_STATUS.CONFIRMED},
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus" = 'PENDING_PAYMENT'
+        AND "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT}
         AND "isDeleted" = false
     `
   }
@@ -300,10 +300,10 @@ export class BookingRepository {
   async revertConfirmGate(id: string): Promise<void> {
     const rows = await this.prisma.$executeRaw`
       UPDATE "Booking"
-      SET "bookingStatus" = 'PENDING_PAYMENT',
+      SET "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT},
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus" = 'CONFIRMED'
+        AND "bookingStatus" = ${BOOKING_STATUS.CONFIRMED}
         AND "isDeleted" = false
     `
     if (rows === 0) {
@@ -327,11 +327,11 @@ export class BookingRepository {
     const cutoff = new Date(Date.now() - olderThanMinutes * 60 * 1000)
     return this.prisma.booking.findMany({
       where: {
-        bookingStatus: 'CONFIRMED',
+        bookingStatus: BOOKING_STATUS.CONFIRMED,
         isDeleted: false,
         updatedAt: { lt: cutoff },
         paymentTransactions: {
-          none: { type: 'PAYMENT', status: 'CAPTURED' },
+          none: { type: PAYMENT_TX_TYPE.PAYMENT, status: PAYMENT_TX_STATUS.CAPTURED },
         },
       },
       select: { id: true, updatedAt: true },
@@ -586,8 +586,8 @@ export class BookingRepository {
            ) AS m(month)
       LEFT JOIN "PaymentTransaction" pt
         ON DATE_TRUNC('month', pt."createdAt") = m.month
-        AND pt."type" = 'PAYMENT'
-        AND pt."status" = 'CAPTURED'
+        AND pt."type" = ${PAYMENT_TX_TYPE.PAYMENT}
+        AND pt."status" = ${PAYMENT_TX_STATUS.CAPTURED}
       GROUP BY m.month
       ORDER BY m.month ASC
     `

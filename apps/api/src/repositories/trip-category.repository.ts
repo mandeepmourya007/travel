@@ -1,4 +1,4 @@
-import type { TripTypeRequestStatus } from '@prisma/client'
+import { TripTypeRequestStatus } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class TripCategoryRepository {
@@ -94,7 +94,7 @@ export class TripCategoryRepository {
 
   async findPendingByName(organizerId: string, suggestedName: string) {
     return this.prisma.tripTypeRequest.findFirst({
-      where: { organizerId, suggestedName, status: 'PENDING' },
+      where: { organizerId, suggestedName, status: TripTypeRequestStatus.PENDING },
     })
   }
 }

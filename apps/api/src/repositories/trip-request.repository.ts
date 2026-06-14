@@ -1,6 +1,7 @@
 import { Prisma, type Gender } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
+import { TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 
 const TRAVELER_DETAIL_SELECT = {
   where: { isDeleted: false },
@@ -107,7 +108,7 @@ export class TripRequestRepository {
       where: {
         tripId,
         userId,
-        status: 'APPROVED',
+        status: TRIP_REQUEST_STATUS.APPROVED,
         isDeleted: false,
         approvalExpiresAt: { gt: new Date() },
       },
@@ -125,7 +126,7 @@ export class TripRequestRepository {
   async findAllPendingForOrganizer(organizerId: string) {
     return this.prisma.tripRequest.findMany({
       where: {
-        status: 'PENDING',
+        status: TRIP_REQUEST_STATUS.PENDING,
         isDeleted: false,
         trip: { organizerId, isDeleted: false },
       },
@@ -193,8 +194,8 @@ export class TripRequestRepository {
         userId,
         isDeleted: false,
         OR: [
-          { status: 'PENDING' },
-          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+          { status: TRIP_REQUEST_STATUS.PENDING },
+          { status: TRIP_REQUEST_STATUS.APPROVED, approvalExpiresAt: { gt: new Date() } },
         ],
       },
       orderBy: { createdAt: 'desc' },
@@ -227,8 +228,8 @@ export class TripRequestRepository {
    */
   async markConverted(id: string, bookingId: string) {
     return this.prisma.tripRequest.update({
-      where: { id, status: 'APPROVED' },
-      data: { status: 'CONVERTED', bookingId },
+      where: { id, status: TRIP_REQUEST_STATUS.APPROVED },
+      data: { status: TRIP_REQUEST_STATUS.CONVERTED, bookingId },
     })
   }
 
@@ -244,8 +245,8 @@ export class TripRequestRepository {
         userId,
         isDeleted: false,
         OR: [
-          { status: 'PENDING' },
-          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+          { status: TRIP_REQUEST_STATUS.PENDING },
+          { status: TRIP_REQUEST_STATUS.APPROVED, approvalExpiresAt: { gt: new Date() } },
         ],
       },
     })
@@ -281,8 +282,8 @@ export class TripRequestRepository {
         userId,
         isDeleted: false,
         OR: [
-          { status: 'PENDING' },
-          { status: 'APPROVED', approvalExpiresAt: { gt: new Date() } },
+          { status: TRIP_REQUEST_STATUS.PENDING },
+          { status: TRIP_REQUEST_STATUS.APPROVED, approvalExpiresAt: { gt: new Date() } },
         ],
       },
       select: { id: true, status: true },
@@ -298,7 +299,7 @@ export class TripRequestRepository {
       where: {
         tripId,
         userId,
-        status: { in: ['EXPIRED', 'REJECTED'] },
+        status: { in: [TRIP_REQUEST_STATUS.EXPIRED, TRIP_REQUEST_STATUS.REJECTED] },
         isDeleted: false,
       },
     })
@@ -329,7 +330,7 @@ export class TripRequestRepository {
       this.prisma.tripRequest.update({
         where: { id },
         data: {
-          status: 'PENDING',
+          status: TRIP_REQUEST_STATUS.PENDING,
           numTravelers: data.numTravelers,
           message: data.message ?? null,
           respondedAt: null,
@@ -359,11 +360,11 @@ export class TripRequestRepository {
   async expireApprovedRequests() {
     return this.prisma.tripRequest.updateMany({
       where: {
-        status: 'APPROVED',
+        status: TRIP_REQUEST_STATUS.APPROVED,
         isDeleted: false,
         approvalExpiresAt: { lt: new Date() },
       },
-      data: { status: 'EXPIRED' },
+      data: { status: TRIP_REQUEST_STATUS.EXPIRED },
     })
   }
 }

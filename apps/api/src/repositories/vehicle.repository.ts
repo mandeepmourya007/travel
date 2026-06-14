@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
+import { SEAT_STATUS } from '@shared/constants/vehicle'
 import type { SeatCellTypeConst } from '@shared/constants/vehicle'
 
 interface CreateVehicleData {
@@ -164,7 +165,7 @@ export class VehicleRepository {
       where: {
         tripVehicleId: vehicleId,
         isDeleted: false,
-        status: { in: ['BOOKED', 'HELD'] },
+        status: { in: [SEAT_STATUS.BOOKED, SEAT_STATUS.HELD] },
       },
     })
   }
@@ -204,11 +205,11 @@ export class VehicleRepository {
     const result = await this.prisma.vehicleSeat.updateMany({
       where: {
         id: { in: seatIds },
-        status: 'AVAILABLE',
+        status: SEAT_STATUS.AVAILABLE,
         isDeleted: false,
       },
       data: {
-        status: 'HELD',
+        status: SEAT_STATUS.HELD,
         bookingId,
         heldByUserId: userId,
         heldAt: now,
@@ -227,11 +228,11 @@ export class VehicleRepository {
       where: {
         bookingId,
         heldByUserId: userId,
-        status: 'HELD',
+        status: SEAT_STATUS.HELD,
         isDeleted: false,
       },
       data: {
-        status: 'BOOKED',
+        status: SEAT_STATUS.BOOKED,
         heldAt: null,
         heldUntil: null,
       },
@@ -253,10 +254,10 @@ export class VehicleRepository {
       where: {
         bookingId,
         isDeleted: false,
-        status: { in: ['HELD', 'BOOKED'] },
+        status: { in: [SEAT_STATUS.HELD, SEAT_STATUS.BOOKED] },
       },
       data: {
-        status: 'AVAILABLE',
+        status: SEAT_STATUS.AVAILABLE,
         bookingId: null,
         heldByUserId: null,
         heldAt: null,
@@ -275,12 +276,12 @@ export class VehicleRepository {
   async expireHeldSeats(): Promise<number> {
     const result = await this.prisma.vehicleSeat.updateMany({
       where: {
-        status: 'HELD',
+        status: SEAT_STATUS.HELD,
         heldUntil: { lt: new Date() },
         isDeleted: false,
       },
       data: {
-        status: 'AVAILABLE',
+        status: SEAT_STATUS.AVAILABLE,
         bookingId: null,
         heldByUserId: null,
         heldAt: null,

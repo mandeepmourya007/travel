@@ -1,5 +1,7 @@
 import type { PaymentStatus, PaymentType, Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
+import { BOOKING_STATUS, TRIP_STATUS } from '@shared/constants'
+import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 const BOOKING_SELECT_BASE = {
   id: true,
@@ -215,8 +217,8 @@ export class PaymentTransactionRepository {
         _sum: { amount: true },
         where: {
           booking: { userId },
-          type: { in: ['PAYMENT', 'REFUND'] },
-          status: { in: ['CAPTURED', 'INITIATED'] },
+          type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
+          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.INITIATED] },
         },
       }),
       this.prisma.paymentTransaction.count({
@@ -228,9 +230,9 @@ export class PaymentTransactionRepository {
     let pendingRefunds = 0
     for (const g of groups) {
       const amt = g._sum.amount ?? 0
-      if (g.type === 'PAYMENT' && g.status === 'CAPTURED') totalPaid = amt
-      if (g.type === 'REFUND' && g.status === 'CAPTURED') totalRefunded = amt
-      if (g.type === 'REFUND' && g.status === 'INITIATED') pendingRefunds = amt
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT && g.status === PAYMENT_TX_STATUS.CAPTURED) totalPaid = amt
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.CAPTURED) totalRefunded = amt
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.INITIATED) pendingRefunds = amt
     }
     return { totalPaid, totalRefunded, pendingRefunds, transactionCount }
   }
@@ -248,22 +250,22 @@ export class PaymentTransactionRepository {
         _sum: { amount: true },
         where: {
           booking: { tripId },
-          status: 'CAPTURED',
-          type: { in: ['PAYMENT', 'REFUND'] },
+          status: PAYMENT_TX_STATUS.CAPTURED,
+          type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
         },
       }),
       this.prisma.paymentTransaction.count({
         where: { booking: { tripId } },
       }),
       this.prisma.paymentTransaction.count({
-        where: { booking: { tripId }, type: 'REFUND' },
+        where: { booking: { tripId }, type: PAYMENT_TX_TYPE.REFUND },
       }),
     ])
     let totalRevenue = 0
     let totalRefunded = 0
     for (const g of groups) {
-      if (g.type === 'PAYMENT') totalRevenue = g._sum.amount ?? 0
-      if (g.type === 'REFUND') totalRefunded = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT) totalRevenue = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND) totalRefunded = g._sum.amount ?? 0
     }
     return { totalRevenue, totalRefunded, transactionCount: txCount, refundCount }
   }
@@ -279,20 +281,20 @@ export class PaymentTransactionRepository {
         by: ['type'],
         _sum: { amount: true },
         where: {
-          status: 'CAPTURED',
-          type: { in: ['PAYMENT', 'REFUND'] },
+          status: PAYMENT_TX_STATUS.CAPTURED,
+          type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
         },
       }),
       this.prisma.paymentTransaction.count({}),
       this.prisma.paymentTransaction.count({
-        where: { status: 'FAILED' },
+        where: { status: PAYMENT_TX_STATUS.FAILED },
       }),
     ])
     let totalRevenue = 0
     let totalRefunded = 0
     for (const g of groups) {
-      if (g.type === 'PAYMENT') totalRevenue = g._sum.amount ?? 0
-      if (g.type === 'REFUND') totalRefunded = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT) totalRevenue = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND) totalRefunded = g._sum.amount ?? 0
     }
     return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
   }
@@ -309,10 +311,10 @@ export class PaymentTransactionRepository {
   async findCapturedTransfersForTrip(tripId: string) {
     return this.prisma.paymentTransaction.findMany({
       where: {
-        type: 'PAYMENT',
-        status: 'CAPTURED',
+        type: PAYMENT_TX_TYPE.PAYMENT,
+        status: PAYMENT_TX_STATUS.CAPTURED,
         // Only release escrow for bookings that completed — CANCELLED bookings must never receive a transfer
-        booking: { tripId, isDeleted: false, bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] } },
+        booking: { tripId, isDeleted: false, bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] } },
       },
       select: {
         id: true,
@@ -354,13 +356,13 @@ export class PaymentTransactionRepository {
 
     const unreleased = await this.prisma.paymentTransaction.findMany({
       where: {
-        type: 'PAYMENT',
-        status: 'CAPTURED',
+        type: PAYMENT_TX_TYPE.PAYMENT,
+        status: PAYMENT_TX_STATUS.CAPTURED,
         // Only crash-recover escrow for bookings that actually completed
         booking: {
           isDeleted: false,
-          bookingStatus: { in: ['CONFIRMED', 'COMPLETED'] },
-          trip: { status: 'COMPLETED', isDeleted: false },
+          bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] },
+          trip: { status: TRIP_STATUS.COMPLETED, isDeleted: false },
         },
       },
       select: {
@@ -399,8 +401,8 @@ export class PaymentTransactionRepository {
     return this.prisma.paymentTransaction.findFirst({
       where: {
         bookingId,
-        type: 'REFUND',
-        status: 'INITIATED',
+        type: PAYMENT_TX_TYPE.REFUND,
+        status: PAYMENT_TX_STATUS.INITIATED,
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -467,8 +469,8 @@ export class PaymentTransactionRepository {
   async findPendingEscrowForOrganizer(organizerId: string) {
     return this.prisma.paymentTransaction.findMany({
       where: {
-        type: 'PAYMENT',
-        status: 'CAPTURED',
+        type: PAYMENT_TX_TYPE.PAYMENT,
+        status: PAYMENT_TX_STATUS.CAPTURED,
         booking: {
           trip: { organizerId },
           NOT: {

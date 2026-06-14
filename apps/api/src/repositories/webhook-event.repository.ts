@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
+import { WEBHOOK_STATUS } from '../utils/constants'
 
 export class WebhookEventRepository {
   constructor(private prisma: ExtendedPrismaClient) {}
@@ -142,7 +143,7 @@ export class WebhookEventRepository {
   async findFailedEvents(source?: string, limit = 50) {
     return this.prisma.webhookEvent.findMany({
       where: {
-        status: 'FAILED',
+        status: WEBHOOK_STATUS.FAILED,
         ...(source && { source }),
       },
       orderBy: { createdAt: 'desc' },

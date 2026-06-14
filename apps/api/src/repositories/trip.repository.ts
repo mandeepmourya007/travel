@@ -3,7 +3,9 @@ import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 import type { DestinationTripFilters } from '@shared/types/destination.types'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
+import { TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 export const TRIP_INCLUDE_SUMMARY = {
   destination: {
@@ -179,7 +181,7 @@ export class TripRepository {
     const where: Prisma.TripWhereInput = {
       destinationId,
       isDeleted: false,
-      status: { in: ['ACTIVE', 'FULL'] },
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
       ...(filters?.tripType ? { tripType: filters.tripType } : {}),
       ...(filters?.minPrice || filters?.maxPrice
         ? {
@@ -220,7 +222,7 @@ export class TripRepository {
     const baseWhere: Prisma.TripWhereInput = {
       destinationId,
       isDeleted: false,
-      status: { in: ['ACTIVE', 'FULL'] },
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
     }
 
     const [priceAgg, organizerIds, upcomingCount] = await Promise.all([
@@ -278,7 +280,7 @@ export class TripRepository {
 
   async findSlugsForSitemap(): Promise<{ slug: string; updatedAt: Date }[]> {
     return this.prisma.trip.findMany({
-      where: { isDeleted: false, status: { in: ['ACTIVE', 'FULL'] } },
+      where: { isDeleted: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
     })
@@ -300,7 +302,7 @@ export class TripRepository {
 
     return {
       isDeleted: false,
-      status: 'ACTIVE',
+      status: TRIP_STATUS.ACTIVE,
       ...textFilter,
       ...(filters.destinationId && { destinationId: filters.destinationId }),
       ...(filters.destination && {
@@ -341,8 +343,8 @@ export class TripRepository {
       by: ['type'],
       _sum: { amount: true },
       where: {
-        status: 'CAPTURED',
-        type: { in: ['PAYMENT', 'REFUND'] },
+        status: PAYMENT_TX_STATUS.CAPTURED,
+        type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
         booking: {
           trip: { organizerId, isDeleted: false },
         },
@@ -351,8 +353,8 @@ export class TripRepository {
     let payments = 0
     let refunded = 0
     for (const g of groups) {
-      if (g.type === 'PAYMENT') payments = g._sum.amount ?? 0
-      if (g.type === 'REFUND') refunded = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT) payments = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND) refunded = g._sum.amount ?? 0
     }
     return payments - refunded
   }
@@ -365,7 +367,7 @@ export class TripRepository {
   async countPendingRequests(organizerId: string): Promise<number> {
     return this.prisma.tripRequest.count({
       where: {
-        status: 'PENDING',
+        status: TRIP_REQUEST_STATUS.PENDING,
         isDeleted: false,
         trip: { organizerId, isDeleted: false },
       },
@@ -505,11 +507,11 @@ export class TripRepository {
   async markFullIfAtCapacity(tripId: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Trip"
-      SET status = 'FULL',
+      SET status = ${TRIP_STATUS.FULL},
           "updatedAt" = NOW()
       WHERE id = ${tripId}
         AND "currentBookings" >= "maxGroupSize"
-        AND status = 'ACTIVE'
+        AND status = ${TRIP_STATUS.ACTIVE}
         AND "isDeleted" = false
     `
   }
@@ -523,11 +525,11 @@ export class TripRepository {
   async revertFullIfUnderCapacity(tripId: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Trip"
-      SET status = 'ACTIVE',
+      SET status = ${TRIP_STATUS.ACTIVE},
           "updatedAt" = NOW()
       WHERE id = ${tripId}
         AND "currentBookings" < "maxGroupSize"
-        AND status = 'FULL'
+        AND status = ${TRIP_STATUS.FULL}
         AND "isDeleted" = false
     `
   }
@@ -542,7 +544,7 @@ export class TripRepository {
   async findTripsToComplete(limit: number) {
     return this.prisma.trip.findMany({
       where: {
-        status: { in: ['ACTIVE', 'FULL'] },
+        status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
         endDate: { lt: new Date() },
         isDeleted: false,
       },

@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { VERIFICATION_STATUS } from '@shared/constants/verification-status'
 import type { VerificationStatus } from '@shared/constants/verification-status'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
@@ -43,14 +44,14 @@ export class OrganizerProfileRepository {
 
   async findByIdPublic(id: string) {
     return this.prisma.organizerProfile.findFirst({
-      where: { id, isDeleted: false, verificationStatus: 'APPROVED' },
+      where: { id, isDeleted: false, verificationStatus: VERIFICATION_STATUS.APPROVED },
       select: PUBLIC_PROFILE_SELECT,
     })
   }
 
   async findBySlugPublic(slug: string) {
     return this.prisma.organizerProfile.findFirst({
-      where: { slug, isDeleted: false, verificationStatus: 'APPROVED' },
+      where: { slug, isDeleted: false, verificationStatus: VERIFICATION_STATUS.APPROVED },
       select: PUBLIC_PROFILE_SELECT,
     })
   }
@@ -62,7 +63,7 @@ export class OrganizerProfileRepository {
 
   async findIdsForSitemap(): Promise<{ id: string; slug: string; updatedAt: Date }[]> {
     return this.prisma.organizerProfile.findMany({
-      where: { isDeleted: false, verificationStatus: 'APPROVED' },
+      where: { isDeleted: false, verificationStatus: VERIFICATION_STATUS.APPROVED },
       select: { id: true, slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
     })
@@ -167,7 +168,7 @@ export class OrganizerProfileRepository {
   /** Count pending organizer approvals. Used by: AdminService.getPlatformStats() */
   async countPending(): Promise<number> {
     return this.prisma.organizerProfile.count({
-      where: { verificationStatus: 'PENDING', isDeleted: false },
+      where: { verificationStatus: VERIFICATION_STATUS.PENDING, isDeleted: false },
     })
   }
 }

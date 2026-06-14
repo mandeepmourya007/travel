@@ -1,4 +1,4 @@
-import type { DocumentReviewStatus } from '@prisma/client'
+import { DocumentReviewStatus } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
 /** Mirrors Prisma DocumentReviewComment columns — avoids leaking Prisma types into the service layer */
@@ -33,7 +33,7 @@ export class DocumentReviewRepository {
       create: {
         organizerId,
         docType,
-        status: data.status ?? ('PENDING' as DocumentReviewStatus),
+        status: data.status ?? DocumentReviewStatus.PENDING,
         currentUrl: data.currentUrl,
         reviewedAt: data.reviewedAt,
         reviewedBy: data.reviewedBy,
@@ -49,7 +49,7 @@ export class DocumentReviewRepository {
 
   async countApproved(organizerId: string): Promise<number> {
     return this.prisma.documentReview.count({
-      where: { organizerId, status: 'APPROVED' },
+      where: { organizerId, status: DocumentReviewStatus.APPROVED },
     })
   }
 
