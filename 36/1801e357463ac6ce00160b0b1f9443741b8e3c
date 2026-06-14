@@ -1,0 +1,30 @@
+packages/shared/src/types/wallet.types.ts
+  s_315c2e140c977c::t_face9e32e56ba8 75-76
+packages/shared/src/validators/trip.schema.ts
+  s_315c2e140c977c::t_5b6e3eb3fc8024 137-138
+packages/shared/src/types/booking.types.ts
+  s_315c2e140c977c::t_30bc8a44a784af 2
+  s_315c2e140c977c::t_5bc5317d9a3f62 120
+packages/shared/src/constants/wallet.ts
+  s_315c2e140c977c::t_face9e32e56ba8 5
+packages/shared/src/constants/notification.ts
+  s_315c2e140c977c::t_face9e32e56ba8 20
+packages/shared/src/types/trip.types.ts
+  s_315c2e140c977c::t_e373c58024bbba 102-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "361801e357463ac6ce00160b0b1f9443741b8e3c",
+  "prompts": {},
+  "sessions": {
+    "s_315c2e140c977c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5333237b-b75c-4125-ad17-d20656d461d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
