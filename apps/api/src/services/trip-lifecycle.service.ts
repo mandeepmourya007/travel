@@ -1,9 +1,21 @@
 import type { Logger } from 'pino'
 import type { TripRepository } from '../repositories/trip.repository'
 import type { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
+import type { BookingRepository } from '../repositories/booking.repository'
 import type { PaymentService } from './payment.service'
-import { TRIP_COMPLETION_BATCH_SIZE, PLATFORM_COMMISSION_PERCENT, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
-import { TRIP_STATUS, BOOKING_STATUS } from '@shared/constants'
+import type { NotificationService } from './notification.service'
+import type { WalletService } from './wallet.service'
+import {
+  TRIP_COMPLETION_BATCH_SIZE,
+  PLATFORM_COMMISSION_PERCENT,
+  PAYMENT_TX_TYPE,
+  PAYMENT_TX_STATUS,
+  WALLET_AUTO_CASHBACK_PERCENT,
+  WALLET_AUTO_CASHBACK_CAP,
+  WALLET_CREDIT_EXPIRY_DAYS,
+} from '../utils/constants'
+import { TRIP_STATUS, BOOKING_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { Prisma } from '@prisma/client'
 
 export class TripLifecycleService {
@@ -12,6 +24,9 @@ export class TripLifecycleService {
     private paymentTxRepo: PaymentTransactionRepository,
     private paymentService: PaymentService | null,
     private logger: Logger,
+    private notificationService: NotificationService | null = null,
+    private walletService: WalletService | null = null,
+    private bookingRepo: BookingRepository | null = null,
   ) {}
 
   /**
@@ -72,6 +87,12 @@ export class TripLifecycleService {
         } catch (error) {
           this.logger.error({ tripId: trip.id, error }, 'Escrow release failed for trip — will retry next cycle')
         }
+
+        // Post-completion side-effects (notifications + cashback).
+        // All are fire-and-forget — failures must not affect trip-completion outcome.
+        this.sendPostCompletionSideEffects(trip.id, trip.slug, trip.title).catch((error) => {
+          this.logger.error({ tripId: trip.id, error }, 'Post-completion side-effects failed')
+        })
       } catch (error) {
         this.logger.error({ tripId: trip.id, error }, 'Failed to complete trip')
       }
@@ -248,5 +269,75 @@ export class TripLifecycleService {
       )
       return 'failed'
     }
+  }
+
+  /**
+   * Fires review-request notifications and auto-cashback credits for every
+   * completed booking on a trip. Called post-commit, fire-and-forget.
+   *
+   * Both effects are idempotent:
+   * - REVIEW_REQUEST fires once per trip completion (trip never re-enters ACTIVE).
+   * - Cashback is guarded by @@unique([type, referenceModel, referenceId]) — P2002
+   *   is caught and treated as already-issued.
+   */
+  private async sendPostCompletionSideEffects(
+    tripId: string,
+    tripSlug: string,
+    tripTitle: string,
+  ): Promise<void> {
+    if (!this.bookingRepo) return
+
+    const bookings = await this.bookingRepo.findConfirmedByTripForCashback(tripId)
+    if (bookings.length === 0) return
+
+    const autoCashbackEnabled = WALLET_AUTO_CASHBACK_PERCENT > 0 && WALLET_AUTO_CASHBACK_CAP > 0
+
+    await Promise.allSettled(
+      bookings.map(async (booking) => {
+        // ── Review request notification ───────────────────
+        if (this.notificationService) {
+          this.notificationService
+            .send({
+              userId: booking.userId,
+              type: NOTIFICATION_TYPE.REVIEW_REQUEST,
+              title: 'How was your trip?',
+              body: `You recently completed "${tripTitle}". Share your experience to help future travelers.`,
+              data: { tripSlug, tripName: tripTitle },
+            })
+            .catch((err) => {
+              this.logger.warn({ bookingId: booking.bookingId, err }, 'Review request notification failed')
+            })
+        }
+
+        // ── Auto-cashback (config-gated) ──────────────────
+        if (autoCashbackEnabled && this.walletService && booking.cashbackIssued === null) {
+          const rawAmount = Math.round(booking.totalAmount * WALLET_AUTO_CASHBACK_PERCENT / 100)
+          const amount = Math.min(rawAmount, WALLET_AUTO_CASHBACK_CAP, booking.totalAmount)
+          if (amount <= 0) return
+
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + WALLET_CREDIT_EXPIRY_DAYS)
+
+          try {
+            await this.walletService.credit({
+              userId: booking.userId,
+              amount,
+              type: WALLET_TX.CASHBACK,
+              referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+              referenceId: booking.bookingId,
+              description: `Cashback for completing "${tripTitle}"`,
+              expiresAt,
+            })
+            this.logger.info({ bookingId: booking.bookingId, amount }, 'Auto-cashback credited')
+          } catch (err: unknown) {
+            // P2002 = already issued (race or manual admin cashback ran first) — safe to ignore
+            const isUniqueViolation = err instanceof Error && 'code' in (err as Record<string, unknown>) && (err as Record<string, unknown>).code === 'P2002'
+            if (!isUniqueViolation) {
+              this.logger.warn({ bookingId: booking.bookingId, err }, 'Auto-cashback credit failed')
+            }
+          }
+        }
+      }),
+    )
   }
 }

@@ -285,9 +285,23 @@ export class TripRepository {
   }
 
   private buildWhere(filters: TripFilters): Prisma.TripWhereInput {
+    // Free-text query: OR-match across title, description, and destination name.
+    // Kept as ILIKE (contains/insensitive) for MVP; Postgres FTS tsvector is the
+    // planned next step — it won't require changing this filter interface.
+    const textFilter: Prisma.TripWhereInput | undefined = filters.q
+      ? {
+          OR: [
+            { title: { contains: filters.q, mode: 'insensitive' as const } },
+            { description: { contains: filters.q, mode: 'insensitive' as const } },
+            { destination: { name: { contains: filters.q, mode: 'insensitive' as const } } },
+          ],
+        }
+      : undefined
+
     return {
       isDeleted: false,
       status: 'ACTIVE',
+      ...textFilter,
       ...(filters.destinationId && { destinationId: filters.destinationId }),
       ...(filters.destination && {
         destination: { name: { contains: filters.destination, mode: 'insensitive' as const } },
@@ -534,6 +548,8 @@ export class TripRepository {
       },
       select: {
         id: true,
+        slug: true,
+        title: true,
         organizerId: true,
         destinationId: true,
         status: true,
