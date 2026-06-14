@@ -100,6 +100,7 @@ enum NotificationType {
   TRIP_TYPE_REQUEST_APPROVED
   TRIP_TYPE_REQUEST_REJECTED
   DOCUMENT_REUPLOAD_REQUIRED
+  WALLET_CREDIT_EXPIRING
 }
 
 enum VerificationCodeType {
@@ -388,6 +389,10 @@ model Booking {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Set when the trip-reminder notification has been sent for this booking.
+  // Prevents the cron from re-firing on each run.
+  tripReminderSentAt DateTime?
+
   travelerDetails     TravelerDetail[]
   paymentTransactions PaymentTransaction[]
   vehicleSeats        VehicleSeat[]
@@ -399,6 +404,7 @@ model Booking {
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])
   @@index([isDeleted])
+  @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
 }
 
 model TripTransferPoint {
@@ -775,6 +781,11 @@ model WalletTransaction {
   balanceBefore  Int
   balanceAfter   Int
 
+  // Nullable — set only on expirable credits (cashback, promotional credit).
+  // Refunds and admin credits leave these null.
+  expiresAt             DateTime?
+  expiryReminderSentAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -782,6 +793,7 @@ model WalletTransaction {
   @@index([walletId, createdAt])
   @@index([referenceModel, referenceId])
   @@index([type])
+  @@index([expiresAt])  // wallet expiry sweep cron
 }
 
 model TripCategory {
