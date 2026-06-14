@@ -750,6 +750,53 @@ export class BookingRepository {
     })
   }
 
+  /**
+   * Returns CONFIRMED bookings whose trip starts between `from` and `to`
+   * and that haven't had a trip-reminder sent yet (tripReminderSentAt IS NULL).
+   *
+   * Used by the trip-reminder cron. Includes pickup point info for the notification body.
+   */
+  async findBookingsNeedingTripReminder(from: Date, to: Date, limit = 200) {
+    return this.prisma.booking.findMany({
+      where: {
+        bookingStatus: BOOKING_STATUS.CONFIRMED,
+        isDeleted: false,
+        tripReminderSentAt: null,
+        trip: {
+          startDate: { gte: from, lte: to },
+          isDeleted: false,
+        },
+      },
+      select: {
+        id: true,
+        userId: true,
+        user: { select: { id: true, email: true, name: true } },
+        trip: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            startDate: true,
+          },
+        },
+        pickupPoint: {
+          select: { label: true, time: true },
+        },
+      },
+      take: limit,
+    })
+  }
+
+  /**
+   * Marks tripReminderSentAt on a batch of booking IDs.
+   */
+  async markTripReminderSent(bookingIds: string[], sentAt: Date) {
+    return this.prisma.booking.updateMany({
+      where: { id: { in: bookingIds } },
+      data: { tripReminderSentAt: sentAt },
+    })
+  }
+
   // Maps sort filter to Prisma orderBy
   private buildOrderBy(sort?: string): Prisma.BookingOrderByWithRelationInput {
     switch (sort) {

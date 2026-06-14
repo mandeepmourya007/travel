@@ -8,11 +8,15 @@ import { PaymentService } from '../services/payment.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
 import { VehicleService } from '../services/vehicle.service'
 import { WalletService } from '../services/wallet.service'
+import { NotificationService } from '../services/notification.service'
+import { NOTIFICATION_TYPE } from '@shared/constants'
+import { WALLET_EXPIRY_WARN_DAYS } from './constants'
 
 // ── Intervals (ms) ───────────────────────────────────
 const FIVE_MINUTES = 5 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
+const SIX_HOURS = 6 * 60 * 60 * 1000
 const ONE_MINUTE = 60 * 1000
 
 // ── Lock TTLs (ms) ───────────────────────────────────
@@ -22,6 +26,7 @@ const LOCK_TTL_1MIN = 55 * 1000          // just under 1-min interval
 const LOCK_TTL_5MIN = 4 * 60 * 1000
 const LOCK_TTL_30MIN = 20 * 60 * 1000
 const LOCK_TTL_1HOUR = 50 * 60 * 1000
+const LOCK_TTL_6HOUR = 5 * 60 * 60 * 1000
 
 /**
  * Expires stale PENDING_PAYMENT bookings that have passed their expiresAt.
@@ -207,6 +212,125 @@ async function reconcileWallets(walletService: WalletService) {
 }
 
 /**
+ * Sends TRIP_REMINDER notifications to travelers whose trip starts in the
+ * next 24-48 hours and haven't received a reminder yet.
+ *
+ * Uses a durable dedup flag (Booking.tripReminderSentAt) so the job is safe
+ * to run hourly without re-notifying travelers.
+ *
+ * Intended to be called via setInterval() every hour.
+ */
+async function sendTripReminders(
+  bookingRepo: BookingRepository,
+  notificationService: NotificationService,
+) {
+  try {
+    const now = new Date()
+    const from = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    const to = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+
+    const bookings = await bookingRepo.findBookingsNeedingTripReminder(from, to)
+    if (bookings.length === 0) return
+
+    logger.info({ count: bookings.length }, 'Sending trip reminder notifications')
+
+    const sentAt = new Date()
+    const sentIds: string[] = []
+
+    await Promise.allSettled(
+      bookings.map(async (booking) => {
+        const pickupLabel = booking.pickupPoint?.label ?? ''
+        const pickupTime = booking.pickupPoint?.time ?? ''
+        const pickupDetails = [pickupLabel, pickupTime].filter(Boolean).join(' @ ')
+        const body = pickupDetails
+          ? `"${booking.trip.title}" starts soon. Pickup: ${pickupDetails}`
+          : `"${booking.trip.title}" starts soon. Check your booking for details.`
+
+        try {
+          await notificationService.send({
+            userId: booking.userId,
+            type: NOTIFICATION_TYPE.TRIP_REMINDER,
+            title: 'Your trip is almost here!',
+            body,
+            data: {
+              tripSlug: booking.trip.slug,
+              tripName: booking.trip.title,
+              pickupLabel,
+              pickupTime,
+            },
+          })
+          sentIds.push(booking.id)
+        } catch (err) {
+          logger.warn({ bookingId: booking.id, err }, 'Trip reminder notification failed')
+        }
+      }),
+    )
+
+    if (sentIds.length > 0) {
+      await bookingRepo.markTripReminderSent(sentIds, sentAt)
+      logger.info({ sent: sentIds.length, total: bookings.length }, 'Trip reminders sent')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Trip reminder job failed')
+  }
+}
+
+/**
+ * Voids expired wallet credits and sends advance-warning notifications
+ * for credits expiring within WALLET_EXPIRY_WARN_DAYS.
+ *
+ * Runs every 6 hours — infrequent enough for a low-volume sweep.
+ */
+async function expireWalletCreditsAndWarn(
+  walletService: WalletService,
+  notificationService: NotificationService,
+) {
+  try {
+    // 1. Void expired credits
+    const { voided, skipped } = await walletService.expireCredits()
+    if (voided > 0) {
+      logger.info({ voided, skipped }, 'Wallet credits expired')
+    }
+
+    // 2. Send advance-warning notifications for credits approaching expiry
+    const approaching = await walletService.findCreditsNeedingExpiryReminder()
+    if (approaching.length === 0) return
+
+    logger.info({ count: approaching.length }, 'Sending wallet expiry warning notifications')
+
+    const sentAt = new Date()
+    const sentIds: string[] = []
+
+    await Promise.allSettled(
+      approaching.map(async (credit) => {
+        const daysLeft = credit.expiresAt
+          ? Math.max(1, Math.ceil((credit.expiresAt.getTime() - sentAt.getTime()) / (86400 * 1000)))
+          : WALLET_EXPIRY_WARN_DAYS
+
+        try {
+          await notificationService.send({
+            userId: credit.wallet.userId,
+            type: NOTIFICATION_TYPE.WALLET_CREDIT_EXPIRING,
+            title: `₹${credit.amount} wallet credit expiring soon`,
+            body: `Your ₹${credit.amount} wallet balance expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Book a trip to use it!`,
+            data: { amount: credit.amount, daysLeft },
+          })
+          sentIds.push(credit.id)
+        } catch (err) {
+          logger.warn({ creditId: credit.id, err }, 'Wallet expiry warning notification failed')
+        }
+      }),
+    )
+
+    if (sentIds.length > 0) {
+      await walletService.markExpiryReminderSent(sentIds, sentAt)
+    }
+  } catch (error) {
+    logger.error({ error }, 'Wallet credit expiry job failed')
+  }
+}
+
+/**
  * Registers all recurring background jobs. Call once at server startup.
  * Returns a cleanup function that clears all intervals (for graceful shutdown).
  *
@@ -224,6 +348,7 @@ export function startCronJobs(deps: {
   tripLifecycleService: TripLifecycleService
   vehicleService: VehicleService
   walletService: WalletService
+  notificationService: NotificationService
 }): () => void {
   logger.info('Starting background cron jobs')
 
@@ -267,6 +392,16 @@ export function startCronJobs(deps: {
       () => withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
         () => reconcileWallets(deps.walletService)),
       ONE_HOUR,
+    ),
+    setInterval(
+      () => withLock('cron:trip-reminders', LOCK_TTL_1HOUR,
+        () => sendTripReminders(deps.bookingRepo, deps.notificationService)),
+      ONE_HOUR,
+    ),
+    setInterval(
+      () => withLock('cron:expire-wallet-credits', LOCK_TTL_6HOUR,
+        () => expireWalletCreditsAndWarn(deps.walletService, deps.notificationService)),
+      SIX_HOURS,
     ),
   ]
 
