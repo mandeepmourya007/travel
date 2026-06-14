@@ -157,7 +157,7 @@ const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo,
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
 export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger, getIo)
-const tripLifecycleService = new TripLifecycleService(tripRepo, paymentTxRepo, paymentService, logger)
+// tripLifecycleService is constructed after notificationService — see below
 export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organizerProfileRepo, logger)
 
 const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
@@ -185,6 +185,10 @@ export const notificationService = new NotificationService(
 )
 
 // Services that depend on notificationService (must be after it)
+const tripLifecycleService = new TripLifecycleService(
+  tripRepo, paymentTxRepo, paymentService, logger,
+  notificationService, walletService, bookingRepo,
+)
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
 const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
@@ -267,4 +271,5 @@ export const cronDeps = {
   tripLifecycleService,
   vehicleService,
   walletService,
+  notificationService,
 } as const
