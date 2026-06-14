@@ -104,6 +104,12 @@ export const WEBHOOK_SOURCE = {
   RAZORPAY: 'RAZORPAY',
 } as const
 
+export const RAZORPAY_ORDER_STATUS = {
+  CREATED: 'created',
+  ATTEMPTED: 'attempted',
+  PAID: 'paid',
+} as const
+
 // ─── Misc ────────────────────────────────────────────
 export const CURRENCY = 'INR'
 export const RAZORPAY_MOCK_KEY = 'rzp_mock_dev_key'
