@@ -35,6 +35,7 @@ const mockWalletRepo = {
   countTransactions: vi.fn(),
   findAll: vi.fn(),
   sumByDirection: vi.fn(),
+  sumByDirectionBatch: vi.fn(),
   findCashbackTransactionsEnriched: vi.fn(),
 }
 
@@ -589,12 +590,8 @@ describe('WalletService', () => {
         makeWallet({ id: 'w2', balance: 500 }),
       ]
       mockWalletRepo.findAll.mockResolvedValue(wallets)
-      mockWalletRepo.sumByDirection.mockImplementation(
-        (walletId: string, _direction: string) => {
-          if (walletId === 'w1') return Promise.resolve(1000)
-          return Promise.resolve(500)
-        },
-      )
+      // sumByDirectionBatch returns a Map<walletId, computed>
+      mockWalletRepo.sumByDirectionBatch.mockResolvedValue(new Map([['w1', 1000], ['w2', 500]]))
 
       const result = await service.reconcile()
 
@@ -608,12 +605,8 @@ describe('WalletService', () => {
         makeWallet({ id: 'w2', balance: 999 }),
       ]
       mockWalletRepo.findAll.mockResolvedValue(wallets)
-      mockWalletRepo.sumByDirection.mockImplementation(
-        (walletId: string, _direction: string) => {
-          if (walletId === 'w1') return Promise.resolve(1000)
-          return Promise.resolve(500) // drift: cached=999, computed=500
-        },
-      )
+      // w2 drift: cached=999, computed=500
+      mockWalletRepo.sumByDirectionBatch.mockResolvedValue(new Map([['w1', 1000], ['w2', 500]]))
       const logSpy = vi.spyOn(logger, 'error')
 
       const result = await service.reconcile()
@@ -628,6 +621,7 @@ describe('WalletService', () => {
 
     it('should return zero checked when no wallets exist', async () => {
       mockWalletRepo.findAll.mockResolvedValue([])
+      mockWalletRepo.sumByDirectionBatch.mockResolvedValue(new Map())
 
       const result = await service.reconcile()
 

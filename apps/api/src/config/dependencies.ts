@@ -84,6 +84,7 @@ import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOr
 import { CacheService } from '../services/cache.service'
 import { redis } from './redis'
 import { LoginAttemptTracker } from '../utils/login-attempt-tracker'
+import { SitemapService } from '../services/sitemap.service'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -252,13 +253,8 @@ export const webhookRoutes = (() => {
   return createWebhookRoutes(webhookController, secret)
 })()
 
-// ── Sitemap Dependencies ─────────────────────────────
-// Lightweight export for the inline /sitemap-data route — no service layer needed
-export const sitemapDeps = {
-  tripRepo,
-  destinationRepo,
-  organizerProfileRepo,
-} as const
+// ── Sitemap Service ──────────────────────────────────
+export const sitemapService = new SitemapService(tripRepo, destinationRepo, organizerProfileRepo)
 
 // ── Cron Job Dependencies ────────────────────────────
 // Scoped export for background jobs — keeps raw repos private to this module
@@ -270,4 +266,5 @@ export const cronDeps = {
   paymentService,
   tripLifecycleService,
   vehicleService,
+  walletService,
 } as const

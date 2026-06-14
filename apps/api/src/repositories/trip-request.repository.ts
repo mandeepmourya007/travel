@@ -115,10 +115,12 @@ export class TripRequestRepository {
   }
 
   /**
-   * Fetches ALL pending requests across an organizer's non-deleted trips.
+   * Fetches pending requests across an organizer's non-deleted trips.
    * Includes trip context (id, title, slug) for FE grouping.
    * Used by: TripService.getAllPendingRequests()
-   * No pagination — pending requests are low-volume by nature.
+   * Capped at 500 rows — pending requests are low-volume by nature, but an
+   * upper bound prevents runaway memory if a high-traffic organizer accumulates
+   * a large backlog. Ordered newest-first so the most urgent appear first.
    */
   async findAllPendingForOrganizer(organizerId: string) {
     return this.prisma.tripRequest.findMany({
@@ -128,6 +130,7 @@ export class TripRequestRepository {
         trip: { organizerId, isDeleted: false },
       },
       orderBy: { createdAt: 'desc' },
+      take: 500,
       include: {
         ...REQUEST_INCLUDE_LIST,
         trip: { select: { id: true, title: true, slug: true } },

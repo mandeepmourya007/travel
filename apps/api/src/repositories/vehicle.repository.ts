@@ -170,6 +170,26 @@ export class VehicleRepository {
   }
 
   /**
+   * Returns total non-deleted seat counts per vehicle for a trip in one query.
+   * Use this instead of findByTripId() when only counts are needed (e.g.
+   * getAllVehicles(), recalcTripSeats()) to avoid loading full seat rows with
+   * booking/travelerDetail joins just to call .filter().length.
+   *
+   * Returns a Map<vehicleId, seatCount>.
+   */
+  async countSeatsByTripId(tripId: string): Promise<Map<string, number>> {
+    const rows = await this.prisma.vehicleSeat.groupBy({
+      by: ['tripVehicleId'],
+      where: {
+        tripVehicle: { tripId, isDeleted: false },
+        isDeleted: false,
+      },
+      _count: { id: true },
+    })
+    return new Map(rows.map((r) => [r.tripVehicleId, r._count.id]))
+  }
+
+  /**
    * Atomically hold seats — only updates seats that are currently AVAILABLE.
    * Returns the number of rows affected. If < seatIds.length, some seats were taken.
    */

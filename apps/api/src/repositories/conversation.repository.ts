@@ -140,13 +140,16 @@ export class ConversationRepository {
   }
 
   /**
-   * List all conversations for a specific trip (organizer view).
+   * List conversations for a specific trip (organizer view).
+   * Bounded to 200 rows — a single trip is unlikely to exceed this, but
+   * prevents unbounded memory growth if it ever does.
    */
   async findByTripId(tripId: string) {
     return this.prisma.conversation.findMany({
       where: { tripId, isDeleted: false },
       select: CONVERSATION_SELECT,
       orderBy: { lastMessageAt: { sort: 'desc', nulls: 'last' } },
+      take: 200,
     })
   }
 

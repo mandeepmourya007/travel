@@ -24,6 +24,54 @@ export const TRIP_INCLUDE_SUMMARY = {
   },
 } as const
 
+/**
+ * Lightweight select shape for trip list/search endpoints.
+ *
+ * Uses `select` instead of `include` so that heavy JSON columns
+ * (itinerary, inclusions, exclusions, description) are never fetched
+ * from the DB for list views — only the fields mapTripToSummary() actually
+ * reads are pulled. Saves significant I/O on large trips tables.
+ *
+ * Keep in sync with mapTripToSummary() in utils/trip-mapper.ts.
+ */
+export const TRIP_SELECT_SUMMARY = {
+  // Scalar fields consumed by mapTripToSummary
+  id: true,
+  title: true,
+  slug: true,
+  tripType: true,
+  bookingMode: true,
+  pricePerPerson: true,
+  earlyBirdPrice: true,
+  earlyBirdDeadline: true,
+  startDate: true,
+  endDate: true,
+  maxGroupSize: true,
+  currentBookings: true,
+  status: true,
+  acceptingBookings: true,
+  photos: true,
+  seatSelectionEnabled: true,
+  createdAt: true,
+  // Relations — narrow to exactly what the mapper uses
+  destination: {
+    select: { id: true, name: true, slug: true },
+  },
+  organizer: {
+    select: {
+      id: true,
+      slug: true,
+      businessName: true,
+      rating: true,
+      totalReviews: true,
+      verificationStatus: true,
+    },
+  },
+  _count: {
+    select: { reviews: { where: { isDeleted: false } } },
+  },
+} as const
+
 const TRIP_INCLUDE_DETAIL = {
   ...TRIP_INCLUDE_SUMMARY,
   reviews: {
@@ -67,7 +115,7 @@ export class TripRepository {
         skip: pagination.offset,
         take: pagination.limit,
         orderBy: this.buildOrderBy(filters.sort),
-        include: TRIP_INCLUDE_SUMMARY,
+        select: TRIP_SELECT_SUMMARY,
       }),
       this.prisma.trip.count({ where }),
     ])
@@ -95,7 +143,7 @@ export class TripRepository {
         isDeleted: false,
         ...(status && { status: status as Prisma.EnumTripStatusFilter }),
       },
-      include: TRIP_INCLUDE_SUMMARY,
+      select: TRIP_SELECT_SUMMARY,
       orderBy: { createdAt: 'desc' },
     })
   }
@@ -113,7 +161,7 @@ export class TripRepository {
     const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
-        include: TRIP_INCLUDE_SUMMARY,
+        select: TRIP_SELECT_SUMMARY,
         orderBy: { createdAt: 'desc' },
         skip: pagination.offset,
         take: pagination.limit,
@@ -158,7 +206,7 @@ export class TripRepository {
     const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
-        include: TRIP_INCLUDE_SUMMARY,
+        select: TRIP_SELECT_SUMMARY,
         orderBy,
         skip: pagination.offset,
         take: pagination.limit,
@@ -552,37 +600,31 @@ export class TripRepository {
 
     // Batch-fetch cashback stats for all trips in one query
     const tripIds = trips.map((t) => t.id)
-    const cashbackStats = tripIds.length
+
+    // Single booking query — used for both the cashback groupBy filter and the
+    // bookingId→tripId map. Previously this was issued twice (P2-3 fix).
+    const bookings = tripIds.length
+      ? await this.prisma.booking.findMany({
+          where: { tripId: { in: tripIds }, isDeleted: false },
+          select: { id: true, tripId: true },
+        })
+      : []
+
+    const bookingToTrip = new Map(bookings.map((b) => [b.id, b.tripId] as const))
+    const bookingIds = bookings.map((b) => b.id)
+
+    const cashbackStats = bookingIds.length
       ? await this.prisma.walletTransaction.groupBy({
           by: ['referenceId'],
           where: {
             type: WALLET_TX.CASHBACK,
             referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
-            referenceId: {
-              in: await this.prisma.booking
-                .findMany({
-                  where: { tripId: { in: tripIds }, isDeleted: false },
-                  select: { id: true },
-                })
-                .then((bs) => bs.map((b) => b.id)),
-            },
+            referenceId: { in: bookingIds },
           },
           _count: { id: true },
           _sum: { amount: true },
         })
       : []
-
-    // Group cashback by tripId via booking lookup
-    const bookingToTrip = tripIds.length
-      ? new Map(
-          await this.prisma.booking
-            .findMany({
-              where: { tripId: { in: tripIds }, isDeleted: false },
-              select: { id: true, tripId: true },
-            })
-            .then((bs) => bs.map((b) => [b.id, b.tripId] as const)),
-        )
-      : new Map<string, string>()
 
     const tripCashback = new Map<string, { issuedCount: number; totalAmount: number }>()
     for (const stat of cashbackStats) {

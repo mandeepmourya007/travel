@@ -174,10 +174,12 @@ export class WalletRepository {
 
   /**
    * Returns all non-deleted wallets. Used by reconciliation cron.
+   * Only fetches id + balance — no heavy fields needed for drift detection.
    */
   async findAll() {
     return this.prisma.wallet.findMany({
       where: { isDeleted: false },
+      select: { id: true, balance: true },
     })
   }
 
@@ -185,6 +187,8 @@ export class WalletRepository {
    * Computes the net balance from WalletTransactions for a given wallet.
    * SUM(credit amounts) - SUM(debit amounts).
    * Used by reconciliation to compare against cached balance.
+   *
+   * @deprecated Prefer sumByDirectionBatch() for reconciliation cron to avoid N+1.
    */
   async sumByDirection(walletId: string) {
     const result = await this.prisma.walletTransaction.groupBy({
@@ -204,6 +208,31 @@ export class WalletRepository {
     }
 
     return computed
+  }
+
+  /**
+   * Batch version of sumByDirection: computes net balances for ALL wallets
+   * in a single groupBy query instead of one query per wallet (N+1 fix).
+   *
+   * Returns a Map<walletId, computedBalance> for O(1) lookup during reconcile.
+   */
+  async sumByDirectionBatch(): Promise<Map<string, number>> {
+    const rows = await this.prisma.walletTransaction.groupBy({
+      by: ['walletId', 'type'],
+      _sum: { amount: true },
+    })
+
+    const totals = new Map<string, number>()
+    for (const row of rows) {
+      const prev = totals.get(row.walletId) ?? 0
+      const sum = row._sum.amount ?? 0
+      if (CREDIT_TYPES.includes(row.type as typeof CREDIT_TYPES[number])) {
+        totals.set(row.walletId, prev + sum)
+      } else {
+        totals.set(row.walletId, prev - sum)
+      }
+    }
+    return totals
   }
 
   /**

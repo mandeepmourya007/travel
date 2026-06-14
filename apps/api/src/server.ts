@@ -9,7 +9,7 @@ import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { asyncHandler } from './utils/async-handler'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, sitemapDeps } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, sitemapService } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -76,12 +76,8 @@ export function createServer() {
 
   // ── Sitemap Data (lightweight, no auth) ──────────
   app.get('/api/v1/sitemap-data', asyncHandler(async (_req, res) => {
-    const [trips, destinations, organizers] = await Promise.all([
-      sitemapDeps.tripRepo.findSlugsForSitemap(),
-      sitemapDeps.destinationRepo.findSlugsForSitemap(),
-      sitemapDeps.organizerProfileRepo.findIdsForSitemap(),
-    ])
-    res.json({ success: true, data: { trips, destinations, organizers } })
+    const data = await sitemapService.getSitemapData()
+    res.json({ success: true, data })
   }))
 
   // ── Error Handler (must be last) ──────────────────

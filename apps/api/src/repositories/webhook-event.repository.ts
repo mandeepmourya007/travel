@@ -43,6 +43,37 @@ export class WebhookEventRepository {
   }
 
   /**
+   * Idempotent create: inserts the webhook event or, on duplicate
+   * (source + externalEventId), increments the attempts counter.
+   *
+   * Replaces the find-then-create pattern, eliminating the TOCTOU race
+   * where concurrent duplicate deliveries could both pass the find check and
+   * then race on the create — causing an unhandled P2002.
+   *
+   * Returns the upserted row; callers check `attempts > 1` to detect duplicates.
+   */
+  async upsertBySourceAndEventId(data: {
+    source: string
+    externalEventId: string
+    eventType: string
+    referenceModel?: string | null
+    referenceId?: string | null
+    externalId?: string | null
+    headers?: Prisma.InputJsonValue
+    payload: Prisma.InputJsonValue
+    response?: Prisma.InputJsonValue
+    status?: string
+    mode?: string
+    failureReason?: string | null
+  }) {
+    return this.prisma.webhookEvent.upsert({
+      where: { source_externalEventId: { source: data.source, externalEventId: data.externalEventId } },
+      create: { ...data, attempts: 1 },
+      update: { attempts: { increment: 1 } },
+    })
+  }
+
+  /**
    * Finds all webhook events for an internal entity (polymorphic lookup).
    *
    * Used by: Admin dashboard — "show all webhooks for Booking X"

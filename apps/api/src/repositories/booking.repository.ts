@@ -431,6 +431,12 @@ export class BookingRepository {
    * Used by: Cron job — expire stale bookings
    * Includes paymentTransactions for Razorpay order status check before expiring
    */
+  /**
+   * Returns expired pending bookings for the cron to process.
+   * Bounded at 100 rows per invocation — the cron runs every 5 minutes, so
+   * a burst backlog drains in batches rather than flooding Razorpay with
+   * hundreds of serial status-check calls in a single tick.
+   */
   async findExpiredPendingBookings() {
     return this.prisma.booking.findMany({
       where: {
@@ -438,6 +444,8 @@ export class BookingRepository {
         expiresAt: { lt: new Date() },
         isDeleted: false,
       },
+      orderBy: { expiresAt: 'asc' }, // oldest first so nothing is starved
+      take: 100,
       include: {
         paymentTransactions: {
           where: { type: PAYMENT_TX_TYPE.PAYMENT },

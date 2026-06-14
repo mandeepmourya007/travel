@@ -4,6 +4,7 @@ import type { PaymentTransactionRepository } from '../repositories/payment-trans
 import type { PaymentService } from './payment.service'
 import { TRIP_COMPLETION_BATCH_SIZE, PLATFORM_COMMISSION_PERCENT, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 import { TRIP_STATUS, BOOKING_STATUS } from '@shared/constants'
+import { Prisma } from '@prisma/client'
 
 export class TripLifecycleService {
   constructor(
@@ -198,26 +199,42 @@ export class TripLifecycleService {
         return 'failed'
       }
 
-      // Release hold on Razorpay
-      await this.paymentService!.releaseTransferHold(transferId)
-
       // Calculate actual transfer amount (organizer's share)
       const commissionRate = payment.booking.trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT
       const transferAmount = Math.round(payment.booking.totalAmount * (1 - commissionRate / 100))
 
-      // Record ESCROW_RELEASE for audit trail
-      await this.paymentTxRepo.create({
-        bookingId: payment.bookingId,
-        type: PAYMENT_TX_TYPE.ESCROW_RELEASE,
-        amount: transferAmount,
-        status: PAYMENT_TX_STATUS.CAPTURED,
-        razorpayTransferId: transferId,
-        metadata: {
-          releasedAt: new Date().toISOString(),
-          ...(meta.tripId ? { tripId: meta.tripId } : {}),
-          ...(meta.crashRecovery ? { crashRecovery: true } : {}),
-        },
-      })
+      // Record ESCROW_RELEASE BEFORE calling Razorpay.
+      // The partial unique index on PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'
+      // means a concurrent cron run that slipped past the pre-flight check will hit P2002 here
+      // instead of issuing a duplicate Razorpay transfer release.
+      try {
+        await this.paymentTxRepo.create({
+          bookingId: payment.bookingId,
+          type: PAYMENT_TX_TYPE.ESCROW_RELEASE,
+          amount: transferAmount,
+          status: PAYMENT_TX_STATUS.CAPTURED,
+          razorpayTransferId: transferId,
+          metadata: {
+            releasedAt: new Date().toISOString(),
+            ...(meta.tripId ? { tripId: meta.tripId } : {}),
+            ...(meta.crashRecovery ? { crashRecovery: true } : {}),
+          },
+        })
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          // Duplicate — another instance already recorded (and presumably released) this escrow.
+          // Do NOT call releaseTransferHold again.
+          this.logger.warn(
+            { bookingId: payment.bookingId, transferId, crashRecovery: meta.crashRecovery },
+            'ESCROW_RELEASE already exists (duplicate cron run) — skipping Razorpay call',
+          )
+          return 'released'
+        }
+        throw err
+      }
+
+      // Release hold on Razorpay only after the DB row is committed
+      await this.paymentService!.releaseTransferHold(transferId)
 
       this.logger.info(
         { bookingId: payment.bookingId, transferId, amount: transferAmount, crashRecovery: meta.crashRecovery },

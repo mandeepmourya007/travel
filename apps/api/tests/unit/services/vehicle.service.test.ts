@@ -113,6 +113,7 @@ function createMockVehicleRepo() {
     releaseSeats: vi.fn(),
     releaseSeatsByBookingId: vi.fn(),
     countBookedSeats: vi.fn(),
+    countSeatsByTripId: vi.fn(),
     assignTravelerToSeat: vi.fn(),
     expireHeldSeats: vi.fn(),
   }
@@ -169,13 +170,12 @@ describe('VehicleService', () => {
     }
 
     it('should create vehicle with seats and enable seat selection on trip', async () => {
-      const mockSeats = Array.from({ length: 7 }, (_, i) => ({ id: `seat_${i}`, isDeleted: false }))
       mockTripRepo.findById.mockResolvedValue(createMockTrip())
-      mockVehicleRepo.findByTripId
-        .mockResolvedValueOnce([])                                          // existing count
-        .mockResolvedValueOnce([createMockVehicle({ seats: mockSeats })])   // recalcTripSeats
+      mockVehicleRepo.findByTripId.mockResolvedValue([])   // existing count (sortOrder=0)
       mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.createSeats.mockResolvedValue([])
+      // recalcTripSeats now uses countSeatsByTripId — return a Map with 7 seats for the new vehicle
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map([[MOCK_VEHICLE_ID, 7]]))
       mockTripRepo.update.mockResolvedValue({})
 
       const result = await service.createVehicle(MOCK_TRIP_ID, MOCK_USER_ID, dto)
@@ -228,13 +228,15 @@ describe('VehicleService', () => {
     })
 
     it('should set correct sortOrder when trip already has vehicles (multi-vehicle)', async () => {
-      const mockSeats = Array.from({ length: 7 }, (_, i) => ({ id: `seat_${i}`, isDeleted: false }))
       mockTripRepo.findById.mockResolvedValue(createMockTrip())
-      mockVehicleRepo.findByTripId
-        .mockResolvedValueOnce([createMockVehicle()])                                       // existing count = 1
-        .mockResolvedValueOnce([createMockVehicle(), createMockVehicle({ seats: mockSeats })]) // recalcTripSeats
+      // First call: existing vehicles for sortOrder calculation
+      mockVehicleRepo.findByTripId.mockResolvedValue([createMockVehicle()])
       mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.createSeats.mockResolvedValue([])
+      // recalcTripSeats: 2 vehicles with seats after creation
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(
+        new Map([[MOCK_VEHICLE_ID, 4], ['other_vehicle_id', 7]]),
+      )
       mockTripRepo.update.mockResolvedValue({})
 
       await service.createVehicle(MOCK_TRIP_ID, MOCK_USER_ID, dto)
@@ -249,6 +251,7 @@ describe('VehicleService', () => {
       mockVehicleRepo.findByTripId.mockResolvedValue([])
       mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.createSeats.mockResolvedValue([])
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map([[MOCK_VEHICLE_ID, 7]]))
       mockTripRepo.update.mockResolvedValue({})
 
       await service.createVehicle(MOCK_TRIP_ID, MOCK_USER_ID, dto)
@@ -271,14 +274,14 @@ describe('VehicleService', () => {
     }
 
     it('should update vehicle layout when no seats are booked', async () => {
-      const mockSeats = Array.from({ length: 7 }, (_, i) => ({ id: `seat_${i}`, isDeleted: false }))
       mockTripRepo.findById.mockResolvedValue(createMockTrip())
       mockVehicleRepo.findById.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.countBookedSeats.mockResolvedValue(0)
       mockVehicleRepo.deleteSeatsForVehicle.mockResolvedValue({})
       mockVehicleRepo.update.mockResolvedValue(createMockVehicle({ label: 'Updated Vehicle' }))
       mockVehicleRepo.createSeats.mockResolvedValue([])
-      mockVehicleRepo.findByTripId.mockResolvedValue([createMockVehicle({ seats: mockSeats })])
+      // recalcTripSeats uses countSeatsByTripId now
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map([[MOCK_VEHICLE_ID, 7]]))
       mockTripRepo.update.mockResolvedValue({})
 
       const result = await service.updateVehicle(MOCK_TRIP_ID, MOCK_VEHICLE_ID, MOCK_USER_ID, updateDto)
@@ -348,7 +351,8 @@ describe('VehicleService', () => {
       mockVehicleRepo.findById.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.countBookedSeats.mockResolvedValue(0)
       mockVehicleRepo.softDelete.mockResolvedValue({})
-      mockVehicleRepo.findByTripId.mockResolvedValue([])   // no vehicles left after delete
+      // recalcTripSeats: no vehicles left after delete → empty map → seatSelectionEnabled=false
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map())
       mockTripRepo.update.mockResolvedValue({})
 
       await service.deleteVehicle(MOCK_TRIP_ID, MOCK_VEHICLE_ID, MOCK_USER_ID)
@@ -725,6 +729,7 @@ describe('VehicleService', () => {
       mockVehicleRepo.findByTripId.mockResolvedValue([])
       mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.createSeats.mockResolvedValue([])
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map([[MOCK_VEHICLE_ID, 4]]))
       mockTripRepo.update.mockResolvedValue({})
 
       const layout: SeatCellTypeConst[][] = [
@@ -754,6 +759,7 @@ describe('VehicleService', () => {
       mockVehicleRepo.findByTripId.mockResolvedValue([])
       mockVehicleRepo.create.mockResolvedValue(createMockVehicle())
       mockVehicleRepo.createSeats.mockResolvedValue([])
+      mockVehicleRepo.countSeatsByTripId.mockResolvedValue(new Map([[MOCK_VEHICLE_ID, 7]]))
       mockTripRepo.update.mockResolvedValue({})
 
       const layout: SeatCellTypeConst[][] = [

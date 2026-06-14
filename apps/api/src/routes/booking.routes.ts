@@ -5,6 +5,7 @@ import { BookingController } from '../controllers/booking.controller'
 import { validate } from '../middleware/validate.middleware'
 import { myBookingFiltersSchema, cancelBookingSchema, createBookingSchema, verifyPaymentSchema } from '@shared/validators/booking.schema'
 import { cuidParamSchema, tripIdParamSchema } from '@shared/validators/common.schema'
+import { bookingRateLimit } from '../middleware/rate-limit.middleware'
 
 export function createBookingRoutes(
   bookingController: BookingController,
@@ -16,6 +17,7 @@ export function createBookingRoutes(
   // All routes require authentication — static routes before /:id
   router.post(
     '/',
+    bookingRateLimit,
     authMiddleware,
     validate(createBookingSchema),
     bookingController.createBooking,
@@ -49,6 +51,7 @@ export function createBookingRoutes(
 
   router.post(
     '/:id/cancel',
+    bookingRateLimit,
     authMiddleware,
     validate(cuidParamSchema, 'params'),
     validate(cancelBookingSchema),
@@ -57,6 +60,7 @@ export function createBookingRoutes(
 
   router.post(
     '/:id/verify-payment',
+    bookingRateLimit,
     authMiddleware,
     validate(cuidParamSchema, 'params'),
     validate(verifyPaymentSchema),

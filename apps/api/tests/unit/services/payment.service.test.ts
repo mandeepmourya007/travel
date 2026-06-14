@@ -21,6 +21,7 @@ const mockPaymentTxRepo = {
 const mockWebhookEventRepo = {
   create: vi.fn(),
   findBySourceAndEventId: vi.fn(),
+  upsertBySourceAndEventId: vi.fn(),
   findByReference: vi.fn(),
   findByExternalId: vi.fn(),
   updateStatus: vi.fn(),
@@ -324,15 +325,14 @@ describe('PaymentService', () => {
     }
 
     it('should record webhook event and return its ID for async processing', async () => {
-      mockWebhookEventRepo.findBySourceAndEventId.mockResolvedValue(null)
       mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(createMockPaymentTx())
-      mockWebhookEventRepo.create.mockResolvedValue({ id: 'whe-1' })
+      // upsert: first delivery → attempts=1 (new row)
+      mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-1', attempts: 1 })
 
       const result = await service.handleWebhook(rawBody, headers)
 
       expect(result).toBe('whe-1')
-      expect(mockWebhookEventRepo.findBySourceAndEventId).toHaveBeenCalledWith('RAZORPAY', 'evt_test123')
-      expect(mockWebhookEventRepo.create).toHaveBeenCalledWith(
+      expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalledWith(
         expect.objectContaining({
           source: 'RAZORPAY',
           externalEventId: 'evt_test123',
@@ -343,27 +343,26 @@ describe('PaymentService', () => {
     })
 
     it('should skip duplicate event and increment attempts', async () => {
-      mockWebhookEventRepo.findBySourceAndEventId.mockResolvedValue({
-        id: 'whe-existing',
-        attempts: 1,
-      })
+      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
+      // upsert: duplicate delivery → attempts>1 (existing row updated)
+      mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-existing', attempts: 2 })
 
       const result = await service.handleWebhook(rawBody, headers)
 
       expect(result).toBeNull()
-      expect(mockWebhookEventRepo.incrementAttempts).toHaveBeenCalledWith('whe-existing')
+      // The old find-then-create pattern used incrementAttempts separately — now handled inside upsert
+      expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalled()
       expect(mockWebhookEventRepo.create).not.toHaveBeenCalled()
     })
 
     it('should resolve internal reference from order → booking lookup', async () => {
       const paymentTx = createMockPaymentTx({ bookingId: 'booking-99' })
-      mockWebhookEventRepo.findBySourceAndEventId.mockResolvedValue(null)
       mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
-      mockWebhookEventRepo.create.mockResolvedValue({ id: 'whe-1' })
+      mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-1', attempts: 1 })
 
       await service.handleWebhook(rawBody, headers)
 
-      expect(mockWebhookEventRepo.create).toHaveBeenCalledWith(
+      expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalledWith(
         expect.objectContaining({
           referenceModel: 'Booking',
           referenceId: 'booking-99',

@@ -109,3 +109,7 @@ export const generalRateLimit = createRateLimiter('general', 100, 60)
 export const authRateLimit = createRateLimiter('auth', 10, 60)
 export const otpRateLimit = createRateLimiter('otp', 5, 60)
 export const webhookRateLimit = createRateLimiter('webhook', 50, 60)
+// Stricter tier for money-sensitive endpoints (booking creation, payment
+// verification, cancellation). 20/min per IP stops brute-force payment
+// attempts while leaving headroom for legitimate multi-leg bookings.
+export const bookingRateLimit = createRateLimiter('booking', 20, 60)

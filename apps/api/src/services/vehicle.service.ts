@@ -274,30 +274,33 @@ export class VehicleService {
   /**
    * Returns all vehicles for a trip as a lightweight list.
    * Used by the trip form to populate the multi-vehicle editor on edit.
+   *
+   * Seat counts are fetched via a single groupBy instead of loading full seat
+   * rows with booking/travelerDetail joins just to call .filter().length.
    */
   async getAllVehicles(tripId: string, userId: string): Promise<OrganizerVehicleListItem[]> {
     await this.resolveOrganizerAndTrip(userId, tripId)
 
-    const vehicles = await this.vehicleRepo.findByTripId(tripId)
-    const result: OrganizerVehicleListItem[] = []
-    for (const v of vehicles) {
-      result.push({
-        id: v.id,
-        label: v.label,
-        vehicleType: v.vehicleType,
-        sortOrder: v.sortOrder,
-        layoutConfig: {
-          rows: v.rows,
-          cols: v.cols,
-          aisleAfterCol: v.aisleAfterCol,
-          driverPos: [v.driverRow, v.driverCol] as [number, number],
-        },
-        layout: v.layout as SeatCellTypeConst[][],
-        photos: v.photos ?? [],
-        seatCount: v.seats.filter((s: { isDeleted: boolean }) => !s.isDeleted).length,
-      })
-    }
-    return result
+    const [vehicles, seatCounts] = await Promise.all([
+      this.vehicleRepo.findByTripId(tripId),
+      this.vehicleRepo.countSeatsByTripId(tripId),
+    ])
+
+    return vehicles.map((v) => ({
+      id: v.id,
+      label: v.label,
+      vehicleType: v.vehicleType,
+      sortOrder: v.sortOrder,
+      layoutConfig: {
+        rows: v.rows,
+        cols: v.cols,
+        aisleAfterCol: v.aisleAfterCol,
+        driverPos: [v.driverRow, v.driverCol] as [number, number],
+      },
+      layout: v.layout as SeatCellTypeConst[][],
+      photos: v.photos ?? [],
+      seatCount: seatCounts.get(v.id) ?? 0,
+    }))
   }
 
   // ── Get Booking Seats ─────────────────────────────
@@ -442,15 +445,18 @@ export class VehicleService {
   /**
    * Recalculates total bookable seats across all vehicles for a trip
    * and syncs trip.maxGroupSize + trip.seatSelectionEnabled.
+   *
+   * Uses a DB groupBy count instead of loading full seat rows with joins.
    */
   private async recalcTripSeats(tripId: string) {
-    const allVehicles = await this.vehicleRepo.findByTripId(tripId)
+    const seatCounts = await this.vehicleRepo.countSeatsByTripId(tripId)
+    const vehicleCount = seatCounts.size
     let totalSeats = 0
-    for (const v of allVehicles) {
-      totalSeats += v.seats.filter((s: { isDeleted: boolean }) => !s.isDeleted).length
+    for (const count of seatCounts.values()) {
+      totalSeats += count
     }
     await this.tripRepo.update(tripId, {
-      seatSelectionEnabled: allVehicles.length > 0,
+      seatSelectionEnabled: vehicleCount > 0,
       maxGroupSize: totalSeats,
     })
   }

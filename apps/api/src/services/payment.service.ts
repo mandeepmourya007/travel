@@ -182,14 +182,6 @@ export class PaymentService {
       throw new ValidationError('Missing x-razorpay-event-id header')
     }
 
-    // Idempotency check
-    const existing = await this.webhookEventRepo.findBySourceAndEventId(WEBHOOK_SOURCE.RAZORPAY, eventId)
-    if (existing) {
-      await this.webhookEventRepo.incrementAttempts(existing.id)
-      this.logger.info({ eventId, attempts: existing.attempts + 1 }, 'Duplicate webhook, skipping')
-      return null
-    }
-
     const body = JSON.parse(rawBody.toString())
     const signature = headers['x-razorpay-signature'] as string
 
@@ -200,24 +192,39 @@ export class PaymentService {
       ? await this.paymentTxRepo.findByRazorpayOrderId(orderId)
       : null
 
-    const webhookEvent = await this.webhookEventRepo.create({
-      source: WEBHOOK_SOURCE.RAZORPAY,
-      externalEventId: eventId,
-      eventType: body.event,
-      externalId: paymentEntity?.id || null,
-      referenceModel: paymentTx ? REFERENCE_MODEL.BOOKING : null,
-      referenceId: paymentTx?.bookingId || null,
-      headers: {
-        'x-razorpay-signature': signature,
-        'x-razorpay-event-id': eventId,
-      },
-      payload: body,
-      mode: body.account_id?.startsWith('rzp_test') ? 'test' : 'live',
-      status: WEBHOOK_STATUS.RECEIVED,
-    })
+    // Idempotency: attempt upsert on (source, externalEventId) unique key.
+    // Using upsert instead of find-then-create eliminates the TOCTOU race:
+    // concurrent duplicate deliveries both hit the DB at the same time; one
+    // inserts, the other matches the unique key and updates (increments attempts).
+    // No more P2002 bubble-up or generic-catch silence.
+    try {
+      const webhookEvent = await this.webhookEventRepo.upsertBySourceAndEventId({
+        source: WEBHOOK_SOURCE.RAZORPAY,
+        externalEventId: eventId,
+        eventType: body.event,
+        externalId: paymentEntity?.id || null,
+        referenceModel: paymentTx ? REFERENCE_MODEL.BOOKING : null,
+        referenceId: paymentTx?.bookingId || null,
+        headers: {
+          'x-razorpay-signature': signature,
+          'x-razorpay-event-id': eventId,
+        },
+        payload: body,
+        mode: body.account_id?.startsWith('rzp_test') ? 'test' : 'live',
+        status: WEBHOOK_STATUS.RECEIVED,
+      })
 
-    this.logger.info({ webhookEventId: webhookEvent.id, durationMs: timer.elapsed() }, 'Webhook event recorded')
-    return webhookEvent.id
+      if (webhookEvent.attempts > 1) {
+        this.logger.info({ eventId, attempts: webhookEvent.attempts }, 'Duplicate webhook, skipping processing')
+        return null
+      }
+
+      this.logger.info({ webhookEventId: webhookEvent.id, durationMs: timer.elapsed() }, 'Webhook event recorded')
+      return webhookEvent.id
+    } catch (err) {
+      this.logger.error({ eventId, err }, 'Failed to record webhook event')
+      throw err
+    }
   }
 
   /**

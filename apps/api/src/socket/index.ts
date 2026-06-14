@@ -1,11 +1,13 @@
 import { Server as HttpServer } from 'http'
 import { Server } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
 import { createSocketAuthMiddleware, type AuthenticatedSocket } from './middleware/socket-auth.middleware'
 import { registerChatHandlers } from './handlers/chat.handler'
 import { registerPresenceHandlers } from './handlers/presence.handler'
 import { AuthService } from '../services/auth.service'
 import { ChatService } from '../services/chat.service'
 import { logger } from '../utils/logger'
+import { redis } from '../config/redis'
 
 export function createSocketServer(
   httpServer: HttpServer,
@@ -22,6 +24,19 @@ export function createSocketServer(
     pingInterval: 25000,
     pingTimeout: 60000,
   })
+
+  // Attach Redis adapter so room broadcasts and fetchSockets() work correctly
+  // across all horizontal API instances. Without this, rooms are process-local
+  // and chat messages only reach clients connected to the same node.
+  // Falls back to the default in-memory adapter when Redis is unavailable (dev/CI).
+  if (redis) {
+    const pubClient = redis.duplicate()
+    const subClient = redis.duplicate()
+    io.adapter(createAdapter(pubClient, subClient))
+    logger.info('Socket.IO: Redis adapter attached (multi-node ready)')
+  } else {
+    logger.warn('Socket.IO: Redis unavailable — using in-memory adapter (single-instance only)')
+  }
 
   io.use(createSocketAuthMiddleware(authService))
 

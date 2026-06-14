@@ -568,6 +568,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+    // ESCROW_RELEASE DB row is written first (P2002-guard ordering), then Razorpay is called
+    mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-escrow-1' })
     mockPaymentService.releaseTransferHold.mockRejectedValue(new Error('Razorpay 503'))
 
     const result = await lifecycleService.completeEndedTrips()
@@ -577,10 +579,12 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     expect(mockLifecycleTx.trip.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: 'COMPLETED' }),
     }))
-    // Escrow failed but recorded
+    // Escrow release failed at Razorpay (after the DB row was written)
     expect(result.escrowFailed).toBe(1)
-    // ESCROW_RELEASE was NOT recorded (release failed before create)
-    expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+    // ESCROW_RELEASE DB row IS written before calling Razorpay (idempotency ordering)
+    expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: 'b1', type: 'ESCROW_RELEASE' }),
+    )
   })
 
   it('should skip already-released bookings during escrow release (idempotency)', async () => {

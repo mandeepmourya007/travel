@@ -1,4 +1,5 @@
 import { logger } from './logger'
+import { withLock } from './redis-lock'
 import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
@@ -6,12 +7,21 @@ import { VerificationCodeRepository } from '../repositories/verification-code.re
 import { PaymentService } from '../services/payment.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
 import { VehicleService } from '../services/vehicle.service'
+import { WalletService } from '../services/wallet.service'
 
 // ── Intervals (ms) ───────────────────────────────────
 const FIVE_MINUTES = 5 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
 const ONE_MINUTE = 60 * 1000
+
+// ── Lock TTLs (ms) ───────────────────────────────────
+// Sized generously above worst-case job runtime. A dropped lock (volatile-lru
+// eviction) is safe — the DB partial unique index is the escrow backstop.
+const LOCK_TTL_1MIN = 55 * 1000          // just under 1-min interval
+const LOCK_TTL_5MIN = 4 * 60 * 1000
+const LOCK_TTL_30MIN = 20 * 60 * 1000
+const LOCK_TTL_1HOUR = 50 * 60 * 1000
 
 /**
  * Expires stale PENDING_PAYMENT bookings that have passed their expiresAt.
@@ -178,8 +188,32 @@ async function expireHeldSeats(vehicleService: VehicleService) {
 }
 
 /**
+ * Reconciles wallet.balance against the computed SUM(credits) - SUM(debits).
+ * Logs any drift for ops investigation — does NOT auto-fix.
+ *
+ * Intended to be called via setInterval() every hour.
+ */
+async function reconcileWallets(walletService: WalletService) {
+  try {
+    const { checked, drifted } = await walletService.reconcile()
+    if (drifted > 0) {
+      logger.error({ checked, drifted }, 'Wallet reconciliation found drift — manual investigation required')
+    } else {
+      logger.info({ checked }, 'Wallet reconciliation: no drift found')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Wallet reconciliation job failed')
+  }
+}
+
+/**
  * Registers all recurring background jobs. Call once at server startup.
  * Returns a cleanup function that clears all intervals (for graceful shutdown).
+ *
+ * Every job acquires a short-lived Redis distributed lock before running so
+ * that only one instance executes each job when the API is scaled horizontally.
+ * When Redis is unavailable (dev / CI), withLock falls back to running the job
+ * directly — single-instance behaviour is unchanged.
  */
 export function startCronJobs(deps: {
   bookingRepo: BookingRepository
@@ -189,17 +223,51 @@ export function startCronJobs(deps: {
   paymentService: PaymentService | null
   tripLifecycleService: TripLifecycleService
   vehicleService: VehicleService
+  walletService: WalletService
 }): () => void {
   logger.info('Starting background cron jobs')
 
   const intervals = [
-    setInterval(() => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService), FIVE_MINUTES),
-    setInterval(() => expireStaleRequests(deps.tripRequestRepo), FIVE_MINUTES),
-    setInterval(() => sweepOrphanedConfirmedBookings(deps.bookingRepo), THIRTY_MINUTES),
-    setInterval(() => cleanupExpiredCodes(deps.verifCodeRepo), ONE_HOUR),
-    setInterval(() => cleanupStaleTokens(deps.refreshTokenRepo), ONE_HOUR),
-    setInterval(() => completeTripsAndReleaseEscrow(deps.tripLifecycleService), THIRTY_MINUTES),
-    setInterval(() => expireHeldSeats(deps.vehicleService), ONE_MINUTE),
+    setInterval(
+      () => withLock('cron:expire-stale-bookings', LOCK_TTL_5MIN,
+        () => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService)),
+      FIVE_MINUTES,
+    ),
+    setInterval(
+      () => withLock('cron:expire-stale-requests', LOCK_TTL_5MIN,
+        () => expireStaleRequests(deps.tripRequestRepo)),
+      FIVE_MINUTES,
+    ),
+    setInterval(
+      () => withLock('cron:sweep-orphaned-bookings', LOCK_TTL_30MIN,
+        () => sweepOrphanedConfirmedBookings(deps.bookingRepo)),
+      THIRTY_MINUTES,
+    ),
+    setInterval(
+      () => withLock('cron:cleanup-expired-codes', LOCK_TTL_1HOUR,
+        () => cleanupExpiredCodes(deps.verifCodeRepo)),
+      ONE_HOUR,
+    ),
+    setInterval(
+      () => withLock('cron:cleanup-stale-tokens', LOCK_TTL_1HOUR,
+        () => cleanupStaleTokens(deps.refreshTokenRepo)),
+      ONE_HOUR,
+    ),
+    setInterval(
+      () => withLock('cron:complete-trips-escrow', LOCK_TTL_30MIN,
+        () => completeTripsAndReleaseEscrow(deps.tripLifecycleService)),
+      THIRTY_MINUTES,
+    ),
+    setInterval(
+      () => withLock('cron:expire-held-seats', LOCK_TTL_1MIN,
+        () => expireHeldSeats(deps.vehicleService)),
+      ONE_MINUTE,
+    ),
+    setInterval(
+      () => withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
+        () => reconcileWallets(deps.walletService)),
+      ONE_HOUR,
+    ),
   ]
 
   return () => {

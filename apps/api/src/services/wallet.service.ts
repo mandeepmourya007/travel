@@ -209,13 +209,16 @@ export class WalletService {
   /**
    * Reconciliation cron: compare cached wallet.balance against computed
    * SUM(credits) - SUM(debits) from WalletTransaction. Logs drift but does NOT auto-fix.
+   *
+   * Uses a single batch groupBy instead of one query per wallet (N+1 fix).
    */
   async reconcile(): Promise<{ checked: number; drifted: number }> {
     const wallets = await this.walletRepo.findAll()
+    const computedBalances = await this.walletRepo.sumByDirectionBatch()
     let drifted = 0
 
     for (const wallet of wallets) {
-      const computed = await this.walletRepo.sumByDirection(wallet.id)
+      const computed = computedBalances.get(wallet.id) ?? 0
       if (wallet.balance !== computed) {
         drifted++
         this.logger.error(
