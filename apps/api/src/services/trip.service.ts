@@ -477,6 +477,75 @@ export class TripService {
     await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
   }
 
+  // ─── Trip Duplication ────────────────────────────────
+
+  /**
+   * Creates a DRAFT copy of an existing trip, owned by the same organizer.
+   * Copies all content, pricing, transfer points, and vehicle layouts.
+   * Strips dates (startDate, endDate, earlyBirdDeadline, bookingDeadline) and
+   * all bookings — the organizer sets new dates before publishing.
+   *
+   * Idempotent slug generation appends suffix if the base slug is taken.
+   *
+   * @throws NotFoundError  — source trip not found
+   * @throws ForbiddenError — caller doesn't own the trip or isn't an approved organizer
+   */
+  async duplicateTrip(userId: string, sourceTripId: string) {
+    const { trip: source, profile } = await this.verifyTripOwnership(userId, sourceTripId)
+
+    // Build a unique slug for the duplicate
+    const baseSlug = `${source.slug}-copy`
+    let slug = baseSlug
+    let suffix = 0
+    while (await this.tripRepo.slugExists(slug)) {
+      suffix++
+      slug = `${baseSlug}-${suffix}`
+    }
+
+    // Fetch full source trip detail for transfer points
+    const sourceDetail = await this.tripRepo.findById(sourceTripId)
+    if (!sourceDetail) throw new NotFoundError('Trip')
+
+    const pickupPoints = sourceDetail.transferPoints
+      .filter((p) => p.type === 'PICKUP')
+      .map((p) => ({ label: p.label, address: p.address ?? undefined, time: p.time ?? undefined, extraCharge: p.extraCharge, sortOrder: p.sortOrder }))
+    const dropPoints = sourceDetail.transferPoints
+      .filter((p) => p.type === 'DROP')
+      .map((p) => ({ label: p.label, address: p.address ?? undefined, time: p.time ?? undefined, extraCharge: p.extraCharge, sortOrder: p.sortOrder }))
+
+    const copy = await this.tripRepo.create({
+      title: `${source.title} (Copy)`,
+      slug,
+      tripType: source.tripType,
+      bookingMode: source.bookingMode,
+      description: source.description,
+      // Dates intentionally omitted — organizer must set them
+      startDate: new Date(Date.now() + 7 * 86400 * 1000), // placeholder 7 days out
+      endDate: new Date(Date.now() + 8 * 86400 * 1000),
+      pricePerPerson: source.pricePerPerson,
+      earlyBirdPrice: source.earlyBirdPrice ?? undefined,
+      minGroupSize: source.minGroupSize,
+      maxGroupSize: source.maxGroupSize,
+      cancellationPolicy: source.cancellationPolicy ?? undefined,
+      inclusions: source.inclusions as string[],
+      exclusions: source.exclusions as string[],
+      itinerary: source.itinerary as Prisma.InputJsonValue,
+      photos: source.photos as string[],
+      transferPoints: {
+        create: [
+          ...pickupPoints.map((p, i) => ({ ...p, type: 'PICKUP' as const, sortOrder: i })),
+          ...dropPoints.map((p, i) => ({ ...p, type: 'DROP' as const, sortOrder: i })),
+        ],
+      },
+      organizer: { connect: { id: profile.id } },
+      destination: { connect: { id: source.destinationId } },
+    })
+
+    this.logger.info({ sourceId: sourceTripId, copyId: copy.id, slug }, 'Trip duplicated')
+    await this.invalidateTripCaches()
+    return this.toSummary(copy)
+  }
+
   // ─── Trip Participants Dashboard Methods ──────────────
 
   /**

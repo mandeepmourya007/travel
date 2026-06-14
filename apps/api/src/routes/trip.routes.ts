@@ -75,6 +75,13 @@ export function createTripRoutes(
     validate(cuidParamSchema, 'params'),
     tripController.publish,
   )
+  router.post(
+    '/:id/duplicate',
+    authMiddleware,
+    requireRole('ORGANIZER'),
+    validate(cuidParamSchema, 'params'),
+    tripController.duplicate,
+  )
   router.delete(
     '/:id',
     authMiddleware,

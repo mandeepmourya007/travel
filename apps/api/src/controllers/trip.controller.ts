@@ -74,6 +74,12 @@ export class TripController {
     res.json({ success: true, data: trip })
   })
 
+  /** POST /trips/:id/duplicate — Clone trip as DRAFT (organizer only) */
+  duplicate = asyncHandler(async (req: Request, res: Response) => {
+    const trip = await this.tripService.duplicateTrip(req.user!.userId, req.params.id)
+    res.status(201).json({ success: true, data: trip })
+  })
+
   /** DELETE /trips/:id — Soft-delete a trip (organizer only) */
   delete = asyncHandler(async (req: Request, res: Response) => {
     await this.tripService.deleteTrip(req.user!.userId, req.params.id)
