@@ -10,6 +10,8 @@ interface TransactionMeta {
   referenceModel?: string
   referenceId?: string
   description: string
+  /** Set for expirable credits (cashback, promotional). Null = never expires. */
+  expiresAt?: Date | null
 }
 
 export class WalletRepository {
@@ -93,6 +95,7 @@ export class WalletRepository {
           description: meta.description,
           balanceBefore,
           balanceAfter,
+          expiresAt: meta.expiresAt ?? null,
         },
       })
 
@@ -476,6 +479,78 @@ export class WalletRepository {
       })),
       total: Number(countResult[0]?.total ?? 0),
     }
+  }
+
+  /**
+   * Returns expirable credit transactions that have passed their expiresAt
+   * and have NOT already had a matching EXPIRY debit issued.
+   *
+   * The sweep cron calls this to find credits to void.
+   * Batch-limited to prevent long-running transactions.
+   */
+  async findExpiredCreditsToVoid(now: Date, limit = 100) {
+    // Credits past their expiry date
+    const candidates = await this.prisma.walletTransaction.findMany({
+      where: {
+        expiresAt: { lt: now },
+        type: { in: [WALLET_TX.CASHBACK as WalletTransactionType, 'PROMOTIONAL_CREDIT' as WalletTransactionType] },
+      },
+      select: {
+        id: true,
+        walletId: true,
+        amount: true,
+        wallet: { select: { userId: true } },
+      },
+      orderBy: { expiresAt: 'asc' },
+      take: limit,
+    })
+
+    if (candidates.length === 0) return []
+
+    // Filter out those already expired (have a matching EXPIRY debit)
+    const candidateIds = candidates.map((c) => c.id)
+    const alreadyExpired = await this.prisma.walletTransaction.findMany({
+      where: {
+        type: 'EXPIRY' as WalletTransactionType,
+        referenceModel: 'WalletTransaction',
+        referenceId: { in: candidateIds },
+      },
+      select: { referenceId: true },
+    })
+    const expiredSet = new Set(alreadyExpired.map((e) => e.referenceId))
+
+    return candidates.filter((c) => !expiredSet.has(c.id))
+  }
+
+  /**
+   * Returns expirable credits expiring within the given warning window
+   * that haven't had a reminder sent yet (expiryReminderSentAt IS NULL).
+   */
+  async findCreditsNeedingExpiryReminder(windowEnd: Date, limit = 200) {
+    return this.prisma.walletTransaction.findMany({
+      where: {
+        expiresAt: { lte: windowEnd, gt: new Date() },
+        expiryReminderSentAt: null,
+        type: { in: [WALLET_TX.CASHBACK as WalletTransactionType, 'PROMOTIONAL_CREDIT' as WalletTransactionType] },
+      },
+      select: {
+        id: true,
+        amount: true,
+        expiresAt: true,
+        wallet: { select: { userId: true, user: { select: { id: true, email: true, name: true } } } },
+      },
+      take: limit,
+    })
+  }
+
+  /**
+   * Marks expiryReminderSentAt on a batch of WalletTransaction IDs.
+   */
+  async markExpiryReminderSent(ids: string[], sentAt: Date) {
+    return this.prisma.walletTransaction.updateMany({
+      where: { id: { in: ids } },
+      data: { expiryReminderSentAt: sentAt },
+    })
   }
 
   private buildTransactionWhere(

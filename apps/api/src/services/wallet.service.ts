@@ -3,7 +3,7 @@ import type { WalletRepository } from '../repositories/wallet.repository'
 import type { WalletTransactionDto, WalletTransactionFilters, WalletTransactionItem, WalletSummary, WalletTransactionType } from '@shared/types/wallet.types'
 import { CREDIT_TYPES, DEBIT_TYPES } from '@shared/types/wallet.types'
 import { NotFoundError, ValidationError } from '../errors/app-error'
-import { WALLET_MAX_ADMIN_CREDIT, WALLET_MAX_ADMIN_DEBIT, PAGINATION_DEFAULTS, paginate } from '../utils/constants'
+import { WALLET_MAX_ADMIN_CREDIT, WALLET_MAX_ADMIN_DEBIT, PAGINATION_DEFAULTS, paginate, WALLET_EXPIRY_WARN_DAYS } from '../utils/constants'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 
 export class WalletService {
@@ -31,6 +31,7 @@ export class WalletService {
       referenceModel: input.referenceModel,
       referenceId: input.referenceId,
       description: input.description,
+      expiresAt: input.expiresAt ?? null,
     })
     if (!result) throw new NotFoundError('Wallet')
 
@@ -204,6 +205,64 @@ export class WalletService {
     )
 
     return { data, pagination: pg.meta(total) }
+  }
+
+  /**
+   * Cron: expire credits past their expiresAt that haven't been voided yet.
+   * Issues an EXPIRY debit for each, capped at the wallet's current balance
+   * (never drives balance negative). Idempotent via @@unique constraint.
+   *
+   * @returns { voided: number; skipped: number } — skipped = insufficient balance or already expired
+   */
+  async expireCredits(): Promise<{ voided: number; skipped: number }> {
+    const now = new Date()
+    const candidates = await this.walletRepo.findExpiredCreditsToVoid(now)
+
+    let voided = 0
+    let skipped = 0
+
+    for (const credit of candidates) {
+      try {
+        // Fetch current balance to cap the expiry debit
+        const wallet = await this.walletRepo.findByUserId(credit.wallet.userId)
+        if (!wallet) { skipped++; continue }
+
+        const amount = Math.min(credit.amount, wallet.balance)
+        if (amount <= 0) { skipped++; continue }
+
+        await this.walletRepo.atomicDebit(wallet.id, amount, {
+          type: WALLET_TX.EXPIRY as WalletTransactionType,
+          referenceModel: WALLET_REFERENCE_MODELS.WALLET_TRANSACTION,
+          referenceId: credit.id,
+          description: 'Wallet credit expired',
+        })
+        voided++
+        this.logger.info({ creditId: credit.id, userId: credit.wallet.userId, amount }, 'Wallet credit expired')
+      } catch (err: unknown) {
+        // P2002 = EXPIRY debit already exists (race condition) — safe to skip
+        const isUniqueViolation = err instanceof Error && 'code' in (err as Record<string, unknown>) && (err as Record<string, unknown>).code === 'P2002'
+        if (isUniqueViolation) { skipped++; continue }
+        this.logger.warn({ creditId: credit.id, err }, 'Failed to expire wallet credit')
+        skipped++
+      }
+    }
+
+    return { voided, skipped }
+  }
+
+  /**
+   * Returns expirable credits expiring within WALLET_EXPIRY_WARN_DAYS that
+   * haven't had a reminder sent yet. Caller (cron) sends the notification and
+   * calls markExpiryReminderSent.
+   */
+  async findCreditsNeedingExpiryReminder() {
+    const windowEnd = new Date()
+    windowEnd.setDate(windowEnd.getDate() + WALLET_EXPIRY_WARN_DAYS)
+    return this.walletRepo.findCreditsNeedingExpiryReminder(windowEnd)
+  }
+
+  async markExpiryReminderSent(ids: string[], sentAt: Date) {
+    return this.walletRepo.markExpiryReminderSent(ids, sentAt)
   }
 
   /**
