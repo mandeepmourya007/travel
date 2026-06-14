@@ -1,0 +1,27 @@
+.claude/commands/build-feature.md
+  s_1456d6821793b5::t_fae0a82bff134d 1
+.claude/commands/build-backend.md
+  s_1456d6821793b5::t_fae0a82bff134d 1
+.claude/commands/build-frontend.md
+  s_1456d6821793b5::t_fae0a82bff134d 1
+.claude/commands/commit-changes.md
+  s_1456d6821793b5::t_fae0a82bff134d 1
+.claude/commands/review-diff.md
+  s_1456d6821793b5::t_fae0a82bff134d 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "b05ffecedd8f9247e19deba28449aaafb717d1ea",
+  "prompts": {},
+  "sessions": {
+    "s_1456d6821793b5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a4bc11ed-79a5-4992-a5c1-ed1e1c9e7a06",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
