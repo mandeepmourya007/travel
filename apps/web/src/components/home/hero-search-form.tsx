@@ -12,7 +12,10 @@ export function HeroSearchForm() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (query.trim()) {
-      router.push(`/trips?destination=${encodeURIComponent(query.trim())}`)
+      // `q` is the free-text search param (OR-matches title, description, destination).
+      // The old `destination` param remains supported on the listing page for
+      // back-compat with existing links.
+      router.push(`/trips?q=${encodeURIComponent(query.trim())}`)
     } else {
       router.push('/trips')
     }

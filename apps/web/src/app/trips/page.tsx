@@ -11,6 +11,9 @@ interface TripsPageProps {
 }
 
 export default async function TripsPage({ searchParams }: TripsPageProps) {
+  // `q` is the free-text search from the hero form; `destination` is the legacy
+  // destination-name param (still supported for back-compat with existing links).
+  const q = typeof searchParams.q === 'string' ? searchParams.q : undefined
   const destination = typeof searchParams.destination === 'string' ? searchParams.destination : undefined
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'date'
@@ -20,6 +23,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   let pagination: { page: number; limit: number; total: number; totalPages: number } | null = null
   try {
     const params = new URLSearchParams()
+    if (q) params.set('q', q)
     if (destination) params.set('destination', destination)
     params.set('page', String(page))
     params.set('limit', '12')
@@ -34,7 +38,8 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
     /* API unavailable — client hydration will retry */
   }
 
-  const heading = destination ? `Trips to "${destination}"` : 'Explore All Group Trips from Pune'
+  const searchLabel = q || destination
+  const heading = searchLabel ? `Search results for "${searchLabel}"` : 'Explore All Group Trips from Pune'
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },
