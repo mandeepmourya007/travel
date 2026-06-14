@@ -81,7 +81,7 @@ export function CancelBookingModal({ booking, onClose }: CancelBookingModalProps
           </div>
           <div className="flex justify-between rounded-md bg-neutral-100 px-2 py-1.5">
             <span className="font-medium text-neutral-700">Estimated Refund</span>
-            <span className={`font-semibold ${refundEstimate.amount > 0 ? 'text-success-600' : 'text-error-600'}`}>
+            <span className={`font-semibold ${refundEstimate.amount > 0 ? 'text-success-500' : 'text-error-500'}`}>
               {refundEstimate.amount > 0
                 ? `₹${refundEstimate.amount.toLocaleString('en-IN')} (${refundEstimate.percent}%)`
                 : 'No refund'}
