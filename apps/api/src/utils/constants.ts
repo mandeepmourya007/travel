@@ -47,6 +47,18 @@ export const WALLET_SIGNUP_BONUS = 0
 export const WALLET_MAX_ADMIN_CREDIT = 50000
 export const WALLET_MAX_ADMIN_DEBIT = 50000
 
+// Auto-cashback on trip completion. Defaults to 0 (disabled) so existing
+// deployments are unaffected until explicitly enabled via env/config.
+// Amount = min(round(totalAmount * PCT / 100), CAP, totalAmount).
+export const WALLET_AUTO_CASHBACK_PERCENT = Number(process.env.WALLET_AUTO_CASHBACK_PERCENT ?? 0)
+export const WALLET_AUTO_CASHBACK_CAP = Number(process.env.WALLET_AUTO_CASHBACK_CAP ?? 0)
+
+// Days before an expirable credit (cashback, promotional) is voided.
+export const WALLET_CREDIT_EXPIRY_DAYS = Number(process.env.WALLET_CREDIT_EXPIRY_DAYS ?? 90)
+
+// Days before expiry to send the advance-warning notification.
+export const WALLET_EXPIRY_WARN_DAYS = 7
+
 /** Parse page/limit filters and return skip/take + a builder for the response pagination object. */
 export function paginate(filters: { page?: number; limit?: number }) {
   const page = filters.page ?? PAGINATION_DEFAULTS.page
