@@ -1,0 +1,38 @@
+apps/api/src/services/booking.service.ts
+  s_315c2e140c977c::t_f2ca75a1b1c8ad 17-18,190
+packages/shared/src/utils/refund.ts
+  s_0c73783526772b::t_4e8499e877d77a 1-31
+packages/shared/src/index.ts
+  s_315c2e140c977c::t_f2ca75a1b1c8ad 4
+apps/api/tests/unit/services/booking.service.test.ts
+  s_315c2e140c977c::t_f2ca75a1b1c8ad 440-678
+apps/web/src/components/bookings/cancel-booking-modal.tsx
+  s_0c73783526772b::t_9fba3be244133c 89
+  s_315c2e140c977c::t_f2ca75a1b1c8ad 6,35,78-88
+apps/api/tests/unit/services/payment.service.test.ts
+  s_315c2e140c977c::t_f2ca75a1b1c8ad 629-668
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "8a1902c537f261a4784414d85d787ea45d1ac1df",
+  "prompts": {},
+  "sessions": {
+    "s_0c73783526772b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "acece5a7-5472-4124-95ce-558a223bce6d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_315c2e140c977c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5333237b-b75c-4125-ad17-d20656d461d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
