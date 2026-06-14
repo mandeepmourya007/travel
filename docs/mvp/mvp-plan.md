@@ -655,7 +655,7 @@ LOGIN:
 | **File Storage** | Cloudinary | Trip photos, user avatars, CDN built-in |
 | **Chat** | Socket.IO | Real-time in-app messaging with anti-leakage filters |
 | **Hosting** | Vercel (FE) + Railway/Render (BE) | Free tiers, independent scaling |
-| **Search** | PostgreSQL full-text (MVP) | Good enough for launch; Algolia later |
+| **Search** | ILIKE free-text on title/description/destination (MVP) — FTS tsvector next | Hero search now submits `?q=`; Algolia later |
 | **Cache** | Redis (ioredis) | Rate limiting, session cache, Socket.IO adapter |
 | **Logging** | Pino | Structured JSON logging, fastest Node.js logger |
 
@@ -1322,7 +1322,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ---
 
-##### 1. Destination Pages (`/destinations/[slug]`)
+##### ✅ 1. Destination Pages (`/destinations/[slug]`) — **SHIPPED**
 
 **What:** Rich, SEO-optimized landing pages for each destination — showing all trips to that destination, aggregated reviews, average pricing, best time to visit, and (future) Local Intel tips.
 

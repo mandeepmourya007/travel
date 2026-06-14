@@ -706,7 +706,7 @@ Adds Nginx reverse proxy with SSL termination (Let's Encrypt certbot).
 | File | Purpose |
 |------|---------|
 | `docker/api.Dockerfile` | Dev API image (tsx watch, mounted sources) |
-| `docker/api.prod.Dockerfile` | Production API (compiled JS) |
+| `docker/api.prod.Dockerfile` | Production API (tsx runtime — tsc rootDir issue in monorepo) |
 | `docker/web.Dockerfile` | Dev web image |
 | `docker/web.prod.Dockerfile` | Production web (next build, standalone) |
 

@@ -1,6 +1,8 @@
 # TripCompare Product Audit — Planned vs Built vs Proposed
 
 > Audited: 2026-06-12 @ commit `9a9c643`. Proposals are filtered against `docs/mvp/mvp-plan.md` and `docs/rnd/` so nothing already planned is re-proposed.
+>
+> **Remediation status (2026-06-14):** All items from the approved remediation plan have been implemented — see commit history. Items resolved: REVIEW_REQUEST notification firing, TRIP_REMINDER cron, auto-cashback (config-gated), wallet expiry (EXPIRY enum + expiresAt + sweep cron), WALLET_CREDIT_EXPIRING notification, payout statements (`GET /payments/payouts`), trip duplication (`POST /trips/:id/duplicate`), free-text search (`?q=`), doc fixes (Destination Pages, FTS claim). Deferred: web push/PWA, book-together split-pay.
 
 ## Step 1 — What the planning docs already cover (do NOT re-propose)
 
