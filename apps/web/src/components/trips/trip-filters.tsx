@@ -2,7 +2,7 @@
 
 import { useSearchParams, usePathname } from 'next/navigation'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { SlidersHorizontal, X } from 'lucide-react'
+import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { NumberInput } from '@/components/shared/number-input'
 import { useDestinations } from '@/hooks/use-destinations'
 import { useTripCategories } from '@/hooks/use-trip-categories'
@@ -42,11 +42,14 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   const { data: destinations } = useDestinations()
   const { data: tripCategories } = useTripCategories()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [localSearch, setLocalSearch] = useState(currentFilters.q || '')
   const [localMinPrice, setLocalMinPrice] = useState(currentFilters.minPrice?.toString() || '')
   const [localMaxPrice, setLocalMaxPrice] = useState(currentFilters.maxPrice?.toString() || '')
+  const debouncedSearch = useDebounce(localSearch, 400)
   const debouncedMin = useDebounce(localMinPrice, 500)
   const debouncedMax = useDebounce(localMaxPrice, 500)
   const isInitialMount = useRef(true)
+  const isSearchInitialMount = useRef(true)
   const searchParamsRef = useRef(searchParams)
   searchParamsRef.current = searchParams
 
@@ -74,6 +77,17 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   }, [mobileOpen])
 
   useEffect(() => {
+    if (isSearchInitialMount.current) {
+      isSearchInitialMount.current = false
+      return
+    }
+    const params = new URLSearchParams(searchParamsRef.current.toString())
+    debouncedSearch.trim() ? params.set('q', debouncedSearch.trim()) : params.delete('q')
+    params.delete('page')
+    pushShallowUrl(pathname, params)
+  }, [debouncedSearch, pathname])
+
+  useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false
       return
@@ -86,12 +100,14 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
   }, [debouncedMin, debouncedMax, pathname])
 
   const clearFilters = useCallback(() => {
+    setLocalSearch('')
     setLocalMinPrice('')
     setLocalMaxPrice('')
     pushShallowUrl(pathname, new URLSearchParams())
   }, [pathname])
 
   const hasActiveFilters =
+    currentFilters.q ||
     currentFilters.destinationId ||
     currentFilters.tripType ||
     currentFilters.minPrice ||
@@ -99,6 +115,34 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
 
   const filterContent = (
     <div className="space-y-5">
+      {/* Free-text search */}
+      <div>
+        <label htmlFor="filter-search" className="block text-sm font-semibold text-neutral-700 mb-2">
+          Search
+        </label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400 pointer-events-none" />
+          <input
+            id="filter-search"
+            type="text"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            placeholder="Trip name, destination…"
+            className="input pl-9 pr-8 text-sm"
+          />
+          {localSearch && (
+            <button
+              type="button"
+              onClick={() => setLocalSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Clear search"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Destination */}
       <div>
         <label className="block text-sm font-semibold text-neutral-700 mb-2">

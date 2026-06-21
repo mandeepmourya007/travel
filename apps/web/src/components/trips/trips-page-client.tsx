@@ -19,6 +19,7 @@ function SearchContent({ initialData }: SearchContentProps) {
   const { selectedIds, toggle } = useCompareQueue()
 
   const filters = useMemo<TripFiltersType>(() => ({
+    q: searchParams.get('q') || undefined,
     destinationId: searchParams.get('destinationId') || undefined,
     destination: searchParams.get('destination') || undefined,
     tripType: (searchParams.get('tripType') as TripFiltersType['tripType']) || undefined,

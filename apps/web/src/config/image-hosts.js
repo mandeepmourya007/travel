@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * Single source of truth for remote image hosts allowed through next/image.
  * Consumed by next.config.js (images.remotePatterns) and the Avatar

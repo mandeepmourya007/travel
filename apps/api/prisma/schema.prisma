@@ -405,6 +405,10 @@ model Booking {
   @@index([bookingStatus, expiresAt])
   @@index([isDeleted])
   @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
+  // Partial unique index (not expressible in Prisma DSL — see migration 20260621000001):
+  // CREATE UNIQUE INDEX "Booking_active_user_trip_unique" ON "Booking" ("userId", "tripId")
+  // WHERE "bookingStatus" IN ('PENDING_PAYMENT', 'CONFIRMED') AND "isDeleted" = false
+  // Prevents duplicate active bookings for the same user+trip at the DB level.
 }
 
 model TripTransferPoint {
