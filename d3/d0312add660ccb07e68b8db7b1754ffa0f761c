@@ -1,0 +1,28 @@
+apps/api/src/utils/constants.ts
+  s_8a6e4f208981c3::t_8ad461449f98f7 3-7
+apps/api/src/services/booking.service.ts
+  s_8a6e4f208981c3::t_98e0dd2a7b7a0c 537-541,543-544
+  s_8a6e4f208981c3::t_afca8cf3dea5e7 16,376
+  s_8a6e4f208981c3::t_53a5d9be085df5 20
+  s_8a6e4f208981c3::t_8a3a4466738ba4 327-335,337-340
+  s_8a6e4f208981c3::t_1c7ecc496447e3 22-24,446
+  s_8a6e4f208981c3::t_d97584ece43fca 75-100,359-361,380-382,535
+  s_8a6e4f208981c3::t_6557b5d167b93f 356-358,362-374,377-379,383-384,387-390,392-414,416-421,424-438,440-445,447-469,472-478,480-512,514-517,519-526,528,530-534
+  s_8a6e4f208981c3::t_6fd3b8875676eb 731-736
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "d3d0312add660ccb07e68b8db7b1754ffa0f761c",
+  "prompts": {},
+  "sessions": {
+    "s_8a6e4f208981c3": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cb286d74-8be7-439a-abfa-a99362a3e0f5",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
