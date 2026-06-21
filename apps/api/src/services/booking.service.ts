@@ -13,10 +13,15 @@ import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { calculateRefundPercent } from '@shared/utils/refund'
 import { env } from '../config/env'
+import { withLock } from '../utils/redis-lock'
+
+// Matches a real Razorpay linked account ID: "acc_" + 14+ alphanumeric chars.
+// Used to gate escrow transfers — test/sandbox IDs won't match and transfers are skipped.
+const REAL_ACCOUNT_RE = /^acc_[A-Za-z0-9]{14,}$/
 
 /** Maps Prisma's nested assignedSeat → flat API shape */
 function mapAssignedSeat(
@@ -64,6 +69,35 @@ export class BookingService {
       throw new ValidationError('Payment features are not configured — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET')
     }
     return this.paymentService
+  }
+
+  /**
+   * Resolves how to handle an active booking found during idempotency checks.
+   * Called from both the pre-lock fast-path and the under-lock re-check so the
+   * decision logic lives in exactly one place.
+   *
+   * @returns CreateBookingResponse — PENDING_PAYMENT with expiresAt → return to client
+   * @returns null                  — PENDING_PAYMENT without expiresAt → caller must expire + retry
+   * @throws  ConflictError         — CONFIRMED → client already has an active booking
+   */
+  private buildIdempotentResponse(
+    existing: NonNullable<Awaited<ReturnType<BookingRepository['findActiveByUserAndTrip']>>>,
+  ): CreateBookingResponse | null {
+    if (existing.bookingStatus === BOOKING_STATUS.CONFIRMED) {
+      throw new ConflictError('You already have a confirmed booking for this trip', 'ALREADY_BOOKED')
+    }
+    if (!existing.expiresAt) {
+      return null // PENDING_PAYMENT with no expiresAt — caller: expire + create fresh order
+    }
+    return {
+      bookingId: existing.id,
+      bookingRef: existing.bookingRef,
+      razorpayOrderId: existing.paymentTransactions[0]?.razorpayOrderId || '',
+      razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
+      amountInRupees: existing.totalAmount,
+      currency: CURRENCY,
+      expiresAt: existing.expiresAt.toISOString(),
+    }
   }
 
   /**
@@ -290,15 +324,20 @@ export class BookingService {
    * Creates a booking with Razorpay order (Facade pattern).
    *
    * Flow:
-   * 1. Idempotency check — return existing PENDING_PAYMENT order
-   * 2. 9 validations (trip status, seats, deadline, booking mode, etc.)
-   * 3. Calculate price (early bird check)
-   * 4. Create Razorpay order WITH order-level transfers (H4 fix)
-   * 5. Create Booking(PENDING_PAYMENT) + PaymentTransaction(INITIATED)
+   * 1. Fast-path idempotency — return existing PENDING_PAYMENT order without acquiring lock
+   * 2. Redis distributed lock (BOOKING_LOCK_TTL_MS) — serialises concurrent requests per user+trip
+   * 3. Under-lock re-check — concurrent arrival that slipped past step 1 returns existing booking
+   * 4. Validations — trip status, capacity, deadline, booking mode, transfer points, seat count
+   * 5. Calculate price — base + early-bird discount + transfer-point extra charges
+   * 6. Build escrow transfers — only in production with a verified Razorpay linked account
+   * 7. Create Razorpay order with order-level transfers
+   * 8. Create Booking(PENDING_PAYMENT) + PaymentTransaction(INITIATED)
+   * 9. Atomically hold seats (if seatIds provided) — expire booking on hold failure
    *
-   * @throws ConflictError — user already has CONFIRMED booking
-   * @throws NotFoundError — trip doesn't exist
-   * @throws ValidationError — trip not active, full, past deadline, etc.
+   * @throws ConflictError(ALREADY_BOOKED)       — CONFIRMED booking already exists
+   * @throws ConflictError(BOOKING_IN_PROGRESS)  — Redis lock not acquired (concurrent request)
+   * @throws NotFoundError                       — trip doesn't exist
+   * @throws ValidationError                     — trip not accepting bookings, capacity exceeded, etc.
    */
   async createBooking(
     userId: string,
@@ -314,175 +353,195 @@ export class BookingService {
     const timer = startTimer()
     const paymentSvc = this.requirePaymentService()
 
-    // 1. Idempotency check
-    const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
-    if (existing) {
-      if (existing.bookingStatus === BOOKING_STATUS.CONFIRMED) {
-        throw new ConflictError('You already have a confirmed booking for this trip', 'ALREADY_BOOKED')
+    // 1. Fast-path idempotency check (no lock needed — read-only, skips lock overhead)
+    const earlyExisting = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
+    if (earlyExisting) {
+      const idempotent = this.buildIdempotentResponse(earlyExisting)
+      if (idempotent) return idempotent
+      // null → PENDING_PAYMENT with no expiresAt; cron can never reap it, so expire + proceed
+      this.logger.warn({ bookingId: earlyExisting.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
+      await this.bookingRepo.updateStatus(earlyExisting.id, BOOKING_STATUS.EXPIRED)
+    }
+
+    // 2. Distributed lock — serialises concurrent booking-creation for the same user+trip.
+    //    Eliminates the TOCTOU gap between findActiveByUserAndTrip and bookingRepo.create:
+    //    two simultaneous form-submits both pass the fast-path check above (both see null),
+    //    but only one wins the lock and creates the booking; the second re-checks under the
+    //    lock and returns the booking the first one just created.
+    //    When Redis is unavailable (dev/CI) withLock degrades to a no-op and the DB partial
+    //    unique index on Booking(userId, tripId) is the hard backstop.
+    const lockKey = `booking:create:${userId}:${input.tripId}`
+    let bookingResponse: CreateBookingResponse | null = null
+
+    const lockAcquired = await withLock(lockKey, BOOKING_LOCK_TTL_MS, async () => {
+      // Re-check under lock — catches concurrent arrivals that both passed the fast-path
+      const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
+      if (existing) {
+        const idempotent = this.buildIdempotentResponse(existing)
+        if (idempotent) { bookingResponse = idempotent; return }
+        // null → PENDING_PAYMENT with no expiresAt; expire + proceed
+        this.logger.warn({ bookingId: existing.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
+        await this.bookingRepo.updateStatus(existing.id, BOOKING_STATUS.EXPIRED)
       }
-      if (existing.expiresAt) {
-        // PENDING_PAYMENT — return same order
-        const paymentTx = existing.paymentTransactions[0]
-        return {
-          bookingId: existing.id,
-          bookingRef: existing.bookingRef,
-          razorpayOrderId: paymentTx?.razorpayOrderId || '',
-          razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
-          amountInRupees: existing.totalAmount,
-          currency: CURRENCY,
-          expiresAt: existing.expiresAt.toISOString(),
+
+      // 3. Validations
+      if (!env.RAZORPAY_KEY_ID && env.NODE_ENV === 'production') {
+        throw new ValidationError('Payment configuration is missing — contact support')
+      }
+
+      const trip = await this.tripRepo.findByIdForBooking(input.tripId)
+      if (!trip) throw new NotFoundError('Trip')
+      if (trip.status !== TRIP_STATUS.ACTIVE || !trip.acceptingBookings) {
+        throw new ValidationError('This trip is not accepting bookings')
+      }
+      if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
+        throw new ValidationError('Booking deadline has passed')
+      }
+      if (trip.currentBookings + input.numTravelers > trip.maxGroupSize) {
+        throw new ValidationError('Not enough seats available')
+      }
+      if (trip.organizer?.userId === userId) {
+        throw new ValidationError('You cannot book your own trip')
+      }
+      if (!trip.organizer?.razorpayAccountId) {
+        throw new ValidationError('Organizer has not set up payment — booking unavailable')
+      }
+      if (input.numTravelers !== input.travelers.length) {
+        throw new ValidationError('Number of traveler details must match numTravelers')
+      }
+      if (input.seatIds?.length && input.seatIds.length !== input.numTravelers) {
+        throw new ValidationError('Number of selected seats must match number of travelers')
+      }
+
+      // REQUEST_BASED mode check
+      if (trip.bookingMode === BOOKING_MODE.REQUEST_BASED) {
+        const approvedRequest = await this.tripRequestRepo.findApprovedForUser(input.tripId, userId)
+        if (!approvedRequest) {
+          throw new ValidationError('You need an approved request to book this trip')
         }
       }
-      // PENDING_PAYMENT without expiresAt — the expiry cron can never reap it
-      // (matches expiresAt < now only), so supersede it and create a fresh order
-      this.logger.warn({ bookingId: existing.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
-      await this.bookingRepo.updateStatus(existing.id, BOOKING_STATUS.EXPIRED)
-    }
 
-    // 2. Validations
-    if (!env.RAZORPAY_KEY_ID && env.NODE_ENV === 'production') {
-      throw new ValidationError('Payment configuration is missing — contact support')
-    }
-
-    const trip = await this.tripRepo.findByIdForBooking(input.tripId)
-    if (!trip) throw new NotFoundError('Trip')
-    if (trip.status !== TRIP_STATUS.ACTIVE || !trip.acceptingBookings) {
-      throw new ValidationError('This trip is not accepting bookings')
-    }
-    if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
-      throw new ValidationError('Booking deadline has passed')
-    }
-    if (trip.currentBookings + input.numTravelers > trip.maxGroupSize) {
-      throw new ValidationError('Not enough seats available')
-    }
-    if (trip.organizer?.userId === userId) {
-      throw new ValidationError('You cannot book your own trip')
-    }
-    if (!trip.organizer?.razorpayAccountId) {
-      throw new ValidationError('Organizer has not set up payment — booking unavailable')
-    }
-    if (input.numTravelers !== input.travelers.length) {
-      throw new ValidationError('Number of traveler details must match numTravelers')
-    }
-    if (input.seatIds?.length && input.seatIds.length !== input.numTravelers) {
-      throw new ValidationError('Number of selected seats must match number of travelers')
-    }
-
-    // REQUEST_BASED mode check
-    if (trip.bookingMode === BOOKING_MODE.REQUEST_BASED) {
-      const approvedRequest = await this.tripRequestRepo.findApprovedForUser(input.tripId, userId)
-      if (!approvedRequest) {
-        throw new ValidationError('You need an approved request to book this trip')
+      // 4. Validate transfer points (if provided)
+      let pickupExtraCharge = 0
+      let dropExtraCharge = 0
+      if (input.pickupPointId) {
+        const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.pickupPointId)
+        if (!point) throw new ValidationError('Selected pickup point does not belong to this trip')
+        if (point.type !== TRANSFER_POINT_TYPE.PICKUP) throw new ValidationError('Selected pickup point is not a PICKUP type')
+        pickupExtraCharge = point.extraCharge ?? 0
       }
-    }
-
-    // 3. Validate transfer points (if provided)
-    let pickupExtraCharge = 0
-    let dropExtraCharge = 0
-    if (input.pickupPointId) {
-      const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.pickupPointId)
-      if (!point) throw new ValidationError('Selected pickup point does not belong to this trip')
-      if (point.type !== TRANSFER_POINT_TYPE.PICKUP) throw new ValidationError('Selected pickup point is not a PICKUP type')
-      pickupExtraCharge = point.extraCharge ?? 0
-    }
-    if (input.dropPointId) {
-      const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.dropPointId)
-      if (!point) throw new ValidationError('Selected drop point does not belong to this trip')
-      if (point.type !== TRANSFER_POINT_TYPE.DROP) throw new ValidationError('Selected drop point is not a DROP type')
-      dropExtraCharge = point.extraCharge ?? 0
-    }
-
-    // 4. Calculate price (base + transfer point extra charges)
-    const isEarlyBird = trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date()
-    const pricePerPerson = isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
-    const totalAmount = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
-    const amountInPaise = totalAmount * 100
-
-    // 5. Build order-level transfers (H4 fix)
-    // Only attach transfers in production with a real Razorpay linked account
-    // Real Razorpay linked account IDs: "acc_" + 14+ alphanumeric chars (e.g. acc_HjVXtlV9LdABJ0)
-    const REAL_ACCOUNT_RE = /^acc_[A-Za-z0-9]{14,}$/
-    const isRealAccount =
-      env.NODE_ENV === 'production' &&
-      REAL_ACCOUNT_RE.test(trip.organizer.razorpayAccountId ?? '')
-
-    const transfers: Record<string, unknown>[] = isRealAccount
-      ? [{
-          account: trip.organizer.razorpayAccountId,
-          amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
-          currency: CURRENCY,
-          on_hold: 1,
-          on_hold_until: Math.floor(
-            new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
-          ),
-          notes: { tripId: input.tripId },
-        }]
-      : []
-
-    // 5. Pre-check seat availability (optimistic — atomic hold happens after booking creation)
-    if (input.seatIds?.length && this.vehicleService) {
-      const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
-      if (!availableSeats) {
-        throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
+      if (input.dropPointId) {
+        const point = trip.transferPoints?.find((p: { id: string }) => p.id === input.dropPointId)
+        if (!point) throw new ValidationError('Selected drop point does not belong to this trip')
+        if (point.type !== TRANSFER_POINT_TYPE.DROP) throw new ValidationError('Selected drop point is not a DROP type')
+        dropExtraCharge = point.extraCharge ?? 0
       }
-    }
 
-    // 6. Create Razorpay order
-    const order = await paymentSvc.createOrder(
-      amountInPaise,
-      `booking-${Date.now()}`,
-      transfers,
-      { tripId: input.tripId, userId },
-    )
+      // 5. Calculate price (base + transfer point extra charges)
+      const isEarlyBird = trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date()
+      const pricePerPerson = isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
+      const totalAmount = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
+      const amountInPaise = totalAmount * 100
 
-    // 7. Create Booking + PaymentTransaction
-    const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
-    const booking = await this.bookingRepo.create({
-      tripId: input.tripId,
-      userId,
-      numTravelers: input.numTravelers,
-      totalAmount,
-      expiresAt,
-      pickupPointId: input.pickupPointId,
-      dropPointId: input.dropPointId,
-      travelers: input.travelers,
+      // 6. Build order-level transfers — only in production with a real linked account
+      const isRealAccount =
+        env.NODE_ENV === 'production' &&
+        REAL_ACCOUNT_RE.test(trip.organizer.razorpayAccountId ?? '')
+
+      const transfers: Record<string, unknown>[] = isRealAccount
+        ? [{
+            account: trip.organizer.razorpayAccountId,
+            amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
+            currency: CURRENCY,
+            on_hold: 1,
+            on_hold_until: Math.floor(
+              new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
+            ),
+            notes: { tripId: input.tripId },
+          }]
+        : []
+
+      // Pre-check seat availability (optimistic — atomic hold happens after booking creation)
+      if (input.seatIds?.length && this.vehicleService) {
+        const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
+        if (!availableSeats) {
+          throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
+        }
+      }
+
+      // 7. Create Razorpay order
+      const order = await paymentSvc.createOrder(
+        amountInPaise,
+        `booking-${Date.now()}`,
+        transfers,
+        { tripId: input.tripId, userId },
+      )
+
+      // 8. Create Booking + PaymentTransaction
+      const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
+      const booking = await this.bookingRepo.create({
+        tripId: input.tripId,
+        userId,
+        numTravelers: input.numTravelers,
+        totalAmount,
+        expiresAt,
+        pickupPointId: input.pickupPointId,
+        dropPointId: input.dropPointId,
+        travelers: input.travelers,
+      })
+
+      // H2 fix: Persist PaymentTransaction so confirmBooking can find it
+      await this.paymentTxRepo.create({
+        bookingId: booking.id,
+        type: PAYMENT_TX_TYPE.PAYMENT,
+        amount: totalAmount,
+        razorpayOrderId: order.id,
+        status: PAYMENT_TX_STATUS.INITIATED,
+      })
+
+      // 9. Atomically hold seats (if hold fails, expire booking to prevent orphaned state)
+      if (input.seatIds?.length && this.vehicleService) {
+        try {
+          await this.vehicleService.holdSeats(input.seatIds, userId, booking.id)
+        } catch (seatErr) {
+          // Expire the booking — Razorpay order expires naturally
+          await this.bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
+            .catch((cancelErr: unknown) => this.logger.error({ cancelErr, bookingId: booking.id }, 'Failed to expire booking after seat hold failure'))
+          throw seatErr
+        }
+      }
+
+      this.logger.info(
+        { bookingId: booking.id, orderId: order.id, amount: totalAmount, seatCount: input.seatIds?.length ?? 0, durationMs: timer.elapsed() },
+        'Booking created with Razorpay order',
+      )
+
+      bookingResponse = {
+        bookingId: booking.id,
+        bookingRef: booking.bookingRef,
+        razorpayOrderId: order.id,
+        razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
+        amountInRupees: totalAmount,
+        currency: CURRENCY,
+        expiresAt: expiresAt.toISOString(),
+      }
     })
 
-    // H2 fix: Persist PaymentTransaction so confirmBooking can find it
-    await this.paymentTxRepo.create({
-      bookingId: booking.id,
-      type: PAYMENT_TX_TYPE.PAYMENT,
-      amount: totalAmount,
-      razorpayOrderId: order.id,
-      status: PAYMENT_TX_STATUS.INITIATED,
-    })
-
-    // 8. Atomically hold seats (if hold fails, cancel booking to prevent orphaned state)
-    if (input.seatIds?.length && this.vehicleService) {
-      try {
-        await this.vehicleService.holdSeats(input.seatIds, userId, booking.id)
-      } catch (seatErr) {
-        // Cancel the booking — Razorpay order expires naturally
-        await this.bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
-          .catch((cancelErr: unknown) => this.logger.error({ cancelErr, bookingId: booking.id }, 'Failed to expire booking after seat hold failure'))
-        throw seatErr
-      }
+    if (!lockAcquired) {
+      throw new ConflictError(
+        'A booking request for this trip is already in progress — please wait a moment and try again',
+        'BOOKING_IN_PROGRESS',
+      )
     }
 
-    this.logger.info(
-      { bookingId: booking.id, orderId: order.id, amount: totalAmount, seatCount: input.seatIds?.length ?? 0, durationMs: timer.elapsed() },
-      'Booking created with Razorpay order',
-    )
-
-    return {
-      bookingId: booking.id,
-      bookingRef: booking.bookingRef,
-      razorpayOrderId: order.id,
-      razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
-      amountInRupees: totalAmount,
-      currency: CURRENCY,
-      expiresAt: expiresAt.toISOString(),
+    // Invariant: lockAcquired=true means withLock called fn to completion without throwing.
+    // fn always sets bookingResponse before returning. If this assertion ever fires, a change
+    // to withLock broke the contract — fix withLock, not this assertion.
+    if (!bookingResponse) {
+      throw new Error('Invariant violation: lock acquired but bookingResponse was not set — this is a bug in withLock or createBooking')
     }
+
+    return bookingResponse
   }
 
   /**
@@ -669,6 +728,12 @@ export class BookingService {
     // Persist razorpayPaymentId so confirmBooking() can capture it
     const paymentTx = booking.paymentTransactions[0]
     if (paymentTx) {
+      // Guard against payment replay: the client-supplied orderId must match the one
+      // stored for this booking. Without this check, a valid Razorpay signature from
+      // booking A could be reused to confirm booking B that has the same amount.
+      if (paymentTx.razorpayOrderId && paymentTx.razorpayOrderId !== dto.razorpayOrderId) {
+        throw new AuthError('Payment order ID does not match this booking — possible replay attack')
+      }
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, dto.razorpayPaymentId)
       // Update in-memory so the pre-loaded booking reflects the DB change
       paymentTx.razorpayPaymentId = dto.razorpayPaymentId

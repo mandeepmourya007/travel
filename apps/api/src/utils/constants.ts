@@ -1,5 +1,10 @@
 export const BOOKING_EXPIRY_MINUTES = 30
 
+// 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
+// + all DB operations inside the lock with comfortable headroom.
+// Must always be > Razorpay SDK timeout to avoid lock-expiry races.
+export const BOOKING_LOCK_TTL_MS = 60_000
+
 export const APPROVAL_EXPIRY_HOURS = 48
 
 export const MAX_COMPARE_TRIPS = 3
