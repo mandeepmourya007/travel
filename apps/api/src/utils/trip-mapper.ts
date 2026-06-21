@@ -1,7 +1,46 @@
 import { VERIFICATION_STATUS } from '@shared/constants'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function mapTripToSummary(trip: any) {
+/**
+ * Structural contract for mapTripToSummary.
+ *
+ * Defined as an explicit interface rather than Prisma.TripGetPayload because:
+ * - The mapper is called with results from both `select` (TRIP_SELECT_SUMMARY)
+ *   and `include` (TRIP_INCLUDE_SUMMARY) queries — no single Prisma payload covers both.
+ * - `_tripTypeLabel` is an ad-hoc field injected by raw SQL joins; it is not in the schema.
+ *
+ * Keep in sync with TRIP_SELECT_SUMMARY in trip.repository.ts.
+ */
+export interface TripForSummary {
+  id: string
+  title: string
+  slug: string
+  tripType: string | null
+  bookingMode: string
+  pricePerPerson: number
+  earlyBirdPrice: number | null
+  earlyBirdDeadline: Date | null
+  startDate: Date
+  endDate: Date
+  maxGroupSize: number
+  currentBookings: number
+  status: string
+  acceptingBookings: boolean
+  photos: string[]
+  seatSelectionEnabled?: boolean | null
+  _tripTypeLabel?: string
+  destination?: { id: string; name: string; slug: string } | null
+  organizer?: {
+    id: string
+    slug: string
+    businessName: string
+    rating: number
+    totalReviews: number
+    verificationStatus: string
+  } | null
+  _count?: { reviews: number }
+}
+
+export function mapTripToSummary(trip: TripForSummary) {
   return {
     id: trip.id,
     title: trip.title,

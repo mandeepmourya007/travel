@@ -21,8 +21,6 @@ export const SALT_ROUNDS = 12
 
 export const JWT_ACCESS_EXPIRY = '15m'
 
-export const JWT_REFRESH_EXPIRY = '7d'
-
 export const REFRESH_TOKEN_DAYS = 7
 
 export const PAGINATION_DEFAULTS = {
@@ -67,7 +65,7 @@ export const WALLET_EXPIRY_WARN_DAYS = 7
 /** Parse page/limit filters and return skip/take + a builder for the response pagination object. */
 export function paginate(filters: { page?: number; limit?: number }) {
   const page = filters.page ?? PAGINATION_DEFAULTS.page
-  const limit = filters.limit ?? PAGINATION_DEFAULTS.limit
+  const limit = Math.min(filters.limit ?? PAGINATION_DEFAULTS.limit, PAGINATION_DEFAULTS.maxLimit)
   const skip = (page - 1) * limit
   return {
     skip,
