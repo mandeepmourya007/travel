@@ -247,7 +247,7 @@ export class BookingRepository {
         FOR UPDATE
       `
       const row = rows[0]
-      if (!row || ![BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.PENDING_PAYMENT].includes(row.bookingStatus)) {
+      if (!row || !([BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.PENDING_PAYMENT] as string[]).includes(row.bookingStatus)) {
         return { rows: 0, preCancelStatus: row?.bookingStatus ?? null }
       }
 

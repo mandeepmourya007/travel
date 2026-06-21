@@ -331,7 +331,7 @@ export class TripLifecycleService {
             this.logger.info({ bookingId: booking.bookingId, amount }, 'Auto-cashback credited')
           } catch (err: unknown) {
             // P2002 = already issued (race or manual admin cashback ran first) — safe to ignore
-            const isUniqueViolation = err instanceof Error && 'code' in (err as Record<string, unknown>) && (err as Record<string, unknown>).code === 'P2002'
+            const isUniqueViolation = err instanceof Error && (err as { code?: unknown }).code === 'P2002'
             if (!isUniqueViolation) {
               this.logger.warn({ bookingId: booking.bookingId, err }, 'Auto-cashback credit failed')
             }

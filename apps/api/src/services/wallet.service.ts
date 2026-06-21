@@ -240,7 +240,7 @@ export class WalletService {
         this.logger.info({ creditId: credit.id, userId: credit.wallet.userId, amount }, 'Wallet credit expired')
       } catch (err: unknown) {
         // P2002 = EXPIRY debit already exists (race condition) — safe to skip
-        const isUniqueViolation = err instanceof Error && 'code' in (err as Record<string, unknown>) && (err as Record<string, unknown>).code === 'P2002'
+        const isUniqueViolation = err instanceof Error && (err as { code?: unknown }).code === 'P2002'
         if (isUniqueViolation) { skipped++; continue }
         this.logger.warn({ creditId: credit.id, err }, 'Failed to expire wallet credit')
         skipped++
