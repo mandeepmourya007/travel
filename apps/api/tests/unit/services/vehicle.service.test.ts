@@ -115,6 +115,7 @@ function createMockVehicleRepo() {
     countBookedSeats: vi.fn(),
     countSeatsByTripId: vi.fn(),
     assignTravelerToSeat: vi.fn(),
+    batchAssignTravelers: vi.fn(),
     expireHeldSeats: vi.fn(),
   }
 }
@@ -489,12 +490,12 @@ describe('VehicleService', () => {
         { seatId: 's2', travelerDetailId: 'td2' },
       ]
       mockVehicleRepo.confirmSeats.mockResolvedValue(2)
-      mockVehicleRepo.assignTravelerToSeat.mockResolvedValue({})
+      mockVehicleRepo.batchAssignTravelers.mockResolvedValue(undefined)
 
       await service.confirmSeats(MOCK_BOOKING_ID, MOCK_USER_ID, assignments)
 
       expect(mockVehicleRepo.confirmSeats).toHaveBeenCalledWith(MOCK_BOOKING_ID, MOCK_USER_ID)
-      expect(mockVehicleRepo.assignTravelerToSeat).toHaveBeenCalledTimes(2)
+      expect(mockVehicleRepo.batchAssignTravelers).toHaveBeenCalledWith(assignments)
     })
 
     it('should throw ConflictError when no seats match for confirmation', async () => {
@@ -502,6 +503,35 @@ describe('VehicleService', () => {
 
       await expect(service.confirmSeats(MOCK_BOOKING_ID, MOCK_USER_ID, []))
         .rejects.toThrow('No held seats found for this booking')
+    })
+
+    it('calls batchAssignTravelers with empty array when assignments are empty (no-op in repo)', async () => {
+      mockVehicleRepo.confirmSeats.mockResolvedValue(2)
+      mockVehicleRepo.batchAssignTravelers.mockResolvedValue(undefined)
+
+      await service.confirmSeats(MOCK_BOOKING_ID, MOCK_USER_ID, [])
+
+      expect(mockVehicleRepo.batchAssignTravelers).toHaveBeenCalledWith([])
+    })
+  })
+
+  // ── resolveOrganizerAndTrip (via getOrganizerSeatMap) ─
+
+  describe('resolveOrganizerAndTrip — parallel fetch error order', () => {
+    it('throws ForbiddenError (profile not found) even when trip also does not exist', async () => {
+      mockOrgProfileRepo.findByUserId.mockResolvedValue(null)
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(service.getOrganizerSeatMap(MOCK_TRIP_ID, MOCK_USER_ID))
+        .rejects.toThrow('Organizer profile not found')
+    })
+
+    it('throws NotFoundError when profile exists but trip does not', async () => {
+      mockOrgProfileRepo.findByUserId.mockResolvedValue({ id: MOCK_ORGANIZER_PROFILE_ID })
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(service.getOrganizerSeatMap(MOCK_TRIP_ID, MOCK_USER_ID))
+        .rejects.toThrow('Trip not found')
     })
   })
 

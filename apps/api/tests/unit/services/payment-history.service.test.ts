@@ -10,6 +10,8 @@ const mockPaymentTxRepo = {
   getUserSummary: vi.fn(),
   getTripSummary: vi.fn(),
   getGlobalSummary: vi.fn(),
+  findEscrowReleasesForOrganizer: vi.fn(),
+  findPendingEscrowForOrganizer: vi.fn(),
 }
 
 const mockTripRepo = {
@@ -292,6 +294,136 @@ describe('PaymentHistoryService', () => {
 
       expect(result.data).toHaveLength(0)
       expect(result.pagination.totalPages).toBe(0)
+    })
+  })
+
+  describe('getPayoutStatement', () => {
+    function makeEscrowRelease(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'pt_escrow_1',
+        amount: 9000,
+        razorpayTransferId: 'tr_001',
+        metadata: { releasedAt: '2025-06-01T10:00:00.000Z' },
+        createdAt: new Date('2025-06-01'),
+        booking: {
+          trip: {
+            id: 'trip_1',
+            title: 'Goa Beach Getaway',
+            slug: 'goa-beach-getaway',
+            startDate: new Date('2025-05-01'),
+            organizer: { commissionRate: 10.0 },
+          },
+        },
+        ...overrides,
+      }
+    }
+
+    function makePendingPayment(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'pt_pending_1',
+        amount: 5000,
+        booking: {
+          trip: {
+            organizer: { commissionRate: 10.0 },
+          },
+        },
+        ...overrides,
+      }
+    }
+
+    it('throws ForbiddenError when organizer profile not found', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(service.getPayoutStatement('unknown_user'))
+        .rejects.toThrow('Organizer profile not found')
+    })
+
+    it('returns empty trips and zero totals when no releases exist', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.releasedTotal).toBe(0)
+      expect(result.pendingTotal).toBe(0)
+      expect(result.trips).toHaveLength(0)
+    })
+
+    it('groups releases by trip correctly', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
+        makeEscrowRelease({ id: 'pt_1', amount: 4000 }),
+        makeEscrowRelease({ id: 'pt_2', amount: 5000 }),
+      ])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.trips).toHaveLength(1) // both are for trip_1
+      expect(result.trips[0].tripId).toBe('trip_1')
+      expect(result.trips[0].payouts).toHaveLength(2)
+    })
+
+    it('calculates releasedTotal as sum of all release amounts', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
+        makeEscrowRelease({ amount: 4000 }),
+        makeEscrowRelease({ id: 'pt_2', amount: 6000 }),
+      ])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.releasedTotal).toBe(10000)
+    })
+
+    it('calculates pendingTotal after deducting commission', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
+      // 10000 * (1 - 10%) = 9000
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+        makePendingPayment({ amount: 10000 }),
+      ])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.pendingTotal).toBe(9000)
+    })
+
+    it('groups releases from two different trips into separate trip entries', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
+        makeEscrowRelease({ id: 'pt_1', amount: 4000 }),
+        makeEscrowRelease({
+          id: 'pt_2', amount: 3000,
+          booking: {
+            trip: {
+              id: 'trip_2', title: 'Manali Snow Trek', slug: 'manali-snow-trek',
+              startDate: new Date('2025-07-01'), organizer: { commissionRate: 10.0 },
+            },
+          },
+        }),
+      ])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.trips).toHaveLength(2)
+      expect(result.releasedTotal).toBe(7000)
+    })
+
+    it('uses metadata.releasedAt when available', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      const releasedAt = '2025-06-15T08:00:00.000Z'
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
+        makeEscrowRelease({ metadata: { releasedAt } }),
+      ])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      expect(result.trips[0].payouts[0].releasedAt).toBe(releasedAt)
     })
   })
 

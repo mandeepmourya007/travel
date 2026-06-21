@@ -172,6 +172,15 @@ describe('AdminService — Approval Queue', () => {
     )
     expect(result.pagination.totalPages).toBe(3)
   })
+
+  it('caps limit at maxLimit (50) when a larger limit is requested', async () => {
+    mockOrganizerProfileRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getApprovalQueue({ page: 1, limit: 100 })
+
+    const call = mockOrganizerProfileRepo.findAllAdmin.mock.calls[0]
+    expect(call[1].take).toBe(50)
+  })
 })
 
 // ═══════════════════════════════════════════════════════
@@ -408,6 +417,15 @@ describe('AdminService — Admin Bookings', () => {
       { status: undefined, search: 'TRP-2026' },
       { skip: 0, take: 20 },
     )
+  })
+
+  it('caps limit at maxLimit (50) when a larger limit is requested', async () => {
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getBookings({ page: 1, limit: 200 })
+
+    const call = mockBookingRepo.findAllAdmin.mock.calls[0]
+    expect(call[1].take).toBe(50)
   })
 
   it('returns booking detail with traveler details + payments', async () => {

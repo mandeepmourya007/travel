@@ -143,6 +143,61 @@ describe('TripRepository', () => {
     })
   })
 
+  // ── search / buildWhere ──────────────────────────
+
+  describe('search — buildWhere status filter', () => {
+    beforeEach(() => {
+      mockPrisma.trip.findMany.mockResolvedValue([])
+      mockPrisma.trip.count.mockResolvedValue(0)
+    })
+
+    it('includes both ACTIVE and FULL in the status filter (C1 fix)', async () => {
+      await repo.search({}, { offset: 0, limit: 20 })
+
+      const where = mockPrisma.trip.findMany.mock.calls[0][0].where
+      expect(where.status).toEqual({ in: ['ACTIVE', 'FULL'] })
+    })
+
+    it('always filters isDeleted=false', async () => {
+      await repo.search({}, { offset: 0, limit: 20 })
+
+      const where = mockPrisma.trip.findMany.mock.calls[0][0].where
+      expect(where.isDeleted).toBe(false)
+    })
+
+    it('forwards destinationId filter when provided', async () => {
+      await repo.search({ destinationId: 'dest-1' }, { offset: 0, limit: 20 })
+
+      const where = mockPrisma.trip.findMany.mock.calls[0][0].where
+      expect(where.destinationId).toBe('dest-1')
+    })
+
+    it('does NOT include destinationId when not provided', async () => {
+      await repo.search({}, { offset: 0, limit: 20 })
+
+      const where = mockPrisma.trip.findMany.mock.calls[0][0].where
+      expect(where.destinationId).toBeUndefined()
+    })
+
+    it('applies correct pagination offset and limit', async () => {
+      await repo.search({}, { offset: 20, limit: 10 })
+
+      const call = mockPrisma.trip.findMany.mock.calls[0][0]
+      expect(call.skip).toBe(20)
+      expect(call.take).toBe(10)
+    })
+
+    it('does NOT restrict to ACTIVE only (FULL trips must appear in search)', async () => {
+      await repo.search({}, { offset: 0, limit: 20 })
+
+      const where = mockPrisma.trip.findMany.mock.calls[0][0].where
+      // Must NOT be a simple string — it must be an IN filter
+      expect(typeof where.status).not.toBe('string')
+      expect(where.status).toHaveProperty('in')
+      expect(where.status.in).toContain('FULL')
+    })
+  })
+
   // ── countPendingRequests ─────────────────────────
 
   describe('countPendingRequests', () => {
