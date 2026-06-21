@@ -1,0 +1,25 @@
+apps/api/src/repositories/booking.repository.ts
+  s_8a6e4f208981c3::t_49dfafa09f883a 250
+apps/api/src/services/trip-lifecycle.service.ts
+  s_8a6e4f208981c3::t_fa2d959590325d 334
+apps/api/src/controllers/payment-history.controller.ts
+  s_8a6e4f208981c3::t_1f1cc2f886e5ab 58
+apps/api/src/services/wallet.service.ts
+  s_8a6e4f208981c3::t_6600cb9fbb0f8c 243
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "0be4a906de4220a6d0ff41145990b852869679e3",
+  "prompts": {},
+  "sessions": {
+    "s_8a6e4f208981c3": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cb286d74-8be7-439a-abfa-a99362a3e0f5",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
