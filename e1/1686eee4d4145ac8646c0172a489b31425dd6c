@@ -1,0 +1,20 @@
+apps/web/src/store/auth.store.ts
+  s_8a6e4f208981c3::t_eb8417c6c61c6a 48-51
+  s_8a6e4f208981c3::t_9c8a8b9484484c 57-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "e11686eee4d4145ac8646c0172a489b31425dd6c",
+  "prompts": {},
+  "sessions": {
+    "s_8a6e4f208981c3": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cb286d74-8be7-439a-abfa-a99362a3e0f5",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
