@@ -1,0 +1,41 @@
+apps/web/src/config/image-hosts.js
+  s_32944ed3ba0b60::t_63b5fadefcba0d 1
+apps/web/src/components/trips/trip-filters.tsx
+  s_8a6e4f208981c3::t_d5b15718689914 5,45,48,52,79-89,103,110,118-145
+apps/web/src/components/trips/trips-page-client.tsx
+  s_8a6e4f208981c3::t_ffec26cb58a7c2 22
+apps/api/prisma/migrations/20260621000001_add_active_booking_unique_index/migration.sql
+  s_8a6e4f208981c3::t_692657932a3efb 1-47,58-60
+  s_8a6e4f208981c3::t_dbd3e97dc70970 48-57
+apps/api/prisma/schema.prisma
+  s_8a6e4f208981c3::t_c96f6e86664052 408-411
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "4b38b2fe6e3997da8455d3fc6e0254298e6bcb0d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_32944ed3ba0b60": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "64cd1d4b-d431-4f61-bb7d-3432d40cb696",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_8a6e4f208981c3": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cb286d74-8be7-439a-abfa-a99362a3e0f5",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
