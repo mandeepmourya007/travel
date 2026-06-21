@@ -1,0 +1,22 @@
+apps/api/src/repositories/trip.repository.ts
+  s_5806f4adb3a1d0::t_b114910fd8b36f 306
+  s_5806f4adb3a1d0::t_b44f4ea61728ef 150
+apps/api/src/repositories/vehicle.repository.ts
+  s_5806f4adb3a1d0::t_11f14d55e83bdf 251-267
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "b82f3499dfb148e990930df1a13fb47339597693",
+  "prompts": {},
+  "sessions": {
+    "s_5806f4adb3a1d0": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "4b763400-1b91-481f-adcc-85a1261bfb77",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
