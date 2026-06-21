@@ -1,0 +1,21 @@
+apps/api/src/utils/constants.ts
+  s_5806f4adb3a1d0::t_555f84b7d9f59b 68
+apps/api/src/utils/trip-mapper.ts
+  s_5806f4adb3a1d0::t_0a7bb1bb16a1be 3-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "df594143469f8b832592f923bb922b845431eeef",
+  "prompts": {},
+  "sessions": {
+    "s_5806f4adb3a1d0": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "4b763400-1b91-481f-adcc-85a1261bfb77",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
