@@ -22,6 +22,9 @@ import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
 import { mapTripToSummary } from '../utils/trip-mapper'
 
+type TripWithDetail = NonNullable<Awaited<ReturnType<TripRepository['findById']>>>
+type TripRequestItem = NonNullable<Awaited<ReturnType<TripRequestRepository['findById']>>>
+
 type PublicOrganizerProfile = NonNullable<Awaited<ReturnType<OrganizerProfileRepository['findByIdPublic']>>>
 
 export class TripService {
@@ -47,7 +50,7 @@ export class TripService {
     const fetcher = async () => {
       const { data, total } = await this.tripRepo.search(filters, { offset, limit })
       return {
-        data: data.map((trip) => this.toSummary(trip)),
+        data: data.map((trip) => mapTripToSummary(trip)),
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       }
     }
@@ -82,7 +85,7 @@ export class TripService {
     if (!profile) throw new ForbiddenError('Organizer profile not found')
 
     const trips = await this.tripRepo.findByOrganizerId(profile.id, status)
-    return trips.map((trip) => this.toSummary(trip))
+    return trips.map((trip) => mapTripToSummary(trip))
   }
 
   async getOrganizerPublicProfile(
@@ -155,7 +158,7 @@ export class TripService {
         totalTripsCompleted: profile.totalTripsCompleted,
         memberSince: profile.user.createdAt,
       },
-      trips: tripsResult.data.map((t) => this.toSummary(t)),
+      trips: tripsResult.data.map((t) => mapTripToSummary(t)),
       tripsPagination: {
         page: tripsPage,
         limit: tripsLimit,
@@ -240,7 +243,7 @@ export class TripService {
 
     this.logger.info({ tripId: trip.id, slug }, 'Trip created')
     await this.invalidateTripCaches()
-    return this.toSummary(trip)
+    return mapTripToSummary(trip)
   }
 
   async updateTrip(userId: string, tripId: string, input: UpdateTripDto) {
@@ -337,7 +340,7 @@ export class TripService {
 
     this.logger.info({ tripId, changedFields }, 'Trip updated')
     await this.invalidateTripCaches(trip.slug)
-    return this.toSummary(updated)
+    return mapTripToSummary(updated)
   }
 
   /**
@@ -358,7 +361,7 @@ export class TripService {
 
     this.logger.info({ tripId, acceptingBookings: !trip.acceptingBookings }, 'Bookings toggled')
     await this.invalidateTripCaches(trip.slug)
-    return this.toSummary(updated)
+    return mapTripToSummary(updated)
   }
 
   /**
@@ -438,7 +441,7 @@ export class TripService {
       const result = await tx.trip.update({
         where: { id: tripId },
         data: { status: TRIP_STATUS.ACTIVE },
-        include: { destination: { select: { id: true, name: true, slug: true } }, organizer: { select: { id: true, businessName: true, rating: true, totalReviews: true, verificationStatus: true } } },
+        include: { destination: { select: { id: true, name: true, slug: true } }, organizer: { select: { id: true, slug: true, businessName: true, rating: true, totalReviews: true, verificationStatus: true } } },
       })
       await tx.destination.update({
         where: { id: trip.destinationId },
@@ -450,7 +453,7 @@ export class TripService {
     this.logger.info({ tripId }, 'Trip published')
     await this.invalidateTripCaches()
     await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
-    return this.toSummary(updated)
+    return mapTripToSummary(updated)
   }
 
   async deleteTrip(userId: string, tripId: string) {
@@ -543,7 +546,7 @@ export class TripService {
 
     this.logger.info({ sourceId: sourceTripId, copyId: copy.id, slug }, 'Trip duplicated')
     await this.invalidateTripCaches()
-    return this.toSummary(copy)
+    return mapTripToSummary(copy)
   }
 
   // ─── Trip Participants Dashboard Methods ──────────────
@@ -854,8 +857,11 @@ export class TripService {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toRequestListItem(r: any) {
+  /**
+   * Maps a TripRequest DB row (with user + travelerDetails includes) to the API list shape.
+   * Typed via ReturnType inference — stays in sync when REQUEST_INCLUDE_LIST changes.
+   */
+  private toRequestListItem(r: TripRequestItem) {
     return {
       id: r.id,
       numTravelers: r.numTravelers,
@@ -870,15 +876,13 @@ export class TripService {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toSummary(trip: any) {
-    return mapTripToSummary(trip)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toDetail(trip: any) {
+  /**
+   * Maps a full trip DB row (with TRIP_INCLUDE_DETAIL) to the detail API shape.
+   * Typed via ReturnType inference — stays in sync when TRIP_INCLUDE_DETAIL changes.
+   */
+  private toDetail(trip: TripWithDetail) {
     return {
-      ...this.toSummary(trip),
+      ...mapTripToSummary(trip),
       description: trip.description,
       minGroupSize: trip.minGroupSize,
       cancellationPolicy: trip.cancellationPolicy,

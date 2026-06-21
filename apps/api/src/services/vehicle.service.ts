@@ -6,6 +6,9 @@ import { VehicleRepository } from '../repositories/vehicle.repository'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
 import { SEAT_HOLD_MINUTES } from '../utils/constants'
 
+/** Inferred type for a single vehicle row returned by findByTripId (with seats relation). */
+type VehicleWithSeats = Awaited<ReturnType<VehicleRepository['findByTripId']>>[number]
+
 /** Minimal trip repo interface consumed by VehicleService */
 interface TripRepoLike {
   findById(id: string): Promise<(TripForVehicle & Record<string, unknown>) | null>
@@ -185,38 +188,7 @@ export class VehicleService {
   async getSeatMap(tripId: string): Promise<MultiVehicleSeatMapResponse> {
     const vehicles = await this.vehicleRepo.findByTripId(tripId)
     if (vehicles.length === 0) throw new NotFoundError('Vehicle for this trip')
-
-    const result: SeatMapResponse[] = vehicles.map((vehicle) => {
-      const seats: VehicleSeatItem[] = vehicle.seats.map((s) => ({
-        id: s.id,
-        row: s.row,
-        col: s.col,
-        seatLabel: s.seatLabel,
-        seatNumber: s.seatNumber,
-        status: s.status as VehicleSeatItem['status'],
-      }))
-
-      return {
-        vehicle: {
-          id: vehicle.id,
-          label: vehicle.label,
-          vehicleType: vehicle.vehicleType,
-          sortOrder: vehicle.sortOrder,
-          layoutConfig: {
-            rows: vehicle.rows,
-            cols: vehicle.cols,
-            aisleAfterCol: vehicle.aisleAfterCol,
-            driverPos: [vehicle.driverRow, vehicle.driverCol],
-          },
-          layout: vehicle.layout as SeatCellTypeConst[][],
-          photos: vehicle.photos ?? [],
-        },
-        seats,
-        summary: this.buildSummary(seats),
-      }
-    })
-
-    return { vehicles: result }
+    return { vehicles: vehicles.map((v) => this.mapVehicleToSeatMapResponse(v)) }
   }
 
   // ── Get Seat Map (Organizer) ───────────────────────
@@ -233,40 +205,7 @@ export class VehicleService {
 
     const vehicles = await this.vehicleRepo.findByTripId(tripId)
     if (vehicles.length === 0) return { vehicles: [] }
-
-    const result: SeatMapResponse[] = vehicles.map((vehicle) => {
-      const seats: VehicleSeatItem[] = vehicle.seats.map((s) => ({
-        id: s.id,
-        row: s.row,
-        col: s.col,
-        seatLabel: s.seatLabel,
-        seatNumber: s.seatNumber,
-        status: s.status as VehicleSeatItem['status'],
-        travelerName: s.travelerDetail?.name,
-        bookingRef: s.booking?.bookingRef,
-      }))
-
-      return {
-        vehicle: {
-          id: vehicle.id,
-          label: vehicle.label,
-          vehicleType: vehicle.vehicleType,
-          sortOrder: vehicle.sortOrder,
-          layoutConfig: {
-            rows: vehicle.rows,
-            cols: vehicle.cols,
-            aisleAfterCol: vehicle.aisleAfterCol,
-            driverPos: [vehicle.driverRow, vehicle.driverCol],
-          },
-          layout: vehicle.layout as SeatCellTypeConst[][],
-          photos: vehicle.photos ?? [],
-        },
-        seats,
-        summary: this.buildSummary(seats),
-      }
-    })
-
-    return { vehicles: result }
+    return { vehicles: vehicles.map((v) => this.mapVehicleToSeatMapResponse(v, { includePrivate: true })) }
   }
 
   // ── Get All Vehicles (Organizer) ──────────────────
@@ -357,10 +296,7 @@ export class VehicleService {
     const confirmedCount = await this.vehicleRepo.confirmSeats(bookingId, userId)
     if (confirmedCount === 0) throw new ConflictError('No held seats found for this booking', 'HOLD_EXPIRED')
 
-    // Assign travelers to seats
-    for (const a of assignments) {
-      await this.vehicleRepo.assignTravelerToSeat(a.seatId, a.travelerDetailId)
-    }
+    await this.vehicleRepo.batchAssignTravelers(assignments)
 
     this.logger.info({ bookingId, confirmedCount }, 'Seats confirmed')
   }
@@ -432,14 +368,57 @@ export class VehicleService {
    * @throws NotFoundError — trip not found
    */
   private async resolveOrganizerAndTrip(userId: string, tripId: string) {
-    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    const [profile, trip] = await Promise.all([
+      this.organizerProfileRepo.findByUserId(userId),
+      this.tripRepo.findById(tripId),
+    ])
     if (!profile) throw new ForbiddenError('Organizer profile not found')
-
-    const trip = await this.tripRepo.findById(tripId)
     if (!trip) throw new NotFoundError('Trip not found')
     if (trip.organizerId !== profile.id) throw new ForbiddenError('You can only manage vehicles for your own trips')
 
     return { trip, organizerId: profile.id }
+  }
+
+  /**
+   * Shared vehicle → SeatMapResponse mapper used by both getSeatMap and getOrganizerSeatMap.
+   *
+   * @param includePrivate - when true, includes travelerName + bookingRef (organizer view only).
+   *   Keeping this as a flag rather than two separate methods avoids duplicating the
+   *   layoutConfig / vehicle block (15 lines) and the summary calculation.
+   */
+  private mapVehicleToSeatMapResponse(vehicle: VehicleWithSeats, options: { includePrivate?: boolean } = {}): SeatMapResponse {
+    const { includePrivate = false } = options
+    const seats: VehicleSeatItem[] = vehicle.seats.map((s) => ({
+      id: s.id,
+      row: s.row,
+      col: s.col,
+      seatLabel: s.seatLabel,
+      seatNumber: s.seatNumber,
+      status: s.status as VehicleSeatItem['status'],
+      ...(includePrivate && {
+        travelerName: s.travelerDetail?.name,
+        bookingRef: s.booking?.bookingRef,
+      }),
+    }))
+
+    return {
+      vehicle: {
+        id: vehicle.id,
+        label: vehicle.label,
+        vehicleType: vehicle.vehicleType,
+        sortOrder: vehicle.sortOrder,
+        layoutConfig: {
+          rows: vehicle.rows,
+          cols: vehicle.cols,
+          aisleAfterCol: vehicle.aisleAfterCol,
+          driverPos: [vehicle.driverRow, vehicle.driverCol],
+        },
+        layout: vehicle.layout as SeatCellTypeConst[][],
+        photos: vehicle.photos ?? [],
+      },
+      seats,
+      summary: this.buildSummary(seats),
+    }
   }
 
   /**

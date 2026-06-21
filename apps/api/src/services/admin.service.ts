@@ -44,24 +44,12 @@ export class AdminService {
    * Defaults to showing PENDING organizers.
    */
   async getApprovalQueue(filters: OrganizerApprovalFilters) {
-    const page = filters.page ?? 1
-    const limit = filters.limit ?? 20
-    const skip = (page - 1) * limit
-
+    const pg = paginate(filters)
     const { data, total } = await this.organizerProfileRepo.findAllAdmin(
       { status: filters.status },
-      { skip, take: limit },
+      { skip: pg.skip, take: pg.take },
     )
-
-    return {
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    }
+    return { data, pagination: pg.meta(total) }
   }
 
   /** Single organizer profile detail for admin review. */
@@ -176,24 +164,12 @@ export class AdminService {
 
   /** Paginated list of all bookings for admin view. */
   async getBookings(filters: AdminBookingFilters) {
-    const page = filters.page ?? 1
-    const limit = filters.limit ?? 20
-    const skip = (page - 1) * limit
-
+    const pg = paginate(filters)
     const { data, total } = await this.bookingRepo.findAllAdmin(
       { status: filters.status, search: filters.search },
-      { skip, take: limit },
+      { skip: pg.skip, take: pg.take },
     )
-
-    return {
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    }
+    return { data, pagination: pg.meta(total) }
   }
 
   /** Full booking detail for dispute review. */
@@ -347,7 +323,7 @@ export class AdminService {
     } else {
       // Rejected → set REVISION_REQUIRED + notify
       await this.organizerProfileRepo.update(organizerId, {
-        verificationStatus: 'REVISION_REQUIRED',
+        verificationStatus: VERIFICATION_STATUS.REVISION_REQUIRED,
       })
       const docLabel = DOC_LABELS[docType as keyof typeof DOC_LABELS] ?? docType
       this.notificationService.send({

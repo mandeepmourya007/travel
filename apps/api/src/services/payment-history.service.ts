@@ -3,7 +3,7 @@ import { PaymentTransactionRepository } from '../repositories/payment-transactio
 import { TripRepository } from '../repositories/trip.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, DEFAULT_COMMISSION_RATE } from '../utils/constants'
+import { DEFAULT_COMMISSION_RATE, paginate } from '../utils/constants'
 import type {
   PaymentHistoryFilters,
   AdminPaymentFilters,
@@ -24,22 +24,14 @@ export class PaymentHistoryService {
 
   /** GET /payments/my — Traveler's paginated payment history */
   async getMyPayments(userId: string, filters: PaymentHistoryFilters = {}) {
-    const page = filters.page || PAGINATION_DEFAULTS.page
-    const limit = filters.limit || PAGINATION_DEFAULTS.limit
-    const skip = (page - 1) * limit
-
+    const pg = paginate(filters)
     const { data, total } = await this.paymentTxRepo.findByUserId(
       userId,
       { type: filters.type, status: filters.status, fromDate: filters.fromDate, toDate: filters.toDate },
-      { skip, take: limit },
+      { skip: pg.skip, take: pg.take },
     )
-
     this.logger.debug({ userId, filters, total }, 'Fetched payment history for traveler')
-
-    return {
-      data,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    }
+    return { data, pagination: pg.meta(total) }
   }
 
   /** GET /payments/my/summary — Traveler summary stats */
@@ -57,20 +49,13 @@ export class PaymentHistoryService {
   ) {
     await this.verifyTripOrganizer(userId, tripId)
 
-    const page = filters.page || PAGINATION_DEFAULTS.page
-    const limit = filters.limit || PAGINATION_DEFAULTS.limit
-    const skip = (page - 1) * limit
-
+    const pg = paginate(filters)
     const { data, total } = await this.paymentTxRepo.findByTripId(
       tripId,
       { type: filters.type, status: filters.status, fromDate: filters.fromDate, toDate: filters.toDate },
-      { skip, take: limit },
+      { skip: pg.skip, take: pg.take },
     )
-
-    return {
-      data,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    }
+    return { data, pagination: pg.meta(total) }
   }
 
   /** GET /payments/trip/:tripId/summary — Organizer's trip summary with commission */
@@ -139,7 +124,12 @@ export class PaymentHistoryService {
         })
       }
       const meta = r.metadata as Record<string, unknown> | null
-      byTrip.get(key)!.payouts.push({
+      const entry = byTrip.get(key)
+      if (!entry) {
+        this.logger.error({ payoutId: r.id, key }, 'BUG: payout trip key missing from map — data loss prevented')
+        continue
+      }
+      entry.payouts.push({
         id: r.id,
         amount: r.amount,
         releasedAt: meta?.releasedAt as string ?? r.createdAt.toISOString(),
@@ -158,23 +148,16 @@ export class PaymentHistoryService {
 
   /** GET /payments/admin — Admin global view */
   async getAllPayments(filters: AdminPaymentFilters = {}) {
-    const page = filters.page || PAGINATION_DEFAULTS.page
-    const limit = filters.limit || PAGINATION_DEFAULTS.limit
-    const skip = (page - 1) * limit
-
+    const pg = paginate(filters)
     const { data, total } = await this.paymentTxRepo.findAll(
       {
         type: filters.type, status: filters.status,
         fromDate: filters.fromDate, toDate: filters.toDate,
         userId: filters.userId, tripId: filters.tripId, bookingRef: filters.bookingRef,
       },
-      { skip, take: limit },
+      { skip: pg.skip, take: pg.take },
     )
-
-    return {
-      data,
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    }
+    return { data, pagination: pg.meta(total) }
   }
 
   /**
