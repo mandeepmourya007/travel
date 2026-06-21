@@ -2,6 +2,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
 import { logger } from '../../../src/utils/logger'
+import { withLock } from '../../../src/utils/redis-lock'
+
+// Default: withLock executes fn immediately and returns true (lock acquired).
+// Individual tests override this per-case.
+vi.mock('../../../src/utils/redis-lock', () => ({
+  withLock: vi.fn(async (_key: string, _ttl: number, fn: () => Promise<void>) => {
+    await fn()
+    return true
+  }),
+}))
 
 // ── Mock Repositories ─────────────────────────────────
 const mockBookingRepo = {
@@ -1007,6 +1017,125 @@ describe('BookingService', () => {
   })
 
   // ═══════════════════════════════════════════════════
+  // createBooking — distributed lock (TOCTOU prevention)
+  // ═══════════════════════════════════════════════════
+  describe('createBooking — distributed lock (TOCTOU prevention)', () => {
+    const validInput = {
+      tripId: 'trip-1',
+      numTravelers: 2,
+      travelers: [
+        { name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'Bob', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    }
+
+    it('should throw BOOKING_IN_PROGRESS ConflictError when Redis lock is not acquired', async () => {
+      // Simulate another request already holding the lock for this user+trip
+      vi.mocked(withLock).mockResolvedValueOnce(false)
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toMatchObject({ message: expect.stringContaining('already in progress'), subCode: 'BOOKING_IN_PROGRESS' })
+
+      // No DB writes or Razorpay calls should have happened
+      expect(mockTripRepo.findByIdForBooking).not.toHaveBeenCalled()
+      expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should scope the lock key to userId and tripId so different users do not block each other', async () => {
+      // Capture the lock key passed to withLock
+      const capturedKeys: string[] = []
+      vi.mocked(withLock).mockImplementationOnce(async (key, _ttl, fn) => {
+        capturedKeys.push(key)
+        await fn()
+        return true
+      })
+
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(null) // will throw NotFoundError — we only care about key
+
+      await service.createBooking('user-42', { ...validInput, tripId: 'trip-99' }).catch(() => {})
+
+      expect(capturedKeys[0]).toBe('booking:create:user-42:trip-99')
+    })
+
+    it('should return existing booking when concurrent arrival passes fast-path but re-check under lock finds PENDING_PAYMENT', async () => {
+      const existingBooking = {
+        id: 'booking-concurrent',
+        bookingRef: 'TRP-2025-RACE1',
+        bookingStatus: 'PENDING_PAYMENT',
+        totalAmount: 10000,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        paymentTransactions: [{ razorpayOrderId: 'order_concurrent' }],
+      }
+      // Fast-path: both concurrent requests see null (race window)
+      // Under-lock re-check: second request finds the booking created by the first
+      mockBookingRepo.findActiveByUserAndTrip
+        .mockResolvedValueOnce(null)       // fast-path (before lock)
+        .mockResolvedValueOnce(existingBooking) // re-check inside lock
+
+      const result = await service.createBooking('user-1', validInput)
+
+      expect(result.bookingId).toBe('booking-concurrent')
+      expect(result.razorpayOrderId).toBe('order_concurrent')
+      // No new Razorpay order or DB booking was created
+      expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should throw ALREADY_BOOKED when under-lock re-check finds a CONFIRMED booking (late concurrent confirmation)', async () => {
+      // Fast-path: sees null (booking existed as PENDING_PAYMENT, just confirmed by another request)
+      // Under-lock re-check: sees CONFIRMED
+      mockBookingRepo.findActiveByUserAndTrip
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ bookingStatus: 'CONFIRMED' })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toMatchObject({ message: expect.stringContaining('confirmed booking'), subCode: 'ALREADY_BOOKED' })
+
+      expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+    })
+
+    it('should expire PENDING_PAYMENT booking with no expiresAt found under lock then create a fresh order', async () => {
+      const staleBooking = {
+        id: 'stale-booking', bookingStatus: 'PENDING_PAYMENT',
+        expiresAt: null, paymentTransactions: [],
+      }
+      const mockTrip = {
+        id: 'trip-1', status: 'ACTIVE', bookingMode: 'INSTANT',
+        acceptingBookings: true, pricePerPerson: 5000,
+        earlyBirdPrice: null, earlyBirdDeadline: null,
+        startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        endDate: new Date(Date.now() + 33 * 24 * 60 * 60 * 1000),
+        bookingDeadline: null, maxGroupSize: 20, currentBookings: 5,
+        organizer: { id: 'org-1', razorpayAccountId: 'acc_org123456789012', commissionRate: 10 },
+        transferPoints: [],
+      }
+      // Fast-path: no active booking
+      // Under-lock: finds stale booking (no expiresAt) → should expire it and proceed
+      mockBookingRepo.findActiveByUserAndTrip
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(staleBooking)
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fresh', amount: 1000000 })
+      mockBookingRepo.create.mockResolvedValue({
+        id: 'booking-fresh', bookingRef: 'TRP-2025-FRESH',
+        totalAmount: 10000, expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      })
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-fresh' })
+
+      const result = await service.createBooking('user-1', validInput)
+
+      expect(mockBookingRepo.updateStatus).toHaveBeenCalledWith('stale-booking', 'EXPIRED')
+      expect(result.bookingId).toBe('booking-fresh')
+      expect(mockPaymentService.createOrder).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
   // verifyAndConfirmPayment
   // ═══════════════════════════════════════════════════
   describe('verifyAndConfirmPayment', () => {
@@ -1071,6 +1200,86 @@ describe('BookingService', () => {
           razorpaySignature: 'sig',
         }),
       ).rejects.toThrow('Booking')
+    })
+
+    it('should throw AuthError when dto.razorpayOrderId does not match stored order ID (payment replay attack)', async () => {
+      // Attacker submits a valid sig from Booking A (orderId_A) against Booking B (orderId_B)
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-b',
+        userId: 'user-1',
+        bookingStatus: 'PENDING_PAYMENT',
+        paymentTransactions: [{
+          id: 'ptx-b',
+          razorpayOrderId: 'order_B',   // Booking B's stored order
+          razorpayPaymentId: null,
+          amount: 10000,
+          status: 'INITIATED',
+        }],
+      })
+      mockPaymentService.verifySignature.mockReturnValue(true) // sig is genuinely valid — for order_A
+
+      await expect(
+        service.verifyAndConfirmPayment('booking-b', 'user-1', {
+          razorpayOrderId: 'order_A',     // attacker replays order from another booking
+          razorpayPaymentId: 'pay_A',
+          razorpaySignature: 'valid-sig-for-order-A',
+        }),
+      ).rejects.toThrow('order ID does not match')
+
+      expect(mockPaymentTxRepo.updatePaymentId).not.toHaveBeenCalled()
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+
+    it('should skip orderId check and proceed when stored paymentTransaction has no razorpayOrderId yet', async () => {
+      // Edge case: payment transaction created before razorpayOrderId was persisted (migration scenario)
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-1',
+        userId: 'user-1',
+        bookingStatus: 'PENDING_PAYMENT',
+        numTravelers: 2,
+        totalAmount: 8000,
+        trip: { id: 'trip-1', version: 0 },
+        paymentTransactions: [{
+          id: 'ptx-1',
+          razorpayOrderId: null,           // no stored orderId — skip the check
+          razorpayPaymentId: null,
+          amount: 8000,
+          status: 'INITIATED',
+        }],
+      })
+      mockPaymentService.verifySignature.mockReturnValue(true)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockBookingRepo.updateStatus.mockResolvedValue({})
+
+      const result = await service.verifyAndConfirmPayment('booking-1', 'user-1', {
+        razorpayOrderId: 'order_any',
+        razorpayPaymentId: 'pay_any',
+        razorpaySignature: 'valid-sig',
+      })
+
+      // Should proceed without throwing
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockPaymentTxRepo.updatePaymentId).toHaveBeenCalledWith('ptx-1', 'pay_any')
+    })
+
+    it('should throw ForbiddenError when a different user tries to verify payment (IDOR)', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        id: 'booking-1',
+        userId: 'user-owner',          // actual owner
+        bookingStatus: 'PENDING_PAYMENT',
+        paymentTransactions: [],
+      })
+
+      await expect(
+        service.verifyAndConfirmPayment('booking-1', 'user-attacker', {
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: 'pay_abc',
+          razorpaySignature: 'sig',
+        }),
+      ).rejects.toThrow()
+
+      expect(mockPaymentService.verifySignature).not.toHaveBeenCalled()
     })
 
     it('should return success if booking already CONFIRMED', async () => {

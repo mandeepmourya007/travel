@@ -16,6 +16,16 @@ import { BookingService } from '../../../src/services/booking.service'
 import { TripLifecycleService } from '../../../src/services/trip-lifecycle.service'
 import { logger } from '../../../src/utils/logger'
 import { ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT } from '../../../src/utils/constants'
+import { withLock } from '../../../src/utils/redis-lock'
+
+// Default: withLock executes fn immediately and returns true (lock acquired).
+// Individual tests in this file override this per-case to test lock-failure paths.
+vi.mock('../../../src/utils/redis-lock', () => ({
+  withLock: vi.fn(async (_key: string, _ttl: number, fn: () => Promise<void>) => {
+    await fn()
+    return true
+  }),
+}))
 
 vi.mock('../../../src/config/env', () => ({
   env: {
@@ -853,6 +863,94 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
     await lifecycleService.completeEndedTrips()
 
     expect(lifecycleTripRepo.findTripsToComplete).toHaveBeenCalledWith(50)
+  })
+
+  it('should throw BOOKING_IN_PROGRESS when Redis lock is already held by another request for same user+trip', async () => {
+    // Simulates: two simultaneous POST /bookings arrive, first holds the lock,
+    // second request cannot acquire it and must fail fast rather than creating a duplicate.
+    vi.mocked(withLock).mockResolvedValueOnce(false)
+
+    const input = {
+      tripId: 'trip-1', numTravelers: 2,
+      travelers: [
+        { name: 'A', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'B', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    }
+
+    await expect(
+      bookingService.createBooking('user-1', input),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('already in progress'),
+      subCode: 'BOOKING_IN_PROGRESS',
+    })
+
+    // Verify nothing was written to DB or Razorpay
+    expect(mockTripRepo.findByIdForBooking).not.toHaveBeenCalled()
+    expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+    expect(mockBookingRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should NOT block a different user booking the same trip (lock is scoped per user+trip)', async () => {
+    // User-1 and user-2 booking the same trip concurrently should use different lock keys.
+    // This test captures both lock keys and verifies they differ.
+    const capturedKeys: string[] = []
+    vi.mocked(withLock)
+      .mockImplementationOnce(async (key, _ttl, fn) => { capturedKeys.push(key); await fn(); return true })
+      .mockImplementationOnce(async (key, _ttl, fn) => { capturedKeys.push(key); await fn(); return true })
+
+    const input = {
+      tripId: 'trip-1', numTravelers: 1,
+      travelers: [{ name: 'A', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true }],
+    }
+
+    // Setup mocks to not throw (will fail at findByIdForBooking returning null — that's fine)
+    mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+    mockTripRepo.findByIdForBooking.mockResolvedValue(null) // throws NotFoundError
+
+    await bookingService.createBooking('user-1', input).catch(() => {})
+    await bookingService.createBooking('user-2', input).catch(() => {})
+
+    expect(capturedKeys).toHaveLength(2)
+    expect(capturedKeys[0]).toBe('booking:create:user-1:trip-1')
+    expect(capturedKeys[1]).toBe('booking:create:user-2:trip-1')
+    expect(capturedKeys[0]).not.toBe(capturedKeys[1])
+  })
+
+  it('TOCTOU: second concurrent request sees booking created by first, returns idempotently', async () => {
+    // Scenario: two requests for the same user+trip arrive within milliseconds.
+    // Request A wins the lock and creates the booking.
+    // Request B passes fast-path (both see null), acquires lock after A releases,
+    // and the re-check under lock finds A's booking — returns it without creating a duplicate.
+    const bookingCreatedByA = {
+      id: 'booking-from-A',
+      bookingRef: 'TRP-2025-RACE1',
+      bookingStatus: 'PENDING_PAYMENT',
+      totalAmount: 10000,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      paymentTransactions: [{ razorpayOrderId: 'order_from_A' }],
+    }
+
+    // Both requests call findActiveByUserAndTrip twice:
+    //   call 1 (fast-path of B) → null  (A's booking doesn't exist yet)
+    //   call 2 (under-lock of B) → A's booking  (A committed while B was waiting for lock)
+    mockBookingRepo.findActiveByUserAndTrip
+      .mockResolvedValueOnce(null)            // B's fast-path
+      .mockResolvedValueOnce(bookingCreatedByA) // B's under-lock re-check
+
+    const result = await bookingService.createBooking('user-1', {
+      tripId: 'trip-1', numTravelers: 2,
+      travelers: [
+        { name: 'A', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'B', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    })
+
+    // B returns A's booking — no duplicate created
+    expect(result.bookingId).toBe('booking-from-A')
+    expect(result.razorpayOrderId).toBe('order_from_A')
+    expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+    expect(mockBookingRepo.create).not.toHaveBeenCalled()
   })
 
   it('should handle escrow release when payment service is null (dev mode)', async () => {
