@@ -147,6 +147,7 @@ export class TripRepository {
       },
       select: TRIP_SELECT_SUMMARY,
       orderBy: { createdAt: 'desc' },
+      take: 200,
     })
   }
 
@@ -302,7 +303,7 @@ export class TripRepository {
 
     return {
       isDeleted: false,
-      status: TRIP_STATUS.ACTIVE,
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
       ...textFilter,
       ...(filters.destinationId && { destinationId: filters.destinationId }),
       ...(filters.destination && {

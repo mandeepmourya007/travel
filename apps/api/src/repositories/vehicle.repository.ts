@@ -248,6 +248,23 @@ export class VehicleRepository {
     })
   }
 
+  /**
+   * Atomically assigns all travelers to their seats in a single transaction.
+   * Prefer over calling assignTravelerToSeat in a loop — this guarantees
+   * that either every assignment succeeds or none do (no partial-assignment state).
+   */
+  async batchAssignTravelers(assignments: { seatId: string; travelerDetailId: string }[]) {
+    if (assignments.length === 0) return
+    await this.prisma.$transaction(
+      assignments.map((a) =>
+        this.prisma.vehicleSeat.update({
+          where: { id: a.seatId },
+          data: { travelerDetailId: a.travelerDetailId },
+        }),
+      ),
+    )
+  }
+
   /** Release all seats for a booking (HELD or BOOKED → AVAILABLE) */
   async releaseSeatsByBookingId(bookingId: string): Promise<number> {
     const result = await this.prisma.vehicleSeat.updateMany({
