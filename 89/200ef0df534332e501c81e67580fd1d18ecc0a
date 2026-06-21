@@ -1,0 +1,29 @@
+apps/api/tests/unit/services/payment-history.service.test.ts
+  s_5806f4adb3a1d0::t_338e4135cd48f3 13-14,300-427
+apps/api/tests/unit/utils/paginate.test.ts
+  s_5806f4adb3a1d0::t_18ad50784ee655 1-98
+apps/api/tests/unit/repositories/trip.repository.test.ts
+  s_5806f4adb3a1d0::t_a1a1293eb4dcc9 146-200
+apps/api/tests/unit/services/admin.service.test.ts
+  s_5806f4adb3a1d0::t_b4b2b14058a885 175-183,422-429
+apps/api/tests/unit/services/vehicle.service.test.ts
+  s_5806f4adb3a1d0::t_0ff54334f090e5 507-529,531-535
+  s_5806f4adb3a1d0::t_356fe4a1693577 530
+  s_5806f4adb3a1d0::t_acbc02d4e016b1 118,493,498
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "89200ef0df534332e501c81e67580fd1d18ecc0a",
+  "prompts": {},
+  "sessions": {
+    "s_5806f4adb3a1d0": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "4b763400-1b91-481f-adcc-85a1261bfb77",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
