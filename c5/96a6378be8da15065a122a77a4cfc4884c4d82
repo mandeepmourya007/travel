@@ -1,0 +1,22 @@
+apps/api/tests/unit/services/booking.service.test.ts
+  s_8a6e4f208981c3::t_d13b333052b2e0 5-14,1019-1137,1205-1283
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_8a6e4f208981c3::t_7658de7d64d729 19-28,868-898,901-954
+  s_8a6e4f208981c3::t_7aa9cc4cff3020 899-900
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "c596a6378be8da15065a122a77a4cfc4884c4d82",
+  "prompts": {},
+  "sessions": {
+    "s_8a6e4f208981c3": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cb286d74-8be7-439a-abfa-a99362a3e0f5",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
