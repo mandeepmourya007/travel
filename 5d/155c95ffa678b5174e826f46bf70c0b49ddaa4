@@ -1,0 +1,19 @@
+docker/web.prod.Dockerfile
+  s_d0dd392e4f378f::t_dcb622cb8b37ad 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "5d155c95ffa678b5174e826f46bf70c0b49ddaa4",
+  "prompts": {},
+  "sessions": {
+    "s_d0dd392e4f378f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "e443bbdb-f81b-48a0-9bcf-2cf26a49e444",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
