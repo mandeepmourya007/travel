@@ -55,4 +55,4 @@ EXPOSE 4000
 
 USER node
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "--import=tsx", "src/index.ts"]
+CMD ["sh", "-c", "[ -f /etc/secrets/.env.prod ] && exec node --env-file=/etc/secrets/.env.prod --import=tsx src/index.ts || exec node --import=tsx src/index.ts"]
