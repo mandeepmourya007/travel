@@ -1,0 +1,33 @@
+render.yaml
+  s_d0dd392e4f378f::t_a43857b81da04c 5-8,10-11,13-20,23,25-28,54,64,71,73,77,83,91,99,117,123,156,173-174,181-192
+  s_5f6919685a4f3d::t_30e2b091ee3ea2 56-58,60-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "9024c1f4655711d8f1c193f303f4b4f1161d38fa",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_5f6919685a4f3d": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "fe4e7978-efc2-4d53-ba2e-882211a8a724",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_d0dd392e4f378f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "e443bbdb-f81b-48a0-9bcf-2cf26a49e444",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
