@@ -1,0 +1,19 @@
+render.yaml
+  s_d0dd392e4f378f::t_6bc733a71e64d8 1-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "85df5fe2e7bbccd4e89a7a94c1a3985d63148939",
+  "prompts": {},
+  "sessions": {
+    "s_d0dd392e4f378f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "e443bbdb-f81b-48a0-9bcf-2cf26a49e444",
+        "model": "Claude Sonnet 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
