@@ -184,9 +184,13 @@ services:
         value: warn
 
   # ── 3. Redis (Key Value) ───────────────────────────────
+  # If this name matches your existing Key Value instance, Render ADOPTS it
+  # instead of creating a new one (no duplicate error).
+  # ⚠️  Check your Render Dashboard → Key Value → copy the exact name
+  #     and update the name field below + the fromService.name above.
   - type: keyvalue
     name: safarnama-redis
     plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []   # private network only (no public internet access)
+    ipAllowList: []
