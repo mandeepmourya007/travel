@@ -1,0 +1,192 @@
+# ─────────────────────────────────────────────────────────
+#  Render Blueprint — Safarnama (monorepo)
+#  Docs: https://render.com/docs/blueprint-spec
+#
+#  Services defined here:
+#    1. safarnama-api  — Express API  (Docker, free tier)
+#    2. safarnama-web  — Next.js web  (Docker, free tier)
+#    3. safarnama-redis — Key Value   (Redis, free tier)
+#
+#  External services (NOT managed by Render):
+#    - PostgreSQL → Neon (set DATABASE_URL + DIRECT_URL manually)
+#    - Cloudinary, Razorpay, SMTP, Firebase → set manually
+#
+#  ⚠️  FREE TIER LIMITATIONS:
+#    - Web services spin down after 15 min idle (~60s cold start)
+#    - Redis data is lost on restart (CacheService degrades gracefully)
+#    - 750 free instance hours/month (shared across both services)
+#
+#  DEPLOY STEPS:
+#    1. Push this file to your GitHub repo root
+#    2. Render Dashboard → New → Blueprint → connect repo
+#    3. Fill in all sync:false secrets when prompted
+#    4. After first deploy, copy API URL (https://safarnama-api.onrender.com)
+#       and update NEXT_PUBLIC_API_URL + NEXT_PUBLIC_SOCKET_URL on safarnama-web
+#    5. Run DB migrations once: see NOTE below
+#
+#  NOTE — Prisma Migrations:
+#    The production Docker image prunes Prisma CLI to save ~160MB.
+#    To run migrations, either:
+#      a) Temporarily move "prisma" from devDeps → deps in apps/api/package.json
+#         and uncomment preDeployCommand below, then revert after first deploy.
+#      b) Run from local: DATABASE_URL=<direct_url> npx prisma migrate deploy
+# ─────────────────────────────────────────────────────────
+
+services:
+  # ── 1. Backend API ─────────────────────────────────────
+  - type: web
+    name: safarnama-api
+    runtime: docker
+    dockerfilePath: docker/api.prod.Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    # preDeployCommand: "npx prisma migrate deploy"  # Uncomment after moving prisma to deps
+
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/shared/**
+        - docker/api.prod.Dockerfile
+        - package.json
+        - package-lock.json
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # ── Database (Neon — external) ──────────────────
+      - key: DATABASE_URL
+        sync: false   # postgresql://USER:PASS@ep-xxx-pooler.REGION.aws.neon.tech/db?sslmode=require
+      - key: DIRECT_URL
+        sync: false   # postgresql://USER:PASS@ep-xxx.REGION.aws.neon.tech/db?sslmode=require
+
+      # ── Redis (Render Key Value — auto-injected) ────
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: safarnama-redis
+          property: connectionString
+
+      # ── Auth ────────────────────────────────────────
+      - key: JWT_SECRET
+        sync: false   # min 32 chars, use: openssl rand -hex 32
+      - key: CLIENT_URL
+        sync: false   # https://safarnama-web.onrender.com
+
+      # ── Google OAuth ─────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # ── Razorpay ─────────────────────────────────────
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      # ── Cloudinary ───────────────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ── SMTP ─────────────────────────────────────────
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: noreply@safarnama.in
+
+      # ── MSG91 (SMS OTP) ───────────────────────────────
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_TEMPLATE_ID
+        sync: false
+
+      # ── Firebase (Phone Auth) ─────────────────────────
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false   # paste full PEM key including newlines
+
+      # ── Logging ───────────────────────────────────────
+      - key: LOG_LEVEL
+        value: info
+
+  # ── 2. Frontend Web ────────────────────────────────────
+  - type: web
+    name: safarnama-web
+    runtime: docker
+    dockerfilePath: docker/web.prod.Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+
+    buildFilter:
+      paths:
+        - apps/web/**
+        - packages/shared/**
+        - docker/web.prod.Dockerfile
+        - package.json
+        - package-lock.json
+
+    envVars:
+      # ── IMPORTANT: Set these AFTER API is deployed ──
+      # API public URL will be: https://safarnama-api.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        sync: false   # https://safarnama-api.onrender.com/api/v1
+      - key: NEXT_PUBLIC_SOCKET_URL
+        sync: false   # https://safarnama-api.onrender.com
+
+      # ── SSR internal API (private network — faster) ─
+      # This bypasses the public internet for server-side requests
+      - key: API_URL_INTERNAL
+        sync: false   # http://safarnama-api:10000
+
+      # ── App Config ───────────────────────────────────
+      - key: NEXT_PUBLIC_APP_NAME
+        value: Safarnama
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false   # https://safarnama-web.onrender.com (or custom domain)
+
+      # ── Google OAuth ─────────────────────────────────
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        sync: false
+
+      # ── Firebase (Phone Auth) ─────────────────────────
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+      - key: NEXT_PUBLIC_PHONE_AUTH_STRATEGY
+        value: backend
+
+      # ── Logging ───────────────────────────────────────
+      - key: NEXT_PUBLIC_LOG_LEVEL
+        value: warn
+
+  # ── 3. Redis (Key Value) ───────────────────────────────
+  - type: keyvalue
+    name: safarnama-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []   # private network only (no public internet access)
