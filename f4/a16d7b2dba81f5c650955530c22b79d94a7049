@@ -1,0 +1,29 @@
+docker/web.prod.Dockerfile
+  s_98e96afc37d552::t_003a09002967ea 70
+apps/web/next.config.js
+  s_98e96afc37d552::t_414bf51ea4ddc6 33-35
+  s_98e96afc37d552::t_9ffa3e51bb2ea0 48,52-53
+  s_98e96afc37d552::t_b0db280851f28f 49-51
+  s_98e96afc37d552::t_ec9127645c3c02 32,36-37,41,44-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "f4a16d7b2dba81f5c650955530c22b79d94a7049",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_98e96afc37d552": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6593ef23-2ba5-4a80-9b50-03ce7c4fedc9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
