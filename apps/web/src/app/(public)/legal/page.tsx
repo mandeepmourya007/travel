@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 const audienceColors: Record<string, string> = {
   'All users': 'bg-neutral-100 text-neutral-600',
   'Travelers': 'bg-primary-100 text-primary-700',
-  'Organizers': 'bg-green-100 text-green-700',
+  'Organizers': 'bg-success-50 text-success-500',
 }
 
 export default function LegalHubPage() {
@@ -70,7 +70,7 @@ export default function LegalHubPage() {
                       {policy.title}
                     </h2>
                     {policy.required && (
-                      <span className="inline-block flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                      <span className="inline-block flex-shrink-0 rounded-full bg-warning-50 px-2 py-0.5 text-xs font-semibold text-warning-500">
                         Required reading
                       </span>
                     )}

@@ -30,9 +30,9 @@ export const metadata: Metadata = {
 }
 
 const tierBadgeClasses: Record<string, string> = {
-  green: 'bg-green-100 text-green-700',
-  yellow: 'bg-yellow-100 text-yellow-700',
-  red: 'bg-red-100 text-red-700',
+  green: 'bg-success-50 text-success-500',
+  yellow: 'bg-warning-50 text-warning-500',
+  red: 'bg-error-50 text-error-500',
 }
 
 export default function CancellationPolicyPage() {
@@ -60,9 +60,9 @@ export default function CancellationPolicyPage() {
         </div>
 
         {/* Escrow callout */}
-        <div className="mb-10 rounded-2xl border border-green-100 bg-green-50 p-5">
-          <h2 className="text-sm font-semibold text-green-800 mb-1">Escrow Protection</h2>
-          <p className="text-sm text-green-700">
+        <div className="mb-10 rounded-2xl border border-success-50 bg-success-50 p-5">
+          <h2 className="text-sm font-semibold text-neutral-800 mb-1">Escrow Protection</h2>
+          <p className="text-sm text-success-500">
             Your payment is never released to the organizer until the trip is completed. {organizerCancellationText.escrowCallout}
           </p>
         </div>
@@ -104,9 +104,9 @@ export default function CancellationPolicyPage() {
           <h2 className="font-display text-xl font-bold text-neutral-800 mb-4">
             2. If the Organizer Cancels
           </h2>
-          <div className="rounded-2xl border border-green-100 bg-green-50 p-5">
-            <p className="text-sm text-green-800 font-medium">{organizerCancellationText.heading}</p>
-            <p className="mt-1 text-sm text-green-700">{organizerCancellationText.body}</p>
+          <div className="rounded-2xl border border-success-50 bg-success-50 p-5">
+            <p className="text-sm text-neutral-800 font-medium">{organizerCancellationText.heading}</p>
+            <p className="mt-1 text-sm text-success-500">{organizerCancellationText.body}</p>
           </div>
           <p className="mt-4 text-sm text-neutral-600">{organizerCancellationText.penaltyNote}</p>
         </section>
