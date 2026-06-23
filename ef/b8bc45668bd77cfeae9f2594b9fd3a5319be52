@@ -1,0 +1,26 @@
+apps/api/src/config/env.ts
+  s_81ea3d4d11b458::t_3f63a68c3232ce 32-33
+apps/api/src/config/cors.ts
+  s_81ea3d4d11b458::t_7efd65511c1d6f 5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "efb8bc45668bd77cfeae9f2594b9fd3a5319be52",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_81ea3d4d11b458": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f49326ad-30e8-4352-af97-6c96e4ee4ef6",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
