@@ -1,0 +1,94 @@
+apps/web/src/app/(public)/disclaimer/page.tsx
+  s_59ee894e3cb2a5::t_5c4210c100bf28 1-5,7-37,39-55,57-66,68-89,91-105
+  s_59ee894e3cb2a5::t_bcee921723ea93 6,38,56,67,90
+apps/web/src/app/(public)/organizer-agreement/page.tsx
+  s_59ee894e3cb2a5::t_a2154b049c0fa2 1-3,5,7-40,42-63,65-74,76-104
+  s_59ee894e3cb2a5::t_53e13135b2544e 4,6,41,64,75
+apps/web/src/components/layout/footer.tsx
+  s_59ee894e3cb2a5::t_4d6f8522bb324f 68,74-82,106-107,111-119,137-141
+  s_59ee894e3cb2a5::t_07b699ef7187c3 8
+  s_59ee894e3cb2a5::t_045f63f007fdce 69-73
+  s_59ee894e3cb2a5::t_ddc4e9b8ab0a57 83-89
+  s_59ee894e3cb2a5::t_1f1ce56909253e 100-105,108-110
+apps/web/src/components/auth/email-input-form.tsx
+  s_59ee894e3cb2a5::t_ba6c470b435a22 50-57
+  s_59ee894e3cb2a5::t_e76d5713d9d282 58
+  s_59ee894e3cb2a5::t_32e8e65f33c13a 4
+apps/web/src/app/(public)/legal/page.tsx
+  s_59ee894e3cb2a5::t_8860da2c0a0990 1-5,7-58,60-108
+  s_59ee894e3cb2a5::t_d7c71f49ebe7d0 6,59
+apps/web/src/app/(public)/faq/page.tsx
+  s_59ee894e3cb2a5::t_05da84c5f451f3 59-67
+  s_59ee894e3cb2a5::t_2f96ba2b0ba8bb 6
+  s_59ee894e3cb2a5::t_ee72c8d2d4aa6f 90-102
+apps/web/src/app/(public)/cookies/page.tsx
+  s_59ee894e3cb2a5::t_c7d914b73a9773 1-5,13-43,45-68,70-88,96-116,124-147,155-171,174-181,183-184,192,196-220
+  s_59ee894e3cb2a5::t_7ab2681af80083 6-12,44,69,89-95,117-123,148-154,172-173,182,185-186,188-190,193-195
+  s_59ee894e3cb2a5::t_72534352c7a29c 187,191
+apps/web/src/lib/legal-content.ts
+  s_59ee894e3cb2a5::t_e8a5423b2ef7ac 1-59,61-154,156-827,829-912,914-1511
+  s_59ee894e3cb2a5::t_6e644d99ff2090 155
+  s_59ee894e3cb2a5::t_07ad33d8260ddd 828
+  s_59ee894e3cb2a5::t_cda8d66fa370a3 60
+  s_59ee894e3cb2a5::t_61dfbfe1ea7d95 913
+apps/web/src/app/(public)/cancellation-policy/page.tsx
+  s_59ee894e3cb2a5::t_a0594fab3d4a53 4
+  s_59ee894e3cb2a5::t_65eec01dc8b971 1-3,5,19-31,37-55,57-65,67-79,95,97-98,100-107,110,112-122,126-137,144-160,167-169,171-179,183-190,192-198,201-222
+  s_59ee894e3cb2a5::t_e27714f758ea7a 6-18,32-36,56,66,80-94,96,99,108-109,111,123-125,138-143,161-166,170,180-182,191,199-200
+apps/web/src/components/booking/traveler-form.tsx
+  s_59ee894e3cb2a5::t_32444e82c28ebd 374-376
+apps/web/src/app/(public)/terms/page.tsx
+  s_59ee894e3cb2a5::t_449a5dd5081175 4,6,39,50,61
+  s_59ee894e3cb2a5::t_a86453d2cbb9b6 69-74
+  s_59ee894e3cb2a5::t_c1def08e3dbe20 1,3,5,7-38,40-49,51-60,62-68,75-90
+  s_59ee894e3cb2a5::t_b1ace49372c460 2
+apps/web/src/app/(public)/safety/page.tsx
+  s_59ee894e3cb2a5::t_16a9a305f9600e 1-5,12-42,44-52,56-60,62-84,86-120,122-130
+  s_59ee894e3cb2a5::t_054b1dcdac35bb 6-11,43,53-55,61,85,121
+apps/web/src/components/auth/phone-input-form.tsx
+  s_59ee894e3cb2a5::t_2516a854fc2ebe 4
+  s_59ee894e3cb2a5::t_6be8b33f29df64 76
+  s_59ee894e3cb2a5::t_5bd9b664a8b02a 68-75
+apps/web/src/app/(public)/contact/page.tsx
+  s_59ee894e3cb2a5::t_db01a00f7dde63 6,38,46,99-104,108
+  s_59ee894e3cb2a5::t_a13eba0fac5e61 1-3,5,7-37,39-45,47-98,105-107,109-150
+  s_59ee894e3cb2a5::t_8b6b876e097c42 4
+apps/web/src/lib/constants.ts
+  s_59ee894e3cb2a5::t_82a897350ff527 7-8,12-16
+  s_59ee894e3cb2a5::t_e531cf15dceebe 4-6,9-11,17
+apps/web/src/app/(public)/rules/page.tsx
+  s_59ee894e3cb2a5::t_aeb4d189b26ab5 4
+  s_59ee894e3cb2a5::t_e2b2e0e08f86fb 1-3,5,7-37,39-50,61-72,83-90,92,100,102-120
+  s_59ee894e3cb2a5::t_81a82a6f9ca574 6,38,51-60,73-82,91,93-99,101
+apps/web/src/app/(public)/lost-item/page.tsx
+  s_59ee894e3cb2a5::t_e76ba2620e09ec 112
+  s_59ee894e3cb2a5::t_17372a549b937a 4
+  s_59ee894e3cb2a5::t_d339cfc519372a 1-3,5,13-43,45-57,72-77,81-82,84-88,92-99,102-111,113-125
+  s_59ee894e3cb2a5::t_e8fba126c6024b 6-12,44,58-71,78-80,83,89-91,100-101
+apps/web/src/app/(public)/privacy/page.tsx
+  s_59ee894e3cb2a5::t_94b82af2b229d6 76-81
+  s_59ee894e3cb2a5::t_33b4cca6968827 1,3,5,7-38,40-56,58-67,69-75,82-97
+  s_59ee894e3cb2a5::t_3d8900b7ca1dfc 2
+  s_59ee894e3cb2a5::t_608b6918d88621 4,6,39,57,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "1ca98b3fe047ed84ec4aae2745d097db8399e77b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_59ee894e3cb2a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00542b49-60f0-4d86-bab5-b9ac2a6a621a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
