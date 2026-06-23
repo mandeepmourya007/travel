@@ -10,7 +10,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <span className="font-display text-lg font-bold text-primary-600">{APP_NAME}</span>
             <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
-              Compare group trips, book safely with escrow, and travel with confidence from Pune.
+              Compare group trips, book safely with escrow, and travel with confidence across India.
             </p>
           </div>
 
@@ -148,7 +148,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} {APP_NAME}. All rights reserved.
           </p>
           <p className="text-xs text-neutral-400">
-            Made with care in Pune
+            Made with care in India
           </p>
         </div>
       </div>
