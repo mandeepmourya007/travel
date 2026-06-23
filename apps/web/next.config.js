@@ -29,20 +29,26 @@ const nextConfig = {
   ],
 }
 
-// Wrap with Sentry to enable automatic source map upload and route-based
-// transaction naming. When NEXT_PUBLIC_SENTRY_DSN is absent (e.g. in CI
-// without secrets), the wrapper is a transparent pass-through.
+// When SENTRY_AUTH_TOKEN is absent (Render free tier, CI without secrets),
+// skip Sentry's webpack source-map plugin — it processes every JS chunk and
+// is the main cause of OOM on memory-constrained builds (~500 MB extra heap).
+// Runtime tracing and route instrumentation are unaffected; they're SDK-level.
+const sentryBuildPluginEnabled = !!process.env.SENTRY_AUTH_TOKEN
+
 module.exports = withSentryConfig(nextConfig, {
-  // Suppress verbose Sentry build output
   silent: true,
-  // Disable source-map upload unless SENTRY_AUTH_TOKEN is set (optional)
   sourcemaps: {
-    disable: !process.env.SENTRY_AUTH_TOKEN,
+    disable: !sentryBuildPluginEnabled,
   },
-  // Avoids bundling Sentry's debug logger in the client bundle
-  disableLogger: true,
-  // Tunnel Sentry requests through /monitoring to avoid ad-blockers
   tunnelRoute: '/monitoring',
-  // Automatically wrap route handlers and server components with Sentry
-  autoInstrumentServerFunctions: true,
+  // Disable the webpack plugin when not uploading source maps — saves ~500MB
+  // of peak heap during `next build` on memory-constrained build environments.
+  disableClientWebpackPlugin: !sentryBuildPluginEnabled,
+  disableServerWebpackPlugin: !sentryBuildPluginEnabled,
+  webpack: {
+    // Always instrument server functions — this wraps route handlers for tracing and
+    // does NOT trigger source map processing (that's the webpack plugin above).
+    autoInstrumentServerFunctions: true,
+    treeshake: { removeDebugLogging: true },
+  },
 })
