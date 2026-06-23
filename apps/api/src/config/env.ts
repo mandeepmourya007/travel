@@ -29,6 +29,8 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional(),
   PHONE_AUTH_STRATEGY: z.enum(['backend', 'firebase']).default('backend'),
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
+  // Comma-separated list of additional allowed origins (e.g. custom domain alongside Render URL)
+  ALLOWED_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   // ── Sentry (optional — no-op when absent) ─────────
   SENTRY_DSN: z.string().optional(),
