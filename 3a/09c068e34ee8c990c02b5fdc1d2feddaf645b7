@@ -1,0 +1,29 @@
+apps/web/src/app/(public)/cancellation-policy/page.tsx
+  s_98e96afc37d552::t_17b50374efdbbb 63-65
+  s_98e96afc37d552::t_4240664e2cef89 107-109
+  s_98e96afc37d552::t_a3e98ba8bc2285 33-35
+apps/web/src/app/(public)/legal/page.tsx
+  s_98e96afc37d552::t_e8a59c8f1e4cba 23
+  s_98e96afc37d552::t_3604381b36a4dd 73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "3a09c068e34ee8c990c02b5fdc1d2feddaf645b7",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_98e96afc37d552": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6593ef23-2ba5-4a80-9b50-03ce7c4fedc9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
