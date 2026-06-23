@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useSendEmailOtp } from '@/hooks/use-email-otp'
 import { getErrorMessage } from '@/lib/api-client'
 import { EmailInput, isValidEmail } from '@/components/shared/email-input'
@@ -46,7 +47,15 @@ export function EmailInputForm({ onOtpSent }: EmailInputFormProps) {
       </button>
 
       <p className="text-center text-xs text-neutral-400">
-        By continuing, you agree to our Terms of Service
+        By continuing, you agree to our{' '}
+        <Link href="/terms" prefetch={false} className="underline hover:text-neutral-600">
+          Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link href="/privacy" prefetch={false} className="underline hover:text-neutral-600">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </form>
   )

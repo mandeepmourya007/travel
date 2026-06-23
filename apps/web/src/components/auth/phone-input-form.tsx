@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useSendOtp } from '@/hooks/use-otp'
 import { getErrorMessage } from '@/lib/api-client'
 import { PhoneInput } from '@/components/shared/phone-input'
@@ -64,7 +65,15 @@ export function PhoneInputForm({ onOtpSent, onSubmit }: PhoneInputFormProps) {
       </button>
 
       <p className="text-center text-xs text-neutral-400">
-        By continuing, you agree to our Terms of Service
+        By continuing, you agree to our{' '}
+        <Link href="/terms" prefetch={false} className="underline hover:text-neutral-600">
+          Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link href="/privacy" prefetch={false} className="underline hover:text-neutral-600">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </form>
   )

@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="border-t border-neutral-200 bg-white pb-20 md:pb-0">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-5">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <span className="font-display text-lg font-bold text-primary-600">{APP_NAME}</span>
@@ -66,6 +66,28 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/rules" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Rules &amp; Guidelines
+                </Link>
+              </li>
+              <li>
+                <Link href="/safety" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Safety Standards
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 className="text-sm font-semibold text-neutral-800 mb-3">Legal</h4>
+            <ul className="space-y-2">
+              <li>
                 <Link href="/terms" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Terms of Service
                 </Link>
@@ -73,6 +95,26 @@ export function Footer() {
               <li>
                 <Link href="/privacy" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/cancellation-policy" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Cancellation &amp; Refunds
+                </Link>
+              </li>
+              <li>
+                <Link href="/disclaimer" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Disclaimer
+                </Link>
+              </li>
+              <li>
+                <Link href="/cookies" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/legal" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  All Legal Docs →
                 </Link>
               </li>
             </ul>
@@ -90,6 +132,11 @@ export function Footer() {
               <li>
                 <Link href="/how-it-works" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
                   How It Works
+                </Link>
+              </li>
+              <li>
+                <Link href="/organizer-agreement" prefetch={false} className="text-sm text-neutral-500 hover:text-primary-600 transition-colors">
+                  Organizer Agreement
                 </Link>
               </li>
             </ul>
