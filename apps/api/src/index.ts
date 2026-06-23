@@ -1,3 +1,6 @@
+// ── Sentry must be imported FIRST before any other module ──
+import './instrument'
+
 import { createServer as createHttpServer } from 'http'
 import { createServer } from './server'
 import { logger } from './utils/logger'

@@ -30,6 +30,9 @@ const envSchema = z.object({
   PHONE_AUTH_STRATEGY: z.enum(['backend', 'firebase']).default('backend'),
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // ── Sentry (optional — no-op when absent) ─────────
+  SENTRY_DSN: z.string().optional(),
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
 }).superRefine((data, ctx) => {
   // SMTP vars must be all-or-nothing
   const smtpVars = [data.SMTP_HOST, data.SMTP_PORT, data.SMTP_USER, data.SMTP_PASS]

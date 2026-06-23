@@ -1,4 +1,6 @@
 const { IMAGE_HOSTS } = require('./src/config/image-hosts')
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { withSentryConfig } = require('@sentry/nextjs')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -27,4 +29,20 @@ const nextConfig = {
   ],
 }
 
-module.exports = nextConfig
+// Wrap with Sentry to enable automatic source map upload and route-based
+// transaction naming. When NEXT_PUBLIC_SENTRY_DSN is absent (e.g. in CI
+// without secrets), the wrapper is a transparent pass-through.
+module.exports = withSentryConfig(nextConfig, {
+  // Suppress verbose Sentry build output
+  silent: true,
+  // Disable source-map upload unless SENTRY_AUTH_TOKEN is set (optional)
+  sourcemaps: {
+    disable: !process.env.SENTRY_AUTH_TOKEN,
+  },
+  // Avoids bundling Sentry's debug logger in the client bundle
+  disableLogger: true,
+  // Tunnel Sentry requests through /monitoring to avoid ad-blockers
+  tunnelRoute: '/monitoring',
+  // Automatically wrap route handlers and server components with Sentry
+  autoInstrumentServerFunctions: true,
+})

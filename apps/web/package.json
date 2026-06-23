@@ -33,6 +33,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-oauth/google": "^0.13.5",
+    "@sentry/nextjs": "^10.60.0",
     "@tanstack/react-query": "^5.50.0",
     "@tanstack/react-query-devtools": "^5.50.0",
     "@travel/shared": "*",

@@ -126,6 +126,12 @@ services:
       - key: LOG_LEVEL
         value: info
 
+      # ── Sentry (optional — omit DSN to disable) ───────
+      - key: SENTRY_DSN
+        sync: false   # paste your Sentry project DSN from sentry.io
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.2"  # 20% of requests traced; raise to 1.0 for local testing
+
   # ── 2. Frontend Web ────────────────────────────────────
   - type: web
     name: safarnama-web
@@ -168,6 +174,16 @@ services:
         value: backend
       - key: NEXT_PUBLIC_LOG_LEVEL
         value: warn
+
+      # ── Sentry (optional — omit DSN to disable) ───────
+      # ⚠️  NEXT_PUBLIC_* vars are baked at Docker build time (not runtime).
+      #     After setting this, trigger a manual redeploy to rebuild the image.
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false   # paste your Sentry project DSN from sentry.io
+      - key: NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE
+        value: "0.2"
+      - key: SENTRY_AUTH_TOKEN
+        sync: false   # optional: enables source map upload for readable stack traces
 
   # ── 3. Redis (Key Value) ───────────────────────────────
   # ⚠️  If you already have a free Key Value instance, rename it to

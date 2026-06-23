@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.17.0",
+    "@sentry/node": "^10.60.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@travel/shared": "*",
     "bcrypt": "^5.1.0",

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node'
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -79,6 +80,10 @@ export function createServer() {
     const data = await sitemapService.getSitemapData()
     res.json({ success: true, data })
   }))
+
+  // ── Sentry Error Handler (after all routes, before custom errorHandler) ──
+  // Captures unhandled errors and attaches them to the active trace span.
+  Sentry.setupExpressErrorHandler(app)
 
   // ── Error Handler (must be last) ──────────────────
   app.use(errorHandler)
