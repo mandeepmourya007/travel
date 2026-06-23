@@ -10,6 +10,8 @@ function sanitizeRequestId(req: { headers: Record<string, string | string[] | un
   return uuidv4()
 }
 
+const isProd = process.env.NODE_ENV === 'production'
+
 const options: Options<Request, Response> = {
   logger,
   genReqId: (req) => sanitizeRequestId(req as { headers: Record<string, string | string[] | undefined> }),
@@ -20,18 +22,31 @@ const options: Options<Request, Response> = {
     role: req.user?.role,
   }),
 
-  // Route-aware log levels
+  // Route-aware log levels — successful requests are debug in prod (silent unless LOG_LEVEL=debug)
   customLogLevel: (_req, res, err) => {
     if (err || res.statusCode >= 500) return 'error'
     if (res.statusCode >= 400) return 'warn'
-    return 'info'
+    return isProd ? 'debug' : 'info'
   },
 
-  // Don't log health checks
+  // Only log essential request fields — drop verbose headers
+  serializers: {
+    req: (req) => ({
+      id: req.id,
+      method: req.method,
+      url: req.url,
+      remoteAddress: req.remoteAddress,
+    }),
+    res: (res) => ({
+      statusCode: res.statusCode,
+    }),
+  },
+
+  // Don't log health checks or preflight OPTIONS
   autoLogging: {
     ignore: (req) => {
       const url = req.originalUrl ?? req.url
-      return url === '/health' || url === '/api/v1/health'
+      return url === '/health' || url === '/api/v1/health' || req.method === 'OPTIONS'
     },
   },
 }
