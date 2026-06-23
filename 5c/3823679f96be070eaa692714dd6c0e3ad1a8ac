@@ -1,0 +1,53 @@
+apps/web/src/instrumentation.ts
+  s_98e96afc37d552::t_b29c3f23475b44 1-13
+apps/api/package.json
+  s_98e96afc37d552::t_02689eb8939e98 22
+apps/api/src/server.ts
+  s_98e96afc37d552::t_734cfcbe88e030 84-86
+  s_98e96afc37d552::t_bf808a4bfa346f 1
+apps/api/src/instrument.ts
+  s_98e96afc37d552::t_39b26257ce2a35 1-26
+apps/web/sentry.client.config.ts
+  s_98e96afc37d552::t_75f61ddd77009c 1-34
+docker/web.prod.Dockerfile
+  s_98e96afc37d552::t_7b3d1c04fef96c 66-68
+  s_98e96afc37d552::t_9ab1a586842f20 49-52
+apps/api/src/config/env.ts
+  s_98e96afc37d552::t_a28ea0e702421b 33-35
+apps/web/sentry.edge.config.ts
+  s_98e96afc37d552::t_a3e65c2a32adb7 1-15
+apps/web/sentry.server.config.ts
+  s_98e96afc37d552::t_775a9c46059ac1 1-16
+apps/web/package.json
+  s_98e96afc37d552::t_7e4953012b4c8b 36
+.env.example
+  s_98e96afc37d552::t_fbc3e11e91c2e1 66-81
+render.yaml
+  s_98e96afc37d552::t_a326a83fc02064 129-134
+  s_98e96afc37d552::t_f3a480b894d2f2 178-186
+apps/web/next.config.js
+  s_98e96afc37d552::t_9cda8d0f7cbd5f 2-3,32-48
+apps/api/src/index.ts
+  s_98e96afc37d552::t_1106b2e886acd5 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "5c3823679f96be070eaa692714dd6c0e3ad1a8ac",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_98e96afc37d552": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6593ef23-2ba5-4a80-9b50-03ce7c4fedc9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
