@@ -19,6 +19,7 @@ const THIRTY_MINUTES = 30 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
 const SIX_HOURS = 6 * 60 * 60 * 1000
 const ONE_MINUTE = 60 * 1000
+const FOURTEEN_MINUTES = 14 * 60 * 1000
 
 // ── Lock TTLs (ms) ───────────────────────────────────
 // Sized generously above worst-case job runtime. A dropped lock (volatile-lru
@@ -332,6 +333,21 @@ async function expireWalletCreditsAndWarn(
 }
 
 /**
+ * Pings the API's own health endpoint every 14 minutes to prevent Render free
+ * tier from spinning down (Render sleeps services after 15 min of inactivity).
+ * No-op in development or when PORT is not set.
+ */
+async function keepAlive() {
+  const port = process.env.PORT
+  if (!port || process.env.NODE_ENV !== 'production') return
+  try {
+    await fetch(`http://localhost:${port}/health`)
+  } catch {
+    // Ignore — if the server can't reach itself it's already awake
+  }
+}
+
+/**
  * Registers all recurring background jobs. Call once at server startup.
  * Returns a cleanup function that clears all intervals (for graceful shutdown).
  *
@@ -404,6 +420,8 @@ export function startCronJobs(deps: {
         () => expireWalletCreditsAndWarn(deps.walletService, deps.notificationService)),
       SIX_HOURS,
     ),
+    // Render free tier spins down after 15 min — ping ourselves every 14 min to stay awake
+    setInterval(keepAlive, FOURTEEN_MINUTES),
   ]
 
   return () => {
