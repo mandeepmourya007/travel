@@ -36,7 +36,17 @@ export class NodemailerEmailProvider implements IEmailProvider {
       this.logger.info({ to: msg.to.replace(/(.{3}).+@/, '$1***@'), subject: msg.subject }, 'Email sent')
       return { success: true }
     } catch (err) {
-      this.logger.error({ error: (err as Error).message, to: msg.to.replace(/(.{3}).+@/, '$1***@') }, 'Email send failed')
+      const e = err as NodeJS.ErrnoException & { code?: string; responseCode?: number; response?: string }
+      this.logger.error(
+        {
+          to: msg.to.replace(/(.{3}).+@/, '$1***@'),
+          errorCode: e.code,
+          smtpResponse: e.response,
+          smtpResponseCode: e.responseCode,
+          message: e.message,
+        },
+        'Email send failed',
+      )
       return { success: false }
     }
   }
