@@ -1,5 +1,6 @@
 import cors from 'cors'
 import { env } from './env'
+import { logger } from '../utils/logger'
 
 const origins = new Set([env.CLIENT_URL])
 if (env.ALLOWED_ORIGINS) {
@@ -11,12 +12,15 @@ if (env.NODE_ENV === 'development') {
 }
 const allowedOrigins = [...origins]
 
+// Log at startup so we can confirm exactly which origins are loaded
+logger.info({ allowedOrigins }, 'CORS allowed origins')
+
 export const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, server-to-server, health checks)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
+      logger.warn({ blockedOrigin: origin, allowedOrigins }, 'CORS blocked')
       callback(new Error(`CORS blocked: ${origin}`))
     }
   },
