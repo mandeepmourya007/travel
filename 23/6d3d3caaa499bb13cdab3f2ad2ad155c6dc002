@@ -1,0 +1,30 @@
+apps/api/prisma/migrations/20260624194732_add_organizer_invite_sent_by/migration.sql
+  s_b745014a70b4dd::t_a078f876a7a2b3 1-8
+apps/api/prisma/schema.prisma
+  s_b745014a70b4dd::t_c57d664b4d97b6 884-885,891
+  s_b745014a70b4dd::t_f610ca0f090001 877-883,886-890
+  s_b745014a70b4dd::t_daebb07632cf37 210-212
+apps/api/prisma/migrations/20260624194619_add_organizer_invite/migration.sql
+  s_b745014a70b4dd::t_1c80fbf36117ff 1-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "236d3d3caaa499bb13cdab3f2ad2ad155c6dc002",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
