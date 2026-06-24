@@ -1,0 +1,24 @@
+apps/api/tests/unit/services/organizer-invite.service.test.ts
+  s_b745014a70b4dd::t_02061ecebbc771 1-468
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "2488a1524ece5210d2043dcc8040f71f8b063dab",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
