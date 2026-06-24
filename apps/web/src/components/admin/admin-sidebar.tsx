@@ -10,6 +10,7 @@ import {
   Gift,
   MessageSquare,
   Tags,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +29,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
   { id: 'cashback', label: 'Cashback', href: '/admin/cashback', icon: Gift },
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
+  { id: 'invites', label: 'Invites', href: '/admin/invites', icon: Mail },
 ]
 
 export function AdminSidebar() {
