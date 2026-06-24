@@ -1,0 +1,76 @@
+apps/api/src/routes/admin.routes.ts
+  s_b745014a70b4dd::t_65fd96ffcde191 66
+  s_b745014a70b4dd::t_f7bddeb45969dd 67
+  s_b745014a70b4dd::t_b6a41b70cd696e 16
+apps/api/src/config/dependencies.ts
+  s_b745014a70b4dd::t_ee45da7fc7447d 165-177
+  s_b745014a70b4dd::t_b7b5074eb167e7 81
+  s_b745014a70b4dd::t_436e0fa49486db 203
+  s_b745014a70b4dd::t_1ad89f678cb94a 113
+apps/api/src/templates/index.ts
+  s_b745014a70b4dd::t_0019e2ce3e8e66 201-218
+apps/api/src/controllers/admin.controller.ts
+  s_b745014a70b4dd::t_80784ad2511f4c 139
+  s_b745014a70b4dd::t_c24847b77f3b32 7
+  s_b745014a70b4dd::t_146943120b5fa5 135-138,140-141
+apps/api/src/controllers/auth.controller.ts
+  s_b745014a70b4dd::t_74b0e9b7d9f50a 123
+  s_b745014a70b4dd::t_4df2bb6e5a0c2c 114,116-117
+  s_b745014a70b4dd::t_2ba1a60ba65a15 112-113,115,118-122,124-137
+apps/api/src/services/admin.service.ts
+  s_b745014a70b4dd::t_d08b4aadb46fda 424-425,429,431-445
+  s_b745014a70b4dd::t_d4c519b0f17c2e 426-428,430
+  s_b745014a70b4dd::t_482dfe958318c0 446
+  s_b745014a70b4dd::t_3621e96af27b98 12,16
+  s_b745014a70b4dd::t_100deda93d5b53 39
+apps/api/src/services/auth.service.ts
+  s_b745014a70b4dd::t_19c275858512c7 718-732,739-741,746-748
+  s_b745014a70b4dd::t_52a374dbb470ba 24-25
+  s_b745014a70b4dd::t_59a5b5582d62eb 750
+  s_b745014a70b4dd::t_3ebdc87c31ecde 51
+  s_b745014a70b4dd::t_8af78ad0ece9e0 672-677
+  s_b745014a70b4dd::t_f80e0f7f566e8f 23
+  s_b745014a70b4dd::t_196637bd407a58 663,679-693,705-717,733-738,742-745,749,751
+  s_b745014a70b4dd::t_8eef918354df4c 50
+  s_b745014a70b4dd::t_ef5d35415b2bca 16
+  s_b745014a70b4dd::t_a7ec6dfbc4cd5b 668-670
+  s_b745014a70b4dd::t_8e9853653b0270 666,671
+  s_b745014a70b4dd::t_d61508817b77c9 662,664-665,667,678
+  s_b745014a70b4dd::t_638ae0c4ea23aa 694-704,752
+apps/api/src/routes/auth.routes.ts
+  s_b745014a70b4dd::t_4d3d6a3a2c7aff 58-63
+  s_b745014a70b4dd::t_be12f7122c2b9d 18
+  s_b745014a70b4dd::t_6bf71829d93d15 17
+  s_b745014a70b4dd::t_a856b69e4d49d8 7
+  s_b745014a70b4dd::t_f956d21e8e4e5e 5
+apps/api/src/repositories/organizer-invite.repository.ts
+  s_b745014a70b4dd::t_7e693ff4f1ed48 1-5,7-8,11-28,30-37,41-51
+  s_b745014a70b4dd::t_acd34dc0509b3c 6,9-10
+  s_b745014a70b4dd::t_9b459c66bbe7e6 38-40
+  s_b745014a70b4dd::t_e00b056fbee977 29
+apps/api/src/errors/app-error.ts
+  s_b745014a70b4dd::t_15be7259a225a6 65-70
+apps/api/src/repositories/user.repository.ts
+  s_b745014a70b4dd::t_a9ffe03d43f0e4 129-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "e4e47c424e902a90503ed9988a0b5a32f982d384",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
