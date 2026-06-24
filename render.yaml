@@ -24,8 +24,7 @@
 #    2. Render Dashboard → New → Blueprint → connect repo
 #    3. Fill in sync:false secrets when prompted
 #    4. After API deploys, set NEXT_PUBLIC_API_URL + NEXT_PUBLIC_SOCKET_URL on safarnama-web
-#    5. Run Prisma migrations from local:
-#       DATABASE_URL=<render_db_url> npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+#    5. Migrations run automatically via preDeployCommand on every deploy
 # ─────────────────────────────────────────────────────────
 
 services:
@@ -38,6 +37,7 @@ services:
     plan: free
     region: oregon
     healthCheckPath: /health
+    preDeployCommand: /app/node_modules/.bin/prisma migrate deploy --schema=prisma/schema.prisma
 
     buildFilter:
       paths:
