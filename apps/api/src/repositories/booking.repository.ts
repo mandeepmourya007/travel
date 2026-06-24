@@ -586,8 +586,8 @@ export class BookingRepository {
            ) AS m(month)
       LEFT JOIN "PaymentTransaction" pt
         ON DATE_TRUNC('month', pt."createdAt") = m.month
-        AND pt."type" = ${PAYMENT_TX_TYPE.PAYMENT}
-        AND pt."status" = ${PAYMENT_TX_STATUS.CAPTURED}
+        AND pt."type"::text = ${PAYMENT_TX_TYPE.PAYMENT}
+        AND pt."status"::text = ${PAYMENT_TX_STATUS.CAPTURED}
       GROUP BY m.month
       ORDER BY m.month ASC
     `
