@@ -162,6 +162,8 @@ export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && 
     )
   : new MockEmailProvider(logger)
 
+const smtpConfigured = !!(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS)
+
 export const authService = new AuthService(
   userRepo,
   refreshTokenRepo,
@@ -173,7 +175,7 @@ export const authService = new AuthService(
   loginAttemptTracker,
   docReviewRepo,
   organizerInviteRepo,
-  emailProvider,
+  smtpConfigured ? emailProvider : null,
 )
 
 // ── Notification Channel Providers ──────────────────

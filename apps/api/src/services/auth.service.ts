@@ -670,9 +670,13 @@ export class AuthService {
     }
     await this.organizerInviteRepo?.upsert(email, token, sentBy)
 
+    if (!this.emailProvider) {
+      throw new Error('Email service is not configured — set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS to enable organizer invite emails')
+    }
+
     const signupUrl = `${env.CLIENT_URL}/signup/organizer/${token}`
     const tpl = organizerInviteTemplate(signupUrl)
-    this.emailProvider?.sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text })
+    this.emailProvider.sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text })
       .catch((err) => this.logger.error({ email, err }, 'Failed to send organizer invite email'))
 
     return { token, email }
