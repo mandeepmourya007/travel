@@ -5,7 +5,7 @@ import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/p
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
-import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters } from '@shared/types/admin.types'
+import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters } from '@shared/types/admin.types'
 
 export const tripKeys = {
   all: ['trips'] as const,
@@ -160,6 +160,9 @@ export const adminKeys = {
     [...adminKeys.cashbackByUserBase(), 'detail', userId, filters] as const,
   docReviewDetail: (organizerId: string) =>
     [...adminKeys.organizersBase(), 'doc-review', organizerId] as const,
+  invitesBase: () => [...adminKeys.all, 'invites'] as const,
+  invites: (filters?: OrganizerInviteFilters) =>
+    filters ? [...adminKeys.invitesBase(), filters] as const : adminKeys.invitesBase(),
 }
 
 export const docReviewKeys = {
