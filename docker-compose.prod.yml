@@ -32,7 +32,7 @@ services:
       timeout: 5s
       retries: 5
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '5'
@@ -70,7 +70,7 @@ services:
       timeout: 5s
       retries: 5
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '5'
@@ -114,7 +114,7 @@ services:
       retries: 5
       start_period: 60s
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '5'
@@ -165,7 +165,7 @@ services:
       retries: 5
       start_period: 120s
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '5'
@@ -207,7 +207,7 @@ services:
       retries: 3
       start_period: 10s
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '5'
@@ -244,7 +244,7 @@ services:
         limits:
           memory: 256M
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '3'
@@ -270,7 +270,7 @@ services:
         limits:
           memory: 256M
     logging:
-      driver: json-file
+      driver: local
       options:
         max-size: '10m'
         max-file: '3'

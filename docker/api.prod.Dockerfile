@@ -50,7 +50,7 @@ COPY --from=builder --chown=node:node /app/apps/api ./apps/api
 WORKDIR /app/apps/api
 
 ENV NODE_ENV=production \
-    NODE_OPTIONS="--max-old-space-size=256"
+    NODE_OPTIONS="--max-old-space-size=384"
 EXPOSE 4000
 
 USER node
