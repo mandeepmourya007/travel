@@ -1,0 +1,24 @@
+apps/api/src/config/cors.ts
+  s_28e353feece2e1::t_9d47c60e2580ff 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "e080e0c0f594dc6b228387fedf4fd1cc0f3b164c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e353feece2e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28e7722-5af5-4ea3-bd0e-0c12bc042d0d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
