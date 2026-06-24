@@ -1,0 +1,28 @@
+packages/shared/src/types/admin.types.ts
+  s_b745014a70b4dd::t_dadbcacca5d318 256-274
+packages/shared/src/validators/auth.schema.ts
+  s_b745014a70b4dd::t_8cfa572efd52a1 97-114
+packages/shared/src/validators/admin.schema.ts
+  s_b745014a70b4dd::t_ba3caf9f7c2f46 65-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "e0ccd80a82660c1783061a13629d38b1065f8089",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
