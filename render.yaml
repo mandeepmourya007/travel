@@ -73,6 +73,8 @@ services:
         sync: false   # openssl rand -hex 32
       - key: CLIENT_URL
         sync: false   # https://safarnama-web.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false   # comma-separated extra origins e.g. https://www.safarnama.in,https://safarnama.in
 
       # ── Google OAuth ──────────────────────────────────
       - key: GOOGLE_CLIENT_ID
