@@ -1,0 +1,27 @@
+apps/api/package.json
+  s_b745014a70b4dd::t_26a35658112afb 22
+render.yaml
+  s_b745014a70b4dd::t_1e0dec97031259 27
+  s_b745014a70b4dd::t_51cad03558bb38 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "d8d8a1ebd34f8a88d81b89f8f56a942c6416379a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
