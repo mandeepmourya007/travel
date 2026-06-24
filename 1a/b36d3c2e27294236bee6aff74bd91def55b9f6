@@ -1,0 +1,27 @@
+apps/web/src/lib/query-keys.ts
+  s_b745014a70b4dd::t_1e7f78cd00e8ad 163-165
+  s_b745014a70b4dd::t_431d1e906dc9b2 8
+apps/web/src/hooks/use-admin-invites.ts
+  s_b745014a70b4dd::t_2bccc698f42a7c 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "1ab36d3c2e27294236bee6aff74bd91def55b9f6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
