@@ -1,0 +1,26 @@
+apps/api/src/config/dependencies.ts
+  s_56b055fbf2ad77::t_7f96dd44197c41 165-166,178
+apps/api/src/services/auth.service.ts
+  s_56b055fbf2ad77::t_f5e827e6a1d1d8 673-676,679
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "8352ddab19a1a7a4840e32c891d8149b741781b4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_56b055fbf2ad77": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "39ecf393-0147-4e61-9fe7-f15c902ae54e",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
