@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { fetchApi, fetchApiWithPagination } from '@/lib/api-server'
 import { AppShell } from '@/components/layout/app-shell'
 import { HeroSection } from '@/components/home/hero-section'
+import { HowItWorks } from '@/components/home/how-it-works'
 import { PopularDestinations } from '@/components/home/popular-destinations'
 import { TrendingTrips } from '@/components/home/trending-trips'
 import { WhyBookSection } from '@/components/home/why-book-section'
@@ -52,6 +53,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
       <HeroSection />
+      <HowItWorks />
       <PopularDestinations initialData={destinations} />
       <TrendingTrips initialData={trendingTrips} />
       <WhyBookSection />
