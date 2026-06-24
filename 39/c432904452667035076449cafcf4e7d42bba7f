@@ -1,0 +1,31 @@
+docker/api.prod.Dockerfile
+  s_28e353feece2e1::t_95513980286f2a 53
+apps/api/src/utils/logger.ts
+  s_28e353feece2e1::t_a3da0a6506a73b 4-12,14-40,42-43
+  s_28e353feece2e1::t_0de8279d8e6116 13
+docker-compose.prod.yml
+  s_28e353feece2e1::t_b7dfd72b7808fb 117
+  s_28e353feece2e1::t_576ef515711e24 35,73,168,210
+  s_28e353feece2e1::t_5c941e253136c2 247,273
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "39c432904452667035076449cafcf4e7d42bba7f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e353feece2e1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28e7722-5af5-4ea3-bd0e-0c12bc042d0d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
