@@ -1,0 +1,27 @@
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_b745014a70b4dd::t_d9f5ee30d0124b 13
+  s_b745014a70b4dd::t_ccb9108dc3407e 32
+apps/web/src/components/auth/onboarding-form.tsx
+  s_b745014a70b4dd::t_d04778556c5e82 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.11",
+  "base_commit_sha": "def3bfff0d0437f9a1bd91b46372c8110c784dc9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b745014a70b4dd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d04c3218-a627-43ee-946f-ed278dd616fa",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
