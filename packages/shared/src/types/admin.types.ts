@@ -253,3 +253,22 @@ export interface CashbackHistoryFilters {
   page?: number
   limit?: number
 }
+
+// ─── Organizer Invites ──────────────────────────────────
+
+export type OrganizerInviteStatus = 'pending' | 'accepted'
+
+export interface OrganizerInviteItem {
+  id: string
+  email: string
+  sentAt: string
+  acceptedAt: string | null
+  sentBy: string | null
+  sentByUser: { id: string; name: string; email: string | null } | null
+}
+
+export interface OrganizerInviteFilters {
+  status?: OrganizerInviteStatus
+  page?: number
+  limit?: number
+}

@@ -94,3 +94,21 @@ export const connectBankAccountSchema = z.object({
   accountNumber: z.string().trim().min(9, 'Account number too short').max(18, 'Account number too long').regex(/^\d+$/, 'Account number must be numeric'),
   beneficiaryName: z.string().trim().min(2, 'Beneficiary name is required').max(120),
 })
+
+export const organizerInviteSchema = z.object({
+  email: z.string().email('Invalid email address').toLowerCase().trim(),
+})
+
+export const organizerSignupSchema = z.object({
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim().optional(),
+  phone: z
+    .string()
+    .regex(INDIAN_PHONE_REGEX, 'Invalid Indian phone number')
+    .optional(),
+})

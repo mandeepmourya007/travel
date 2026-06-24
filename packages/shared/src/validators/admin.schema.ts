@@ -62,3 +62,8 @@ export const addDocCommentSchema = z.object({
   comment: z.string().min(1, 'Comment is required').max(1000).trim(),
   attachmentUrl: z.string().url().optional(),
 })
+
+/** Validates query params for GET /admin/organizer-invites */
+export const organizerInviteFiltersSchema = paginationSchema.extend({
+  status: z.enum(['pending', 'accepted']).optional(),
+})
