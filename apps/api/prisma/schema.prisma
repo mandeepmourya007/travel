@@ -207,8 +207,9 @@ model User {
   notifications     Notification[]
   cancelledBookings Booking[]          @relation("canceller")
   tripRequests      TripRequest[]
-  tripEdits         TripEditHistory[]
-  wallet            Wallet?
+  tripEdits          TripEditHistory[]
+  wallet             Wallet?
+  organizerInvitesSent OrganizerInvite[]
 
   @@index([email])
   @@index([role])
@@ -872,4 +873,20 @@ model TripRequest {
   @@index([userId, status])
   @@index([status, approvalExpiresAt])
   @@index([isDeleted])
+}
+
+model OrganizerInvite {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  token      String    @unique
+  sentAt     DateTime  @default(now())
+  acceptedAt DateTime?
+  sentBy     String?
+  sentByUser User?     @relation(fields: [sentBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([acceptedAt])
+  @@index([sentBy])
 }
