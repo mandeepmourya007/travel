@@ -2,9 +2,9 @@ import { Router } from 'express'
 import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { validate } from '../middleware/validate.middleware'
-import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema, connectBankAccountSchema } from '@shared/validators/auth.schema'
+import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema, connectBankAccountSchema, organizerInviteSchema, organizerSignupSchema } from '@shared/validators/auth.schema'
 import { addDocCommentSchema } from '@shared/validators/admin.schema'
-import { otpRateLimit } from '../middleware/rate-limit.middleware'
+import { otpRateLimit, authRateLimit } from '../middleware/rate-limit.middleware'
 
 export function createAuthRoutes(
   authController: AuthController,
@@ -14,6 +14,8 @@ export function createAuthRoutes(
 ) {
   const router = Router()
 
+  router.get('/signup/:token', authController.getOrganizerInviteInfo)
+  router.post('/signup/:token', authRateLimit, validate(organizerSignupSchema), authController.organizerSignup)
   router.post('/signup', validate(signupSchema), authController.signup)
   router.post('/login', validate(loginSchema), authController.login)
   router.post('/refresh', authController.refresh)
@@ -51,6 +53,14 @@ export function createAuthRoutes(
     authMiddleware,
     requireRole('ORGANIZER'),
     authController.getOrganizerDocComments,
+  )
+
+  router.post(
+    '/organizer-invite',
+    authMiddleware,
+    requireRole('ADMIN'),
+    validate(organizerInviteSchema),
+    authController.generateOrganizerInvite,
   )
 
   router.post('/google', validate(googleAuthSchema), authController.googleAuth)

@@ -198,6 +198,24 @@ function generic(title: string, body: string, _data: TemplateData): TemplateResu
   }
 }
 
+export function organizerInviteTemplate(signupUrl: string): { subject: string; html: string; text: string } {
+  return {
+    subject: `You're invited to join ${APP_NAME} as a Trip Organizer`,
+    html: baseLayout(
+      heading(`You've been invited to ${APP_NAME}!`) +
+      paragraph(`You've been selected to join <strong>${APP_NAME}</strong> as a verified Trip Organizer — create memorable group travel experiences and build your business on our platform.`) +
+      paragraph('Click the button below to set up your account. This invite link is valid for <strong>7 days</strong>.') +
+      `<div style="text-align:center;margin:28px 0;">` +
+        cta('Create Your Organizer Account', signupUrl) +
+      `</div>` +
+      `<hr style="border:none;border-top:1px solid #e2e7eb;margin:24px 0;">` +
+      paragraph(`<span style="font-size:13px;color:#9aa5b1;">Or copy this link into your browser:<br><a href="${signupUrl}" style="color:${BRAND_COLOR};word-break:break-all;">${signupUrl}</a></span>`) +
+      paragraph('<span style="font-size:13px;color:#9aa5b1;">If you weren\'t expecting this email, you can safely ignore it.</span>'),
+    ),
+    text: `You've been invited to join ${APP_NAME} as a Trip Organizer.\n\nCreate your account here: ${signupUrl}\n\nThis link expires in 7 days.`,
+  }
+}
+
 const templateMap: Partial<Record<NotificationType, (title: string, body: string, data: TemplateData) => TemplateResult>> = {
   BOOKING_CONFIRMED: bookingConfirmed,
   BOOKING_CANCELLED: bookingCancelled,

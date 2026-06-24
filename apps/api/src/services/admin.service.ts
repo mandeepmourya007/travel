@@ -9,10 +9,11 @@ import type { WalletRepository } from '../repositories/wallet.repository'
 import type { WalletService } from './wallet.service'
 import type { NotificationService } from './notification.service'
 import type { DocumentReviewRepository, DocumentReviewCommentRow } from '../repositories/document-review.repository'
+import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
-  ReviewDocDto, AddDocCommentDto,
+  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters,
 } from '@shared/types/admin.types'
 import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
@@ -35,6 +36,7 @@ export class AdminService {
     private logger: Logger,
     private notificationService: NotificationService,
     private docReviewRepo: DocumentReviewRepository,
+    private organizerInviteRepo?: OrganizerInviteRepository,
   ) {}
 
   // ─── Organizer Approvals ──────────────────────────────
@@ -418,5 +420,29 @@ export class AdminService {
     if (traveler.cashbackIssued !== null) {
       throw new ValidationError(`Cashback already issued for booking ${item.bookingId} (${traveler.userName})`)
     }
+  }
+
+  async getOrganizerInvites(filters: OrganizerInviteFilters) {
+    if (!this.organizerInviteRepo) {
+      throw new ValidationError('Organizer invite feature is not configured')
+    }
+    const pg = paginate(filters)
+    const { data, total } = await this.organizerInviteRepo.findAll(
+      { status: filters.status },
+      { skip: pg.skip, take: pg.take },
+    )
+
+    const mapped = data.map((inv) => ({
+      id: inv.id,
+      email: inv.email,
+      sentAt: inv.sentAt.toISOString(),
+      acceptedAt: inv.acceptedAt ? inv.acceptedAt.toISOString() : null,
+      sentBy: inv.sentBy,
+      sentByUser: inv.sentByUser
+        ? { id: inv.sentByUser.id, name: inv.sentByUser.name, email: inv.sentByUser.email }
+        : null,
+    }))
+
+    return { data: mapped, pagination: pg.meta(total) }
   }
 }

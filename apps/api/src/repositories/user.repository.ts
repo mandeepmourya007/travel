@@ -126,4 +126,9 @@ export class UserRepository {
       select: { id: true, email: true },
     })
   }
+
+  /** Soft-delete a user by id. Intercepted by Prisma extension → sets isDeleted=true. */
+  async deleteById(id: string) {
+    return this.prisma.user.delete({ where: { id } })
+  }
 }

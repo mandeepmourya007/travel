@@ -4,7 +4,7 @@ import type { AdminService } from '../services/admin.service'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
-  ReviewDocDto, AddDocCommentDto,
+  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters,
 } from '@shared/types/admin.types'
 
 export class AdminController {
@@ -131,5 +131,13 @@ export class AdminController {
   getDocReviewDetail = asyncHandler(async (req: Request, res: Response) => {
     const detail = await this.adminService.getDocReviewDetail(req.params.id)
     res.json({ success: true, data: detail })
+  })
+
+  /** GET /admin/organizer-invites — Paginated list of organizer invites */
+  getOrganizerInvites = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getOrganizerInvites(
+      req.query as unknown as OrganizerInviteFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 }

@@ -13,13 +13,16 @@ import { OrganizerProfileRepository } from '../repositories/organizer-profile.re
 import { WalletRepository } from '../repositories/wallet.repository'
 import { DocumentReviewRepository } from '../repositories/document-review.repository'
 import { DOC_TYPES } from '@shared/constants/upload'
-import { AuthError, ConflictError, NotFoundError, PaymentError } from '../errors/app-error'
+import { AuthError, ConflictError, NotFoundError, PaymentError, GoneError } from '../errors/app-error'
 import { env } from '../config/env'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
 import { uniqueSlug, slugify } from '../utils/slugify'
 import { mergeDocuments } from '../utils/documents'
 import { USER_ROLE } from '@shared/constants'
 import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
+import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
+import type { IEmailProvider } from '../providers/email-provider.interface'
+import { organizerInviteTemplate } from '../templates'
 
 /** Prisma unique constraint violation code */
 const PRISMA_UNIQUE_VIOLATION = 'P2002'
@@ -44,6 +47,8 @@ export class AuthService {
     private googleClientId?: string,
     private loginAttemptTracker?: LoginAttemptTracker | null,
     private docReviewRepo?: DocumentReviewRepository | null,
+    private organizerInviteRepo?: OrganizerInviteRepository | null,
+    private emailProvider?: IEmailProvider | null,
   ) {}
 
   private googleOAuthClient?: import('google-auth-library').OAuth2Client
@@ -652,6 +657,98 @@ export class AuthService {
     } catch {
       throw new AuthError('Invalid or expired token')
     }
+  }
+
+  private generateOrganizerInviteToken(email: string): string {
+    return jwt.sign({ email, type: 'ORGANIZER_INVITE' }, this.jwtSecret, { expiresIn: '7d' })
+  }
+
+  async createOrganizerInvite(email: string, sentBy: string): Promise<{ token: string; email: string }> {
+    const token = this.generateOrganizerInviteToken(email)
+    if (!this.organizerInviteRepo) {
+      this.logger.warn({ email }, 'organizerInviteRepo not configured — invite will not be persisted')
+    }
+    await this.organizerInviteRepo?.upsert(email, token, sentBy)
+
+    const signupUrl = `${env.CLIENT_URL}/signup/organizer/${token}`
+    const tpl = organizerInviteTemplate(signupUrl)
+    this.emailProvider?.sendEmail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text })
+      .catch((err) => this.logger.error({ email, err }, 'Failed to send organizer invite email'))
+
+    return { token, email }
+  }
+
+  verifyOrganizerInviteToken(token: string): { email: string } {
+    try {
+      const payload = jwt.verify(token, this.jwtSecret) as { email?: string; type?: string }
+      if (payload.type !== 'ORGANIZER_INVITE' || !payload.email) {
+        throw new AuthError('Invalid invite token')
+      }
+      return { email: payload.email }
+    } catch (err) {
+      if (err instanceof AuthError) throw err
+      throw new AuthError('Invalid or expired invite link')
+    }
+  }
+
+  async getOrganizerInviteEmail(token: string): Promise<{ email: string }> {
+    const { email } = this.verifyOrganizerInviteToken(token)
+    if (this.organizerInviteRepo) {
+      const record = await this.organizerInviteRepo.findByEmail(email)
+      if (record?.acceptedAt) {
+        throw new GoneError('This invite link has already been used')
+      }
+    }
+    return { email }
+  }
+
+  async organizerSignup(
+    token: string,
+    dto: { password: string; name?: string; phone?: string },
+    meta: { userAgent?: string; ip?: string },
+  ): Promise<{ auth: AuthResponse; refreshToken: string }> {
+    const { email } = this.verifyOrganizerInviteToken(token)
+
+    const exists = await this.userRepo.emailExists(email)
+    if (exists) {
+      throw new ConflictError('An account with this email already exists')
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS)
+    let user: Awaited<ReturnType<typeof this.userRepo.create>>
+    try {
+      user = await this.userRepo.create({
+        name: dto.name || DEFAULT_USER_NAME,
+        email,
+        phone: dto.phone,
+        passwordHash,
+        role: USER_ROLE.ORGANIZER,
+      })
+    } catch (err) {
+      if (this.isPrismaUniqueViolation(err)) {
+        throw new ConflictError('An account with this email already exists')
+      }
+      throw err
+    }
+
+    try {
+      await this.createOrganizerProfileWithSlug(user.id, user.name)
+      this.logger.info({ userId: user.id }, 'OrganizerProfile auto-created via invite')
+    } catch (err) {
+      this.logger.error({ userId: user.id, err }, 'Failed to create OrganizerProfile, rolling back user')
+      await this.userRepo.deleteById(user.id).catch((e) =>
+        this.logger.error({ userId: user.id, err: e }, 'Failed to rollback user after profile creation failure'),
+      )
+      throw err
+    }
+
+    await this.createWalletForUser(user.id)
+    await this.organizerInviteRepo?.markAccepted(email).catch((err) =>
+      this.logger.warn({ email, err }, 'Failed to mark invite as accepted'),
+    )
+
+    this.logger.info({ userId: user.id }, 'Organizer signed up via invite')
+    return this.issueTokens(user, meta)
   }
 
   private async generateRefreshToken(

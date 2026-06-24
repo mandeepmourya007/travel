@@ -78,6 +78,7 @@ import { VehicleService } from '../services/vehicle.service'
 import { VehicleController } from '../controllers/vehicle.controller'
 import { createVehicleRoutes } from '../routes/vehicle.routes'
 import { TripCategoryRepository } from '../repositories/trip-category.repository'
+import { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
 import { TripCategoryService } from '../services/trip-category.service'
 import { TripCategoryController } from '../controllers/trip-category.controller'
 import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOrganizerTripTypeRequestRoutes } from '../routes/trip-category.routes'
@@ -109,6 +110,7 @@ const notificationRepo = new NotificationRepository(prisma)
 const vehicleRepo = new VehicleRepository(prisma)
 const docReviewRepo = new DocumentReviewRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
+const organizerInviteRepo = new OrganizerInviteRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
@@ -124,18 +126,6 @@ export function setIoInstance(io: import('socket.io').Server) { ioInstance = io 
 const getIo = () => ioInstance
 
 // ── Services ─────────────────────────────────────────
-export const authService = new AuthService(
-  userRepo,
-  refreshTokenRepo,
-  organizerProfileRepo,
-  walletRepo,
-  JWT_SECRET,
-  logger,
-  env.GOOGLE_CLIENT_ID,
-  loginAttemptTracker,
-  docReviewRepo,
-)
-
 const destinationService = new DestinationService(destinationRepo, tripRepo, logger, cacheService)
 const uploadService = new UploadService()
 const paymentService = razorpayClient
@@ -172,6 +162,20 @@ export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && 
     )
   : new MockEmailProvider(logger)
 
+export const authService = new AuthService(
+  userRepo,
+  refreshTokenRepo,
+  organizerProfileRepo,
+  walletRepo,
+  JWT_SECRET,
+  logger,
+  env.GOOGLE_CLIENT_ID,
+  loginAttemptTracker,
+  docReviewRepo,
+  organizerInviteRepo,
+  emailProvider,
+)
+
 // ── Notification Channel Providers ──────────────────
 const inAppProvider = new InAppNotificationProvider(notificationRepo, getIo, logger)
 const emailNotifProvider = new EmailNotificationProvider(emailProvider, logger)
@@ -196,7 +200,7 @@ const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
   paymentTxRepo, messageRepo,
   walletRepo, walletService, logger, notificationService,
-  docReviewRepo,
+  docReviewRepo, organizerInviteRepo,
 )
 
 const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)

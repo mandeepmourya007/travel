@@ -109,6 +109,32 @@ export class AuthController {
     res.json({ success: true, data: comments })
   })
 
+  /** POST /auth/organizer-invite — ADMIN only — generates an organizer invite link */
+  generateOrganizerInvite = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) throw new AuthError('Not authenticated')
+    const { email } = req.body as { email: string }
+    const result = await this.authService.createOrganizerInvite(email, req.user.userId)
+    res.status(201).json({ success: true, data: result })
+  })
+
+  /** GET /auth/signup/:token — public — validates invite token and returns the encoded email */
+  getOrganizerInviteInfo = asyncHandler(async (req: Request, res: Response) => {
+    const { token } = req.params
+    const { email } = await this.authService.getOrganizerInviteEmail(token)
+    res.json({ success: true, data: { email } })
+  })
+
+  /** POST /auth/signup/:token — public — creates an ORGANIZER account from an invite token */
+  organizerSignup = asyncHandler(async (req: Request, res: Response) => {
+    const { token } = req.params
+    const { auth, refreshToken } = await this.authService.organizerSignup(token, req.body, {
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    })
+    res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
+    res.status(201).json({ success: true, data: auth })
+  })
+
   /** POST /auth/google — public */
   googleAuth = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.authService.googleAuth(req.body, {

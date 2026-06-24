@@ -13,6 +13,7 @@ import {
   reviewDocSchema,
   docTypeParamSchema,
   addDocCommentSchema,
+  organizerInviteFiltersSchema,
 } from '@shared/validators/admin.schema'
 
 export function createAdminRoutes(
@@ -61,6 +62,9 @@ export function createAdminRoutes(
     validate(addDocCommentSchema, 'body'),
     adminController.addDocComment,
   )
+
+  // ─── Organizer Invites ────────────────────────────────
+  router.get('/organizer-invites', validate(organizerInviteFiltersSchema, 'query'), adminController.getOrganizerInvites)
 
   // ─── Platform Stats ───────────────────────────────────
   router.get('/stats', adminController.getPlatformStats)

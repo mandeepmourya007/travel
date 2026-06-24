@@ -62,3 +62,9 @@ export class TooManyRequestsError extends AppError {
     super(message, 429, 'TOO_MANY_REQUESTS')
   }
 }
+
+export class GoneError extends AppError {
+  constructor(message = 'Resource no longer available') {
+    super(message, 410, 'GONE')
+  }
+}
