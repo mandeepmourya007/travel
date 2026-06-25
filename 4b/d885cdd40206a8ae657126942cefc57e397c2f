@@ -1,0 +1,33 @@
+apps/api/src/instrument.ts
+  s_6c03bcdf8047e9::t_dd5842a3e228c9 10,13-15
+  s_6e1827006548a7::t_c9f47ebf1d1a0e 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "4bd885cdd40206a8ae657126942cefc57e397c2f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6c03bcdf8047e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfdf2d99-9357-487c-94e2-3cb095ca1c60",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_6e1827006548a7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c894360d-7854-434a-83ab-8b564dc92081",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
