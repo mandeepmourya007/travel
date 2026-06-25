@@ -17,6 +17,14 @@ function createRedisClient(): IORedis | null {
   const client = new IORedis(url, {
     maxRetriesPerRequest: 3,
     lazyConnect: true,
+    // Keep the TCP connection alive with 30s pings so the connection is never
+    // dropped by Render's idle timeout. Without this, the first request after
+    // inactivity pays a 600-700ms reconnect penalty (rate limiter blocks the
+    // entire request while ioredis reconnects).
+    keepAlive: 30000,
+    // Fail fast if a command stalls (e.g. during a mid-request reconnect).
+    // The rate limiter falls back to in-memory; the cache falls through to DB.
+    commandTimeout: 150,
   })
   client.on('connect', () => logger.info('Redis: connected'))
   client.on('error', (err: Error) => logger.error({ error: err.message }, 'Redis connection error'))

@@ -40,11 +40,13 @@ export class CacheService {
     this.logger.debug({ key, ttlSeconds }, 'Cache MISS — fetching & caching')
     const value = await fetcher()
 
-    try {
-      await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds)
-    } catch (err) {
+    // Fire-and-forget: don't block the response waiting for the cache write.
+    // On cross-region Redis (~95ms RTT), awaiting SET adds latency the caller
+    // already paid for on the GET. A failed SET just means the next request
+    // is also a miss — acceptable trade-off.
+    this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds).catch((err) => {
       this.logger.warn({ err, key }, 'Redis SET failed — value not cached')
-    }
+    })
 
     return value
   }

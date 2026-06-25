@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { logger as pinoLogger } from '../utils/logger'
+import * as Sentry from '@sentry/node'
 
 const SLOW_QUERY_LOG = process.env.SLOW_QUERY_LOG === 'true'
 const SLOW_QUERY_THRESHOLD_MS = Number(process.env.SLOW_QUERY_THRESHOLD_MS) || 100
@@ -25,7 +26,30 @@ if (SLOW_QUERY_LOG) {
   })
 }
 
-export const prisma = basePrisma.$extends({
+// Sentry span wrapper — compensates for $extends bypassing prismaIntegration()'s
+// OTel prototype patches. Each DB operation gets a 'db.query' span so traces
+// show query-level timing inside request handlers.
+const sentryExtension = {
+  query: {
+    $allModels: {
+      async $allOperations({
+        model,
+        operation,
+        args,
+        query,
+      }: {
+        model: string
+        operation: string
+        args: unknown
+        query: (args: unknown) => Promise<unknown>
+      }) {
+        return Sentry.startSpan({ op: 'db.query', name: `${model}.${operation}` }, () => query(args))
+      },
+    },
+  },
+}
+
+export const prisma = basePrisma.$extends(sentryExtension).$extends({
   query: {
     $allModels: {
       async findMany({ model, args, query }) {
