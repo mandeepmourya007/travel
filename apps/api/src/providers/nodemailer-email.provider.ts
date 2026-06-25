@@ -21,6 +21,7 @@ export class NodemailerEmailProvider implements IEmailProvider {
       port: config.port,
       secure: config.port === 465,
       auth: config.auth,
+      family: 4, // Render doesn't support outbound IPv6; force IPv4 to avoid ENETUNREACH
     })
   }
 
