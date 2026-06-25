@@ -5,7 +5,7 @@ import type { DestinationTripFilters } from '@shared/types/destination.types'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
-import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
+import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, SITEMAP_MAX_TRIPS } from '../utils/constants'
 
 export const TRIP_INCLUDE_SUMMARY = {
   destination: {
@@ -284,6 +284,7 @@ export class TripRepository {
       where: { isDeleted: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
+      take: SITEMAP_MAX_TRIPS,
     })
   }
 

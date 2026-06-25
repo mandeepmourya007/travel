@@ -47,6 +47,30 @@ export class DocumentReviewRepository {
     })
   }
 
+  /**
+   * Upserts multiple document review rows in parallel.
+   * All upserted docs are set to PENDING (re-uploaded docs reset review status).
+   * Use instead of calling upsert() in a loop (sequential N DB round-trips → concurrent).
+   * Not atomic: if one upsert throws after others have committed, the remaining docs
+   * keep their previous status. For document reviews this is acceptable — the user
+   * can re-upload to reset the failed doc.
+   */
+  async upsertMany(
+    organizerId: string,
+    docs: Array<{ docType: string; currentUrl: string }>,
+  ): Promise<void> {
+    await Promise.all(
+      docs.map(({ docType, currentUrl }) =>
+        this.upsert(organizerId, docType, {
+          currentUrl,
+          status: DocumentReviewStatus.PENDING,
+          reviewedAt: undefined,
+          reviewedBy: undefined,
+        }),
+      ),
+    )
+  }
+
   async countApproved(organizerId: string): Promise<number> {
     return this.prisma.documentReview.count({
       where: { organizerId, status: DocumentReviewStatus.APPROVED },

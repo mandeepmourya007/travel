@@ -68,6 +68,7 @@ function createMockWalletRepo() {
 function createMockDocReviewRepo() {
   return {
     upsert: vi.fn(),
+    upsertMany: vi.fn(),
     countApproved: vi.fn(),
     findComments: vi.fn(),
     addComment: vi.fn(),
@@ -800,6 +801,7 @@ describe('AuthService', () => {
       }
       organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
       organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
+      docReviewRepo.upsertMany.mockResolvedValue(undefined)
 
       await service.updateOrganizerProfile('user-org', {
         documents: { panCard: 'https://example.com/pan.jpg' },
@@ -829,36 +831,33 @@ describe('AuthService', () => {
       }
       organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
       organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
-      docReviewRepo.upsert.mockResolvedValue({})
+      docReviewRepo.upsertMany.mockResolvedValue(undefined)
 
       await service.updateOrganizerProfile('user-org', {
         documents: { aadhaarFront: 'https://new.com/front.jpg', panCard: 'https://new.com/pan.jpg' },
       })
 
-      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(2)
-      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
-        currentUrl: 'https://new.com/front.jpg',
-        status: 'PENDING',
-      }))
-      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'panCard', expect.objectContaining({
-        currentUrl: 'https://new.com/pan.jpg',
-        status: 'PENDING',
-      }))
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledOnce()
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledWith('org-1', expect.arrayContaining([
+        { docType: 'aadhaarFront', currentUrl: 'https://new.com/front.jpg' },
+        { docType: 'panCard', currentUrl: 'https://new.com/pan.jpg' },
+      ]))
     })
 
     it('should not upsert DocumentReview for doc types not in the upload', async () => {
       const profileWithDocs = { ...orgProfile, documents: {} }
       organizerProfileRepo.findByUserId.mockResolvedValue(profileWithDocs)
       organizerProfileRepo.update.mockResolvedValue(profileWithDocs)
+      docReviewRepo.upsertMany.mockResolvedValue(undefined)
 
       await service.updateOrganizerProfile('user-org', {
         documents: { aadhaarFront: 'https://new.com/front.jpg' },
       })
 
-      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(1)
-      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
-        status: 'PENDING',
-      }))
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledOnce()
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledWith('org-1', [
+        { docType: 'aadhaarFront', currentUrl: 'https://new.com/front.jpg' },
+      ])
     })
   })
 
@@ -948,16 +947,16 @@ describe('AuthService', () => {
     it('should skip empty string doc URLs — no upsert for them', async () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(orgProfile)
       organizerProfileRepo.update.mockResolvedValue(orgProfile)
+      docReviewRepo.upsertMany.mockResolvedValue(undefined)
 
       await service.updateOrganizerProfile('user-org', {
         documents: { aadhaarFront: 'https://new.com/front.jpg', aadhaarBack: '', panCard: '' },
       })
 
-      expect(docReviewRepo.upsert).toHaveBeenCalledTimes(1)
-      expect(docReviewRepo.upsert).toHaveBeenCalledWith('org-1', 'aadhaarFront', expect.objectContaining({
-        currentUrl: 'https://new.com/front.jpg',
-        status: 'PENDING',
-      }))
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledOnce()
+      expect(docReviewRepo.upsertMany).toHaveBeenCalledWith('org-1', [
+        { docType: 'aadhaarFront', currentUrl: 'https://new.com/front.jpg' },
+      ])
     })
   })
 

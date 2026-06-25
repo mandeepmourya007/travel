@@ -63,6 +63,7 @@ describe('Redis client config', () => {
 
     expect(redis).not.toBeNull()
     expect(IORedis).toHaveBeenCalledWith('redis://localhost:6379', {
+      keepAlive: 30000,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     })

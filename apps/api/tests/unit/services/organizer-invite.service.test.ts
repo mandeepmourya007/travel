@@ -449,16 +449,18 @@ describe('AuthService — Organizer Invites', () => {
       refreshTokenRepo.create.mockResolvedValue({ id: 'rt-1' })
     })
 
-    it('createOrganizerInvite still returns a valid token without throwing', async () => {
-      const result = await service.createOrganizerInvite(ORG_EMAIL, ADMIN_ID)
-
-      expect(result.token).toBeTruthy()
-      expect(result.email).toBe(ORG_EMAIL)
+    it('createOrganizerInvite throws when emailProvider is null', async () => {
+      await expect(service.createOrganizerInvite(ORG_EMAIL, ADMIN_ID))
+        .rejects.toThrow('Email service is not configured')
     })
 
-    it('organizerSignup still creates the user without throwing', async () => {
-      const { token } = await service.createOrganizerInvite(ORG_EMAIL, ADMIN_ID)
-      inviteRepo.markAccepted.mockResolvedValue({ count: 1 }) // re-attach after clearAllMocks
+    it('organizerSignup still creates the user without inviteRepo or emailProvider', async () => {
+      // createOrganizerInvite requires an email provider, so generate the token directly
+      const token = jwt.sign(
+        { email: ORG_EMAIL, type: 'ORGANIZER_INVITE' },
+        JWT_SECRET,
+        { expiresIn: '7d' },
+      )
 
       const result = await service.organizerSignup(token, { password: 'Password1' }, meta)
 

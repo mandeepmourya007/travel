@@ -41,6 +41,11 @@ export const DEV_OTP = '0000'
 export const ESCROW_SAFETY_BUFFER_DAYS = 90
 export const TRIP_COMPLETION_BATCH_SIZE = 50
 
+// ─── Sitemap ─────────────────────────────────────────
+// Hard cap on trips returned for sitemap generation.
+// Prevents loading 100k+ rows into memory on large datasets.
+export const SITEMAP_MAX_TRIPS = 50_000
+
 // ─── Vehicle / Seat ─────────────────────────────────
 export const SEAT_HOLD_MINUTES = 30
 

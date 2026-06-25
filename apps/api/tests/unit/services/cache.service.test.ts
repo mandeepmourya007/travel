@@ -72,6 +72,7 @@ describe('CacheService', () => {
 
     it('should call fetcher when Redis.get throws (graceful degradation)', async () => {
       redis.get.mockRejectedValue(new Error('Connection refused'))
+      redis.set.mockResolvedValue('OK')
       const fetcher = vi.fn().mockResolvedValue({ fallback: true })
 
       const result = await cache.getOrSet('key', 60, fetcher)

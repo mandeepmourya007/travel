@@ -18,6 +18,8 @@ function getApiBaseUrl(): string {
 export interface FetchApiOptions {
   revalidate?: number | false
   tags?: string[]
+  /** Abort the fetch after this many milliseconds. Use in generateStaticParams to fail fast when the API is unreachable instead of hanging until the OS TCP timeout. */
+  timeoutMs?: number
 }
 
 async function timedFetch(path: string, options: FetchApiOptions): Promise<Response> {
@@ -36,6 +38,7 @@ async function timedFetch(path: string, options: FetchApiOptions): Promise<Respo
   const res = await fetch(url, {
     next: nextOptions,
     headers: { 'Content-Type': 'application/json', 'X-Request-Id': requestId },
+    ...(options.timeoutMs !== undefined && { signal: AbortSignal.timeout(options.timeoutMs) }),
   })
 
   const duration = Math.round(performance.now() - start)
@@ -74,7 +77,7 @@ export const getPopularTripsForStaticParams = cache(
   async (): Promise<{ slug: string; organizer: { slug: string } | null }[]> => {
     const result = await fetchApi<{ data: { slug: string; organizer: { slug: string } | null }[] }>(
       '/trips?limit=50&sort=popularity',
-      { revalidate: false },
+      { revalidate: false, timeoutMs: 10_000 },
     )
     return result.data
   },

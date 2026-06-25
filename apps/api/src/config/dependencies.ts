@@ -154,17 +154,6 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
   : new MockOtpProvider(logger)
 
-logger.info(
-  {
-    SMTP_HOST: env.SMTP_HOST ?? '(unset)',
-    SMTP_PORT: env.SMTP_PORT ?? '(unset)',
-    SMTP_USER: env.SMTP_USER ?? '(unset)',
-    SMTP_PASS: env.SMTP_PASS ? `${env.SMTP_PASS.slice(0, 3)}***` : '(unset)',
-    SMTP_FROM: env.SMTP_FROM ?? '(unset)',
-  },
-  'SMTP config',
-)
-
 export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
   ? new NodemailerEmailProvider(
       { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },

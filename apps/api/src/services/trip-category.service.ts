@@ -77,14 +77,14 @@ export class TripCategoryService {
   // ─── Admin: TripCategory CRUD ─────────────────────────
 
   async getAllCategories(): Promise<AdminTripCategoryItem[]> {
-    const categories = await this.tripCategoryRepo.findAll()
-    const results: AdminTripCategoryItem[] = []
-
-    for (const cat of categories) {
-      const tripCount = await this.tripCategoryRepo.countTripsByValue(cat.value)
-      results.push({ ...this.toItem(cat), tripCount })
-    }
-    return results
+    const [categories, tripCountMap] = await Promise.all([
+      this.tripCategoryRepo.findAll(),
+      this.tripCategoryRepo.countTripsByValues(),
+    ])
+    return categories.map(cat => ({
+      ...this.toItem(cat),
+      tripCount: tripCountMap.get(cat.value) ?? 0,
+    }))
   }
 
   async createCategory(data: { value: string; label: string; icon?: string; sortOrder?: number }): Promise<TripCategoryItem> {

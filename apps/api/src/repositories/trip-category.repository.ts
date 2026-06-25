@@ -45,6 +45,19 @@ export class TripCategoryRepository {
     })
   }
 
+  /**
+   * Returns trip counts for ALL categories in a single groupBy query.
+   * Use this in admin list views instead of calling countTripsByValue() per category (N+1).
+   */
+  async countTripsByValues(): Promise<Map<string, number>> {
+    const rows = await this.prisma.trip.groupBy({
+      by: ['tripType'],
+      where: { isDeleted: false },
+      _count: { _all: true },
+    })
+    return new Map(rows.map(r => [r.tripType, r._count._all]))
+  }
+
   // ─── TripTypeRequest ──────────────────────────────────
 
   async createRequest(data: { organizerId: string; suggestedName: string; reason: string }) {

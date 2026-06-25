@@ -176,6 +176,17 @@ export class WalletRepository {
   }
 
   /**
+   * Batch-fetch wallets by their IDs. Used by the expiry cron to avoid N+1
+   * (one findByUserId per credit → one query for all affected wallets).
+   */
+  async findManyByIds(walletIds: string[]) {
+    return this.prisma.wallet.findMany({
+      where: { id: { in: walletIds }, isDeleted: false },
+      select: { id: true, balance: true, userId: true },
+    })
+  }
+
+  /**
    * Returns all non-deleted wallets. Used by reconciliation cron.
    * Only fetches id + balance — no heavy fields needed for drift detection.
    */

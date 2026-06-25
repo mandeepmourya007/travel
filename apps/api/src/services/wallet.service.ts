@@ -217,16 +217,26 @@ export class WalletService {
   async expireCredits(): Promise<{ voided: number; skipped: number }> {
     const now = new Date()
     const candidates = await this.walletRepo.findExpiredCreditsToVoid(now)
+    if (candidates.length === 0) return { voided: 0, skipped: 0 }
+
+    // Batch-fetch all affected wallets in one query — eliminates N+1
+    const uniqueWalletIds = [...new Set(candidates.map(c => c.walletId))]
+    const wallets = await this.walletRepo.findManyByIds(uniqueWalletIds)
+    const walletById = new Map(wallets.map(w => [w.id, w]))
 
     let voided = 0
     let skipped = 0
 
     for (const credit of candidates) {
       try {
-        // Fetch current balance to cap the expiry debit
-        const wallet = await this.walletRepo.findByUserId(credit.wallet.userId)
-        if (!wallet) { skipped++; continue }
+        const wallet = walletById.get(credit.walletId)
+        if (!wallet) {
+          this.logger.warn({ creditId: credit.id, walletId: credit.walletId }, 'expireCredits: wallet not found (soft-deleted?), skipping')
+          skipped++
+          continue
+        }
 
+        // Cap the expiry debit at the current balance — never drive balance negative
         const amount = Math.min(credit.amount, wallet.balance)
         if (amount <= 0) { skipped++; continue }
 

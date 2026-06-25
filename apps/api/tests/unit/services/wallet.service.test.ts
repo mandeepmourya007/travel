@@ -37,6 +37,10 @@ const mockWalletRepo = {
   sumByDirection: vi.fn(),
   sumByDirectionBatch: vi.fn(),
   findCashbackTransactionsEnriched: vi.fn(),
+  findExpiredCreditsToVoid: vi.fn(),
+  findManyByIds: vi.fn(),
+  markExpiryReminderSent: vi.fn(),
+  findCreditsNeedingExpiryReminder: vi.fn(),
 }
 
 let service: WalletService
@@ -577,6 +581,128 @@ describe('WalletService', () => {
       const result = await service.getCashbackHistory('user_1', { page: 1, limit: 20 })
 
       expect(result.pagination.totalPages).toBe(2)
+    })
+  })
+
+  // ═════════════════════════════════════════════════════
+  // expireCredits()
+  // ═════════════════════════════════════════════════════
+  describe('expireCredits', () => {
+    function makeCredit(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'wtx_exp_1',
+        walletId: 'wallet_1',
+        amount: 200,
+        wallet: { userId: 'user_1' },
+        ...overrides,
+      }
+    }
+
+    it('returns { voided: 0, skipped: 0 } immediately when there are no expired credits', async () => {
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([])
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 0, skipped: 0 })
+      expect(mockWalletRepo.findManyByIds).not.toHaveBeenCalled()
+    })
+
+    it('voids eligible credits and returns correct counts', async () => {
+      const credit = makeCredit()
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 1000 })])
+      mockWalletRepo.atomicDebit.mockResolvedValue({ wallet: makeWallet(), transaction: makeWalletTxn() })
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 1, skipped: 0 })
+      expect(mockWalletRepo.findManyByIds).toHaveBeenCalledWith(['wallet_1'])
+      expect(mockWalletRepo.atomicDebit).toHaveBeenCalledOnce()
+    })
+
+    it('caps the debit at wallet balance — never debits more than available', async () => {
+      const credit = makeCredit({ amount: 500 })
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 100 })])
+      mockWalletRepo.atomicDebit.mockResolvedValue({ wallet: makeWallet(), transaction: makeWalletTxn() })
+
+      await service.expireCredits()
+
+      expect(mockWalletRepo.atomicDebit).toHaveBeenCalledWith(
+        'wallet_1',
+        100,
+        expect.objectContaining({ type: 'EXPIRY' }),
+      )
+    })
+
+    it('skips credit when wallet balance is 0', async () => {
+      const credit = makeCredit({ amount: 200 })
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 0 })])
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 0, skipped: 1 })
+      expect(mockWalletRepo.atomicDebit).not.toHaveBeenCalled()
+    })
+
+    it('skips and logs warn when wallet is not found (soft-deleted wallet)', async () => {
+      const credit = makeCredit({ walletId: 'deleted_wallet' })
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      // findManyByIds returns nothing for the deleted wallet
+      mockWalletRepo.findManyByIds.mockResolvedValue([])
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 0, skipped: 1 })
+      expect(mockWalletRepo.atomicDebit).not.toHaveBeenCalled()
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ walletId: 'deleted_wallet' }),
+        expect.stringContaining('not found'),
+      )
+    })
+
+    it('skips on P2002 unique violation (idempotent — already voided)', async () => {
+      const credit = makeCredit()
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 500 })])
+      const p2002 = Object.assign(new Error('Unique constraint'), { code: 'P2002' })
+      mockWalletRepo.atomicDebit.mockRejectedValue(p2002)
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 0, skipped: 1 })
+    })
+
+    it('skips and logs warn on unexpected DB error', async () => {
+      const credit = makeCredit()
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue([credit])
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 500 })])
+      mockWalletRepo.atomicDebit.mockRejectedValue(new Error('Connection timeout'))
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      const result = await service.expireCredits()
+
+      expect(result).toEqual({ voided: 0, skipped: 1 })
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ creditId: credit.id }),
+        expect.stringContaining('Failed to expire'),
+      )
+    })
+
+    it('deduplicates wallet IDs before batch fetch', async () => {
+      const credits = [
+        makeCredit({ id: 'wtx_1', walletId: 'wallet_1' }),
+        makeCredit({ id: 'wtx_2', walletId: 'wallet_1' }),
+      ]
+      mockWalletRepo.findExpiredCreditsToVoid.mockResolvedValue(credits)
+      mockWalletRepo.findManyByIds.mockResolvedValue([makeWallet({ id: 'wallet_1', balance: 1000 })])
+      mockWalletRepo.atomicDebit.mockResolvedValue({ wallet: makeWallet(), transaction: makeWalletTxn() })
+
+      await service.expireCredits()
+
+      expect(mockWalletRepo.findManyByIds).toHaveBeenCalledWith(['wallet_1'])
     })
   })
 

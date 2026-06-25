@@ -14,6 +14,7 @@ const mockTripCategoryRepo = {
   update: vi.fn(),
   delete: vi.fn(),
   countTripsByValue: vi.fn(),
+  countTripsByValues: vi.fn(),
   createRequest: vi.fn(),
   findRequestById: vi.fn(),
   findMyRequests: vi.fn(),
@@ -135,12 +136,21 @@ describe('TripCategoryService', () => {
   // ─── Admin CRUD ─────────────────────────────────────
 
   describe('getAllCategories', () => {
-    it('returns categories with trip counts', async () => {
+    it('returns categories with trip counts using a single batch query', async () => {
       mockTripCategoryRepo.findAll.mockResolvedValue([makeCategory()])
-      mockTripCategoryRepo.countTripsByValue.mockResolvedValue(5)
+      mockTripCategoryRepo.countTripsByValues.mockResolvedValue(new Map([['ADVENTURE', 5]]))
       const result = await service.getAllCategories()
       expect(result).toHaveLength(1)
       expect(result[0].tripCount).toBe(5)
+      expect(mockTripCategoryRepo.countTripsByValues).toHaveBeenCalledOnce()
+      expect(mockTripCategoryRepo.countTripsByValue).not.toHaveBeenCalled()
+    })
+
+    it('defaults tripCount to 0 for categories with no trips', async () => {
+      mockTripCategoryRepo.findAll.mockResolvedValue([makeCategory({ value: 'RARE' })])
+      mockTripCategoryRepo.countTripsByValues.mockResolvedValue(new Map())
+      const result = await service.getAllCategories()
+      expect(result[0].tripCount).toBe(0)
     })
   })
 

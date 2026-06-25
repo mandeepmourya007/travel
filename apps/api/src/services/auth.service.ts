@@ -336,16 +336,11 @@ export class AuthService {
       )
       // Upsert DocumentReview rows — reset status to PENDING for re-uploaded docs
       if (this.docReviewRepo) {
-        for (const field of DOC_TYPES) {
-          const url = documents[field]
-          if (url && url !== '') {
-            await this.docReviewRepo.upsert(profile.id, field, {
-              currentUrl: url,
-              status: 'PENDING',
-              reviewedAt: undefined,
-              reviewedBy: undefined,
-            })
-          }
+        const pendingDocs = DOC_TYPES
+          .filter(field => documents[field] && documents[field] !== '')
+          .map(field => ({ docType: field, currentUrl: documents[field] }))
+        if (pendingDocs.length > 0) {
+          await this.docReviewRepo.upsertMany(profile.id, pendingDocs)
         }
       }
     }
