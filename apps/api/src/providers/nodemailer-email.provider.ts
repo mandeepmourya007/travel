@@ -1,3 +1,4 @@
+import dns from 'dns/promises'
 import nodemailer from 'nodemailer'
 import type { Logger } from 'pino'
 import type { IEmailProvider, EmailMessage } from './email-provider.interface'
@@ -9,19 +10,38 @@ export interface SmtpConfig {
 }
 
 export class NodemailerEmailProvider implements IEmailProvider {
-  private transporter: nodemailer.Transporter
+  private transporter: nodemailer.Transporter | null = null
+  private readonly ready: Promise<void>
 
   constructor(
-    config: SmtpConfig,
+    private config: SmtpConfig,
     private from: string,
     private logger: Logger,
   ) {
+    this.ready = this.init()
+  }
+
+  // Nodemailer v8 has its own DNS cache that ignores --dns-result-order.
+  // Resolve to IPv4 explicitly so we never hand it an IPv6 address on
+  // hosts (e.g. Render free tier) that block outbound IPv6.
+  private async init(): Promise<void> {
+    let host = this.config.host
+    try {
+      const [ipv4] = await dns.resolve4(this.config.host)
+      host = ipv4
+      this.logger.info({ original: this.config.host, resolved: host }, 'SMTP: resolved to IPv4')
+    } catch {
+      this.logger.warn({ host: this.config.host }, 'SMTP: IPv4 resolve failed, falling back to hostname')
+    }
+
     this.transporter = nodemailer.createTransport({
-      host: config.host,
-      port: config.port,
-      secure: config.port === 465,
-      auth: config.auth,
-      family: 4, // Render doesn't support outbound IPv6; force IPv4 to avoid ENETUNREACH
+      host,
+      port: this.config.port,
+      secure: this.config.port === 465,
+      auth: this.config.auth,
+      // Required when host is an IP: nodemailer needs the original hostname
+      // for TLS SNI so the server certificate validates correctly.
+      ...(host !== this.config.host && { tls: { servername: this.config.host } }),
       connectionTimeout: 8000,
       socketTimeout: 8000,
       greetingTimeout: 8000,
@@ -29,11 +49,12 @@ export class NodemailerEmailProvider implements IEmailProvider {
   }
 
   async sendEmail(msg: EmailMessage): Promise<{ success: boolean }> {
+    await this.ready
     const start = Date.now()
     const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
     this.logger.info({ to: maskedTo, subject: msg.subject }, 'SMTP: attempting sendMail')
     try {
-      await this.transporter.sendMail({
+      await this.transporter!.sendMail({
         from: this.from,
         to: msg.to,
         subject: msg.subject,
