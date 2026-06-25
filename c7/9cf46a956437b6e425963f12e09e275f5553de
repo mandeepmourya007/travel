@@ -1,0 +1,34 @@
+apps/api/src/providers/nodemailer-email.provider.ts
+  s_dc527406b6e400::t_0e27973bb1e7a3 24
+apps/web/src/store/auth.store.ts
+  s_577d5f5c580263::t_5d305faa529162 56-60,62-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "c79cf46a956437b6e425963f12e09e275f5553de",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_577d5f5c580263": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "777fcbc5-d701-487f-bcc5-f02d592e39a7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_dc527406b6e400": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "130ae719-d433-404d-9b46-3a8fb94af0b4",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
