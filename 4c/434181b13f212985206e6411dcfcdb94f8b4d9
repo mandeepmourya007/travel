@@ -1,0 +1,26 @@
+apps/api/src/providers/nodemailer-email.provider.ts
+  s_6c03bcdf8047e9::t_4db5847ca68ec0 1,13-14,17,21-36,38-44,52,57
+docker/api.prod.Dockerfile
+  s_6c03bcdf8047e9::t_4e10a1300c0223 58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "4c434181b13f212985206e6411dcfcdb94f8b4d9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6c03bcdf8047e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfdf2d99-9357-487c-94e2-3cb095ca1c60",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
