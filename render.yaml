@@ -102,7 +102,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM
-        value: Safarnama <noreply@safarnama.in>
+        value: Safarnama <onboarding@resend.dev>
 
       # ── SMTP (fallback, unused on free tier) ──────────
       - key: SMTP_HOST

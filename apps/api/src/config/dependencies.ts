@@ -158,7 +158,7 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
 export const emailProvider = env.RESEND_API_KEY
   ? new ResendEmailProvider(
       env.RESEND_API_KEY,
-      env.RESEND_FROM || 'Safarnama <noreply@safarnama.in>',
+      env.RESEND_FROM || 'Safarnama <onboarding@resend.dev>',
       logger,
     )
   : env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
