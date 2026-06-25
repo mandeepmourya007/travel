@@ -1,0 +1,26 @@
+docs/qa-traveler-flows.md
+  s_2adb1a24f22169::t_327782a9d280bc 1-510
+docs/qa-organizer-flows.md
+  s_2adb1a24f22169::t_1ea9299e218f7f 1-537
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "b9b5f86838a6a57178b779ee8aa8a80f4a71f76d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2adb1a24f22169": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ec989d5-e35e-4ae0-8fda-753e11a3b698",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
