@@ -1,0 +1,31 @@
+apps/api/src/lib/prisma.ts
+  s_f88ce9d89f9d01::t_e5187eae7a6353 3
+  s_f88ce9d89f9d01::t_d3975be4a7dd83 29-31,51-52
+  s_f88ce9d89f9d01::t_2351c2a6fbb696 32-50
+apps/api/src/services/cache.service.ts
+  s_f88ce9d89f9d01::t_9a2a26e29e02f0 43-47,49
+apps/api/src/config/redis.ts
+  s_f88ce9d89f9d01::t_09b25f8f697653 20-26
+  s_f88ce9d89f9d01::t_51d6b7c65eb5c7 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "dbbff6db9783601dc49bc05a93edc03852379a10",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f88ce9d89f9d01": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ff70a4a9-488e-41d6-a082-32c8c91e368a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
