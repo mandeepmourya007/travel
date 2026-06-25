@@ -132,7 +132,7 @@ export class TripService {
     const reviewsOffset = (reviewsPage - 1) * reviewsLimit
 
     const [tripsResult, reviewResult, ratingStats, distribution] = await Promise.all([
-      this.tripRepo.findByOrganizerIdPaginated(organizerId, 'ACTIVE', { offset: tripsOffset, limit: tripsLimit }),
+      this.tripRepo.findByOrganizerIdPaginated(organizerId, TRIP_STATUS.ACTIVE, { offset: tripsOffset, limit: tripsLimit }),
       this.reviewRepo.findByOrganizerId(organizerId, { offset: reviewsOffset, limit: reviewsLimit }),
       this.reviewRepo.getOrganizerRatingStats(organizerId),
       this.reviewRepo.getRatingDistributionByOrganizer(organizerId),
@@ -406,7 +406,7 @@ export class TripService {
 
     const fetcher = async () => {
       const [activeTrips, totalBookings, revenue, pendingRequests] = await Promise.all([
-        this.tripRepo.countByOrganizerId(profile.id, 'ACTIVE'),
+        this.tripRepo.countByOrganizerId(profile.id, TRIP_STATUS.ACTIVE),
         this.tripRepo.sumBookingsByOrganizerId(profile.id),
         this.tripRepo.calculateOrganizerRevenue(profile.id),
         this.tripRepo.countPendingRequests(profile.id),

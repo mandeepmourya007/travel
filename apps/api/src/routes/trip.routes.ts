@@ -7,6 +7,7 @@ import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSc
 import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema, createTripRequestBodySchema } from '@shared/validators/booking.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 
 export function createTripRoutes(
   tripController: TripController,
@@ -19,21 +20,21 @@ export function createTripRoutes(
   router.get(
     '/my/list',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     tripController.getMyTrips,
   )
 
   router.get(
     '/organizer/stats',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     tripController.getOrganizerStats,
   )
 
   router.get(
     '/organizer/pending-requests',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     tripController.getAllPendingRequests,
   )
 
@@ -56,14 +57,14 @@ export function createTripRoutes(
   router.post(
     '/',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(createTripSchema),
     tripController.create,
   )
   router.put(
     '/:id',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     validate(updateTripSchema),
     tripController.update,
@@ -71,35 +72,35 @@ export function createTripRoutes(
   router.post(
     '/:id/publish',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     tripController.publish,
   )
   router.post(
     '/:id/duplicate',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     tripController.duplicate,
   )
   router.delete(
     '/:id',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     tripController.delete,
   )
   router.patch(
     '/:id/toggle-bookings',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     tripController.toggleBookings,
   )
   router.get(
     '/:id/history',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     tripController.getEditHistory,
   )
@@ -108,7 +109,7 @@ export function createTripRoutes(
   router.post(
     '/:tripId/request',
     authMiddleware,
-    requireRole('TRAVELER'),
+    requireRole(USER_ROLE.TRAVELER),
     validate(tripIdParamSchema, 'params'),
     validate(createTripRequestBodySchema),
     tripController.createRequest,
@@ -118,7 +119,7 @@ export function createTripRoutes(
   router.get(
     '/:tripId/bookings',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(tripIdParamSchema, 'params'),
     validate(tripBookingFiltersSchema, 'query'),
     tripController.getTripBookings,
@@ -126,7 +127,7 @@ export function createTripRoutes(
   router.get(
     '/:tripId/requests',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(tripIdParamSchema, 'params'),
     validate(tripRequestFiltersSchema, 'query'),
     tripController.getTripRequests,
@@ -134,14 +135,14 @@ export function createTripRoutes(
   router.get(
     '/:tripId/summary',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(tripIdParamSchema, 'params'),
     tripController.getTripBookingSummary,
   )
   router.patch(
     '/:tripId/requests/:requestId',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(tripRequestParamSchema, 'params'),
     validate(respondTripRequestSchema),
     tripController.respondToRequest,

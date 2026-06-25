@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { VehicleController } from '../controllers/vehicle.controller'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/constants/roles'
+import { USER_ROLE } from '@shared/constants'
 import { validate } from '../middleware/validate.middleware'
 import { createVehicleSchema, updateVehicleSchema, selectSeatsSchema } from '@shared/validators'
 
@@ -23,7 +24,7 @@ export function createVehicleRoutes(
   router.post(
     '/:tripId/vehicle',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(createVehicleSchema),
     controller.createVehicle,
   )
@@ -31,7 +32,7 @@ export function createVehicleRoutes(
   router.put(
     '/:tripId/vehicle/:vehicleId',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(updateVehicleSchema),
     controller.updateVehicle,
   )
@@ -39,21 +40,21 @@ export function createVehicleRoutes(
   router.delete(
     '/:tripId/vehicle/:vehicleId',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     controller.deleteVehicle,
   )
 
   router.get(
     '/:tripId/vehicle',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     controller.getOrganizerSeatMap,
   )
 
   router.get(
     '/:tripId/vehicles',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     controller.getAllVehicles,
   )
 

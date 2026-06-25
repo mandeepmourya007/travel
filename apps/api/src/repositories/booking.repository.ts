@@ -1,6 +1,6 @@
 import crypto from 'crypto'
-import { Prisma, type BookingStatus, type Gender } from '@prisma/client'
-import type { ExtendedPrismaClient } from '../lib/prisma'
+import { Prisma, type BookingStatus, type Gender, type PaymentType, type PaymentStatus } from '@prisma/client'
+import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants'
@@ -381,6 +381,78 @@ export class BookingRepository {
         },
       },
       include: { travelerDetails: true },
+    })
+  }
+
+  /**
+   * Runs a callback inside a Prisma interactive transaction.
+   * Use when multiple model writes must be atomic (e.g. booking + payment tx).
+   * Follows the same pattern as TripRepository.withTransaction().
+   */
+  async withTransaction<T>(fn: (tx: TransactionClient) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(fn)
+  }
+
+  /**
+   * Creates a Booking and its initial PaymentTransaction atomically.
+   * Prevents the crash window between booking creation and payment tx creation
+   * that would leave a booking with no resolvable order ID for webhook lookup.
+   *
+   * The caller is responsible for supplying `type` and `status` — this method
+   * only handles persistence; business decisions about initial state belong in
+   * the service layer.
+   *
+   * Both creates run inside a single `$transaction`. If either fails the entire
+   * transaction is rolled back — no partial booking or orphan payment tx can exist.
+   *
+   * @throws Prisma errors (unique constraint, FK violation, connection failure) — callers
+   *         should not catch these generically; let them propagate to the global error handler.
+   */
+  async createWithPaymentTx(
+    bookingData: {
+      tripId: string
+      userId: string
+      numTravelers: number
+      totalAmount: number
+      expiresAt: Date
+      pickupPointId?: string
+      dropPointId?: string
+      travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
+    },
+    paymentTxData: {
+      razorpayOrderId: string
+      amount: number
+      type: PaymentType
+      status: PaymentStatus
+    },
+  ) {
+    const bookingRef = this.generateBookingRef()
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.create({
+        data: {
+          bookingRef,
+          tripId: bookingData.tripId,
+          userId: bookingData.userId,
+          numTravelers: bookingData.numTravelers,
+          totalAmount: bookingData.totalAmount,
+          expiresAt: bookingData.expiresAt,
+          bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
+          pickupPointId: bookingData.pickupPointId ?? null,
+          dropPointId: bookingData.dropPointId ?? null,
+          travelerDetails: { create: bookingData.travelers },
+        },
+        include: { travelerDetails: true },
+      })
+      await tx.paymentTransaction.create({
+        data: {
+          bookingId: booking.id,
+          type: paymentTxData.type,
+          amount: paymentTxData.amount,
+          razorpayOrderId: paymentTxData.razorpayOrderId,
+          status: paymentTxData.status,
+        },
+      })
+      return booking
     })
   }
 

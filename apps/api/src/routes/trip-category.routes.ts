@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import type { TripCategoryController } from '../controllers/trip-category.controller'
 import { validate } from '../middleware/validate.middleware'
 import {
@@ -25,7 +26,7 @@ export function createAdminTripCategoryRoutes(
   requireRole: (...roles: UserRole[]) => RequestHandler,
 ) {
   const router = Router()
-  router.use(authMiddleware, requireRole('ADMIN'))
+  router.use(authMiddleware, requireRole(USER_ROLE.ADMIN))
 
   // ─── Category CRUD ────────────────────────────────────
   router.get('/trip-categories', controller.getAllCategories)
@@ -67,7 +68,7 @@ export function createOrganizerTripTypeRequestRoutes(
   requireRole: (...roles: UserRole[]) => RequestHandler,
 ) {
   const router = Router()
-  router.use(authMiddleware, requireRole('ORGANIZER'))
+  router.use(authMiddleware, requireRole(USER_ROLE.ORGANIZER))
 
   router.post(
     '/',

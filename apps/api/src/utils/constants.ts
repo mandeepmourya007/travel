@@ -94,6 +94,31 @@ export const PAYMENT_TX_STATUS = {
   REFUNDED: 'REFUNDED',
 } as const
 
+// ─── Razorpay Webhook Event Types ────────────────────
+export const RAZORPAY_WEBHOOK_EVENT = {
+  PAYMENT_AUTHORIZED: 'payment.authorized',
+  PAYMENT_CAPTURED: 'payment.captured',
+  ORDER_PAID: 'order.paid',
+  PAYMENT_FAILED: 'payment.failed',
+  REFUND_PROCESSED: 'refund.processed',
+} as const
+
+// ─── Booking Error Codes ──────────────────────────────
+export const BOOKING_ERROR_CODE = {
+  CONFIRM_RACE: 'CONFIRM_RACE',
+  CAPACITY_FULL: 'CAPACITY_FULL',
+} as const
+
+// ─── Webhook Log Tags (for ops grep) ─────────────────
+export const WEBHOOK_LOG_TAG = {
+  BOOKING_CONFIRM_FAILED: 'BOOKING_CONFIRM_FAILED',
+} as const
+
+// ─── Invite Token Types ───────────────────────────────
+export const INVITE_TOKEN_TYPE = {
+  ORGANIZER_INVITE: 'ORGANIZER_INVITE',
+} as const
+
 // ─── Webhook ─────────────────────────────────────────
 export const WEBHOOK_STATUS = {
   RECEIVED: 'RECEIVED',

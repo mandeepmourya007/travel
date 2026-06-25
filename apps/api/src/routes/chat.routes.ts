@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import { ChatController } from '../controllers/chat.controller'
 import { validate } from '../middleware/validate.middleware'
 import {
@@ -82,7 +83,7 @@ export function createChatRoutes(
   // PATCH /chat/conversations/:id/close — Close conversation (admin only)
   router.patch(
     '/conversations/:id/close',
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(cuidParamSchema, 'params'),
     chatController.closeConversation,
   )
@@ -90,7 +91,7 @@ export function createChatRoutes(
   // GET /chat/flagged — Get flagged messages (admin only)
   router.get(
     '/flagged',
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     chatController.getFlaggedMessages,
   )
 

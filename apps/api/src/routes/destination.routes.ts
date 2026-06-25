@@ -6,6 +6,7 @@ import { createDestinationSchema, updateDestinationSchema, destinationDetailQuer
 import { cuidParamSchema, slugParamSchema } from '@shared/validators/common.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 
 export function createDestinationRoutes(
   destinationController: DestinationController,
@@ -29,14 +30,14 @@ export function createDestinationRoutes(
   router.post(
     '/',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(createDestinationSchema),
     destinationController.create,
   )
   router.put(
     '/:id',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(cuidParamSchema, 'params'),
     validate(updateDestinationSchema),
     destinationController.update,
@@ -44,7 +45,7 @@ export function createDestinationRoutes(
   router.delete(
     '/:id',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(cuidParamSchema, 'params'),
     destinationController.delete,
   )

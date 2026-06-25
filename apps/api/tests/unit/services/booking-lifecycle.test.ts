@@ -60,6 +60,8 @@ const mockBookingRepo = {
   findByTripId: vi.fn(),
   getTripBookingSummary: vi.fn(),
   create: vi.fn(),
+  createWithPaymentTx: vi.fn(),
+  withTransaction: vi.fn(),
   updateStatus: vi.fn(),
   findActiveByUserAndTrip: vi.fn(),
   findExpiredPendingBookings: vi.fn(),
@@ -92,6 +94,7 @@ const mockPaymentTxRepo = {
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
   updatePaymentId: vi.fn(),
+  recordRetryAttempt: vi.fn(),
   findCapturedTransfersForTrip: vi.fn(),
   findUnreleasedEscrows: vi.fn(),
 }
@@ -213,11 +216,10 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
     mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
     mockTripRepo.findByIdForBooking.mockResolvedValue(BASE_TRIP)
     mockPaymentService.createOrder.mockResolvedValue({ id: 'order_new', amount: 1000000 })
-    mockBookingRepo.create.mockResolvedValue({
+    mockBookingRepo.createWithPaymentTx.mockResolvedValue({
       id: 'booking-new', bookingRef: 'TRP-2025-XYZ1', totalAmount: 10000,
       expiresAt: new Date(NOW + 30 * 60 * 1000),
     })
-    mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-new' })
 
     await bookingService.createBooking('user-1', {
       tripId: 'trip-1',
@@ -823,7 +825,7 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
 
     expect(result.bookingId).toBe('booking-existing')
     expect(result.razorpayOrderId).toBe('order_existing')
-    expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
   })
 
   it('should reject booking for FULL trip status', async () => {
@@ -888,7 +890,7 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
     // Verify nothing was written to DB or Razorpay
     expect(mockTripRepo.findByIdForBooking).not.toHaveBeenCalled()
     expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
-    expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
   })
 
   it('should NOT block a different user booking the same trip (lock is scoped per user+trip)', async () => {
@@ -950,7 +952,7 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
     expect(result.bookingId).toBe('booking-from-A')
     expect(result.razorpayOrderId).toBe('order_from_A')
     expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
-    expect(mockBookingRepo.create).not.toHaveBeenCalled()
+    expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
   })
 
   it('should handle escrow release when payment service is null (dev mode)', async () => {

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import { PaymentHistoryController } from '../controllers/payment-history.controller'
 import { validate } from '../middleware/validate.middleware'
 import { paymentHistoryFiltersSchema, adminPaymentFiltersSchema } from '@shared/validators/payment.schema'
@@ -30,7 +31,7 @@ export function createPaymentRoutes(
   router.get(
     '/trip/:tripId',
     authMiddleware,
-    requireRole('ORGANIZER', 'ADMIN'),
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
     validate(paymentHistoryFiltersSchema, 'query'),
     paymentHistoryController.getTripPayments,
   )
@@ -38,7 +39,7 @@ export function createPaymentRoutes(
   router.get(
     '/trip/:tripId/summary',
     authMiddleware,
-    requireRole('ORGANIZER', 'ADMIN'),
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
     paymentHistoryController.getTripPaymentSummary,
   )
 
@@ -46,14 +47,14 @@ export function createPaymentRoutes(
   router.get(
     '/payouts',
     authMiddleware,
-    requireRole('ORGANIZER', 'ADMIN'),
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
     paymentHistoryController.getPayoutStatement,
   )
 
   router.get(
     '/trip/:tripId/payouts',
     authMiddleware,
-    requireRole('ORGANIZER', 'ADMIN'),
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
     paymentHistoryController.getPayoutStatement,
   )
 
@@ -61,7 +62,7 @@ export function createPaymentRoutes(
   router.get(
     '/admin',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(adminPaymentFiltersSchema, 'query'),
     paymentHistoryController.getAllPayments,
   )
@@ -69,7 +70,7 @@ export function createPaymentRoutes(
   router.get(
     '/admin/summary',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     paymentHistoryController.getGlobalSummary,
   )
 

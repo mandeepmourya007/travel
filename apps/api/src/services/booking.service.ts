@@ -13,7 +13,7 @@ import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { calculateRefundPercent } from '@shared/utils/refund'
 import { env } from '../config/env'
@@ -296,6 +296,49 @@ export class BookingService {
       return
     }
 
+    // Double-refund guard: if a REFUND tx already exists and either has a Razorpay refund ID
+    // (Razorpay already processed it) or is REFUNDED, do not issue another API call.
+    // This covers the crash-recovery scenario: server crashed after Razorpay returned the
+    // refund ID but before our DB recorded it — the refund.processed webhook will still fire
+    // and close the INITIATED tx, so no retry is needed.
+    const existingRefundTx = txList.find((tx) => tx.type === PAYMENT_TX_TYPE.REFUND)
+    if (existingRefundTx) {
+      if (existingRefundTx.status === PAYMENT_TX_STATUS.REFUNDED || existingRefundTx.razorpayRefundId) {
+        this.logger.info({ bookingId, refundTxId: existingRefundTx.id }, 'Refund already processed — skipping duplicate Razorpay call')
+        return
+      }
+
+      // INITIATED with no Razorpay ID: a prior attempt failed before Razorpay processed it — safe to retry.
+      // CRITICAL: always use the amount and reason from the existing DB record, never the caller's params.
+      // Caller params might differ (e.g., admin re-triggers with adjusted amount or time changes refund %).
+      // Using a different amount here would make Razorpay and our DB diverge — the DB stores
+      // existingRefundTx.amount, so Razorpay must receive that exact value.
+      const storedAmount = existingRefundTx.amount
+      const storedReason = (existingRefundTx.metadata as { reason?: string } | null)?.reason ?? reason
+
+      if (storedAmount !== refundAmount) {
+        this.logger.warn(
+          { bookingId, refundTxId: existingRefundTx.id, storedAmount, callerAmount: refundAmount },
+          'Retry: caller refundAmount differs from stored REFUND tx amount — using stored amount to keep DB/Razorpay consistent',
+        )
+      }
+
+      this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Retrying Razorpay refund for existing INITIATED tx')
+      // Record the attempt in metadata for ops visibility before calling Razorpay
+      try {
+        await this.paymentTxRepo.recordRetryAttempt(existingRefundTx.id, existingRefundTx.metadata)
+      } catch (err) {
+        this.logger.warn({ err, bookingId, refundTxId: existingRefundTx.id }, 'Failed to record refund retry attempt in metadata')
+      }
+      try {
+        await this.paymentService.initiateRefund(capturedTx.razorpayPaymentId, storedAmount * 100, { bookingId, reason: storedReason })
+        this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Refund initiated with Razorpay (retry)')
+      } catch (err) {
+        this.logger.error({ err, bookingId, refundTxId: existingRefundTx.id }, 'Razorpay refund retry failed — REFUND tx remains INITIATED')
+      }
+      return
+    }
+
     // Create the INITIATED record first — provides audit trail and retry target if the API call fails
     const refundTx = await this.paymentTxRepo.create({
       bookingId,
@@ -477,27 +520,28 @@ export class BookingService {
         { tripId: input.tripId, userId },
       )
 
-      // 8. Create Booking + PaymentTransaction
+      // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
+      // where booking exists but has no PaymentTransaction, making webhook lookup fail.
       const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
-      const booking = await this.bookingRepo.create({
-        tripId: input.tripId,
-        userId,
-        numTravelers: input.numTravelers,
-        totalAmount,
-        expiresAt,
-        pickupPointId: input.pickupPointId,
-        dropPointId: input.dropPointId,
-        travelers: input.travelers,
-      })
-
-      // H2 fix: Persist PaymentTransaction so confirmBooking can find it
-      await this.paymentTxRepo.create({
-        bookingId: booking.id,
-        type: PAYMENT_TX_TYPE.PAYMENT,
-        amount: totalAmount,
-        razorpayOrderId: order.id,
-        status: PAYMENT_TX_STATUS.INITIATED,
-      })
+      const booking = await this.bookingRepo.createWithPaymentTx(
+        {
+          tripId: input.tripId,
+          userId,
+          numTravelers: input.numTravelers,
+          totalAmount,
+          expiresAt,
+          pickupPointId: input.pickupPointId,
+          dropPointId: input.dropPointId,
+          travelers: input.travelers,
+        },
+        // Service owns these business decisions — type=PAYMENT, status=INITIATED
+        {
+          razorpayOrderId: order.id,
+          amount: totalAmount,
+          type: PAYMENT_TX_TYPE.PAYMENT,
+          status: PAYMENT_TX_STATUS.INITIATED,
+        },
+      )
 
       // 9. Atomically hold seats (if hold fails, expire booking to prevent orphaned state)
       if (input.seatIds?.length && this.vehicleService) {
@@ -609,7 +653,7 @@ export class BookingService {
           paymentStatus: fresh.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
         }
       }
-      throw new ConflictError('Booking confirmation is already in progress', 'CONFIRM_RACE')
+      throw new ConflictError('Booking confirmation is already in progress', BOOKING_ERROR_CODE.CONFIRM_RACE)
     }
 
     // We won the gate — proceed with seat increment then capture
@@ -618,19 +662,39 @@ export class BookingService {
       // Trip is at capacity — revert the gate so the customer can be refunded or retry later
       await this.bookingRepo.revertConfirmGate(bookingId)
         .catch((err) => this.logger.error({ err, bookingId }, 'Failed to revert confirmation gate after capacity check'))
-      throw new ConflictError('Not enough seats available — trip may be full', 'CAPACITY_FULL')
+      throw new ConflictError('Not enough seats available — trip may be full', BOOKING_ERROR_CODE.CAPACITY_FULL)
+    }
+
+    // Guard: razorpayPaymentId must be set before we can capture.
+    // If the booking was confirmed via webhook before payment.authorized fired (e.g. out-of-order
+    // delivery of order.paid), the paymentId is not yet in the DB. Revert the gate so the
+    // payment.authorized webhook can complete the confirmation when it arrives.
+    if (!paymentTx.razorpayPaymentId) {
+      const [decrResult, gateResult] = await Promise.allSettled([
+        this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers),
+        this.bookingRepo.revertConfirmGate(bookingId),
+      ])
+      if (decrResult.status === 'rejected')
+        this.logger.error({ err: decrResult.reason, bookingId }, 'Failed to decrement seats during null-paymentId rollback — seat count may be inconsistent')
+      if (gateResult.status === 'rejected')
+        this.logger.error({ err: gateResult.reason, bookingId }, 'Failed to revert confirmation gate during null-paymentId rollback — booking stuck in CONFIRMED')
+      throw new ValidationError('Payment has not been authorized yet — confirmation will be retried by webhook')
     }
 
     // Capture payment (exact amount from DB — prevents amount tampering)
     try {
-      await this.paymentService.capturePayment(paymentTx.razorpayPaymentId!, paymentTx.amount * 100, CURRENCY)
+      await this.paymentService.capturePayment(paymentTx.razorpayPaymentId, paymentTx.amount * 100, CURRENCY)
     } catch (error) {
       // Rollback seats and revert the gate so webhook retries can re-attempt
       this.logger.error({ bookingId, error }, 'Payment capture failed — rolling back seat increment and confirmation gate')
-      await Promise.allSettled([
+      const [decrResult, gateResult] = await Promise.allSettled([
         this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers),
         this.bookingRepo.revertConfirmGate(bookingId),
       ])
+      if (decrResult.status === 'rejected')
+        this.logger.error({ err: decrResult.reason, bookingId }, 'Failed to decrement seats during capture-failure rollback — seat count may be inconsistent')
+      if (gateResult.status === 'rejected')
+        this.logger.error({ err: gateResult.reason, bookingId }, 'Failed to revert confirmation gate during capture-failure rollback — booking stuck in CONFIRMED')
       throw error
     }
 

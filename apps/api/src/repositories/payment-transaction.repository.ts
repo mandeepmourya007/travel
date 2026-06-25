@@ -122,6 +122,26 @@ export class PaymentTransactionRepository {
     })
   }
 
+  /**
+   * Increments the retryCount in the transaction's metadata and stamps lastRetryAt.
+   * Used by the refund retry path for ops visibility — does not change status.
+   */
+  async recordRetryAttempt(id: string, existingMetadata: Prisma.JsonValue | null) {
+    const base = typeof existingMetadata === 'object' && existingMetadata !== null && !Array.isArray(existingMetadata)
+      ? (existingMetadata as Record<string, unknown>)
+      : {}
+    return this.prisma.paymentTransaction.update({
+      where: { id },
+      data: {
+        metadata: {
+          ...base,
+          retryCount: ((base.retryCount as number | undefined) ?? 0) + 1,
+          lastRetryAt: new Date().toISOString(),
+        },
+      },
+    })
+  }
+
   // ─── Payment History Queries ────────────────────────
 
   /**
@@ -206,7 +226,7 @@ export class PaymentTransactionRepository {
   /**
    * Aggregate summary for a user's payments.
    *
-   * Returns: totalPaid (CAPTURED PAYMENTs), totalRefunded (CAPTURED REFUNDs),
+   * Returns: totalPaid (CAPTURED PAYMENTs), totalRefunded (REFUNDED REFUNDs),
    *          pendingRefunds (INITIATED REFUNDs), transactionCount
    * Used by: PaymentHistoryService.getMyPaymentSummary()
    */
@@ -218,7 +238,8 @@ export class PaymentTransactionRepository {
         where: {
           booking: { userId },
           type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
-          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.INITIATED] },
+          // CAPTURED: completed payments; REFUNDED: completed refunds; INITIATED: pending refunds
+          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.REFUNDED, PAYMENT_TX_STATUS.INITIATED] },
         },
       }),
       this.prisma.paymentTransaction.count({
@@ -231,7 +252,8 @@ export class PaymentTransactionRepository {
     for (const g of groups) {
       const amt = g._sum.amount ?? 0
       if (g.type === PAYMENT_TX_TYPE.PAYMENT && g.status === PAYMENT_TX_STATUS.CAPTURED) totalPaid = amt
-      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.CAPTURED) totalRefunded = amt
+      // Refund txs lifecycle: INITIATED → REFUNDED (never CAPTURED)
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.REFUNDED) totalRefunded = amt
       if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.INITIATED) pendingRefunds = amt
     }
     return { totalPaid, totalRefunded, pendingRefunds, transactionCount }
@@ -246,26 +268,29 @@ export class PaymentTransactionRepository {
   async getTripSummary(tripId: string) {
     const [groups, txCount, refundCount] = await Promise.all([
       this.prisma.paymentTransaction.groupBy({
-        by: ['type'],
+        by: ['type', 'status'],
         _sum: { amount: true },
         where: {
           booking: { tripId },
-          status: PAYMENT_TX_STATUS.CAPTURED,
+          // Include both terminal statuses: CAPTURED (payments) and REFUNDED (refunds)
+          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.REFUNDED] },
           type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
         },
       }),
       this.prisma.paymentTransaction.count({
         where: { booking: { tripId } },
       }),
+      // Only count refunds that actually completed — INITIATED/FAILED are not yet processed
       this.prisma.paymentTransaction.count({
-        where: { booking: { tripId }, type: PAYMENT_TX_TYPE.REFUND },
+        where: { booking: { tripId }, type: PAYMENT_TX_TYPE.REFUND, status: PAYMENT_TX_STATUS.REFUNDED },
       }),
     ])
     let totalRevenue = 0
     let totalRefunded = 0
     for (const g of groups) {
-      if (g.type === PAYMENT_TX_TYPE.PAYMENT) totalRevenue = g._sum.amount ?? 0
-      if (g.type === PAYMENT_TX_TYPE.REFUND) totalRefunded = g._sum.amount ?? 0
+      // PAYMENT txs are CAPTURED when complete; REFUND txs are REFUNDED (not CAPTURED)
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT && g.status === PAYMENT_TX_STATUS.CAPTURED) totalRevenue = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.REFUNDED) totalRefunded = g._sum.amount ?? 0
     }
     return { totalRevenue, totalRefunded, transactionCount: txCount, refundCount }
   }
@@ -278,10 +303,10 @@ export class PaymentTransactionRepository {
   async getGlobalSummary() {
     const [groups, txCount, failedCount] = await Promise.all([
       this.prisma.paymentTransaction.groupBy({
-        by: ['type'],
+        by: ['type', 'status'],
         _sum: { amount: true },
         where: {
-          status: PAYMENT_TX_STATUS.CAPTURED,
+          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.REFUNDED] },
           type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
         },
       }),
@@ -293,8 +318,8 @@ export class PaymentTransactionRepository {
     let totalRevenue = 0
     let totalRefunded = 0
     for (const g of groups) {
-      if (g.type === PAYMENT_TX_TYPE.PAYMENT) totalRevenue = g._sum.amount ?? 0
-      if (g.type === PAYMENT_TX_TYPE.REFUND) totalRefunded = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT && g.status === PAYMENT_TX_STATUS.CAPTURED) totalRevenue = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.REFUNDED) totalRefunded = g._sum.amount ?? 0
     }
     return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
   }

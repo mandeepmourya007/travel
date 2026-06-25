@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate.middleware'
 import { signupSchema, loginSchema, sendOtpSchema, verifyOtpSchema, sendEmailOtpSchema, verifyEmailOtpSchema, updateProfileSchema, googleAuthSchema, updateOrganizerProfileSchema, connectBankAccountSchema, organizerInviteSchema, organizerSignupSchema } from '@shared/validators/auth.schema'
 import { addDocCommentSchema } from '@shared/validators/admin.schema'
 import { otpRateLimit, authRateLimit } from '../middleware/rate-limit.middleware'
+import { USER_ROLE } from '@shared/constants'
 
 export function createAuthRoutes(
   authController: AuthController,
@@ -27,7 +28,7 @@ export function createAuthRoutes(
   router.patch(
     '/profile/organizer',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(updateOrganizerProfileSchema),
     authController.updateOrganizerProfile,
   )
@@ -35,7 +36,7 @@ export function createAuthRoutes(
   router.post(
     '/profile/organizer/bank',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(connectBankAccountSchema),
     authController.connectBankAccount,
   )
@@ -43,7 +44,7 @@ export function createAuthRoutes(
   router.post(
     '/profile/organizer/doc-comments',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(addDocCommentSchema),
     authController.addOrganizerDocComment,
   )
@@ -51,14 +52,14 @@ export function createAuthRoutes(
   router.get(
     '/profile/organizer/doc-comments',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     authController.getOrganizerDocComments,
   )
 
   router.post(
     '/organizer-invite',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(organizerInviteSchema),
     authController.generateOrganizerInvite,
   )

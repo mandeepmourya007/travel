@@ -24,6 +24,8 @@ const mockBookingRepo = {
   findByTripId: vi.fn(),
   getTripBookingSummary: vi.fn(),
   create: vi.fn(),
+  createWithPaymentTx: vi.fn(),
+  withTransaction: vi.fn(),
   updateStatus: vi.fn(),
   findActiveByUserAndTrip: vi.fn(),
   findExpiredPendingBookings: vi.fn(),
@@ -54,6 +56,7 @@ const mockPaymentTxRepo = {
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
   updatePaymentId: vi.fn(),
+  recordRetryAttempt: vi.fn(),
 }
 
 const mockPaymentService = {
@@ -686,6 +689,78 @@ describe('BookingService', () => {
       expect(result.refundPercent).toBe(0)
       expect(result.refundAmount).toBe(0)
     })
+
+    // ── Double-refund guard ─────────────────────────────────────────────────
+
+    it('should skip Razorpay refund call when REFUND tx already REFUNDED (idempotent retry)', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc' },
+        { id: 'ptx-ref', type: 'REFUND', status: 'REFUNDED', razorpayRefundId: 'rfnd_done', amount: 9000, metadata: { reason: 'Changed plans' } },
+      ])
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      // Already REFUNDED — must not create another REFUND tx or call Razorpay again
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    it('should skip Razorpay refund call when REFUND tx has razorpayRefundId (Razorpay already processed)', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc' },
+        // INITIATED but already has a Razorpay refund ID — crash-recovery case; webhook will close it
+        { id: 'ptx-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: 'rfnd_pending', amount: 9000, metadata: {} },
+      ])
+
+      await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
+    })
+
+    it('should retry Razorpay refund using stored amount when existing REFUND tx is INITIATED with no refund ID', async () => {
+      const booking = createMockBooking({ trip: futureTrip }) // totalAmount=9000
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc' },
+        // Prior attempt created the INITIATED tx but crashed before Razorpay responded
+        { id: 'ptx-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: null, amount: 9000, metadata: { reason: 'Original reason' } },
+      ])
+      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_retry', status: 'processed' })
+
+      await service.cancelBooking('user-1', 'booking-1', 'Different reason — should be ignored')
+
+      // Must NOT create a second REFUND tx
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      // Must call Razorpay with the STORED amount (9000 * 100) not a new calculation
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_abc',
+        900000, // stored amount 9000 × 100 paise
+        expect.objectContaining({ bookingId: 'booking-1' }),
+      )
+    })
+
+    it('should retry Razorpay refund using stored reason (not caller reason) for consistency', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-cap', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc' },
+        { id: 'ptx-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: null, amount: 9000, metadata: { reason: 'Stored reason' } },
+      ])
+      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_r2', status: 'processed' })
+
+      await service.cancelBooking('user-1', 'booking-1', 'Caller reason — must be ignored on retry')
+
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_abc',
+        900000,
+        expect.objectContaining({ reason: 'Stored reason' }),
+      )
+    })
   })
 
   // ═══════════════════════════════════════════════════
@@ -743,26 +818,21 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_abc', amount: 800000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-new',
         bookingRef: 'TRP-2025-0001',
         totalAmount: 8000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-new' })
 
       const result = await service.createBooking('user-1', validInput)
 
       expect(result.bookingId).toBe('booking-new')
       expect(result.razorpayOrderId).toBe('order_abc')
-      expect(mockBookingRepo.create).toHaveBeenCalled()
-      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith({
-        bookingId: 'booking-new',
-        type: 'PAYMENT',
-        amount: 8000,
-        razorpayOrderId: 'order_abc',
-        status: 'INITIATED',
-      })
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2 }),
+        { razorpayOrderId: 'order_abc', amount: 8000, type: 'PAYMENT', status: 'INITIATED' },
+      )
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         expect.any(Number),
         expect.any(String),
@@ -786,7 +856,7 @@ describe('BookingService', () => {
 
       expect(result.bookingId).toBe('booking-existing')
       expect(result.razorpayOrderId).toBe('order_existing')
-      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+      expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
     })
 
     it('should throw ConflictError when user already has CONFIRMED booking', async () => {
@@ -858,13 +928,12 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_eb', amount: 800000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-eb',
         bookingRef: 'TRP-2025-0002',
         totalAmount: 8000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-eb' })
 
       await service.createBooking('user-1', validInput)
 
@@ -1014,6 +1083,30 @@ describe('BookingService', () => {
         service.confirmBooking('booking-1'),
       ).rejects.toThrow('payment')
     })
+
+    it('should revert gate and decrement seats when razorpayPaymentId is null (payment not yet authorized)', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        ...mockBookingWithPayment,
+        paymentTransactions: [{
+          id: 'ptx-1',
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: null, // Webhook has not set the payment ID yet
+          amount: 8000,
+          status: 'INITIATED',
+        }],
+      })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+
+      await expect(
+        service.confirmBooking('booking-1'),
+      ).rejects.toThrow('Payment has not been authorized yet')
+
+      // Gate and seat count must be reverted so the webhook can retry
+      expect(mockBookingRepo.revertConfirmGate).toHaveBeenCalledWith('booking-1')
+      expect(mockTripRepo.atomicDecrementBookings).toHaveBeenCalledWith('trip-1', 2)
+      // capturePayment must NOT have been called — no payment ID to use
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
   })
 
   // ═══════════════════════════════════════════════════
@@ -1040,7 +1133,7 @@ describe('BookingService', () => {
       // No DB writes or Razorpay calls should have happened
       expect(mockTripRepo.findByIdForBooking).not.toHaveBeenCalled()
       expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
-      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+      expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
     })
 
     it('should scope the lock key to userId and tripId so different users do not block each other', async () => {
@@ -1081,7 +1174,7 @@ describe('BookingService', () => {
       expect(result.razorpayOrderId).toBe('order_concurrent')
       // No new Razorpay order or DB booking was created
       expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
-      expect(mockBookingRepo.create).not.toHaveBeenCalled()
+      expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
     })
 
     it('should throw ALREADY_BOOKED when under-lock re-check finds a CONFIRMED booking (late concurrent confirmation)', async () => {
@@ -1121,11 +1214,10 @@ describe('BookingService', () => {
       mockBookingRepo.updateStatus.mockResolvedValue({})
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fresh', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-fresh', bookingRef: 'TRP-2025-FRESH',
         totalAmount: 10000, expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-fresh' })
 
       const result = await service.createBooking('user-1', validInput)
 
@@ -1339,8 +1431,7 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_tp', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({ id: 'booking-tp', bookingRef: 'TRP-TP-0001', totalAmount: 10000, expiresAt: new Date() })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-tp' })
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({ id: 'booking-tp', bookingRef: 'TRP-TP-0001', totalAmount: 10000, expiresAt: new Date() })
     }
 
     it('should throw ValidationError when pickupPointId does not belong to trip', async () => {
@@ -1576,13 +1667,12 @@ describe('BookingService', () => {
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_seat', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-seat',
         bookingRef: 'TRP-2025-SEAT',
         totalAmount: 10000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-seat' })
       mockVehicleService.holdSeats.mockResolvedValue(undefined)
 
       const result = await seatService.createBooking('user-1', validInput)
@@ -1597,13 +1687,12 @@ describe('BookingService', () => {
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fail', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-fail',
         bookingRef: 'TRP-2025-FAIL',
         totalAmount: 10000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-fail' })
       mockVehicleService.holdSeats.mockRejectedValue(new Error('Seats already taken'))
       mockBookingRepo.updateStatus.mockResolvedValue({})
 
@@ -1618,13 +1707,12 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_noseat', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-noseat',
         bookingRef: 'TRP-2025-NOSEAT',
         totalAmount: 10000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-noseat' })
 
       const result = await seatService.createBooking('user-1', {
         ...validInput,
@@ -1651,13 +1739,12 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockPaymentService.createOrder.mockResolvedValue({ id: 'order_null', amount: 1000000 })
-      mockBookingRepo.create.mockResolvedValue({
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-null',
         bookingRef: 'TRP-2025-NULL',
         totalAmount: 10000,
         expiresAt: new Date(),
       })
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-null' })
 
       const result = await serviceWithoutVehicle.createBooking('user-1', {
         ...validInput,

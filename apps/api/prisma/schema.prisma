@@ -549,6 +549,10 @@ model PaymentTransaction {
   @@index([razorpayPaymentId])
   @@index([status])
   @@index([status, type])
+  // Partial unique index (not expressible in Prisma SDL — lives in raw migration):
+  //   CREATE UNIQUE INDEX "payment_transaction_booking_refund_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'REFUND'
+  // Ensures at most one REFUND row per booking — DB-level backstop against double-refund.
 }
 
 model Review {

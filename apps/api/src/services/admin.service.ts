@@ -139,7 +139,7 @@ export class AdminService {
 
     // Count active trips from status grouping
     const activeTrips = tripsByStatus
-      .filter((s) => s.status === 'ACTIVE' || s.status === 'FULL')
+      .filter((s) => s.status === TRIP_STATUS.ACTIVE || s.status === TRIP_STATUS.FULL)
       .reduce((sum: number, s) => sum + s.count, 0)
 
     const totalTrips = tripsByStatus.reduce((sum: number, s) => sum + s.count, 0)

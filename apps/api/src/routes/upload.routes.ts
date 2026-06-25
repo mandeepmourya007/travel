@@ -4,6 +4,7 @@ import { validate } from '../middleware/validate.middleware'
 import { uploadSignatureSchema } from '@shared/validators/upload.schema'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 
 export function createUploadRoutes(
   uploadController: UploadController,
@@ -15,7 +16,7 @@ export function createUploadRoutes(
   router.post(
     '/signature',
     authMiddleware,
-    requireRole('ORGANIZER', 'TRAVELER'),
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.TRAVELER),
     validate(uploadSignatureSchema),
     uploadController.getSignature,
   )

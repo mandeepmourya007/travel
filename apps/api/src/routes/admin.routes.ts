@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import type { AdminController } from '../controllers/admin.controller'
 import { validate } from '../middleware/validate.middleware'
 import {
@@ -24,7 +25,7 @@ export function createAdminRoutes(
   const router = Router()
 
   // All admin routes require ADMIN role
-  router.use(authMiddleware, requireRole('ADMIN'))
+  router.use(authMiddleware, requireRole(USER_ROLE.ADMIN))
 
   // ─── Organizer Approvals ──────────────────────────────
   router.get(

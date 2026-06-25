@@ -15,7 +15,7 @@ import { DocumentReviewRepository } from '../repositories/document-review.reposi
 import { DOC_TYPES } from '@shared/constants/upload'
 import { AuthError, ConflictError, NotFoundError, PaymentError, GoneError } from '../errors/app-error'
 import { env } from '../config/env'
-import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS } from '../utils/constants'
+import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS, INVITE_TOKEN_TYPE } from '../utils/constants'
 import { uniqueSlug, slugify } from '../utils/slugify'
 import { mergeDocuments } from '../utils/documents'
 import { USER_ROLE } from '@shared/constants'
@@ -660,7 +660,7 @@ export class AuthService {
   }
 
   private generateOrganizerInviteToken(email: string): string {
-    return jwt.sign({ email, type: 'ORGANIZER_INVITE' }, this.jwtSecret, { expiresIn: '7d' })
+    return jwt.sign({ email, type: INVITE_TOKEN_TYPE.ORGANIZER_INVITE }, this.jwtSecret, { expiresIn: '7d' })
   }
 
   async createOrganizerInvite(email: string, sentBy: string): Promise<{ token: string; email: string }> {
@@ -685,7 +685,7 @@ export class AuthService {
   verifyOrganizerInviteToken(token: string): { email: string } {
     try {
       const payload = jwt.verify(token, this.jwtSecret) as { email?: string; type?: string }
-      if (payload.type !== 'ORGANIZER_INVITE' || !payload.email) {
+      if (payload.type !== INVITE_TOKEN_TYPE.ORGANIZER_INVITE || !payload.email) {
         throw new AuthError('Invalid invite token')
       }
       return { email: payload.email }

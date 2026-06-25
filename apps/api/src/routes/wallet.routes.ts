@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import { WalletController } from '../controllers/wallet.controller'
 import { validate } from '../middleware/validate.middleware'
 import { walletTransactionFiltersSchema, adminWalletActionSchema } from '@shared/validators/wallet.schema'
@@ -38,7 +39,7 @@ export function createWalletRoutes(
   router.post(
     '/admin/:userId/credit',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(adminWalletActionSchema, 'body'),
     walletController.adminCredit,
   )
@@ -46,7 +47,7 @@ export function createWalletRoutes(
   router.post(
     '/admin/:userId/debit',
     authMiddleware,
-    requireRole('ADMIN'),
+    requireRole(USER_ROLE.ADMIN),
     validate(adminWalletActionSchema, 'body'),
     walletController.adminDebit,
   )

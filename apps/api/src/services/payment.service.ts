@@ -5,7 +5,7 @@ import { startTimer } from '../utils/perf-timer'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentError, ValidationError } from '../errors/app-error'
-import { CURRENCY, PAYMENT_TX_STATUS, WEBHOOK_SOURCE, WEBHOOK_STATUS, REFERENCE_MODEL } from '../utils/constants'
+import { CURRENCY, PAYMENT_TX_STATUS, WEBHOOK_SOURCE, WEBHOOK_STATUS, REFERENCE_MODEL, RAZORPAY_WEBHOOK_EVENT } from '../utils/constants'
 import type { RazorpayWebhookPayload, StoredWebhookEvent } from '../types/razorpay.types'
 
 export class PaymentService {
@@ -241,19 +241,19 @@ export class PaymentService {
       const payload: RazorpayWebhookPayload = webhookEvent.payload?.payload ?? (webhookEvent.payload as RazorpayWebhookPayload)
 
       switch (webhookEvent.eventType) {
-        case 'payment.authorized':
+        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_AUTHORIZED:
           await this.handlePaymentAuthorized(payload)
           break
-        case 'payment.captured':
+        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_CAPTURED:
           await this.handlePaymentCaptured(payload)
           break
-        case 'order.paid':
+        case RAZORPAY_WEBHOOK_EVENT.ORDER_PAID:
           await this.handleOrderPaid(payload)
           break
-        case 'payment.failed':
+        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_FAILED:
           await this.handlePaymentFailed(payload)
           break
-        case 'refund.processed':
+        case RAZORPAY_WEBHOOK_EVENT.REFUND_PROCESSED:
           await this.handleRefundProcessed(payload)
           break
         default:
@@ -320,6 +320,16 @@ export class PaymentService {
     const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
     if (!paymentTx) {
       this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for captured payment')
+      return
+    }
+
+    // Guard against out-of-order delivery — a late payment.captured must not
+    // overwrite a REFUNDED transaction back to CAPTURED, which would corrupt the ledger.
+    if (paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
+      this.logger.info(
+        { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
+        'payment.captured received but tx is already REFUNDED — skipping update',
+      )
       return
     }
 

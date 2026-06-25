@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 import { ReviewController } from '../controllers/review.controller'
 import { validate } from '../middleware/validate.middleware'
 import { createReviewSchema, updateReviewSchema, organizerReplySchema, reviewFiltersSchema } from '@shared/validators/review.schema'
@@ -50,7 +51,7 @@ export function createReviewRoutes(
   router.post(
     '/:id/reply',
     authMiddleware,
-    requireRole('ORGANIZER'),
+    requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
     validate(organizerReplySchema),
     reviewController.addOrganizerReply,

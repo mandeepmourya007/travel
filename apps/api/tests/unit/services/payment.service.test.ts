@@ -508,6 +508,19 @@ describe('PaymentService', () => {
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
+
+    it('should skip update when transaction is already REFUNDED (out-of-order webhook)', async () => {
+      // Razorpay can deliver payment.captured after refund.processed in rare cases.
+      // Guard prevents overwriting REFUNDED → CAPTURED which would corrupt the ledger.
+      const paymentTx = createMockPaymentTx({ status: 'REFUNDED' })
+      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+
+      const payload = createWebhookPayload('payment.captured', { status: 'captured' }).payload
+
+      await service.handlePaymentCaptured(payload)
+
+      expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
+    })
   })
 
   // ═══════════════════════════════════════════════════
