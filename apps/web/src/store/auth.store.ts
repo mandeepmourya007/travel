@@ -81,9 +81,12 @@ export const useAuthStore = create<AuthState>()(
         //   the AuthGuard spinner, no API calls fire without a token, and the 401/doRefresh
         //   path is never triggered during hydration.
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1'
-        fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include' })
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include', signal: controller.signal })
           .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
           .then((body: { data?: { accessToken?: unknown } }) => {
+            clearTimeout(timeoutId)
             const token = body.data?.accessToken
             if (typeof token === 'string') {
               // Token obtained — unblock the UI with a valid session in a single atomic update.
@@ -94,7 +97,8 @@ export const useAuthStore = create<AuthState>()(
             }
           })
           .catch(() => {
-            // Refresh-token cookie expired or backend unreachable.
+            clearTimeout(timeoutId)
+            // Refresh-token cookie expired, backend unreachable, or 8s timeout hit.
             // Clear stale auth so the user isn't stuck in a "logged in but every request fails"
             // limbo, then unblock so AuthGuard can redirect to login.
             useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false, completedOnboarding: false, _hasHydrated: true })

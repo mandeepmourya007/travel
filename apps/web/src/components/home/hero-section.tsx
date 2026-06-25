@@ -22,8 +22,8 @@ export function HeroSection() {
 
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-6">
           {HERO_TRUST_BADGES.map(({ icon: Icon, label }) => (
-            <div key={label} className="flex items-center gap-2 text-sm text-neutral-500">
-              <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-primary-500" />
+            <div key={label} className="flex items-start gap-2 text-sm text-neutral-500 max-w-[180px] sm:max-w-[160px] text-left">
+              <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-primary-500 mt-0.5" />
               <span>{label}</span>
             </div>
           ))}

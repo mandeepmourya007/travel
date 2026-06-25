@@ -199,7 +199,7 @@ export function Header() {
                 Get started
               </Link>
             </>
-          ) : null}
+          )}
         </nav>
 
         {/* Mobile menu toggle — visible on mobile, hidden md+ */}
