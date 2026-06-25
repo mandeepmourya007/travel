@@ -167,7 +167,7 @@ export function Header() {
           })}
 
           {/* Auth-dependent actions */}
-          {_hasHydrated && (isAuthenticated || loggingOut) ? (
+          {(isAuthenticated || loggingOut) ? (
             <>
               <NotificationBell />
               <span className="ml-1 text-sm text-neutral-500">
@@ -182,7 +182,7 @@ export function Header() {
                 {loggingOut ? <span className="spinner spinner-sm" /> : <LogOut className="h-4 w-4" />}
               </button>
             </>
-          ) : _hasHydrated ? (
+          ) : (
             <>
               <Link
                 href="/login/email"
@@ -259,7 +259,7 @@ export function Header() {
           })}
 
           {/* Auth actions */}
-          {_hasHydrated && (isAuthenticated || loggingOut) ? (
+          {(isAuthenticated || loggingOut) ? (
             <>
               <Link
                 href="/notifications"
@@ -284,7 +284,7 @@ export function Header() {
                 </button>
               </div>
             </>
-          ) : _hasHydrated ? (
+          ) : (
             <div className="flex gap-2 border-t border-neutral-100 mt-2 pt-3">
               <Link
                 href="/login/email"
@@ -303,7 +303,7 @@ export function Header() {
                 Get started
               </Link>
             </div>
-          ) : null}
+          )}
         </div>
       )}
     </header>

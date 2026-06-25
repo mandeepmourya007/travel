@@ -54,9 +54,6 @@ export function MobileBottomNav() {
   const user = useAuthStore((s) => s.user)
   const { data: profile } = useProfile()
 
-  // Don't render until auth state is hydrated
-  if (!_hasHydrated) return null
-
   // Admin pages have their own bottom nav
   if (pathname.startsWith('/admin')) return null
 
@@ -68,7 +65,7 @@ export function MobileBottomNav() {
   const bankLinked = orgProfile?.bankAccountLinked ?? true
 
   let navItems: NavItem[]
-  if (!isAuthenticated) {
+  if (!_hasHydrated || !isAuthenticated) {
     navItems = GUEST_NAV
   } else if (isOrganizer) {
     navItems = ORGANIZER_NAV
