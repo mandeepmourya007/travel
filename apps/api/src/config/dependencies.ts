@@ -19,6 +19,7 @@ import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { MockOtpProvider } from '../providers/mock-otp.provider'
 import { Msg91OtpProvider } from '../providers/msg91-otp.provider'
+import { ResendEmailProvider } from '../providers/resend-email.provider'
 import { NodemailerEmailProvider } from '../providers/nodemailer-email.provider'
 import { MockEmailProvider } from '../providers/mock-email.provider'
 import { FirebaseAuthService } from '../services/firebase-auth.service'
@@ -154,15 +155,21 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
   : new MockOtpProvider(logger)
 
-export const emailProvider = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
-  ? new NodemailerEmailProvider(
-      { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
-      env.SMTP_FROM || `Safarnama <${env.SMTP_USER}>`,
+export const emailProvider = env.RESEND_API_KEY
+  ? new ResendEmailProvider(
+      env.RESEND_API_KEY,
+      env.RESEND_FROM || 'Safarnama <noreply@safarnama.in>',
       logger,
     )
-  : new MockEmailProvider(logger)
+  : env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
+    ? new NodemailerEmailProvider(
+        { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
+        env.SMTP_FROM || `Safarnama <${env.SMTP_USER}>`,
+        logger,
+      )
+    : new MockEmailProvider(logger)
 
-const smtpConfigured = !!(env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS)
+const smtpConfigured = !!(env.RESEND_API_KEY || (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS))
 
 export const authService = new AuthService(
   userRepo,

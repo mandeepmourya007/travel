@@ -98,7 +98,13 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
 
-      # ── SMTP ──────────────────────────────────────────
+      # ── Resend (email) ────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: Safarnama <noreply@safarnama.in>
+
+      # ── SMTP (fallback, unused on free tier) ──────────
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT

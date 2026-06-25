@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@prisma/client": "^5.17.0",
-    "prisma": "^5.17.0",
     "@sentry/node": "^10.60.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@travel/shared": "*",
@@ -39,7 +38,9 @@
     "pino": "^10.0.0",
     "pino-http": "^11.0.0",
     "pino-pretty": "^11.2.0",
+    "prisma": "^5.17.0",
     "razorpay": "^2.9.6",
+    "resend": "^6.14.0",
     "socket.io": "^4.7.0",
     "tsx": "^4.16.0",
     "uuid": "^10.0.0",
