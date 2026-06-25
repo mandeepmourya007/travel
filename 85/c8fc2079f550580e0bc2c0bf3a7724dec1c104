@@ -1,0 +1,86 @@
+apps/api/tests/unit/services/organizer-invite.service.test.ts
+  s_6e1827006548a7::t_a2d3dc27859d31 452-454,457-463
+apps/api/src/repositories/trip.repository.ts
+  s_6e1827006548a7::t_7c15b6d3848a5c 287
+  s_6e1827006548a7::t_66433340470306 8
+apps/api/tests/unit/config/redis.test.ts
+  s_6e1827006548a7::t_1a00398ddd92c7 66
+apps/api/tests/unit/services/auth.service.test.ts
+  s_6e1827006548a7::t_fa0ee9980e188c 834,840-844,851,857-860
+  s_6e1827006548a7::t_7a69345e5c209f 950,956-959
+  s_6e1827006548a7::t_d49da06bd4c977 71
+  s_6e1827006548a7::t_571cd0496c7b4a 804
+apps/api/src/services/wallet.service.ts
+  s_6e1827006548a7::t_2e90c14e6371e3 233-237
+  s_6e1827006548a7::t_546c25463eb7d7 220-225,232,239
+  s_5ee86f7ade5033::t_af0628a0821196 238
+apps/api/src/services/trip-category.service.ts
+  s_6e1827006548a7::t_c309e4e52cdcbf 80-87
+apps/api/package.json
+  s_6c03bcdf8047e9::t_ce142d23d184c2 8
+apps/api/tests/unit/services/trip-category.service.test.ts
+  s_6e1827006548a7::t_53cc0e37839ce7 17
+  s_6e1827006548a7::t_72aaf56ab3b88e 139,141,145-153
+apps/api/src/repositories/wallet.repository.ts
+  s_6e1827006548a7::t_ac2071be04142d 179-188
+  s_6e1827006548a7::t_e8a8c4d593d5f4 178
+apps/web/src/lib/api-server.ts
+  s_6e1827006548a7::t_8cc1c36f582f83 21-22
+  s_6e1827006548a7::t_48a63324bb2497 41
+  s_6e1827006548a7::t_902d783eb4bf3b 80
+apps/api/tests/unit/services/cache.service.test.ts
+  s_6e1827006548a7::t_e89ad90eb4df2d 75
+apps/api/prisma/schema.prisma
+  s_6e1827006548a7::t_5f59ebda626cf8 361
+apps/api/prisma/migrations/20260625000002_add_trip_sitemap_index/migration.sql
+  s_6e1827006548a7::t_2c0c864c2f815a 1-6
+apps/api/src/utils/constants.ts
+  s_6e1827006548a7::t_5f0ff29fc14f4a 44-48
+apps/api/src/repositories/trip-category.repository.ts
+  s_6e1827006548a7::t_a29bdc833770e8 48-60
+apps/api/src/services/auth.service.ts
+  s_6e1827006548a7::t_81bdd6d815553e 339-343
+apps/api/tests/unit/services/wallet.service.test.ts
+  s_6e1827006548a7::t_ee2513e8ae215e 587-708
+  s_6e1827006548a7::t_6633c9f645c054 40-43
+apps/api/src/repositories/document-review.repository.ts
+  s_6e1827006548a7::t_170aa2e63fd12b 54-56
+  s_6e1827006548a7::t_ba672f1776facf 50-53,57-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "85c8fc2079f550580e0bc2c0bf3a7724dec1c104",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_5ee86f7ade5033": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aa349bdb-0e7f-458f-a1c9-5cae9728addf",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_6c03bcdf8047e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfdf2d99-9357-487c-94e2-3cb095ca1c60",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_6e1827006548a7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c894360d-7854-434a-83ab-8b564dc92081",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
