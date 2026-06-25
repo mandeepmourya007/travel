@@ -59,10 +59,19 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
   return async (req: Request, res: Response, next: NextFunction) => {
     const identifier = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown'
 
-    // Try Redis first, fall back to in-memory on error or if Redis is unavailable
+    // Try Redis first, fall back to in-memory on error or if Redis is unavailable.
+    // Race against 200ms — if Redis is reconnecting (e.g. after idle), we fall
+    // back to in-memory rather than blocking the request. commandTimeout can't
+    // be used on the ioredis client because it also applies to TLS+AUTH on
+    // startup, causing process crashes.
     if (redisLimiter) {
       try {
-        const { success, limit, remaining, reset } = await redisLimiter.limit(identifier)
+        const { success, limit, remaining, reset } = await Promise.race([
+          redisLimiter.limit(identifier),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Redis rate limit timeout')), 200),
+          ),
+        ])
 
         res.setHeader('X-RateLimit-Limit', limit)
         res.setHeader('X-RateLimit-Remaining', remaining)

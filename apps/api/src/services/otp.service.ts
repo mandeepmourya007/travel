@@ -196,7 +196,10 @@ export class OtpService {
       expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
     })
 
+    const smtpStart = Date.now()
     const sendResult = await this.emailProvider.sendOtp(email, otp)
+    const smtpDurationMs = Date.now() - smtpStart
+    this.logger.info({ email: `${email.slice(0, 3)}***`, smtpDurationMs }, 'Email OTP sendOtp completed')
     if (!sendResult.success) {
       throw new AppError('Failed to send OTP. Please try again.', 502, 'OTP_SEND_FAILED')
     }

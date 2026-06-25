@@ -28,7 +28,13 @@ export class CacheService {
     if (!this.redis) return fetcher()
 
     try {
-      const cached = await this.redis.get(key)
+      // Race against 200ms — if Redis is slow, fall through to the fetcher
+      // rather than blocking the response. Same rationale as the rate limiter:
+      // commandTimeout can't be set on the client without breaking TLS startup.
+      const cached = await Promise.race([
+        this.redis.get(key),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 200)),
+      ])
       if (cached !== null) {
         this.logger.debug({ key }, 'Cache HIT')
         return JSON.parse(cached) as T

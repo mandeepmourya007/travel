@@ -27,7 +27,7 @@ export function isAppApiError(err: unknown): err is AppApiError {
 /** Extract a user-friendly error message from an API error or fallback to a default. */
 export function getErrorMessage(err: Error | null, fallback = 'Something went wrong'): string | undefined {
   if (!err) return undefined
-  return isAppApiError(err) ? err.message : fallback
+  return err.message || fallback
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'
@@ -129,14 +129,28 @@ apiClient.interceptors.response.use(
     }
 
     // Log API errors at warn level (not error — those are for unhandled exceptions)
+    const errorReason = error.response
+      ? 'server_error'
+      : error.code === 'ECONNABORTED' ? 'axios_timeout_15s'
+      : error.code === 'ERR_CANCELED'  ? 'request_aborted'
+      : error.code === 'ERR_NETWORK'   ? 'server_unreachable'
+      : 'unknown'
     feLogger.warn('API Error', {
       status: error.response?.status,
       url: error.config?.url,
-      code: error.response?.data?.error?.code,
+      axiosCode: error.code,
+      axiosMessage: error.message,
+      reason: errorReason,
+      apiErrorCode: error.response?.data?.error?.code,
     })
 
-    // Detect server-down: no response means the server is unreachable
-    const isNetworkError = !error.response && (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED' || error.message === 'Network Error')
+    // Detect server-down: connection refused or reset with no response
+    const isNetworkError = !error.response && (error.code === 'ERR_NETWORK' || error.message === 'Network Error')
+    // Timeout: server reachable but request took too long (e.g. slow SMTP on the backend)
+    const isTimeout = !error.response && error.code === 'ECONNABORTED'
+    // Explicitly cancelled request (e.g. AbortController)
+    const isCancelled = !error.response && error.code === 'ERR_CANCELED'
+
     if (isNetworkError) {
       useConnectionStore.getState().markDown()
     }
@@ -145,10 +159,14 @@ apiClient.interceptors.response.use(
     const apiError: ApiError = error.response?.data || {
       success: false,
       error: {
-        code: isNetworkError ? 'SERVER_DOWN' : 'NETWORK_ERROR',
+        code: isNetworkError ? 'SERVER_DOWN' : isTimeout ? 'REQUEST_TIMEOUT' : isCancelled ? 'REQUEST_CANCELLED' : 'NETWORK_ERROR',
         message: isNetworkError
           ? 'Server is unreachable. Please try again in a moment.'
-          : (error.message || 'Network error. Please check your connection.'),
+          : isTimeout
+            ? 'Request timed out. Please try again.'
+            : isCancelled
+              ? 'Request was cancelled. Please try again.'
+              : (error.message || 'Network error. Please check your connection.'),
       },
     }
 

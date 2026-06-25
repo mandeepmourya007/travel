@@ -19,12 +19,12 @@ function createRedisClient(): IORedis | null {
     lazyConnect: true,
     // Keep the TCP connection alive with 30s pings so the connection is never
     // dropped by Render's idle timeout. Without this, the first request after
-    // inactivity pays a 600-700ms reconnect penalty (rate limiter blocks the
-    // entire request while ioredis reconnects).
+    // inactivity pays a 600-700ms reconnect penalty.
     keepAlive: 30000,
-    // Fail fast if a command stalls (e.g. during a mid-request reconnect).
-    // The rate limiter falls back to in-memory; the cache falls through to DB.
-    commandTimeout: 150,
+    // NOTE: commandTimeout is intentionally NOT set here — it applies to the
+    // initial TLS + AUTH handshake too, which crashes the process on startup
+    // if the handshake takes >timeout. Per-operation timeouts are applied at
+    // the call site (rate limiter, cache) via Promise.race() instead.
   })
   client.on('connect', () => logger.info('Redis: connected'))
   client.on('error', (err: Error) => logger.error({ error: err.message }, 'Redis connection error'))

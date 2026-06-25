@@ -22,10 +22,16 @@ export class NodemailerEmailProvider implements IEmailProvider {
       secure: config.port === 465,
       auth: config.auth,
       family: 4, // Render doesn't support outbound IPv6; force IPv4 to avoid ENETUNREACH
+      connectionTimeout: 8000,
+      socketTimeout: 8000,
+      greetingTimeout: 8000,
     })
   }
 
   async sendEmail(msg: EmailMessage): Promise<{ success: boolean }> {
+    const start = Date.now()
+    const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
+    this.logger.info({ to: maskedTo, subject: msg.subject }, 'SMTP: attempting sendMail')
     try {
       await this.transporter.sendMail({
         from: this.from,
@@ -34,19 +40,20 @@ export class NodemailerEmailProvider implements IEmailProvider {
         html: msg.html,
         text: msg.text,
       })
-      this.logger.info({ to: msg.to.replace(/(.{3}).+@/, '$1***@'), subject: msg.subject }, 'Email sent')
+      this.logger.info({ to: maskedTo, subject: msg.subject, durationMs: Date.now() - start }, 'SMTP: email sent')
       return { success: true }
     } catch (err) {
       const e = err as NodeJS.ErrnoException & { code?: string; responseCode?: number; response?: string }
       this.logger.error(
         {
-          to: msg.to.replace(/(.{3}).+@/, '$1***@'),
+          to: maskedTo,
           errorCode: e.code,
           smtpResponse: e.response,
           smtpResponseCode: e.responseCode,
           message: e.message,
+          durationMs: Date.now() - start,
         },
-        'Email send failed',
+        'SMTP: email send failed',
       )
       return { success: false }
     }
