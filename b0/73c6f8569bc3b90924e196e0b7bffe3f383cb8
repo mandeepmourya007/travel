@@ -1,0 +1,26 @@
+docker/api.prod.Dockerfile
+  s_6c03bcdf8047e9::t_2b24c0bc42df8e 58
+apps/api/package.json
+  s_6c03bcdf8047e9::t_d1f0f14b76e7d9 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.1",
+  "base_commit_sha": "b073c6f8569bc3b90924e196e0b7bffe3f383cb8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6c03bcdf8047e9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfdf2d99-9357-487c-94e2-3cb095ca1c60",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
