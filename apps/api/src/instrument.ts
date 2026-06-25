@@ -7,7 +7,12 @@
 //   SENTRY_DSN                 — Sentry project DSN (required to enable)
 //   SENTRY_TRACES_SAMPLE_RATE  — 0.0–1.0, default 0.2 (20% of requests)
 // ─────────────────────────────────────────────────────
+import dns from 'dns'
 import * as Sentry from '@sentry/node'
+
+// Render (and some other cloud hosts) block outbound IPv6. Force all DNS
+// lookups in this process to prefer IPv4 so nodemailer never tries IPv6.
+dns.setDefaultResultOrder('ipv4first')
 
 if (process.env.SENTRY_DSN) {
   Sentry.init({
