@@ -23,6 +23,7 @@ import { PriceSummary } from '@/components/booking/price-summary'
 import { BookingSuccess } from '@/components/booking/booking-success'
 import { BookingPageSkeleton } from './loading'
 import { formatCurrency } from '@/lib/format'
+import { getEffectivePrice } from '@/lib/trip-utils'
 import { APP_NAME } from '@/lib/constants'
 import type { TripRequestTraveler } from '@shared/types/trip-request.types'
 
@@ -402,7 +403,7 @@ export default function BookingPage({
                           Processing...
                         </>
                       ) : (
-                        `Pay ${formatCurrency(trip.pricePerPerson * numTravelers)}`
+                        `Pay ${formatCurrency(getEffectivePrice(trip) * numTravelers)}`
                       )}
                     </button>
                   </div>
@@ -443,7 +444,7 @@ export default function BookingPage({
                           Processing...
                         </>
                       ) : (
-                        `Continue to Payment — ${formatCurrency(trip.pricePerPerson * numTravelers)}`
+                        `Continue to Payment — ${formatCurrency(getEffectivePrice(trip) * numTravelers)}`
                       )}
                     </button>
                   </div>

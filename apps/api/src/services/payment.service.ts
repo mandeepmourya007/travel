@@ -152,6 +152,23 @@ export class PaymentService {
     }
   }
 
+  // Returns the first authorized/captured paymentId for an order, or null if the Razorpay API is unavailable.
+  async fetchPaymentIdForOrder(orderId: string): Promise<string | null> {
+    try {
+      // SDK types don't expose orders.fetchPayments — cast through unknown
+      const payments = await (this.razorpay.orders as unknown as {
+        fetchPayments: (id: string) => Promise<{ items?: Array<{ id: string; status: string }> }>
+      }).fetchPayments(orderId)
+      const paid = payments?.items?.find(
+        (p) => p.status === 'captured' || p.status === 'authorized',
+      )
+      return paid?.id ?? null
+    } catch (error) {
+      this.logger.warn({ orderId, error }, 'Failed to fetch payments for order')
+      return null
+    }
+  }
+
   /**
    * Resolves a bookingId from a Razorpay order ID by looking up the PaymentTransaction.
    * Used by webhook controller to trigger booking confirmation after payment events.

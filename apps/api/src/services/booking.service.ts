@@ -800,6 +800,73 @@ export class BookingService {
     return this.confirmBooking(bookingId, booking)
   }
 
+  async syncPaymentStatus(
+    bookingId: string,
+    userId: string,
+  ): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+    const booking = await this.bookingRepo.findWithPaymentDetails(bookingId)
+    if (!booking) throw new NotFoundError('Booking')
+    if (booking.userId !== userId) throw new ForbiddenError('You can only sync your own bookings')
+
+    // Already confirmed — nothing to do
+    if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
+      return {
+        bookingId: booking.id,
+        bookingStatus: BOOKING_STATUS.CONFIRMED,
+        paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+      }
+    }
+
+    const paymentTx = booking.paymentTransactions[0]
+    if (!paymentTx?.razorpayOrderId) {
+      throw new ValidationError('No Razorpay order found for this booking')
+    }
+
+    const orderStatus = await this.paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
+
+    if (orderStatus !== 'paid') {
+      throw new ValidationError(`Payment not completed yet — Razorpay order status is "${orderStatus}". Please complete payment or try again.`)
+    }
+
+    await this.recoverPaidBooking(bookingId, booking)
+
+    return {
+      bookingId: booking.id,
+      bookingStatus: BOOKING_STATUS.CONFIRMED,
+      paymentStatus: PAYMENT_TX_STATUS.CAPTURED,
+    }
+  }
+
+  // Confirms a paid booking whose confirmation was missed (webhook not delivered, FE verify-payment failed, etc.).
+  // Accepts a preloaded booking to avoid a redundant DB fetch when called from syncPaymentStatus.
+  async recoverPaidBooking(
+    bookingId: string,
+    preloaded?: Awaited<ReturnType<BookingRepository['findWithPaymentDetails']>>,
+  ): Promise<void> {
+    const booking = preloaded ?? await this.bookingRepo.findWithPaymentDetails(bookingId)
+    if (!booking) return
+
+    const paymentTx = booking.paymentTransactions[0]
+    if (!paymentTx) return
+
+    if (!paymentTx.razorpayPaymentId && paymentTx.razorpayOrderId) {
+      const paymentId = await this.paymentService.fetchPaymentIdForOrder(paymentTx.razorpayOrderId)
+      if (paymentId) {
+        await this.paymentTxRepo.updatePaymentId(paymentTx.id, paymentId)
+        paymentTx.razorpayPaymentId = paymentId
+        this.logger.info({ bookingId, paymentId }, 'Stored missing razorpayPaymentId during recovery')
+      } else {
+        // Razorpay API couldn't return the payment ID yet — don't call confirmBooking with a null
+        // paymentId or it will roll back the atomic gate and leave the booking in a confused state.
+        this.logger.error({ bookingId }, 'Could not resolve razorpayPaymentId from Razorpay — recovery aborted')
+        throw new ValidationError('Payment ID not found on Razorpay yet — please try again in a moment')
+      }
+    }
+
+    await this.confirmBooking(bookingId, { ...booking, paymentTransactions: [paymentTx] })
+    this.logger.info({ bookingId }, 'Booking recovered and confirmed')
+  }
+
   /**
    * Returns the traveler's approved trip requests that are awaiting payment.
    * Used by the "Payment Pending" tab on My Bookings page.

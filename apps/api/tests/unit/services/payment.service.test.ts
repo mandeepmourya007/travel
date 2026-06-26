@@ -4,7 +4,7 @@ import { PaymentService } from '../../../src/services/payment.service'
 
 // ── Mock Dependencies ──────────────────────────────
 const mockRazorpay = {
-  orders: { create: vi.fn(), fetch: vi.fn() },
+  orders: { create: vi.fn(), fetch: vi.fn(), fetchPayments: vi.fn() },
   payments: { capture: vi.fn(), fetch: vi.fn(), refund: vi.fn() },
 }
 
@@ -128,27 +128,17 @@ describe('PaymentService', () => {
   // createOrder
   // ═══════════════════════════════════════════════════
   describe('createOrder', () => {
-    it('should create a Razorpay order with manual capture and transfers', async () => {
+    it('should create a Razorpay order with manual capture', async () => {
       const mockOrder = createMockOrder()
       mockRazorpay.orders.create.mockResolvedValue(mockOrder)
 
-      const transfers = [{
-        account: 'acc_org123',
-        amount: 450000,
-        currency: 'INR',
-        on_hold: 1,
-        on_hold_until: Math.floor(Date.now() / 1000) + 86400,
-        notes: { bookingId: 'booking-1' },
-      }]
-
-      const result = await service.createOrder(500000, 'booking-1', transfers, { tripId: 'trip-1' })
+      const result = await service.createOrder(500000, 'booking-1', { tripId: 'trip-1' })
 
       expect(mockRazorpay.orders.create).toHaveBeenCalledWith({
         amount: 500000,
         currency: 'INR',
         receipt: 'booking-1',
         payment_capture: 0,
-        transfers,
         notes: { tripId: 'trip-1' },
       })
       expect(result).toEqual(mockOrder)
@@ -158,13 +148,13 @@ describe('PaymentService', () => {
       mockRazorpay.orders.create.mockRejectedValue(new Error('Razorpay down'))
 
       await expect(
-        service.createOrder(500000, 'booking-1', [], {}),
+        service.createOrder(500000, 'booking-1', {}),
       ).rejects.toThrow('Failed to create Razorpay order')
     })
 
     it('should throw ValidationError when amount is zero', async () => {
       await expect(
-        service.createOrder(0, 'booking-1', [], {}),
+        service.createOrder(0, 'booking-1', {}),
       ).rejects.toThrow()
     })
   })
@@ -678,6 +668,62 @@ describe('PaymentService', () => {
       await service.handleRefundProcessed(payload as any)
 
       expect(mockPaymentTxRepo.findByRazorpayPaymentId).not.toHaveBeenCalled()
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // fetchPaymentIdForOrder
+  // ═══════════════════════════════════════════════════
+  describe('fetchPaymentIdForOrder', () => {
+    it('should return the captured payment ID when one exists', async () => {
+      mockRazorpay.orders.fetchPayments.mockResolvedValue({
+        items: [
+          { id: 'pay_failed', status: 'failed' },
+          { id: 'pay_captured', status: 'captured' },
+        ],
+      })
+
+      const result = await service.fetchPaymentIdForOrder('order_abc')
+
+      expect(result).toBe('pay_captured')
+      expect(mockRazorpay.orders.fetchPayments).toHaveBeenCalledWith('order_abc')
+    })
+
+    it('should return the authorized payment ID when no captured payment exists', async () => {
+      mockRazorpay.orders.fetchPayments.mockResolvedValue({
+        items: [{ id: 'pay_authorized', status: 'authorized' }],
+      })
+
+      const result = await service.fetchPaymentIdForOrder('order_abc')
+
+      expect(result).toBe('pay_authorized')
+    })
+
+    it('should return null when no authorized or captured payment exists', async () => {
+      mockRazorpay.orders.fetchPayments.mockResolvedValue({
+        items: [{ id: 'pay_failed', status: 'failed' }],
+      })
+
+      const result = await service.fetchPaymentIdForOrder('order_abc')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null when items array is empty', async () => {
+      mockRazorpay.orders.fetchPayments.mockResolvedValue({ items: [] })
+
+      const result = await service.fetchPaymentIdForOrder('order_abc')
+
+      expect(result).toBeNull()
+    })
+
+    it('should return null and log a warning when the Razorpay API throws', async () => {
+      mockRazorpay.orders.fetchPayments.mockRejectedValue(new Error('API unavailable'))
+
+      const result = await service.fetchPaymentIdForOrder('order_abc')
+
+      expect(result).toBeNull()
+      expect(mockLogger.warn).toHaveBeenCalled()
     })
   })
 })

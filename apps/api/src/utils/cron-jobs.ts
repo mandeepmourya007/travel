@@ -5,6 +5,7 @@ import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { PaymentService } from '../services/payment.service'
+import { BookingService } from '../services/booking.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
 import { VehicleService } from '../services/vehicle.service'
 import { WalletService } from '../services/wallet.service'
@@ -42,6 +43,7 @@ async function expireStaleBookings(
   bookingRepo: BookingRepository,
   paymentService: PaymentService | null,
   vehicleService: VehicleService,
+  bookingService: BookingService | null,
 ) {
   try {
     const expiredBookings = await bookingRepo.findExpiredPendingBookings()
@@ -61,8 +63,15 @@ async function expireStaleBookings(
             if (orderStatus === RAZORPAY_ORDER_STATUS.PAID) {
               logger.warn(
                 { bookingId: booking.id, orderId: paymentTx.razorpayOrderId },
-                'Order already paid on Razorpay — skipping expiry, webhook may have been missed',
+                'Order already paid on Razorpay — attempting booking recovery (webhook may have been missed)',
               )
+              if (bookingService) {
+                try {
+                  await bookingService.recoverPaidBooking(booking.id)
+                } catch (recoverErr) {
+                  logger.error({ recoverErr, bookingId: booking.id }, 'Booking recovery failed — booking remains PENDING_PAYMENT')
+                }
+              }
               continue
             }
           } catch (error) {
@@ -362,6 +371,7 @@ export function startCronJobs(deps: {
   refreshTokenRepo: RefreshTokenRepository
   verifCodeRepo: VerificationCodeRepository
   paymentService: PaymentService | null
+  bookingService: BookingService | null
   tripLifecycleService: TripLifecycleService
   vehicleService: VehicleService
   walletService: WalletService
@@ -372,7 +382,7 @@ export function startCronJobs(deps: {
   const intervals = [
     setInterval(
       () => withLock('cron:expire-stale-bookings', LOCK_TTL_5MIN,
-        () => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService)),
+        () => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService, deps.bookingService)),
       FIVE_MINUTES,
     ),
     setInterval(

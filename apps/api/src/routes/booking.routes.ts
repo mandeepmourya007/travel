@@ -67,5 +67,13 @@ export function createBookingRoutes(
     bookingController.verifyPayment,
   )
 
+  router.post(
+    '/:id/sync-payment',
+    bookingRateLimit,
+    authMiddleware,
+    validate(cuidParamSchema, 'params'),
+    bookingController.syncPayment,
+  )
+
   return router
 }

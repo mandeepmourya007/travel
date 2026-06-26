@@ -52,4 +52,10 @@ export class BookingController {
     const result = await this.bookingService.verifyAndConfirmPayment(req.params.id, req.user!.userId, req.body as VerifyPaymentDto)
     res.json({ success: true, data: result })
   })
+
+  /** POST /bookings/:id/sync-payment — manually poll Razorpay and confirm if paid */
+  syncPayment = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.bookingService.syncPaymentStatus(req.params.id, req.user!.userId)
+    res.json({ success: true, data: result })
+  })
 }

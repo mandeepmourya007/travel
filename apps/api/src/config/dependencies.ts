@@ -281,6 +281,7 @@ export const cronDeps = {
   refreshTokenRepo,
   verifCodeRepo,
   paymentService,
+  bookingService,
   tripLifecycleService,
   vehicleService,
   walletService,

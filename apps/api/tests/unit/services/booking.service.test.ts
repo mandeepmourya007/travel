@@ -66,6 +66,7 @@ const mockPaymentService = {
   checkOrderStatus: vi.fn(),
   initiateRefund: vi.fn(),
   resolveBookingIdFromOrder: vi.fn(),
+  fetchPaymentIdForOrder: vi.fn(),
 }
 
 // ── Test Data Factory ────────────────────────────────
@@ -836,7 +837,6 @@ describe('BookingService', () => {
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         expect.any(Number),
         expect.any(String),
-        expect.any(Array),
         expect.any(Object),
       )
     })
@@ -939,7 +939,7 @@ describe('BookingService', () => {
 
       // Early bird: 4000 * 2 = 8000 rupees = 800000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        800000, expect.any(String), expect.any(Array), expect.any(Object),
+        800000, expect.any(String), expect.any(Object),
       )
     })
 
@@ -1467,7 +1467,6 @@ describe('BookingService', () => {
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         1140000,
         expect.any(String),
-        expect.any(Array),
         expect.any(Object),
       )
     })
@@ -1481,7 +1480,6 @@ describe('BookingService', () => {
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         1000000,
         expect.any(String),
-        expect.any(Array),
         expect.any(Object),
       )
     })
@@ -1824,3 +1822,172 @@ describe('BookingService — Redis Cache Invalidation', () => {
     })
   })
 })
+
+// ═══════════════════════════════════════════════════
+// syncPaymentStatus
+// ═══════════════════════════════════════════════════
+describe('syncPaymentStatus', () => {
+  const pendingBooking = {
+    id: 'booking-1',
+    userId: 'user-1',
+    bookingStatus: 'PENDING_PAYMENT',
+    numTravelers: 2,
+    paymentTransactions: [{
+      id: 'ptx-1',
+      razorpayOrderId: 'order_abc',
+      razorpayPaymentId: 'pay_abc',
+      amount: 5000,
+      status: 'AUTHORIZED',
+    }],
+    trip: { id: 'trip-1', currentBookings: 3, version: 0 },
+    travelerDetails: [],
+    tripRequest: null,
+  }
+
+  beforeEach(() => {
+    // vi.clearAllMocks() doesn't flush mockResolvedValueOnce queues — reset to prevent bleed-through
+    mockBookingRepo.findWithPaymentDetails.mockReset()
+  })
+
+  it('should recover and return CONFIRMED when Razorpay order is paid', async () => {
+    // syncPaymentStatus fetches once; recoverPaidBooking + confirmBooking both get the preloaded booking
+    mockBookingRepo.findWithPaymentDetails.mockResolvedValue(pendingBooking)
+    mockPaymentService.checkOrderStatus.mockResolvedValue('paid')
+    mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+    mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
+    mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
+    mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+
+    const result = await service.syncPaymentStatus('booking-1', 'user-1')
+
+    expect(result.bookingStatus).toBe('CONFIRMED')
+    expect(mockPaymentService.checkOrderStatus).toHaveBeenCalledWith('order_abc')
+  })
+
+    it('should return CONFIRMED idempotently when booking is already confirmed', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        ...pendingBooking,
+        bookingStatus: 'CONFIRMED',
+        paymentTransactions: [{ ...pendingBooking.paymentTransactions[0], status: 'CAPTURED' }],
+      })
+
+      const result = await service.syncPaymentStatus('booking-1', 'user-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockPaymentService.checkOrderStatus).not.toHaveBeenCalled()
+    })
+
+    it('should throw NotFoundError when booking does not exist', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(null)
+
+      await expect(service.syncPaymentStatus('nonexistent', 'user-1')).rejects.toThrow('Booking')
+    })
+
+    it('should throw ForbiddenError when user does not own the booking', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({ ...pendingBooking, userId: 'other-user' })
+
+      await expect(service.syncPaymentStatus('booking-1', 'user-1')).rejects.toThrow('only sync your own')
+    })
+
+    it('should throw ValidationError when Razorpay order is not yet paid', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(pendingBooking)
+      mockPaymentService.checkOrderStatus.mockResolvedValue('created')
+
+      await expect(service.syncPaymentStatus('booking-1', 'user-1')).rejects.toThrow('not completed yet')
+    })
+
+    it('should throw ValidationError when booking has no Razorpay order', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue({
+        ...pendingBooking,
+        paymentTransactions: [],
+      })
+
+      await expect(service.syncPaymentStatus('booking-1', 'user-1')).rejects.toThrow('No Razorpay order')
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // recoverPaidBooking
+  // ═══════════════════════════════════════════════════
+  describe('recoverPaidBooking', () => {
+    const bookingWithPaymentId = {
+      id: 'booking-1',
+      userId: 'user-1',
+      bookingStatus: 'PENDING_PAYMENT',
+      paymentTransactions: [{
+        id: 'ptx-1',
+        razorpayOrderId: 'order_abc',
+        razorpayPaymentId: 'pay_abc',
+        amount: 5000,
+        status: 'AUTHORIZED',
+      }],
+      trip: { id: 'trip-1', currentBookings: 3, version: 0 },
+      numTravelers: 2,
+      travelerDetails: [],
+      tripRequest: null,
+    }
+
+    // Factory — service mutates paymentTx.razorpayPaymentId in-place, so each test needs a fresh copy
+    const makeMissingPaymentId = () => ({
+      ...bookingWithPaymentId,
+      paymentTransactions: [{
+        ...bookingWithPaymentId.paymentTransactions[0],
+        razorpayPaymentId: null,
+      }],
+    })
+
+    beforeEach(() => {
+      mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
+      mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+    })
+
+    it('should confirm directly when razorpayPaymentId is already stored', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(bookingWithPaymentId)
+
+      await service.recoverPaidBooking('booking-1', bookingWithPaymentId as any)
+
+      expect(mockPaymentService.fetchPaymentIdForOrder).not.toHaveBeenCalled()
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 500000, 'INR')
+    })
+
+    it('should fetch, store, and use paymentId when it is missing from DB', async () => {
+      mockPaymentService.fetchPaymentIdForOrder.mockResolvedValue('pay_recovered')
+      mockPaymentTxRepo.updatePaymentId.mockResolvedValue(undefined)
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(makeMissingPaymentId())
+
+      await service.recoverPaidBooking('booking-1', makeMissingPaymentId() as any)
+
+      expect(mockPaymentService.fetchPaymentIdForOrder).toHaveBeenCalledWith('order_abc')
+      expect(mockPaymentTxRepo.updatePaymentId).toHaveBeenCalledWith('ptx-1', 'pay_recovered')
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_recovered', 500000, 'INR')
+    })
+
+    it('should throw ValidationError when fetchPaymentIdForOrder returns null', async () => {
+      mockPaymentService.fetchPaymentIdForOrder.mockResolvedValue(null)
+
+      await expect(
+        service.recoverPaidBooking('booking-1', makeMissingPaymentId() as any),
+      ).rejects.toThrow('Payment ID not found on Razorpay yet')
+
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+
+    it('should return silently when booking not found and no preloaded booking given', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(null)
+
+      await expect(service.recoverPaidBooking('nonexistent')).resolves.toBeUndefined()
+    })
+
+    it('should return silently when booking has no payment transaction', async () => {
+      const bookingNoTx = { ...bookingWithPaymentId, paymentTransactions: [] }
+
+      await expect(
+        service.recoverPaidBooking('booking-1', bookingNoTx as any),
+      ).resolves.toBeUndefined()
+
+      expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+  })
+

@@ -2,12 +2,15 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Calendar, Users, Star, Pencil } from 'lucide-react'
+import { MapPin, Calendar, Users, Star, Pencil, RefreshCw } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
 import type { MyBookingListItem } from '@shared/types/booking.types'
 import { formatCurrency, formatDateRange, formatDateFull } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
 import { TravelerDetailsAccordion } from './traveler-details-accordion'
+import { useSyncPayment } from '@/hooks/use-sync-payment'
+import { useToast } from '@/components/shared/toast'
+import { getErrorMessage } from '@/lib/api-client'
 
 interface MyBookingCardProps {
   booking: MyBookingListItem
@@ -33,6 +36,22 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
   const showCancel = canCancel(booking)
   const showLeaveReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
   const showEditReview = booking.bookingStatus === 'COMPLETED' && booking.hasReview
+  const showSyncPayment = booking.bookingStatus === 'PENDING_PAYMENT'
+
+  const syncPayment = useSyncPayment()
+  const { toast } = useToast()
+
+  async function handleSyncPayment() {
+    try {
+      await syncPayment.mutateAsync(booking.id)
+      toast({ variant: 'success', title: 'Payment verified — booking confirmed!' })
+    } catch (err) {
+      toast({
+        variant: 'error',
+        title: getErrorMessage(err as Error, 'Could not verify payment') ?? 'Could not verify payment',
+      })
+    }
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md md:flex-row md:gap-4 md:p-4">
@@ -155,6 +174,17 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
 
           {/* Actions — mobile: full width buttons, desktop: inline */}
           <div className="flex flex-col gap-2 md:flex-row">
+            {showSyncPayment && (
+              <button
+                type="button"
+                onClick={handleSyncPayment}
+                disabled={syncPayment.isPending}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors disabled:opacity-60"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${syncPayment.isPending ? 'animate-spin' : ''}`} />
+                {syncPayment.isPending ? 'Checking...' : 'Sync Payment'}
+              </button>
+            )}
             {showCancel && (
               <button
                 type="button"
