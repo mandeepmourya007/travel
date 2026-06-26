@@ -1,0 +1,28 @@
+apps/api/src/services/payment.service.ts
+  s_46711f6498ad4d::t_9e4c642c1ef7d5 23-24,26-28
+  s_46711f6498ad4d::t_6a0309773d55bf 44-50,53
+apps/api/src/services/booking.service.ts
+  s_46711f6498ad4d::t_863396ccea7be0 16
+  s_46711f6498ad4d::t_935aec6c9bc1e5 496-509
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "258d8dad5ec11e013750fe2a0aaca1e67fd8ed0f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_46711f6498ad4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34bb70b9-2cb9-4331-8e07-2cfd12dd2a11",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
