@@ -82,7 +82,9 @@ export const useAuthStore = create<AuthState>()(
         //   path is never triggered during hydration.
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1'
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        // Covers Render free-tier cold starts (typically 30-50s after inactivity).
+        const HYDRATION_REFRESH_TIMEOUT_MS = 50_000
+        const timeoutId = setTimeout(() => controller.abort(), HYDRATION_REFRESH_TIMEOUT_MS)
         fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include', signal: controller.signal })
           .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
           .then((body: { data?: { accessToken?: unknown } }) => {
@@ -96,11 +98,18 @@ export const useAuthStore = create<AuthState>()(
               useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false, completedOnboarding: false, _hasHydrated: true })
             }
           })
-          .catch(() => {
+          .catch((err: unknown) => {
             clearTimeout(timeoutId)
-            // Refresh-token cookie expired, backend unreachable, or 8s timeout hit.
-            // Clear stale auth so the user isn't stuck in a "logged in but every request fails"
-            // limbo, then unblock so AuthGuard can redirect to login.
+            if ((err as { name?: string }).name === 'AbortError') {
+              // Server is slow to respond (e.g. Render cold start after inactivity).
+              // Keep the user "logged in" — accessToken will be null but the api-client
+              // 401 interceptor will call doRefresh() on the first real API call once
+              // the server is awake. Logging out here would be a false positive.
+              useAuthStore.setState({ _hasHydrated: true })
+              return
+            }
+            // Real auth failure: refresh token expired, 4xx response, or network down.
+            // Clear stale auth so AuthGuard can redirect to login.
             useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false, completedOnboarding: false, _hasHydrated: true })
           })
       },
