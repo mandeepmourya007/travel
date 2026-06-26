@@ -1,0 +1,75 @@
+apps/api/src/routes/booking.routes.ts
+  s_e5728a16bb391c::t_058d529385a6b9 70-77
+apps/api/src/controllers/booking.controller.ts
+  s_e5728a16bb391c::t_aac18a9076d97f 55-60
+apps/api/src/config/dependencies.ts
+  s_e5728a16bb391c::t_da1653466a5ce7 284
+apps/api/tests/unit/services/booking.service.test.ts
+  s_e5728a16bb391c::t_940b191482e46a 69
+  s_e5728a16bb391c::t_4ca5a1b0c56f09 942
+  s_e5728a16bb391c::t_c2dca87f7e009c 1993
+  s_e5728a16bb391c::t_fb664484bb4c6c 1826-1829
+  s_e5728a16bb391c::t_6db447eef26624 1830-1865
+  s_e5728a16bb391c::t_928565349250de 1960,1971
+  s_e5728a16bb391c::t_d173275c85780a 1825,1866-1929,1932-1936,1938-1957,1959,1961-1970,1972-1992
+  s_e5728a16bb391c::t_eec876a7148d9c 1958
+  s_e5728a16bb391c::t_be838f779ab985 1930-1931,1937
+apps/api/src/services/payment.service.ts
+  s_e5728a16bb391c::t_419d6919862984 155
+  s_e5728a16bb391c::t_a0dfe93eb14c13 156-171
+apps/api/tests/unit/services/payment.service.test.ts
+  s_e5728a16bb391c::t_34ec201dfb289b 131,135,151,157
+  s_e5728a16bb391c::t_f5f427ca4badfe 673-727
+  s_e5728a16bb391c::t_8d1abcca0b7adf 7
+  s_e5728a16bb391c::t_59a76f871203f9 728
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_e5728a16bb391c::t_0980110b06482d 177-187
+  s_e5728a16bb391c::t_90e37c0bdaa76f 39-54
+  s_e5728a16bb391c::t_24a74523c3e2a9 5,11-13
+apps/web/src/hooks/use-sync-payment.ts
+  s_e5728a16bb391c::t_f201fbc0d94f20 1-26
+apps/api/src/utils/cron-jobs.ts
+  s_e5728a16bb391c::t_bef9b593063e82 374
+  s_e5728a16bb391c::t_ffd8426c235a46 46
+  s_e5728a16bb391c::t_bd9f2847ff4c22 385
+  s_e5728a16bb391c::t_c84a211324db1e 66,68-74
+  s_e5728a16bb391c::t_814ac4ed282135 8
+apps/api/prisma/schema.prisma
+  s_6d3162dbe88dd6::t_09848c840b5b70 11-42,44-49,52-72,74-80,83-97,99-100,103-113,115-117,120-129,131,134-157,159-163,166-182,184-186,189-198,200-201,204-228,230-231,234-249,251-255,258-269,271-273,276-298,301-303,306-324,326,328,331-372,374-384,387-393,395,397,400-409,411-412,415-434,436,438-440,444-459,462,465-475,477-478,482,484,486,490,493-496,498-500,503,506-535,537-540,542-569,573,581-583,586,589-600,605-619,621-626,628-645,649,651-653,656-659,661-668,670-674,676-679,682-685,687-691,693-697,700-705,707-711,714-735,737-742,745-749,751-756,758-762,765-768,770-776,778-783,786-790,792-796,798-819
+apps/api/src/services/booking.service.ts
+  s_e5728a16bb391c::t_18b6da7b5145fa 831,840-846,858-862,867
+  s_e5728a16bb391c::t_1188476bc0e6ea 847-857,863-866,868-869
+  s_e5728a16bb391c::t_8c00128722cee0 803-830,832-839
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_e5728a16bb391c::t_68ba9b8e486ae2 26
+  s_e5728a16bb391c::t_8f9e0b0722d693 406,447
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "3c225cff5a6f0c199134c416677452465b79d237",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d3162dbe88dd6": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "a36833b7-e134-42e8-803d-581a62f4ef9b",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_e5728a16bb391c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "17ec33a7-f0ad-44c6-8cd5-69cf617e7c76",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
