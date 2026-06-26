@@ -158,14 +158,29 @@ export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'
 export const MESSAGE_PREVIEW_LENGTH = 100
 
 // ─── Redis Cache TTLs (seconds) ────────────────────
+// All public-read caches are safe to hold long because every mutation
+// (create/update/delete/publish trip, update destination) calls
+// invalidateTripCaches() / invalidateByPrefix() immediately — so the
+// cache is never stale beyond the instant a change is saved.
 export const CACHE_TTL = {
-  TRIP_SEARCH: 60,
-  TRIP_DETAIL: 300,
-  DESTINATION_LIST: 600,
-  DESTINATION_DETAIL: 300,
-  CATEGORIES: 600,
-  ORGANIZER_PROFILE: 300,
-  ORGANIZER_STATS: 60,
+  // 5 min: trip list/search results. Mutation invalidation ensures freshness.
+  // Previously 60s — caused the full 584ms Trip.findMany to fire every minute.
+  TRIP_SEARCH: 300,
+  // 10 min: individual trip detail pages. Invalidated by slug on any update.
+  TRIP_DETAIL: 600,
+  // 1 hour: destination list. Admin-only mutations; very low write frequency.
+  DESTINATION_LIST: 3600,
+  // 15 min: destination detail (includes a trips sub-list). Invalidated by
+  // invalidateTripCaches() on every trip mutation (update, publish, delete,
+  // toggle) and by invalidateByPrefix(allDestinations()) on destination admin ops.
+  DESTINATION_DETAIL: 900,
+  // 1 hour: trip categories. Changes only via admin panel; almost never.
+  CATEGORIES: 3600,
+  // 10 min: organizer public profile. Changed only on profile update.
+  ORGANIZER_PROFILE: 600,
+  // 2 min: organizer dashboard stats. Bookings update these; keep low but
+  // avoid the per-booking DB hit on every dashboard refresh.
+  ORGANIZER_STATS: 120,
 } as const
 
 /** Generic reference model constants for webhook events + payment transactions */

@@ -581,6 +581,10 @@ model Review {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  // Composite index serves the most common access pattern:
+  // WHERE tripId = ? AND isDeleted = false ORDER BY createdAt DESC
+  // The standalone [tripId] index is now redundant but left for Prisma relation queries.
+  @@index([tripId, isDeleted, createdAt(sort: Desc)])
   @@index([tripId])
   @@index([userId])
   @@index([isDeleted])

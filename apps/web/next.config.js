@@ -15,6 +15,14 @@ const nextConfig = {
       protocol: 'https',
       hostname,
     })),
+    // Next.js default TTL is 60s — re-optimises (and re-fetches from Cloudinary)
+    // on every expiry, causing 3-6s cold hits per image. 24h keeps the optimised
+    // copy warm for a full day; images are versioned via Cloudinary's upload ID
+    // so stale content is not a risk.
+    minimumCacheTTL: 86400,
+    // Prefer AVIF (40-50% smaller than WebP). Next.js falls back to WebP/JPEG
+    // for browsers that don't support it — no UI change, purely delivery.
+    formats: ['image/avif', 'image/webp'],
   },
   headers: async () => [
     {

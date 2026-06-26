@@ -21,6 +21,7 @@ export const STALE_TIME_DEFAULT = 15_000
 export const STALE_TIME_REALTIME = 30_000
 export const STALE_TIME_STATIC = 5 * 60_000
 export const REFETCH_INTERVAL_REALTIME = 30_000
+export const REFETCH_INTERVAL_BACKGROUND = 5 * 60_000
 
 /** Returns the post-login landing route based on user role. */
 export function getHomeRoute(role?: string): string {

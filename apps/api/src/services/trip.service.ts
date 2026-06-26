@@ -452,7 +452,6 @@ export class TripService {
 
     this.logger.info({ tripId }, 'Trip published')
     await this.invalidateTripCaches()
-    await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
     return mapTripToSummary(updated)
   }
 
@@ -477,7 +476,6 @@ export class TripService {
     })
     this.logger.info({ tripId }, 'Trip soft-deleted')
     await this.invalidateTripCaches(trip.slug)
-    await this.cache?.invalidateByPrefix(cacheInvalidation.allDestinations())
   }
 
   // ─── Trip Duplication ────────────────────────────────
@@ -803,10 +801,19 @@ export class TripService {
     }
   }
 
-  /** Invalidate trip search caches (and optionally a specific detail page). */
+  /**
+   * Invalidate all trip caches + destination caches on any trip mutation.
+   * Destination detail pages embed a trips sub-list (price, status, etc.) —
+   * if only trip caches were cleared, a destination page could serve stale
+   * trip data for up to DESTINATION_DETAIL TTL (15 min) after an organizer
+   * edits a trip. Clearing both ensures full consistency.
+   */
   private async invalidateTripCaches(slug?: string) {
     if (!this.cache) return
-    await this.cache.invalidateByPrefix(cacheInvalidation.allTrips())
+    await Promise.all([
+      this.cache.invalidateByPrefix(cacheInvalidation.allTrips()),
+      this.cache.invalidateByPrefix(cacheInvalidation.allDestinations()),
+    ])
     if (slug) await this.cache.del(cacheKeys.tripDetail(slug))
   }
 

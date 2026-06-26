@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import Image from 'next/image'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { Upload, X, Loader2 } from 'lucide-react'
 import { FormField } from './form-field'
@@ -47,8 +48,8 @@ export function MediaTab() {
       <FormField label="Trip Photos" error={errors.photos?.message}>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {photoUrls.map((url: string, idx: number) => (
-            <div key={idx} className="group relative aspect-video overflow-hidden rounded-lg bg-neutral-100">
-              <img src={url} alt={`Trip photo ${idx + 1}`} className="h-full w-full object-cover" />
+            <div key={url} className="group relative aspect-video overflow-hidden rounded-lg bg-neutral-100">
+              <Image src={url} alt={`Trip photo ${idx + 1}`} fill className="object-cover" sizes="(max-width: 640px) 50vw, 25vw" />
               <button
                 type="button"
                 onClick={() => removePhoto(idx)}

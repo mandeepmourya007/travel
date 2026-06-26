@@ -39,18 +39,41 @@ export class PaymentService {
       throw new ValidationError('Order amount must be greater than zero')
     }
 
+    const buildPayload = (includeTransfers: boolean) => ({
+      amount,
+      currency: CURRENCY,
+      receipt,
+      payment_capture: 0,
+      ...(includeTransfers && transfers.length > 0 ? { transfers } : {}),
+      notes,
+    } as Parameters<typeof this.razorpay.orders.create>[0])
+
     try {
-      const order = await this.razorpay.orders.create({
-        amount,
-        currency: CURRENCY,
-        receipt,
-        payment_capture: 0,
-        ...(transfers.length > 0 ? { transfers } : {}),
-        notes,
-      } as Parameters<typeof this.razorpay.orders.create>[0])
+      const order = await this.razorpay.orders.create(buildPayload(true))
       this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created')
       return order
-    } catch (error) {
+    } catch (error: unknown) {
+      // Razorpay Route is not enabled on this account — retry without transfers so
+      // bookings still work; funds go directly to the platform account instead.
+      const rzpErr = (error as { error?: { description?: string } })?.error
+      if (
+        transfers.length > 0 &&
+        typeof rzpErr?.description === 'string' &&
+        rzpErr.description.toLowerCase().includes('transfer')
+      ) {
+        this.logger.warn(
+          { error, amount, receipt },
+          'Razorpay Route not enabled — retrying order without transfers',
+        )
+        try {
+          const order = await this.razorpay.orders.create(buildPayload(false))
+          this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created (no transfers)')
+          return order
+        } catch (retryError) {
+          this.logger.error({ error: retryError, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed (retry)')
+          throw new PaymentError('Failed to create Razorpay order', retryError)
+        }
+      }
       this.logger.error({ error, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed')
       throw new PaymentError('Failed to create Razorpay order', error)
     }
