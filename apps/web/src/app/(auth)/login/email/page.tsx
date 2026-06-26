@@ -19,6 +19,8 @@ function getSafeReturnTo(raw: string | null): string | null {
   return null
 }
 
+const GOOGLE_PENDING_KEY = 'google_auth_pending'
+
 export default function EmailLoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -32,12 +34,36 @@ export default function EmailLoginPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  // Tracks Google redirect-mode flow: set before navigating to Google, cleared on return.
+  // Prevents the form from flashing between page load and GIS firing onSuccess.
+  const [googleRedirectPending, setGoogleRedirectPending] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return !!sessionStorage.getItem(GOOGLE_PENDING_KEY)
+    }
+    return false
+  })
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated && completedOnboarding) {
       router.replace(returnTo ?? getHomeRoute(useAuthStore.getState().user?.role))
     }
   }, [hasHydrated, isAuthenticated, completedOnboarding, router, returnTo])
+
+  const clearGooglePending = () => {
+    sessionStorage.removeItem(GOOGLE_PENDING_KEY)
+    setGoogleRedirectPending(false)
+  }
+
+  // Safety valve: if GIS never calls onSuccess/onError (e.g. popup dismissed on iOS without
+  // triggering onError), the spinner would be stuck indefinitely. Clear after 60s.
+  useEffect(() => {
+    if (!googleRedirectPending) return
+    const t = setTimeout(() => {
+      sessionStorage.removeItem(GOOGLE_PENDING_KEY)
+      setGoogleRedirectPending(false)
+    }, 60_000)
+    return () => clearTimeout(t)
+  }, [googleRedirectPending])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,6 +95,18 @@ export default function EmailLoginPage() {
       setError((err as Error).message || 'Login failed. Please try again.')
       setLoading(false)
     }
+  }
+
+  // Show spinner while:
+  // 1. Auth hydration is in progress (avoids form flash for already-authenticated users)
+  // 2. Returning from a Google OAuth redirect (avoids form flash before GIS fires onSuccess)
+  // 3. Already authenticated and useEffect redirect is about to fire
+  if (!hasHydrated || googleRedirectPending || (isAuthenticated && completedOnboarding)) {
+    return (
+      <div className="flex flex-1 items-center justify-center bg-neutral-50">
+        <span className="spinner w-8 h-8" />
+      </div>
+    )
   }
 
   return (
@@ -129,11 +167,17 @@ export default function EmailLoginPage() {
           </form>
 
           <GoogleAuthSection
+            onInitiate={() => {
+              sessionStorage.setItem(GOOGLE_PENDING_KEY, '1')
+              setGoogleRedirectPending(true)
+            }}
             onSuccess={(isNewUser) => {
+              clearGooglePending()
               useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
               router.push(isNewUser ? '/onboarding' : (returnTo ?? getHomeRoute(useAuthStore.getState().user?.role)))
             }}
+            onError={clearGooglePending}
           />
 
           <p className="mt-6 text-center text-sm text-neutral-500">

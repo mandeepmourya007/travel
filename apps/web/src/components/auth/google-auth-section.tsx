@@ -6,10 +6,14 @@ import { useGoogleAuth } from '@/hooks/use-google-auth'
 /** Google sign-in button with divider. Renders nothing when GOOGLE_CLIENT_ID is not configured. */
 interface GoogleAuthSectionProps {
   onSuccess: (isNewUser: boolean) => void
+  /** Called the moment the user taps the Google button (before auth completes). */
+  onInitiate?: () => void
+  /** Called if Google auth fails or is cancelled, so callers can reset pending state. */
+  onError?: () => void
   label?: string
 }
 
-export function GoogleAuthSection({ onSuccess, label = 'Or' }: GoogleAuthSectionProps) {
+export function GoogleAuthSection({ onSuccess, onInitiate, onError, label = 'Or' }: GoogleAuthSectionProps) {
   const { mutate, isPending, error } = useGoogleAuth()
 
   // Guard: GoogleLogin requires GoogleOAuthProvider which is only mounted when env var exists
@@ -26,7 +30,9 @@ export function GoogleAuthSection({ onSuccess, label = 'Or' }: GoogleAuthSection
         </div>
       </div>
 
-      <div className="flex justify-center" data-testid="google-login-wrapper">
+      {/* Capture the click at the container level so we know when the user initiates Google auth,
+          even before the GIS library calls onSuccess (important for redirect-mode flow on mobile). */}
+      <div className="flex justify-center" data-testid="google-login-wrapper" onClick={onInitiate}>
         {isPending ? (
           <div className="skeleton h-10 w-full" data-testid="google-loading" />
         ) : (
@@ -35,11 +41,14 @@ export function GoogleAuthSection({ onSuccess, label = 'Or' }: GoogleAuthSection
               if (response.credential) {
                 mutate(response.credential, {
                   onSuccess: (data) => onSuccess(data.isNewUser),
+                  onError: () => onError?.(),
                 })
+              } else {
+                onError?.()
               }
             }}
             onError={() => {
-              // GoogleLogin handles its own error UI. Nothing needed here.
+              onError?.()
             }}
             width="100%"
             text="continue_with"
