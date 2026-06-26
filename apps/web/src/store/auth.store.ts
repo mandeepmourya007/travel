@@ -86,9 +86,24 @@ export const useAuthStore = create<AuthState>()(
         const HYDRATION_REFRESH_TIMEOUT_MS = 50_000
         const timeoutId = setTimeout(() => controller.abort(), HYDRATION_REFRESH_TIMEOUT_MS)
         fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include', signal: controller.signal })
-          .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`${r.status}`))))
-          .then((body: { data?: { accessToken?: unknown } }) => {
+          .then((r): Promise<{ data?: { accessToken?: unknown } } | null> => {
+            if (r.ok) return r.json() as Promise<{ data?: { accessToken?: unknown } }>
+            // 401 = confirmed auth failure (token expired/revoked/missing).
+            // Everything else (5xx, network error, DB unavailable) is transient —
+            // same policy as AbortError: keep logged in and let the api-client
+            // 401 interceptor handle it on the first real API call.
+            if (r.status === 401) {
+              return Promise.reject(Object.assign(new Error('401'), { isAuthFailure: true }))
+            }
+            return Promise.resolve(null)
+          })
+          .then((body) => {
             clearTimeout(timeoutId)
+            if (body === null) {
+              // Transient server error — unblock UI without clearing session.
+              useAuthStore.setState({ _hasHydrated: true })
+              return
+            }
             const token = body.data?.accessToken
             if (typeof token === 'string') {
               // Token obtained — unblock the UI with a valid session in a single atomic update.
@@ -100,17 +115,16 @@ export const useAuthStore = create<AuthState>()(
           })
           .catch((err: unknown) => {
             clearTimeout(timeoutId)
-            if ((err as { name?: string }).name === 'AbortError') {
-              // Server is slow to respond (e.g. Render cold start after inactivity).
-              // Keep the user "logged in" — accessToken will be null but the api-client
-              // 401 interceptor will call doRefresh() on the first real API call once
-              // the server is awake. Logging out here would be a false positive.
-              useAuthStore.setState({ _hasHydrated: true })
+            const e = err as { name?: string; isAuthFailure?: boolean }
+            if (e.isAuthFailure) {
+              // Confirmed 401 — refresh token is invalid or expired.
+              useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false, completedOnboarding: false, _hasHydrated: true })
               return
             }
-            // Real auth failure: refresh token expired, 4xx response, or network down.
-            // Clear stale auth so AuthGuard can redirect to login.
-            useAuthStore.setState({ user: null, accessToken: null, isAuthenticated: false, completedOnboarding: false, _hasHydrated: true })
+            // AbortError (timeout), network error, or any other transient failure.
+            // Keep the user "logged in" — the api-client 401 interceptor will call
+            // doRefresh() on the first real API call once the server is reachable.
+            useAuthStore.setState({ _hasHydrated: true })
           })
       },
     },
