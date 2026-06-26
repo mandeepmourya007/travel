@@ -1,6 +1,6 @@
 'use client'
 
-import { useSearchParams, usePathname } from 'next/navigation'
+import { useSearchParams, usePathname, useRouter } from 'next/navigation'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { NumberInput } from '@/components/shared/number-input'
@@ -20,24 +20,9 @@ interface TripFiltersProps {
   currentFilters: TripFiltersType
 }
 
-/**
- * Shallow URL update — changes the query string WITHOUT re-running the
- * server component. Next 14.1+ patches `window.history.pushState` to
- * sync its internal router state, so `useSearchParams()` re-renders and
- * the client-side `useTrips` query refetches. RSC stays reserved for
- * initial load / SEO. (Was `router.push`, which cost a full server
- * roundtrip per filter tweak + a duplicate client fetch.)
- *
- * ⚠️  REQUIRES Next ≥ 14.1 (see next.js/pull/61244). If the framework
- * ever removes the pushState patch, replace with `router.push(url, { scroll: false })`.
- */
-function pushShallowUrl(pathname: string, params: URLSearchParams) {
-  const query = params.toString()
-  window.history.pushState(null, '', query ? `${pathname}?${query}` : pathname)
-}
-
 export function TripFilters({ currentFilters }: TripFiltersProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { data: destinations } = useDestinations()
   const { data: tripCategories } = useTripCategories()
@@ -62,9 +47,10 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
         params.delete(key)
       }
       params.delete('page')
-      pushShallowUrl(pathname, params)
+      const query = params.toString()
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
     },
-    [pathname, searchParams],
+    [pathname, router, searchParams],
   )
 
   useEffect(() => {
@@ -84,8 +70,9 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
     const params = new URLSearchParams(searchParamsRef.current.toString())
     debouncedSearch.trim() ? params.set('q', debouncedSearch.trim()) : params.delete('q')
     params.delete('page')
-    pushShallowUrl(pathname, params)
-  }, [debouncedSearch, pathname])
+    const query = params.toString()
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }, [debouncedSearch, pathname, router])
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -96,15 +83,16 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
     debouncedMin ? params.set('minPrice', debouncedMin) : params.delete('minPrice')
     debouncedMax ? params.set('maxPrice', debouncedMax) : params.delete('maxPrice')
     params.delete('page')
-    pushShallowUrl(pathname, params)
-  }, [debouncedMin, debouncedMax, pathname])
+    const query = params.toString()
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }, [debouncedMin, debouncedMax, pathname, router])
 
   const clearFilters = useCallback(() => {
     setLocalSearch('')
     setLocalMinPrice('')
     setLocalMaxPrice('')
-    pushShallowUrl(pathname, new URLSearchParams())
-  }, [pathname])
+    router.push(pathname, { scroll: false })
+  }, [pathname, router])
 
   const hasActiveFilters =
     currentFilters.q ||
