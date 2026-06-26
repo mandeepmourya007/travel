@@ -20,10 +20,12 @@ export class PaymentService {
   // ─── Razorpay API Wrappers ────────────────────────────
 
   /**
-   * Creates a Razorpay order with manual capture (`payment_capture: 0`)
-   * and order-level transfers for Route escrow (H4 fix).
+   * Creates a Razorpay order. Full amount is collected into the platform account.
+   * Amount must be in PAISE (₹5000 = 500000 paise).
    *
-   * Amount is in PAISE (₹5000 = 500000 paise).
+   * ROUTE_HOOK: To add automatic escrow splits via Razorpay Route, add a
+   * `transfers` param and spread it into the order payload. See the ROUTE_HOOK
+   * comment in booking.service.ts for the full transfer object shape.
    *
    * @throws PaymentError — Razorpay API failure
    * @throws ValidationError — zero/negative amount
@@ -31,7 +33,6 @@ export class PaymentService {
   async createOrder(
     amount: number,
     receipt: string,
-    transfers: Record<string, unknown>[],
     notes: Record<string, unknown>,
   ) {
     const timer = startTimer()
@@ -39,41 +40,17 @@ export class PaymentService {
       throw new ValidationError('Order amount must be greater than zero')
     }
 
-    const buildPayload = (includeTransfers: boolean) => ({
-      amount,
-      currency: CURRENCY,
-      receipt,
-      payment_capture: 0,
-      ...(includeTransfers && transfers.length > 0 ? { transfers } : {}),
-      notes,
-    } as Parameters<typeof this.razorpay.orders.create>[0])
-
     try {
-      const order = await this.razorpay.orders.create(buildPayload(true))
+      const order = await this.razorpay.orders.create({
+        amount,
+        currency: CURRENCY,
+        receipt,
+        payment_capture: 0,
+        notes,
+      } as Parameters<typeof this.razorpay.orders.create>[0])
       this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created')
       return order
-    } catch (error: unknown) {
-      // Razorpay Route is not enabled on this account — retry without transfers so
-      // bookings still work; funds go directly to the platform account instead.
-      const rzpErr = (error as { error?: { description?: string } })?.error
-      if (
-        transfers.length > 0 &&
-        typeof rzpErr?.description === 'string' &&
-        rzpErr.description.toLowerCase().includes('transfer')
-      ) {
-        this.logger.warn(
-          { error, amount, receipt },
-          'Razorpay Route not enabled — retrying order without transfers',
-        )
-        try {
-          const order = await this.razorpay.orders.create(buildPayload(false))
-          this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created (no transfers)')
-          return order
-        } catch (retryError) {
-          this.logger.error({ error: retryError, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed (retry)')
-          throw new PaymentError('Failed to create Razorpay order', retryError)
-        }
-      }
+    } catch (error) {
       this.logger.error({ error, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed')
       throw new PaymentError('Failed to create Razorpay order', error)
     }

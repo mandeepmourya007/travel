@@ -43,7 +43,6 @@ export class MockPaymentService extends PaymentService {
   override async createOrder(
     amount: number,
     receipt: string,
-    _transfers: Record<string, unknown>[],
     notes: Record<string, unknown>,
   ) {
     const orderId = `order_mock_${crypto.randomBytes(8).toString('hex')}`

@@ -13,7 +13,7 @@ import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PLATFORM_COMMISSION_PERCENT, ESCROW_SAFETY_BUFFER_DAYS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { calculateRefundPercent } from '@shared/utils/refund'
 import { env } from '../config/env'
@@ -21,7 +21,6 @@ import { withLock } from '../utils/redis-lock'
 
 // Matches a real Razorpay linked account ID: "acc_" + 14+ alphanumeric chars.
 // Used to gate escrow transfers — test/sandbox IDs won't match and transfers are skipped.
-const REAL_ACCOUNT_RE = /^acc_[A-Za-z0-9]{14,}$/
 
 /** Maps Prisma's nested assignedSeat → flat API shape */
 function mapAssignedSeat(
@@ -486,24 +485,6 @@ export class BookingService {
       const totalAmount = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
       const amountInPaise = totalAmount * 100
 
-      // 6. Build order-level transfers — only in production with a real linked account
-      const isRealAccount =
-        env.NODE_ENV === 'production' &&
-        REAL_ACCOUNT_RE.test(trip.organizer.razorpayAccountId ?? '')
-
-      const transfers: Record<string, unknown>[] = isRealAccount
-        ? [{
-            account: trip.organizer.razorpayAccountId,
-            amount: Math.round(amountInPaise * (1 - (trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT) / 100)),
-            currency: CURRENCY,
-            on_hold: 1,
-            on_hold_until: Math.floor(
-              new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
-            ),
-            notes: { tripId: input.tripId },
-          }]
-        : []
-
       // Pre-check seat availability (optimistic — atomic hold happens after booking creation)
       if (input.seatIds?.length && this.vehicleService) {
         const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
@@ -512,11 +493,23 @@ export class BookingService {
         }
       }
 
-      // 7. Create Razorpay order
+      // 6. Create Razorpay order — full amount collected into platform account.
+      // Organizer payouts are handled manually via the admin dashboard.
+      //
+      // ROUTE_HOOK: To enable automatic escrow splits via Razorpay Route, pass
+      // a `transfers` array to paymentSvc.createOrder() here. Example transfer:
+      //   [{
+      //     account: trip.organizer.razorpayAccountId,   // acc_XXXXXXXXXXXXXXXX
+      //     amount: Math.round(amountInPaise * (1 - commissionRate / 100)),
+      //     currency: CURRENCY,
+      //     on_hold: 1,
+      //     on_hold_until: Math.floor(new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60),
+      //     notes: { tripId: input.tripId },
+      //   }]
+      // Requires: Razorpay Route activated + organizer has a verified linked account.
       const order = await paymentSvc.createOrder(
         amountInPaise,
         `booking-${Date.now()}`,
-        transfers,
         { tripId: input.tripId, userId },
       )
 
