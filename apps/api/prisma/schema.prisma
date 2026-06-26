@@ -256,7 +256,7 @@ model PaymentTransaction {
 }
 
 model RefreshToken {
-  id         String    @id
+  id         String    @id @default(cuid())
   userId     String
   tokenHash  String    @unique
   deviceInfo String?
