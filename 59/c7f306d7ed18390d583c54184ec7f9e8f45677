@@ -1,0 +1,14 @@
+apps/api/prisma/schema.prisma
+  h_b3232c20134322 259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "59c7f306d7ed18390d583c54184ec7f9e8f45677",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
