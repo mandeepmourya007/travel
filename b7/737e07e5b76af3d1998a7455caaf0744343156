@@ -1,0 +1,32 @@
+apps/api/src/middleware/error-handler.middleware.ts
+  s_24fd1a3142653b::t_a0e0d0dcdf60b5 17-18
+apps/api/tests/unit/validators/trip.schema.test.ts
+  s_24fd1a3142653b::t_d5a44927570d0d 1-143
+apps/api/tests/unit/middleware/error-handler.middleware.test.ts
+  s_24fd1a3142653b::t_43ee8398ff0ba1 1-105
+apps/api/tests/unit/repositories/trip.repository.test.ts
+  s_24fd1a3142653b::t_429f8d8128e59d 201-257
+packages/shared/src/validators/trip.schema.ts
+  s_24fd1a3142653b::t_e4489b48d5acf5 145-146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "b7737e07e5b76af3d1998a7455caaf0744343156",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_24fd1a3142653b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34ca87ad-2429-4c44-a6a3-a7d511c70867",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
