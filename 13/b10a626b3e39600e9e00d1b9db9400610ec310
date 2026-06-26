@@ -1,0 +1,29 @@
+apps/web/src/components/trips/trip-filters.tsx
+  s_6f079575e80948::t_ebf3bfc83c0752 3
+  s_6f079575e80948::t_db85114ccb83f4 25
+  s_6f079575e80948::t_315e754af03c03 73-75
+  s_6f079575e80948::t_1b19fd0364153b 86-88
+  s_6f079575e80948::t_aaba5290c8154d 94-95
+  s_6f079575e80948::t_a0a8c2b267e0fb 50-51,53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "13b10a626b3e39600e9e00d1b9db9400610ec310",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6f079575e80948": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "af2e6a72-cf48-43a9-812e-e73bc9648c51",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
