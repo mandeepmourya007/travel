@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
@@ -14,14 +14,25 @@ import { useLoadingStore } from '@/store/loading.store'
 /** Validates returnTo is a safe relative path (no open redirect) */
 function getSafeReturnTo(raw: string | null): string | null {
   if (!raw) return null
-  // Must start with / and must NOT start with // (protocol-relative URL)
   if (raw.startsWith('/') && !raw.startsWith('//')) return raw
   return null
 }
 
 const GOOGLE_PENDING_KEY = 'google_auth_pending'
+const GOOGLE_PENDING_MAX_AGE_MS = 30_000
 
-export default function EmailLoginPage() {
+function readGooglePending(): boolean {
+  if (typeof window === 'undefined') return false
+  const ts = sessionStorage.getItem(GOOGLE_PENDING_KEY)
+  if (!ts) return false
+  if (Date.now() - Number(ts) > GOOGLE_PENDING_MAX_AGE_MS) {
+    sessionStorage.removeItem(GOOGLE_PENDING_KEY)
+    return false
+  }
+  return true
+}
+
+function EmailLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const returnTo = getSafeReturnTo(searchParams.get('returnTo'))
@@ -34,14 +45,7 @@ export default function EmailLoginPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  // Tracks Google redirect-mode flow: set before navigating to Google, cleared on return.
-  // Prevents the form from flashing between page load and GIS firing onSuccess.
-  const [googleRedirectPending, setGoogleRedirectPending] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !!sessionStorage.getItem(GOOGLE_PENDING_KEY)
-    }
-    return false
-  })
+  const [googleRedirectPending, setGoogleRedirectPending] = useState(() => readGooglePending())
 
   useEffect(() => {
     if (hasHydrated && isAuthenticated && completedOnboarding) {
@@ -54,14 +58,12 @@ export default function EmailLoginPage() {
     setGoogleRedirectPending(false)
   }
 
-  // Safety valve: if GIS never calls onSuccess/onError (e.g. popup dismissed on iOS without
-  // triggering onError), the spinner would be stuck indefinitely. Clear after 60s.
   useEffect(() => {
     if (!googleRedirectPending) return
     const t = setTimeout(() => {
       sessionStorage.removeItem(GOOGLE_PENDING_KEY)
       setGoogleRedirectPending(false)
-    }, 60_000)
+    }, GOOGLE_PENDING_MAX_AGE_MS)
     return () => clearTimeout(t)
   }, [googleRedirectPending])
 
@@ -69,7 +71,7 @@ export default function EmailLoginPage() {
     e.preventDefault()
     setError('')
     setFieldErrors({})
-    
+
     const result = loginSchema.safeParse(form)
     if (!result.success) {
       const errs: Record<string, string> = {}
@@ -97,10 +99,6 @@ export default function EmailLoginPage() {
     }
   }
 
-  // Show spinner while:
-  // 1. Auth hydration is in progress (avoids form flash for already-authenticated users)
-  // 2. Returning from a Google OAuth redirect (avoids form flash before GIS fires onSuccess)
-  // 3. Already authenticated and useEffect redirect is about to fire
   if (!hasHydrated || googleRedirectPending || (isAuthenticated && completedOnboarding)) {
     return (
       <div className="flex flex-1 items-center justify-center bg-neutral-50">
@@ -168,7 +166,7 @@ export default function EmailLoginPage() {
 
           <GoogleAuthSection
             onInitiate={() => {
-              sessionStorage.setItem(GOOGLE_PENDING_KEY, '1')
+              sessionStorage.setItem(GOOGLE_PENDING_KEY, String(Date.now()))
               setGoogleRedirectPending(true)
             }}
             onSuccess={(isNewUser) => {
@@ -192,15 +190,21 @@ export default function EmailLoginPage() {
             <Link href="/login/email-otp" className="font-medium text-primary-600 hover:text-primary-700">
               login with email OTP
             </Link>
-            {/* TODO: Uncomment when phone OTP is set up
-            {' · '}
-            <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
-              login with phone
-            </Link>
-            */}
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function EmailLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-1 items-center justify-center bg-neutral-50">
+        <span className="spinner w-8 h-8" />
+      </div>
+    }>
+      <EmailLoginForm />
+    </Suspense>
   )
 }

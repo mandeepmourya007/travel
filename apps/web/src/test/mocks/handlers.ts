@@ -78,6 +78,17 @@ export const handlers = [
     })
   }),
 
+  // POST /auth/login — email/password login
+  http.post(`${API}/auth/login`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        user: { id: 'u1', name: 'Test User', email: 'test@example.com', role: 'TRAVELER' },
+        tokens: { accessToken: 'test-jwt', expiresIn: 900 },
+      },
+    })
+  }),
+
   // POST /auth/google — Google OAuth
   http.post(`${API}/auth/google`, () => {
     return HttpResponse.json({
