@@ -1,0 +1,33 @@
+apps/web/src/store/auth.store.ts
+  s_6f079575e80948::t_6bf8c20ed7f767 85-87
+  s_46711f6498ad4d::t_20f143ee5dad6a 101,103-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "31eb54d5d10aa1887514e9f816e1482fbd666ea3",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_46711f6498ad4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34bb70b9-2cb9-4331-8e07-2cfd12dd2a11",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_6f079575e80948": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "af2e6a72-cf48-43a9-812e-e73bc9648c51",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
