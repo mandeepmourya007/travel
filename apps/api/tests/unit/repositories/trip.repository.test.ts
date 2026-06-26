@@ -198,6 +198,63 @@ describe('TripRepository', () => {
     })
   })
 
+  // ── search — buildOrderBy ────────────────────────
+
+  describe('search — buildOrderBy', () => {
+    beforeEach(() => {
+      mockPrisma.trip.findMany.mockResolvedValue([])
+      mockPrisma.trip.count.mockResolvedValue(0)
+    })
+
+    it('sorts by createdAt desc for newest', async () => {
+      await repo.search({ sort: 'newest' }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ createdAt: 'desc' })
+    })
+
+    it('sorts by currentBookings desc for popularity', async () => {
+      await repo.search({ sort: 'popularity' }, { offset: 0, limit: 6 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ currentBookings: 'desc' })
+    })
+
+    it('sorts by pricePerPerson asc for price_asc', async () => {
+      await repo.search({ sort: 'price_asc' }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ pricePerPerson: 'asc' })
+    })
+
+    it('sorts by pricePerPerson desc for price_desc', async () => {
+      await repo.search({ sort: 'price_desc' }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ pricePerPerson: 'desc' })
+    })
+
+    it('sorts by organizer rating desc for rating', async () => {
+      await repo.search({ sort: 'rating' }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ organizer: { rating: 'desc' } })
+    })
+
+    it('sorts by startDate asc for date', async () => {
+      await repo.search({ sort: 'date' }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ startDate: 'asc' })
+    })
+
+    it('falls back to createdAt desc for unknown sort value', async () => {
+      await repo.search({ sort: 'unknown' as any }, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ createdAt: 'desc' })
+    })
+
+    it('falls back to createdAt desc when sort is omitted', async () => {
+      await repo.search({}, { offset: 0, limit: 20 })
+      const orderBy = mockPrisma.trip.findMany.mock.calls[0][0].orderBy
+      expect(orderBy).toEqual({ createdAt: 'desc' })
+    })
+  })
+
   // ── countPendingRequests ─────────────────────────
 
   describe('countPendingRequests', () => {

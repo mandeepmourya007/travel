@@ -14,6 +14,8 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     log.error({ err, path: req.path, method: req.method }, 'Unexpected error')
   }
 
+  res.set('Cache-Control', 'no-store')
+
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({
       success: false,
