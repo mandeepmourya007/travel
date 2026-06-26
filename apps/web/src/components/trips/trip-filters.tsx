@@ -9,6 +9,7 @@ import { useTripCategories } from '@/hooks/use-trip-categories'
 import { useDebounce } from '@/hooks/use-debounce'
 import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
 const SORT_OPTIONS = [
+  { value: 'newest', label: 'Newest First' },
   { value: 'date', label: 'Soonest' },
   { value: 'price_asc', label: 'Price: Low to High' },
   { value: 'price_desc', label: 'Price: High to Low' },
@@ -208,7 +209,7 @@ export function TripFilters({ currentFilters }: TripFiltersProps) {
           Sort By
         </label>
         <select
-          value={currentFilters.sort || 'date'}
+          value={currentFilters.sort || 'newest'}
           onChange={(e) => updateFilters('sort', e.target.value)}
           className="input text-sm"
         >

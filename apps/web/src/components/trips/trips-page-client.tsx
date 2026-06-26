@@ -25,7 +25,7 @@ function SearchContent({ initialData }: SearchContentProps) {
     tripType: (searchParams.get('tripType') as TripFiltersType['tripType']) || undefined,
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
-    sort: (searchParams.get('sort') as TripFiltersType['sort']) || 'date',
+    sort: (searchParams.get('sort') as TripFiltersType['sort']) || 'newest',
     page: searchParams.get('page') ? Number(searchParams.get('page')) : 1,
     limit: 12,
   }), [searchParams])

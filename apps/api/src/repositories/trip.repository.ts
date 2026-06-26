@@ -679,9 +679,12 @@ export class TripRepository {
         return { organizer: { rating: 'desc' } }
       case 'popularity':
         return { currentBookings: 'desc' }
+      case 'newest':
+        return { createdAt: 'desc' }
       case 'date':
-      default:
         return { startDate: 'asc' }
+      default:
+        return { createdAt: 'desc' }
     }
   }
 }

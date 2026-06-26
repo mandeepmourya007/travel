@@ -16,7 +16,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   const q = typeof searchParams.q === 'string' ? searchParams.q : undefined
   const destination = typeof searchParams.destination === 'string' ? searchParams.destination : undefined
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1
-  const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'date'
+  const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'newest'
 
   // Server-side fetch for SEO — Google sees real trip content
   let trips: TripSummary[] = []
