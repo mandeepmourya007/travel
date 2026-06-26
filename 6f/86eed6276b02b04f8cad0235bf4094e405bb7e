@@ -1,0 +1,61 @@
+apps/web/next.config.js
+  s_d70b07f829534c::t_25f5d546f9ba37 18-25
+apps/api/prisma/schema.prisma
+  s_d70b07f829534c::t_519e9e47babef9 584-587
+apps/api/src/services/trip.service.ts
+  s_d70b07f829534c::t_c08be794caa36c 804-810,813-816
+apps/web/src/hooks/use-notifications.ts
+  s_46711f6498ad4d::t_4f1536473493fc 62
+  s_46711f6498ad4d::t_2c305696711162 3
+  s_d70b07f829534c::t_06d09f0f3267d9 47-49
+apps/web/src/hooks/use-is-mobile.ts
+  s_46711f6498ad4d::t_34954caeebbf66 1-15
+apps/web/src/lib/constants.ts
+  s_46711f6498ad4d::t_7bb89bdc1eb9ec 24
+apps/api/src/utils/constants.ts
+  s_d70b07f829534c::t_9ce150bfa3fc6c 161-164,166-172,176-183
+  s_d70b07f829534c::t_91b184d648d9c5 173-175
+apps/web/src/components/trips/trip-form/media-tab.tsx
+  s_d70b07f829534c::t_1bfd0cb1d1115d 52
+  s_d70b07f829534c::t_c59015d2e65151 4
+  s_46711f6498ad4d::t_9f22013419b57d 51
+apps/api/prisma/migrations/20260626000001_add_review_trip_isdeleted_createdat_idx/migration.sql
+  s_d70b07f829534c::t_ced476b97daf14 4-7
+  s_d70b07f829534c::t_c782d64cd67b98 1-3,8
+apps/web/src/components/shared/date-time-picker.tsx
+  s_46711f6498ad4d::t_373b43ded502e8 8,10,22,39,84-97,99-141,143,145-152,154,156-161,164-168,170,172-182,184-196,199-212
+  s_46711f6498ad4d::t_ed0b96dc562264 197-198
+apps/api/src/services/payment.service.ts
+  s_46711f6498ad4d::t_a3f5c1f09f5a27 52,55-57
+  s_46711f6498ad4d::t_c589f5b0aa44fb 58-60
+  s_46711f6498ad4d::t_659627b1bf63b5 42-50,61-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "6f86eed6276b02b04f8cad0235bf4094e405bb7e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_46711f6498ad4d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "34bb70b9-2cb9-4331-8e07-2cfd12dd2a11",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_d70b07f829534c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2bf18261-cda6-4467-aaaf-b2d738119362",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
