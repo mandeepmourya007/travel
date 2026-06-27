@@ -1,0 +1,83 @@
+apps/web/src/components/trips/trip-filters.tsx
+  s_d84a52fbfa6fb8::t_ed0e14cf724879 6
+  s_d84a52fbfa6fb8::t_deaab7393564a7 77-78
+  s_d84a52fbfa6fb8::t_47894387705dfc 294-295,297
+  s_d84a52fbfa6fb8::t_fc48b3f57b00eb 45
+  s_36700f74de0d91::t_bd83af768f749e 9
+  s_36700f74de0d91::t_b84e3005e60053 225-232
+  s_d84a52fbfa6fb8::t_8aca6aef978e8f 33,36,43-44,46-47
+  s_36700f74de0d91::t_403cc7e6bfd80b 14,16-21
+  s_d84a52fbfa6fb8::t_848f5e583064cf 82,110,123,133
+  s_d84a52fbfa6fb8::t_4b8cd1859d6154 40,42
+  s_d84a52fbfa6fb8::t_4e25e58cde6b4d 41
+  s_d84a52fbfa6fb8::t_2d32210b9553bc 320-322,324-326
+  s_d84a52fbfa6fb8::t_202afb55b39310 306-307,309
+  s_d84a52fbfa6fb8::t_0ca0aaffee8f1e 5,7
+  s_d84a52fbfa6fb8::t_2100bcf3f4e77c 293,308,323
+  s_d84a52fbfa6fb8::t_3b0d7aea727809 75-76,79
+  h_b3232c20134322 15
+  s_36700f74de0d91::t_8d296345e85318 57-69
+apps/web/src/components/trips/trip-grid.tsx
+  s_d84a52fbfa6fb8::t_a5098e71ace500 54-55
+  s_d84a52fbfa6fb8::t_826b617ac0ada4 17-18,21,25-26,28-29
+  s_d84a52fbfa6fb8::t_98a491086dc8e4 27
+  s_d84a52fbfa6fb8::t_6c6d0bcc8eaf80 23
+  s_d84a52fbfa6fb8::t_be187180db667e 3
+apps/web/src/hooks/use-trips.ts
+  s_d84a52fbfa6fb8::t_92193fac5f86af 2,14-19,45
+apps/web/src/components/destinations/destination-detail-client.tsx
+  s_36700f74de0d91::t_c13defc8cf58aa 112-121,123-142
+  s_d84a52fbfa6fb8::t_b65d96c2f015cb 42,47
+  s_36700f74de0d91::t_a370a1e982dff7 302-310
+  s_36700f74de0d91::t_343b8f14e4cf8b 3
+  s_36700f74de0d91::t_2fb3bd1012c745 17
+  h_b3232c20134322 122
+apps/web/src/components/trips/trips-page-client.tsx
+  s_d84a52fbfa6fb8::t_c8e4eacc19fc44 51
+  s_d84a52fbfa6fb8::t_87074b0a571d07 20-21
+  s_d84a52fbfa6fb8::t_1352cc5bc972e9 3
+  s_d84a52fbfa6fb8::t_1f76a7302955fc 22
+  s_d84a52fbfa6fb8::t_33ad7c321163c6 40
+  s_d84a52fbfa6fb8::t_57903552f831e2 50
+apps/web/src/components/shared/__tests__/price-range-slider.test.tsx
+  s_36700f74de0d91::t_928d601dce422e 1-7,9,11-23,25-86
+  h_b3232c20134322 8,10,24
+apps/web/src/test/setup.ts
+  s_36700f74de0d91::t_d0610978702510 7-16
+apps/web/src/app/trips/page.tsx
+  s_d84a52fbfa6fb8::t_36c8a0d79e4795 45
+apps/web/src/components/shared/price-range-slider.tsx
+  s_36700f74de0d91::t_fd89620fda1427 1-7,9-149
+  h_b3232c20134322 8
+apps/web/src/components/payments/payment-transaction-list.tsx
+  s_d84a52fbfa6fb8::t_3e648f4c8fcd42 127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "c52ae42d430031a71bbbe63b2e93042d4a7b2c85",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_36700f74de0d91": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5fd88639-b592-451d-bd77-c713d31cc170",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_d84a52fbfa6fb8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "52904483-99f8-43f4-9021-0dfdad511b41",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
