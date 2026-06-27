@@ -1,0 +1,30 @@
+apps/api/src/repositories/trip.repository.ts
+  s_73d42031180d8b::t_7c94f79a9b0844 512,516
+  s_73d42031180d8b::t_ade2cab608fe77 530,534
+apps/api/tests/unit/repositories/trip.repository.test.ts
+  s_73d42031180d8b::t_09c76e3295b11e 3
+  s_73d42031180d8b::t_49dd8dda2b1b57 24,28-36
+  s_73d42031180d8b::t_2430484510dfd2 324-358
+  s_73d42031180d8b::t_e5bf722e6fb89a 37-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "f091dbace8d112dcb00972b3742ef0dce04eaafb",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_73d42031180d8b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6162639a-8b7f-4cf9-871c-1eb7661d90c6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
