@@ -509,11 +509,11 @@ export class TripRepository {
   async markFullIfAtCapacity(tripId: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Trip"
-      SET status = ${TRIP_STATUS.FULL},
+      SET status = ${TRIP_STATUS.FULL}::"TripStatus",
           "updatedAt" = NOW()
       WHERE id = ${tripId}
         AND "currentBookings" >= "maxGroupSize"
-        AND status = ${TRIP_STATUS.ACTIVE}
+        AND status = ${TRIP_STATUS.ACTIVE}::"TripStatus"
         AND "isDeleted" = false
     `
   }
@@ -527,11 +527,11 @@ export class TripRepository {
   async revertFullIfUnderCapacity(tripId: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Trip"
-      SET status = ${TRIP_STATUS.ACTIVE},
+      SET status = ${TRIP_STATUS.ACTIVE}::"TripStatus",
           "updatedAt" = NOW()
       WHERE id = ${tripId}
         AND "currentBookings" < "maxGroupSize"
-        AND status = ${TRIP_STATUS.FULL}
+        AND status = ${TRIP_STATUS.FULL}::"TripStatus"
         AND "isDeleted" = false
     `
   }

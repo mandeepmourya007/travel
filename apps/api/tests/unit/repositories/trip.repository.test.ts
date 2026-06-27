@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { TripRepository } from '../../../src/repositories/trip.repository'
+import { TRIP_STATUS } from '@shared/constants/trip-types'
 
 // ── Mock Prisma client ───────────────────────────────
 
@@ -20,7 +21,19 @@ function createMockPrisma() {
       update: vi.fn(),
     },
     $transaction: vi.fn((args: unknown[]) => Promise.all(args)),
+    $executeRaw: vi.fn(),
   }
+}
+
+// Reconstructs the interpolated SQL string from a Prisma tagged-template call
+// (`[TemplateStringsArray, ...values]`) so raw-query assertions can inspect both
+// the literal SQL fragments and the interpolated values.
+function rawSqlFromCall(call: unknown[]): string {
+  const [strings, ...values] = call as [TemplateStringsArray, ...unknown[]]
+  return strings.reduce(
+    (acc, part, i) => acc + part + (i < values.length ? String(values[i]) : ''),
+    '',
+  )
 }
 
 // ── Tests ────────────────────────────────────────────
@@ -306,6 +319,41 @@ describe('TripRepository', () => {
 
       const where = mockPrisma.tripRequest.count.mock.calls[0][0].where
       expect(where.status).toBe('PENDING')
+    })
+  })
+
+  // ── Lifecycle status transitions (raw SQL enum casts) ────
+  // Regression: Postgres rejects `"TripStatus" = text` without an explicit cast,
+  // which broke confirmBooking()'s auto-transition to FULL (Sentry API-EXPRESS-D).
+  describe('markFullIfAtCapacity', () => {
+    it('should cast both the SET value and WHERE comparison to "TripStatus"', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(1)
+
+      await repo.markFullIfAtCapacity('trip-1')
+
+      const sql = rawSqlFromCall(mockPrisma.$executeRaw.mock.calls[0])
+      expect(sql).toContain(`${TRIP_STATUS.FULL}::"TripStatus"`)
+      expect(sql).toContain(`status = ${TRIP_STATUS.ACTIVE}::"TripStatus"`)
+      // No bare enum comparison/assignment that Postgres would reject
+      expect(sql).not.toMatch(/status = (ACTIVE|FULL)(?!::)/)
+    })
+
+    it('should return the number of rows transitioned', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(1)
+      expect(await repo.markFullIfAtCapacity('trip-1')).toBe(1)
+    })
+  })
+
+  describe('revertFullIfUnderCapacity', () => {
+    it('should cast both the SET value and WHERE comparison to "TripStatus"', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(1)
+
+      await repo.revertFullIfUnderCapacity('trip-1')
+
+      const sql = rawSqlFromCall(mockPrisma.$executeRaw.mock.calls[0])
+      expect(sql).toContain(`${TRIP_STATUS.ACTIVE}::"TripStatus"`)
+      expect(sql).toContain(`status = ${TRIP_STATUS.FULL}::"TripStatus"`)
+      expect(sql).not.toMatch(/status = (ACTIVE|FULL)(?!::)/)
     })
   })
 })
