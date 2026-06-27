@@ -1,0 +1,83 @@
+apps/api/src/services/booking.service.ts
+  s_55d5baef14857f::t_99eb1b4631ffd9 529
+  s_55d5baef14857f::t_84cf9ba4a2b92a 391
+  s_55d5baef14857f::t_c99b6cf506c9a2 392
+  s_55d5baef14857f::t_ede4bba47614bd 452-454
+apps/web/src/hooks/use-create-booking.ts
+  s_55d5baef14857f::t_ca41c7b589fe2b 10-18
+apps/web/src/components/booking/traveler-form.tsx
+  s_55d5baef14857f::t_7cc135b1cff0b9 164,168,172-174,176-181,183-185,190,193-194,196-198,203
+  s_55d5baef14857f::t_acca84c73e3aac 3,25,55-60,70-72,75,78,130-131,149-150
+  s_55d5baef14857f::t_d3b8592ba6d444 41-54
+  s_55d5baef14857f::t_6ab1311a208f47 4-11,18,24
+  s_55d5baef14857f::t_f7e0b52fcd74c5 64-66
+apps/api/src/repositories/booking.repository.ts
+  s_55d5baef14857f::t_75fc02910fd0cd 442
+  s_55d5baef14857f::t_2a370c00de5239 420
+docker/api.prod.Dockerfile
+  s_5a5f7582bcd9e0::t_e0018b8f35b7f4 58
+apps/web/src/components/booking/__tests__/booking-page.test.tsx
+  s_55d5baef14857f::t_1d6d649aaea6b4 379,383-385
+  s_55d5baef14857f::t_16b50114dd71f2 421,425-427,442,445-447
+  s_55d5baef14857f::t_b8e594d6e7ea23 305
+  s_55d5baef14857f::t_c88636557832e9 572,576-578,595
+  s_55d5baef14857f::t_6a9aaabdc89b04 422
+  s_55d5baef14857f::t_9839cfb3c11ce4 314-331
+  s_55d5baef14857f::t_1adcbadf4837b2 242,247,250-252
+  s_55d5baef14857f::t_d600d4516d0a2a 439,443
+  s_55d5baef14857f::t_12f35a9197c8dd 306
+  s_55d5baef14857f::t_9ffef66c71033f 573
+  s_55d5baef14857f::t_cc4391e4ede2d6 353,357-362
+  s_55d5baef14857f::t_97ee6254ccd98d 354,363,380
+  s_55d5baef14857f::t_1b75ca71382949 220-241
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_55d5baef14857f::t_1bf25fcb97ffa7 24
+  s_55d5baef14857f::t_e666e8740dc432 114-117,127
+  s_55d5baef14857f::t_87db4aecd4a0ad 64-71,73
+  s_55d5baef14857f::t_1c5cacb24d13a3 118,120,123,128
+  s_55d5baef14857f::t_db394abb5b13be 138
+  s_55d5baef14857f::t_420d67ebe8da08 86
+  s_55d5baef14857f::t_f54089c3a6ab4d 183
+  s_55d5baef14857f::t_5e5caa723f246d 339-340
+  s_55d5baef14857f::t_9fa45e40a2c109 8-9
+  s_55d5baef14857f::t_a76edf6e507470 353-374,376-381,383-384
+  s_55d5baef14857f::t_679f2464192a56 3-4
+  s_55d5baef14857f::t_512eacf0c97089 23
+  s_55d5baef14857f::t_a27509d2e81b10 394
+  s_55d5baef14857f::t_049835ffa1d6ef 436-440
+apps/web/src/test/mocks/api-client.ts
+  s_55d5baef14857f::t_fead35c5690dc8 2,5-6,13-26
+  s_55d5baef14857f::t_3551d21d199d2f 27
+packages/shared/src/validators/booking.schema.ts
+  s_55d5baef14857f::t_c5929e9075fd03 23
+  s_55d5baef14857f::t_f8369b1c4766f3 22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "5d53e08d766b999a1ca9c6d717df754154a69064",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_55d5baef14857f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d9d092de-4800-4d80-998d-e0a615179bf7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_5a5f7582bcd9e0": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "c869607b-c76a-4c8f-872a-cd4a57e1e9aa",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
