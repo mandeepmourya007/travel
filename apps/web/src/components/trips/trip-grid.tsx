@@ -6,6 +6,7 @@ import { TripCard } from './trip-card'
 import { TripCardSkeleton } from './trip-card-skeleton'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
+import { FetchingOverlay } from '@/components/shared/fetching-overlay'
 import type { TripFilters, TripSummary } from '@shared/types/trip.types'
 
 interface TripGridProps {
@@ -17,7 +18,7 @@ interface TripGridProps {
 
 export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData }: TripGridProps) {
   const searchParams = useSearchParams()
-  const { data, isLoading, error, refetch } = useTrips(filters, { initialData })
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useTrips(filters, { initialData })
 
   if (isLoading) {
     return (
@@ -44,33 +45,36 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData
   }
 
   return (
-    <div>
-      <p className="text-sm text-neutral-500 mb-4">
-        {data.pagination?.total ?? data.trips.length} trips found
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {data.trips.map((trip, i) => (
-          <TripCard
-            key={trip.id}
-            trip={trip}
-            onCompare={onCompare}
-            isSelected={selectedTripIds.includes(trip.id)}
-            priority={i < 3}
-          />
-        ))}
-      </div>
-
-      {/* Pagination */}
-      {data.pagination && data.pagination.totalPages > 1 && (
-        <div className="mt-8">
-          <Pagination
-            currentPage={data.pagination.page}
-            totalPages={data.pagination.totalPages}
-            total={data.pagination.total}
-            buildHref={buildPageHref}
-          />
+    <div className="relative">
+      {isFetching && isPlaceholderData && <FetchingOverlay />}
+      <div className={isFetching && isPlaceholderData ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
+        <p className="text-sm text-neutral-500 mb-4">
+          {data.pagination?.total ?? data.trips.length} trips found
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {data.trips.map((trip, i) => (
+            <TripCard
+              key={trip.id}
+              trip={trip}
+              onCompare={onCompare}
+              isSelected={selectedTripIds.includes(trip.id)}
+              priority={i < 3}
+            />
+          ))}
         </div>
-      )}
+
+        {/* Pagination */}
+        {data.pagination && data.pagination.totalPages > 1 && (
+          <div className="mt-8">
+            <Pagination
+              currentPage={data.pagination.page}
+              totalPages={data.pagination.totalPages}
+              total={data.pagination.total}
+              buildHref={buildPageHref}
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

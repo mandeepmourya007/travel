@@ -18,9 +18,16 @@ export default defineConfig({
     css: false,
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      '@shared': path.resolve(__dirname, '../../packages/shared/src'),
-    },
+    alias: [
+      // More-specific aliases must come before the '@' catch-all.
+      // Redirect api-client to a test stub that avoids Next.js store dependencies.
+      // MSW intercepts at the network layer, so a plain axios instance suffices.
+      {
+        find: '@/lib/api-client',
+        replacement: path.resolve(__dirname, 'src/test/mocks/api-client.ts'),
+      },
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
+      { find: '@shared', replacement: path.resolve(__dirname, '../../packages/shared/src') },
+    ],
   },
 })

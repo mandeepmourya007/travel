@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { destinationKeys } from '@/lib/query-keys'
 import type { DestinationDetailResponse, DestinationTripFilters } from '@shared/types/destination.types'
@@ -31,7 +31,9 @@ export function useDestinationDetail(
     queryKey: destinationKeys.detail(slug, { page, ...filters }),
     queryFn: () => fetchDestinationDetail(slug, page, filters),
     enabled: !!slug,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
     initialData,
-    staleTime: initialData ? 5 * 60 * 1000 : 0,
+    initialDataUpdatedAt: 0,
   })
 }

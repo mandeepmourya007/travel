@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { fetchApiWithPagination } from '@/lib/api-server'
@@ -15,6 +17,11 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   // destination-name param (still supported for back-compat with existing links).
   const q = typeof searchParams.q === 'string' ? searchParams.q : undefined
   const destination = typeof searchParams.destination === 'string' ? searchParams.destination : undefined
+  const destinationId = typeof searchParams.destinationId === 'string' ? searchParams.destinationId : undefined
+  const tripType = typeof searchParams.tripType === 'string' ? searchParams.tripType : undefined
+  const minPrice = typeof searchParams.minPrice === 'string' ? searchParams.minPrice : undefined
+  const maxPrice = typeof searchParams.maxPrice === 'string' ? searchParams.maxPrice : undefined
+  const bookingMode = typeof searchParams.bookingMode === 'string' ? searchParams.bookingMode : undefined
   const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1
   const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'newest'
 
@@ -25,12 +32,17 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
     const params = new URLSearchParams()
     if (q) params.set('q', q)
     if (destination) params.set('destination', destination)
+    if (destinationId) params.set('destinationId', destinationId)
+    if (tripType) params.set('tripType', tripType)
+    if (minPrice) params.set('minPrice', minPrice)
+    if (maxPrice) params.set('maxPrice', maxPrice)
+    if (bookingMode) params.set('bookingMode', bookingMode)
     params.set('page', String(page))
     params.set('limit', '12')
     params.set('sort', sort)
     const result = await fetchApiWithPagination<TripSummary[]>(
       `/trips?${params.toString()}`,
-      { revalidate: 300 },
+      { revalidate: 0 },
     )
     trips = result.data
     pagination = result.pagination
@@ -39,7 +51,9 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   }
 
   const searchLabel = q || destination
-  const heading = searchLabel ? `Search results for "${searchLabel}"` : 'Explore All Group Trips from Pune'
+  const heading = searchLabel
+    ? `Search results for "${searchLabel}"`
+    : 'Explore All Group Trips from Pune'
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },

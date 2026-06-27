@@ -55,4 +55,4 @@ EXPOSE 4000
 
 USER node
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "[ -f /etc/secrets/.env.prod ] && exec node --env-file=/etc/secrets/.env.prod --import=tsx src/index.ts || exec node --import=tsx src/index.ts"]
+CMD ["sh", "-c", "if [ -f /etc/secrets/.env.prod ]; then node --env-file=/etc/secrets/.env.prod node_modules/.bin/prisma migrate deploy && exec node --env-file=/etc/secrets/.env.prod --import=tsx src/index.ts; else node_modules/.bin/prisma migrate deploy && exec node --import=tsx src/index.ts; fi"]

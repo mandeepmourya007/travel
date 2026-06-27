@@ -1,4 +1,4 @@
-import { cache } from 'react'
+import { cache, Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { fetchApi } from '@/lib/api-server'
@@ -95,7 +95,9 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
         />
       )}
-      <DestinationDetailClient initialData={data} slug={params.slug} />
+      <Suspense fallback={null}>
+        <DestinationDetailClient initialData={data} slug={params.slug} />
+      </Suspense>
     </>
   )
 }

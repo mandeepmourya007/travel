@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BlurImage } from '@/components/shared/blur-image'
 import {
@@ -8,6 +9,7 @@ import {
   TrendingDown, SlidersHorizontal, X,
 } from 'lucide-react'
 import { useDestinationDetail } from '@/hooks/use-destination-detail'
+import { FetchingOverlay } from '@/components/shared/fetching-overlay'
 import { DestinationCard } from '@/components/destinations/destination-card'
 import { TripCard } from '@/components/trips/trip-card'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
@@ -29,17 +31,29 @@ interface DestinationDetailClientProps {
 }
 
 export function DestinationDetailClient({ initialData, slug }: DestinationDetailClientProps) {
-  const [page, setPage] = useState(1)
-  const [filters, setFilters] = useState<DestinationTripFilters>({})
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const searchParamsRef = useRef(searchParams)
+  searchParamsRef.current = searchParams
+
+  const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+  const filters: DestinationTripFilters = {
+    tripType: (searchParams.get('tripType') as DestinationTripFilters['tripType']) || undefined,
+    sort: (searchParams.get('sort') as DestinationTripFilters['sort']) || undefined,
+    minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
+    maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
+  }
+
   const [showFilters, setShowFilters] = useState(false)
-  const [minPriceStr, setMinPriceStr] = useState('')
-  const [maxPriceStr, setMaxPriceStr] = useState('')
+  const [minPriceStr, setMinPriceStr] = useState(searchParams.get('minPrice') || '')
+  const [maxPriceStr, setMaxPriceStr] = useState(searchParams.get('maxPrice') || '')
   const { data: tripCategories } = useTripCategories()
 
   const hasFilters = !!(filters.tripType || filters.sort || filters.minPrice || filters.maxPrice)
   const isInitial = page === 1 && !hasFilters
 
-  const { data, isLoading, error, refetch } = useDestinationDetail(
+  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useDestinationDetail(
     slug,
     page,
     isInitial ? initialData : undefined,
@@ -52,23 +66,47 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
   const stats = data?.stats ?? initialData.stats
   const relatedDestinations = data?.relatedDestinations ?? initialData.relatedDestinations
 
+  const pushParams = useCallback((patch: Record<string, string | undefined>) => {
+    const params = new URLSearchParams(searchParamsRef.current.toString())
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined && value !== '') {
+        params.set(key, value)
+      } else {
+        params.delete(key)
+      }
+    }
+    params.delete('page')
+    const query = params.toString()
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+  }, [pathname, router])
+
   const updateFilter = useCallback((patch: Partial<DestinationTripFilters>) => {
-    setFilters((prev) => ({ ...prev, ...patch }))
-    setPage(1)
-  }, [])
+    const stringPatch: Record<string, string | undefined> = {}
+    for (const [k, v] of Object.entries(patch)) {
+      stringPatch[k] = v !== undefined ? String(v) : undefined
+    }
+    pushParams(stringPatch)
+  }, [pushParams])
 
   const clearFilters = useCallback(() => {
-    setFilters({})
     setMinPriceStr('')
     setMaxPriceStr('')
-    setPage(1)
-  }, [])
+    setShowFilters(false)
+    router.push(pathname, { scroll: false })
+  }, [pathname, router])
+
+  // Sync price inputs when URL changes externally (browser back/forward)
+  useEffect(() => {
+    setMinPriceStr(searchParams.get('minPrice') || '')
+    setMaxPriceStr(searchParams.get('maxPrice') || '')
+  }, [searchParams])
 
   const applyPriceRange = useCallback(() => {
-    const min = minPriceStr ? Number(minPriceStr) : undefined
-    const max = maxPriceStr ? Number(maxPriceStr) : undefined
-    updateFilter({ minPrice: min, maxPrice: max })
-  }, [minPriceStr, maxPriceStr, updateFilter])
+    pushParams({
+      minPrice: minPriceStr || undefined,
+      maxPrice: maxPriceStr || undefined,
+    })
+  }, [minPriceStr, maxPriceStr, pushParams])
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
@@ -317,23 +355,26 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
             </button>
           </div>
         ) : trips.length > 0 ? (
-          <>
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
-              ))}
-            </div>
-            {pagination.totalPages > 1 && (
-              <div className="mt-8">
-                <Pagination
-                  currentPage={pagination.page}
-                  totalPages={pagination.totalPages}
-                  total={pagination.total}
-                  onPageChange={setPage}
-                />
+          <div className="relative mt-6">
+            {isFetching && isPlaceholderData && <FetchingOverlay />}
+            <div className={isFetching && isPlaceholderData ? 'opacity-50 pointer-events-none' : undefined}>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {trips.map((trip) => (
+                  <TripCard key={trip.id} trip={trip} />
+                ))}
               </div>
-            )}
-          </>
+              {pagination.totalPages > 1 && (
+                <div className="mt-8">
+                  <Pagination
+                    currentPage={pagination.page}
+                    totalPages={pagination.totalPages}
+                    total={pagination.total}
+                    onPageChange={(p) => pushParams({ page: String(p) })}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="mt-8 rounded-xl bg-neutral-50 p-12 text-center">
             <p className="text-neutral-500">
