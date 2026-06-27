@@ -19,7 +19,8 @@ export const createBookingSchema = z.object({
   pickupPointId: idSchema.optional(),
   dropPointId: idSchema.optional(),
   numTravelers: z.number().int().min(1).max(10),
-  travelers: z.array(travelerDetailSchema).min(1),
+  // [TravelerDetail] travelers: z.array(travelerDetailSchema).min(1),
+  travelers: z.array(travelerDetailSchema).optional(),
   seatIds: z.array(z.string().min(1)).min(1).max(10).optional(),
 })
 

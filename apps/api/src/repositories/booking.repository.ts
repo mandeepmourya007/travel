@@ -417,7 +417,7 @@ export class BookingRepository {
       expiresAt: Date
       pickupPointId?: string
       dropPointId?: string
-      travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
+      // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
     },
     paymentTxData: {
       razorpayOrderId: string
@@ -439,7 +439,7 @@ export class BookingRepository {
           bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
           pickupPointId: bookingData.pickupPointId ?? null,
           dropPointId: bookingData.dropPointId ?? null,
-          travelerDetails: { create: bookingData.travelers },
+          // [TravelerDetail] travelerDetails: { create: bookingData.travelers },
         },
         include: { travelerDetails: true },
       })

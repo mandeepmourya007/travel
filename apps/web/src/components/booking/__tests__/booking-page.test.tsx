@@ -217,29 +217,39 @@ describe('BookingPage', () => {
 
   // ── 4. Form — Data State ──
 
-  it('should render traveler form with correct number of fields', async () => {
+  // [TravelerDetail] it('should render traveler form with correct number of fields', async () => {
+  // [TravelerDetail]   setupTripHandler()
+  // [TravelerDetail]   renderBookingPage()
+  // [TravelerDetail]   await waitFor(() => {
+  // [TravelerDetail]     expect(screen.getByLabelText('Name')).toBeInTheDocument()
+  // [TravelerDetail]   })
+  // [TravelerDetail]   // Default 1 traveler — should see name, phone, age, gender fields
+  // [TravelerDetail]   expect(screen.getByLabelText('Name')).toBeInTheDocument()
+  // [TravelerDetail]   expect(screen.getByLabelText('Phone')).toBeInTheDocument()
+  // [TravelerDetail]   expect(screen.getByLabelText('Age')).toBeInTheDocument()
+  // [TravelerDetail]   expect(screen.getByLabelText('Gender')).toBeInTheDocument()
+  // [TravelerDetail] })
+
+  // [TravelerDetail] it('should pre-fill first traveler name from auth store', async () => {
+  // [TravelerDetail]   setupTripHandler()
+  // [TravelerDetail]   renderBookingPage()
+  // [TravelerDetail]   await waitFor(() => {
+  // [TravelerDetail]     const nameInput = screen.getByLabelText('Name') as HTMLInputElement
+  // [TravelerDetail]     expect(nameInput.value).toBe('Test User')
+  // [TravelerDetail]   })
+  // [TravelerDetail] })
+
+  it('should render traveler count stepper and Pay button', async () => {
     setupTripHandler()
     renderBookingPage()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByText(/number of travelers/i)).toBeInTheDocument()
     })
 
-    // Default 1 traveler — should see name, phone, age, gender fields
-    expect(screen.getByLabelText('Name')).toBeInTheDocument()
-    expect(screen.getByLabelText('Phone')).toBeInTheDocument()
-    expect(screen.getByLabelText('Age')).toBeInTheDocument()
-    expect(screen.getByLabelText('Gender')).toBeInTheDocument()
-  })
-
-  it('should pre-fill first traveler name from auth store', async () => {
-    setupTripHandler()
-    renderBookingPage()
-
-    await waitFor(() => {
-      const nameInput = screen.getByLabelText('Name') as HTMLInputElement
-      expect(nameInput.value).toBe('Test User')
-    })
+    expect(screen.getByRole('button', { name: /decrease travelers/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /increase travelers/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
   })
 
   it('should update price when traveler count changes', async () => {
@@ -292,7 +302,8 @@ describe('BookingPage', () => {
     renderBookingPage()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
 
     expect(screen.queryByText(/transfer points/i)).not.toBeInTheDocument()
@@ -300,29 +311,24 @@ describe('BookingPage', () => {
 
   // ── 5. Form — Validation ──
 
-  it('should show validation errors for empty required fields', async () => {
-    setupTripHandler()
-    setupBookingHandlers()
-    renderBookingPage()
-    const user = userEvent.setup()
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
-    })
-
-    // Clear the pre-filled name and submit
-    const nameInput = screen.getByLabelText('Name')
-    await user.clear(nameInput)
-
-    const payBtn = screen.getByRole('button', { name: /pay/i })
-    await user.click(payBtn)
-
-    await waitFor(() => {
-      // Zod produces "String must contain at least 2 character(s)" or similar
-      // Multiple validation errors may appear (name, phone, etc.), so use getAllByText
-      expect(screen.getAllByText(/at least 2|required/i).length).toBeGreaterThanOrEqual(1)
-    })
-  })
+  // [TravelerDetail] it('should show validation errors for empty required fields', async () => {
+  // [TravelerDetail]   setupTripHandler()
+  // [TravelerDetail]   setupBookingHandlers()
+  // [TravelerDetail]   renderBookingPage()
+  // [TravelerDetail]   const user = userEvent.setup()
+  // [TravelerDetail]   await waitFor(() => {
+  // [TravelerDetail]     expect(screen.getByLabelText('Name')).toBeInTheDocument()
+  // [TravelerDetail]   })
+  // [TravelerDetail]   // Clear the pre-filled name and submit
+  // [TravelerDetail]   const nameInput = screen.getByLabelText('Name')
+  // [TravelerDetail]   await user.clear(nameInput)
+  // [TravelerDetail]   const payBtn = screen.getByRole('button', { name: /pay/i })
+  // [TravelerDetail]   await user.click(payBtn)
+  // [TravelerDetail]   await waitFor(() => {
+  // [TravelerDetail]     // Zod produces "String must contain at least 2 character(s)" or similar
+  // [TravelerDetail]     expect(screen.getAllByText(/at least 2|required/i).length).toBeGreaterThanOrEqual(1)
+  // [TravelerDetail]   })
+  // [TravelerDetail] })
 
   it('should disable Pay button when processing', async () => {
     setupTripHandler()
@@ -344,21 +350,17 @@ describe('BookingPage', () => {
     const user = userEvent.setup()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
 
-    // Fill required fields
-    const phoneInput = screen.getByLabelText('Phone')
-    await user.type(phoneInput, '9876543210')
-
-    const ageInput = screen.getByLabelText('Age')
-    await user.type(ageInput, '28')
-
-    const genderSelect = screen.getByLabelText('Gender')
-    await user.selectOptions(genderSelect, 'MALE')
-
-    const payBtn = screen.getByRole('button', { name: /pay/i })
-    await user.click(payBtn)
+    // [TravelerDetail] const phoneInput = screen.getByLabelText('Phone')
+    // [TravelerDetail] await user.type(phoneInput, '9876543210')
+    // [TravelerDetail] const ageInput = screen.getByLabelText('Age')
+    // [TravelerDetail] await user.type(ageInput, '28')
+    // [TravelerDetail] const genderSelect = screen.getByLabelText('Gender')
+    // [TravelerDetail] await user.selectOptions(genderSelect, 'MALE')
+    await user.click(screen.getByRole('button', { name: /pay/i }))
 
     // Should have opened Razorpay
     await waitFor(() => {
@@ -374,13 +376,13 @@ describe('BookingPage', () => {
     const user = userEvent.setup()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
 
-    // Fill form
-    await user.type(screen.getByLabelText('Phone'), '9876543210')
-    await user.type(screen.getByLabelText('Age'), '28')
-    await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Phone'), '9876543210')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Age'), '28')
+    // [TravelerDetail] await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
     await user.click(screen.getByRole('button', { name: /pay/i }))
 
     // Wait for Razorpay to be loaded
@@ -416,12 +418,13 @@ describe('BookingPage', () => {
     const user = userEvent.setup()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
 
-    await user.type(screen.getByLabelText('Phone'), '9876543210')
-    await user.type(screen.getByLabelText('Age'), '28')
-    await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Phone'), '9876543210')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Age'), '28')
+    // [TravelerDetail] await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
     await user.click(screen.getByRole('button', { name: /pay/i }))
 
     await waitFor(() => {
@@ -433,14 +436,15 @@ describe('BookingPage', () => {
 
   // ── 7b. CONFLICT Error Branching (seat race vs duplicate booking) ──
 
-  /** Fills the traveler form and submits — shared setup for the flows below */
+  /** Clicks Pay — no per-traveler detail fields in the simplified form */
   async function fillFormAndPay(user: ReturnType<typeof userEvent.setup>) {
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
-    await user.type(screen.getByLabelText('Phone'), '9876543210')
-    await user.type(screen.getByLabelText('Age'), '28')
-    await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Phone'), '9876543210')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Age'), '28')
+    // [TravelerDetail] await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
     await user.click(screen.getByRole('button', { name: /pay/i }))
   }
 
@@ -565,12 +569,13 @@ describe('BookingPage', () => {
     const user = userEvent.setup()
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /pay/i })).toBeInTheDocument()
     })
 
-    await user.type(screen.getByLabelText('Phone'), '9876543210')
-    await user.type(screen.getByLabelText('Age'), '28')
-    await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Phone'), '9876543210')
+    // [TravelerDetail] await user.type(screen.getByLabelText('Age'), '28')
+    // [TravelerDetail] await user.selectOptions(screen.getByLabelText('Gender'), 'MALE')
     await user.click(screen.getByRole('button', { name: /pay/i }))
 
     await waitFor(() => {
@@ -587,7 +592,7 @@ describe('BookingPage', () => {
     })
 
     // Form should still be visible and pay button re-enabled
-    expect(screen.getByLabelText('Name')).toBeInTheDocument()
+    // [TravelerDetail] expect(screen.getByLabelText('Name')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /pay/i })).not.toBeDisabled()
   })
 })

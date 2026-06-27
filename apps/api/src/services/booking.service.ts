@@ -388,7 +388,8 @@ export class BookingService {
       pickupPointId?: string
       dropPointId?: string
       numTravelers: number
-      travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
+      // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
+      travelers?: Array<{ name: string; phone?: string; age?: number; gender?: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
       seatIds?: string[]
     },
   ): Promise<CreateBookingResponse> {
@@ -448,9 +449,9 @@ export class BookingService {
       if (!trip.organizer?.razorpayAccountId) {
         throw new ValidationError('Organizer has not set up payment — booking unavailable')
       }
-      if (input.numTravelers !== input.travelers.length) {
-        throw new ValidationError('Number of traveler details must match numTravelers')
-      }
+      // [TravelerDetail] if (input.numTravelers !== input.travelers.length) {
+      // [TravelerDetail]   throw new ValidationError('Number of traveler details must match numTravelers')
+      // [TravelerDetail] }
       if (input.seatIds?.length && input.seatIds.length !== input.numTravelers) {
         throw new ValidationError('Number of selected seats must match number of travelers')
       }
@@ -525,7 +526,7 @@ export class BookingService {
           expiresAt,
           pickupPointId: input.pickupPointId,
           dropPointId: input.dropPointId,
-          travelers: input.travelers,
+          // [TravelerDetail] travelers: input.travelers,
         },
         // Service owns these business decisions — type=PAYMENT, status=INITIATED
         {

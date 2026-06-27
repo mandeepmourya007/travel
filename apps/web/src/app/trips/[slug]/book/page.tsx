@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+// [TravelerDetail] import { useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Users, CheckCircle } from 'lucide-react'
+import { ArrowLeft, CheckCircle } from 'lucide-react'
+// [TravelerDetail] import { Users } from 'lucide-react'
 import { SeatSelectionCard } from '@/components/booking/seat-selection-card'
 import { HoldCountdownBanner } from '@/components/booking/hold-countdown-banner'
 import { AuthGuard } from '@/components/shared/auth-guard'
@@ -18,14 +20,14 @@ import { vehicleKeys } from '@/lib/query-keys'
 import { useVerifyPayment } from '@/hooks/use-verify-payment'
 import { useAuthStore } from '@/store/auth.store'
 import { loadRazorpayScript } from '@/lib/razorpay'
-import { TravelerForm, type TravelerFormValues } from '@/components/booking/traveler-form'
+// [TravelerDetail] import { TravelerForm, type TravelerFormValues } from '@/components/booking/traveler-form'
+import { TravelerForm } from '@/components/booking/traveler-form'
 import { PriceSummary } from '@/components/booking/price-summary'
 import { BookingSuccess } from '@/components/booking/booking-success'
 import { BookingPageSkeleton } from './loading'
 import { formatCurrency } from '@/lib/format'
 import { getEffectivePrice } from '@/lib/trip-utils'
 import { APP_NAME } from '@/lib/constants'
-import type { TripRequestTraveler } from '@shared/types/trip-request.types'
 
 type BookingRenderState = 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed' | 'notAccepting' | 'success' | 'alreadyBooked' | 'form'
 
@@ -59,17 +61,16 @@ export default function BookingPage({
   const lockedTravelers = !!requestId
   const [numTravelers, setNumTravelers] = useState(prefillCount)
 
-  // Load traveler details from sessionStorage (stashed by handlePayNow)
-  const savedTravelers = useMemo<TripRequestTraveler[] | null>(() => {
-    if (!requestId || typeof window === 'undefined') return null
-    try {
-      const raw = sessionStorage.getItem(`request-travelers-${requestId}`)
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  }, [requestId])
+  // [TravelerDetail] Load traveler details from sessionStorage (stashed by handlePayNow)
+  // [TravelerDetail] const savedTravelers = useMemo<TripRequestTraveler[] | null>(() => {
+  // [TravelerDetail]   if (!requestId || typeof window === 'undefined') return null
+  // [TravelerDetail]   try {
+  // [TravelerDetail]     const raw = sessionStorage.getItem(`request-travelers-${requestId}`)
+  // [TravelerDetail]     return raw ? JSON.parse(raw) : null
+  // [TravelerDetail]   } catch { return null }
+  // [TravelerDetail] }, [requestId])
 
-  // True when we have both requestId AND saved travelers → show pay-only mode
-  const isPayOnlyMode = lockedTravelers && !!savedTravelers?.length
+  // [TravelerDetail] const isPayOnlyMode = lockedTravelers && !!savedTravelers?.length
   const [phase, setPhase] = useState<'form' | 'success' | 'alreadyBooked'>('form')
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -82,8 +83,8 @@ export default function BookingPage({
   const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null)
   // Bumped on seat conflicts to remount the seat picker (clears its internal selection)
   const [seatMapResetKey, setSeatMapResetKey] = useState(0)
+  // [TravelerDetail] const [pendingTravelerData, setPendingTravelerData] = useState<{ travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string } | null>(null)
   const [pendingTravelerData, setPendingTravelerData] = useState<{
-    travelers: TravelerFormValues['travelers']
     pickupPointId?: string
     dropPointId?: string
   } | null>(null)
@@ -110,16 +111,21 @@ export default function BookingPage({
     : !trip.acceptingBookings ? 'notAccepting'
     : 'form'
 
-  function handleTravelerFormSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
+  // [TravelerDetail] function handleTravelerFormSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
+  // [TravelerDetail]   if (showSeatStep) { setPendingTravelerData({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId }); setBookingStep('seats') }
+  // [TravelerDetail]   else { startPayment(data.travelers, data.pickupPointId, data.dropPointId) }
+  // [TravelerDetail] }
+  function handleTravelerFormSubmit(data: { pickupPointId?: string; dropPointId?: string }) {
     if (showSeatStep) {
-      setPendingTravelerData({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
+      setPendingTravelerData({ pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
       setBookingStep('seats')
     } else {
-      startPayment(data.travelers, data.pickupPointId, data.dropPointId)
+      startPayment(data.pickupPointId, data.dropPointId)
     }
   }
 
-  async function startPayment(travelers: TravelerFormValues['travelers'], pickupPointId?: string, dropPointId?: string) {
+  // [TravelerDetail] async function startPayment(travelers: TravelerFormValues['travelers'], pickupPointId?: string, dropPointId?: string) {
+  async function startPayment(pickupPointId?: string, dropPointId?: string) {
     if (!trip || !user) return
     setIsProcessing(true)
 
@@ -127,9 +133,9 @@ export default function BookingPage({
       const result = await createBooking.mutateAsync({
         tripId: trip.id,
         numTravelers,
-        travelers,
         pickupPointId: pickupPointId || undefined,
         dropPointId: dropPointId || undefined,
+        // [TravelerDetail] travelers,
         seatIds: selectedSeatIds.length > 0 ? selectedSeatIds : undefined,
       })
 
@@ -174,8 +180,7 @@ export default function BookingPage({
                 numTravelers,
                 amountPaid: result.amountInRupees,
               })
-              // Clear stashed traveler details after successful payment
-              if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
+              // [TravelerDetail] if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
               setHoldExpiresAt(null)
               setPhase('success')
             } catch {
@@ -331,7 +336,8 @@ export default function BookingPage({
                 Back to {trip.title}
               </Link>
               <h1 className="text-2xl font-display font-bold text-neutral-900 mt-2">
-                {isPayOnlyMode ? 'Confirm & Pay' : 'Complete Your Booking'}
+                {/* [TravelerDetail] {isPayOnlyMode ? 'Confirm & Pay' : 'Complete Your Booking'} */}
+                Complete Your Booking
               </h1>
             </div>
 
@@ -344,70 +350,38 @@ export default function BookingPage({
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2">
-                {isPayOnlyMode && savedTravelers ? (
-                  /* ── Pay-only mode: show read-only traveler summary ── */
-                  <div className="space-y-4">
-                    <div className="card-static p-4">
-                      <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5 mb-3">
-                        <Users className="h-4 w-4 text-primary-500" />
-                        {savedTravelers.length} Traveler{savedTravelers.length > 1 ? 's' : ''}
-                      </h3>
-                      <div className="space-y-2">
-                        {savedTravelers.map((t, i) => (
-                          <div key={i} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
-                            <div>
-                              <p className="text-sm font-medium text-neutral-800">
-                                {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(You)</span>}
-                              </p>
-                              <p className="text-xs text-neutral-500">
-                                {t.age} yrs &middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()} &middot; {t.phone}
-                              </p>
-                            </div>
+                {/* [TravelerDetail] Pay-only mode — read-only traveler summary for request-approved payments.
+                    To restore: uncomment savedTravelers + isPayOnlyMode above, re-add Users import,
+                    and wrap the blocks below in: {isPayOnlyMode && savedTravelers ? (
+                      <div className="space-y-4">
+                        <div className="card-static p-4">
+                          <h3 className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5 mb-3">
+                            <Users className="h-4 w-4 text-primary-500" />
+                            {savedTravelers.length} Traveler{savedTravelers.length > 1 ? 's' : ''}
+                          </h3>
+                          <div className="space-y-2">
+                            {savedTravelers.map((t, i) => (
+                              <div key={i} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2">
+                                <div>
+                                  <p className="text-sm font-medium text-neutral-800">
+                                    {t.name} {t.isPrimary && <span className="text-xs text-primary-500">(You)</span>}
+                                  </p>
+                                  <p className="text-xs text-neutral-500">
+                                    {t.age} yrs &middot; {t.gender.charAt(0) + t.gender.slice(1).toLowerCase()} &middot; {t.phone}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        </div>
+                        <div className="card-static p-4"><PriceSummary trip={trip} numTravelers={numTravelers} /></div>
+                        {showSeatStep && (<SeatSelectionCard key={seatMapResetKey} tripId={trip.id} numTravelers={numTravelers} onSelectionChange={handleSeatSelectionChange} />)}
+                        <button type="button" onClick={() => startPayment()} disabled={isProcessing || (showSeatStep && selectedSeatIds.length !== numTravelers)} className="btn-primary w-full flex items-center justify-center gap-2">
+                          {isProcessing ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />Processing...</>) : (`Pay ${formatCurrency(getEffectivePrice(trip) * numTravelers)}`)}
+                        </button>
                       </div>
-                    </div>
-
-                    <div className="card-static p-4">
-                      <PriceSummary trip={trip} numTravelers={numTravelers} />
-                    </div>
-
-                    {showSeatStep && (
-                      <SeatSelectionCard
-                        key={seatMapResetKey}
-                        tripId={trip.id}
-                        numTravelers={numTravelers}
-                        onSelectionChange={handleSeatSelectionChange}
-                      />
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => startPayment(
-                        savedTravelers.map((t, i) => ({
-                          name: t.name,
-                          phone: t.phone,
-                          age: t.age,
-                          gender: t.gender,
-                          isPrimary: i === 0,
-                          emergencyContactName: t.emergencyContactName ?? '',
-                          emergencyContactPhone: t.emergencyContactPhone ?? '',
-                        })),
-                      )}
-                      disabled={isProcessing || (showSeatStep && selectedSeatIds.length !== numTravelers)}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          Processing...
-                        </>
-                      ) : (
-                        `Pay ${formatCurrency(getEffectivePrice(trip) * numTravelers)}`
-                      )}
-                    </button>
-                  </div>
-                ) : bookingStep === 'seats' && pendingTravelerData ? (
+                    ) : ( ... and close with ) at the end */}
+                {bookingStep === 'seats' && pendingTravelerData ? (
                   /* ── Seat selection step ── */
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -417,7 +391,7 @@ export default function BookingPage({
                         className="inline-flex items-center gap-1 hover:text-neutral-700"
                       >
                         <ArrowLeft className="h-4 w-4" />
-                        Back to traveler details
+                        Back
                       </button>
                     </div>
 
@@ -431,7 +405,6 @@ export default function BookingPage({
                     <button
                       type="button"
                       onClick={() => startPayment(
-                        pendingTravelerData.travelers,
                         pendingTravelerData.pickupPointId,
                         pendingTravelerData.dropPointId,
                       )}
@@ -460,11 +433,11 @@ export default function BookingPage({
                   />
                 )}
               </div>
-              {!isPayOnlyMode && (
-                <div className="lg:col-span-1">
-                  <PriceSummary trip={trip} numTravelers={numTravelers} />
-                </div>
-              )}
+              {/* [TravelerDetail] {!isPayOnlyMode && ( */}
+              <div className="lg:col-span-1">
+                <PriceSummary trip={trip} numTravelers={numTravelers} />
+              </div>
+              {/* [TravelerDetail] )} */}
             </div>
           </>
         )}

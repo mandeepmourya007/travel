@@ -1,33 +1,31 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useForm, useFieldArray, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useState } from 'react'
+// [TravelerDetail] import { useEffect } from 'react'
+// [TravelerDetail] import { useForm, useFieldArray, Controller } from 'react-hook-form'
+// [TravelerDetail] import { zodResolver } from '@hookform/resolvers/zod'
+// [TravelerDetail] import { z } from 'zod'
+// [TravelerDetail] import { createBookingSchema } from '@shared/validators/booking.schema'
+// [TravelerDetail] import { useAuthStore } from '@/store/auth.store'
+// [TravelerDetail] import { PhoneInput } from '@/components/shared/phone-input'
+// [TravelerDetail] import { NumberInput } from '@/components/shared/number-input'
 import { MapPin } from 'lucide-react'
-import { createBookingSchema } from '@shared/validators/booking.schema'
-import { useAuthStore } from '@/store/auth.store'
 import { formatCurrency } from '@/lib/format'
 import { getEffectivePrice } from '@/lib/trip-utils'
 import type { TripDetail } from '@shared/types/trip.types'
 import Link from 'next/link'
-import { PhoneInput } from '@/components/shared/phone-input'
-import { NumberInput } from '@/components/shared/number-input'
 
-/** Form values extracted from the Zod schema */
-export type TravelerFormValues = z.infer<typeof createBookingSchema>
+// [TravelerDetail] export type TravelerFormValues = z.infer<typeof createBookingSchema>
 
-/** Props for TravelerForm — numTravelers owned by parent page */
 interface TravelerFormProps {
   trip: TripDetail
   numTravelers: number
   onNumTravelersChange: (count: number) => void
-  onSubmit: (data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) => void
+  // [TravelerDetail] onSubmit: (data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) => void
+  onSubmit: (data: { pickupPointId?: string; dropPointId?: string }) => void
   isPending: boolean
   lockedTravelers?: boolean
 }
-
-const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER'] as const
 
 export function TravelerForm({
   trip,
@@ -37,114 +35,47 @@ export function TravelerForm({
   isPending,
   lockedTravelers = false,
 }: TravelerFormProps) {
-  const user = useAuthStore((s) => s.user)
   const seatsLeft = Math.max(0, trip.maxGroupSize - trip.currentBookings)
   const maxTravelers = Math.min(seatsLeft, 10)
 
-  // Restore form data from sessionStorage on refresh
-  const storageKey = `booking-form-${trip.id}`
-  function getSavedValues(): TravelerFormValues | null {
-    if (typeof window === 'undefined') return null
-    try {
-      const saved = sessionStorage.getItem(storageKey)
-      return saved ? JSON.parse(saved) : null
-    } catch { return null }
-  }
+  // [TravelerDetail] const user = useAuthStore((s) => s.user)
+  // [TravelerDetail] const storageKey = `booking-form-${trip.id}`
+  // [TravelerDetail] const saved = (() => { try { const r = sessionStorage.getItem(storageKey); return r ? JSON.parse(r) : null } catch { return null } })()
+  // [TravelerDetail] const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<TravelerFormValues>({
+  // [TravelerDetail]   resolver: zodResolver(createBookingSchema), mode: 'onTouched',
+  // [TravelerDetail]   defaultValues: saved ?? { tripId: trip.id, numTravelers: 1,
+  // [TravelerDetail]     pickupPointId: trip.pickupPoints?.[0]?.id ?? undefined,
+  // [TravelerDetail]     dropPointId: trip.dropPoints?.[0]?.id ?? undefined,
+  // [TravelerDetail]     travelers: [{ name: user?.name || '', phone: '', age: undefined as unknown as number, gender: 'MALE', isPrimary: true, emergencyContactName: '', emergencyContactPhone: '' }] }
+  // [TravelerDetail] })
+  // [TravelerDetail] useEffect(() => { const sub = watch((v) => { try { sessionStorage.setItem(storageKey, JSON.stringify(v)) } catch {} }); return () => sub.unsubscribe() }, [watch, storageKey])
+  // [TravelerDetail] useEffect(() => { if (lockedTravelers) { handleNumChange(numTravelers) } else if (saved && saved.numTravelers !== numTravelers) { onNumTravelersChange(saved.numTravelers) } }, [])
+  // [TravelerDetail] const { fields, append, remove } = useFieldArray({ control, name: 'travelers' })
 
-  const saved = getSavedValues()
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<TravelerFormValues>({
-    resolver: zodResolver(createBookingSchema),
-    mode: 'onTouched',
-    defaultValues: saved ?? {
-      tripId: trip.id,
-      numTravelers: 1,
-      pickupPointId: trip.pickupPoints?.[0]?.id ?? undefined,
-      dropPointId: trip.dropPoints?.[0]?.id ?? undefined,
-      travelers: [
-        {
-          name: user?.name || '',
-          phone: '',
-          age: undefined as unknown as number,
-          gender: 'MALE',
-          isPrimary: true,
-          emergencyContactName: '',
-          emergencyContactPhone: '',
-        },
-      ],
-    },
-  })
-
-  // Persist form data to sessionStorage on change (subscription — no re-renders)
-  useEffect(() => {
-    const subscription = watch((values) => {
-      try { sessionStorage.setItem(storageKey, JSON.stringify(values)) } catch { /* quota */ }
-    })
-    return () => subscription.unsubscribe()
-  }, [watch, storageKey])
-
-  // Sync field array + parent state on mount
-  useEffect(() => {
-    if (lockedTravelers) {
-      // Pre-fill from approved request — force field array to match locked count
-      handleNumChange(numTravelers)
-    } else if (saved && saved.numTravelers !== numTravelers) {
-      onNumTravelersChange(saved.numTravelers)
-    }
-  // eslint-disable-next-line -- run only on mount to sync restored/locked numTravelers
-  }, [])
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'travelers',
-  })
+  const [pickupPointId, setPickupPointId] = useState<string | undefined>(
+    trip.pickupPoints?.[0]?.id ?? undefined,
+  )
+  const [dropPointId, setDropPointId] = useState<string | undefined>(
+    trip.dropPoints?.[0]?.id ?? undefined,
+  )
 
   function handleNumChange(newCount: number) {
     if (newCount < 1 || newCount > maxTravelers) return
-
-    if (newCount > fields.length) {
-      for (let i = fields.length; i < newCount; i++) {
-        append({
-          name: '',
-          phone: '',
-          age: undefined as unknown as number,
-          gender: 'MALE',
-          isPrimary: false,
-          emergencyContactName: '',
-          emergencyContactPhone: '',
-        })
-      }
-    } else if (newCount < fields.length) {
-      for (let i = fields.length - 1; i >= newCount; i--) {
-        remove(i)
-      }
-    }
-
-    setValue('numTravelers', newCount)
+    // [TravelerDetail] if (newCount > fields.length) { for (let i = fields.length; i < newCount; i++) { append({ name: '', phone: '', age: undefined as unknown as number, gender: 'MALE', isPrimary: false, emergencyContactName: '', emergencyContactPhone: '' }) } }
+    // [TravelerDetail] else if (newCount < fields.length) { for (let i = fields.length - 1; i >= newCount; i--) { remove(i) } }
+    // [TravelerDetail] setValue('numTravelers', newCount)
     onNumTravelersChange(newCount)
   }
 
-  function onFormSubmit(data: TravelerFormValues) {
-    // Clear persisted form on successful submit
-    sessionStorage.removeItem(storageKey)
-    onSubmit({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    onSubmit({ pickupPointId, dropPointId })
   }
 
-  const pricePerPerson = getEffectivePrice(trip)
-  const totalPrice = pricePerPerson * numTravelers
+  const totalPrice = getEffectivePrice(trip) * numTravelers
 
   return (
-    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
-      <input type="hidden" {...register('tripId')} />
-      <input type="hidden" {...register('numTravelers', { valueAsNumber: true })} />
-
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Number of travelers selector */}
       <div className="card p-4">
         <label className="block text-sm font-medium text-neutral-700 mb-2">
@@ -196,8 +127,8 @@ export function TravelerForm({
                 <select
                   id="pickupPointId"
                   className="input w-full"
-                  value={watch('pickupPointId')}
-                  onChange={(e) => setValue('pickupPointId', e.target.value)}
+                  value={pickupPointId ?? ''}
+                  onChange={(e) => setPickupPointId(e.target.value || undefined)}
                 >
                   {trip.pickupPoints.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -205,9 +136,6 @@ export function TravelerForm({
                     </option>
                   ))}
                 </select>
-                {errors.pickupPointId && (
-                  <p className="text-xs text-error-500 mt-1">{errors.pickupPointId.message}</p>
-                )}
               </div>
             )}
             {trip.dropPoints?.length > 0 && (
@@ -218,8 +146,8 @@ export function TravelerForm({
                 <select
                   id="dropPointId"
                   className="input w-full"
-                  value={watch('dropPointId')}
-                  onChange={(e) => setValue('dropPointId', e.target.value)}
+                  value={dropPointId ?? ''}
+                  onChange={(e) => setDropPointId(e.target.value || undefined)}
                 >
                   {trip.dropPoints.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -227,130 +155,52 @@ export function TravelerForm({
                     </option>
                   ))}
                 </select>
-                {errors.dropPointId && (
-                  <p className="text-xs text-error-500 mt-1">{errors.dropPointId.message}</p>
-                )}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Traveler fields */}
+      {/* [TravelerDetail] Per-traveler detail fieldsets — uncomment to restore
       {fields.map((field, index) => (
         <fieldset key={field.id} className="card p-4 space-y-4">
           <legend className="text-sm font-semibold text-neutral-700">
-            <label htmlFor={`travelers.${index}.name`}>
-              Traveler {index + 1} {index === 0 ? '(You)' : ''}
-            </label>
+            <label htmlFor={`travelers.${index}.name`}>Traveler {index + 1} {index === 0 ? '(You)' : ''}</label>
           </legend>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor={`travelers.${index}.name`} className="block text-xs font-medium text-neutral-600 mb-1">
-                Name
-              </label>
-              <input
-                id={`travelers.${index}.name`}
-                {...register(`travelers.${index}.name`)}
-                className="input w-full"
-                placeholder="Full name"
-                aria-label={index === 0 ? 'Name' : `Traveler ${index + 1} name`}
-              />
-              {errors.travelers?.[index]?.name && (
-                <p className="text-xs text-error-500 mt-1">{errors.travelers[index]!.name!.message}</p>
-              )}
+              <label htmlFor={`travelers.${index}.name`} className="block text-xs font-medium text-neutral-600 mb-1">Name</label>
+              <input id={`travelers.${index}.name`} {...register(`travelers.${index}.name`)} className="input w-full" placeholder="Full name" />
+              {errors.travelers?.[index]?.name && <p className="text-xs text-error-500 mt-1">{errors.travelers[index]!.name!.message}</p>}
             </div>
-
-            <Controller
-              name={`travelers.${index}.phone`}
-              control={control}
-              render={({ field }) => (
-                <PhoneInput
-                  id={`travelers-${index}-phone`}
-                  label="Phone"
-                  value={field.value ?? ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                  ref={field.ref}
-                  error={errors.travelers?.[index]?.phone?.message}
-                />
-              )}
-            />
-
-            <Controller
-              name={`travelers.${index}.age`}
-              control={control}
-              render={({ field }) => (
-                <NumberInput
-                  id={`travelers-${index}-age`}
-                  label="Age"
-                  value={field.value?.toString() ?? ''}
-                  onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
-                  onBlur={field.onBlur}
-                  ref={field.ref}
-                  placeholder="28"
-                  min={1}
-                  max={120}
-                  error={errors.travelers?.[index]?.age?.message}
-                />
-              )}
-            />
-
+            <Controller name={`travelers.${index}.phone`} control={control} render={({ field }) => (
+              <PhoneInput id={`travelers-${index}-phone`} label="Phone" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} error={errors.travelers?.[index]?.phone?.message} />
+            )} />
+            <Controller name={`travelers.${index}.age`} control={control} render={({ field }) => (
+              <NumberInput id={`travelers-${index}-age`} label="Age" value={field.value?.toString() ?? ''} onChange={(val) => field.onChange(val === '' ? undefined : Number(val))} onBlur={field.onBlur} ref={field.ref} placeholder="28" min={1} max={120} error={errors.travelers?.[index]?.age?.message} />
+            )} />
             <div>
-              <label htmlFor={`travelers.${index}.gender`} className="block text-xs font-medium text-neutral-600 mb-1">
-                Gender
-              </label>
-              <select
-                id={`travelers.${index}.gender`}
-                {...register(`travelers.${index}.gender`)}
-                className="input w-full"
-                aria-label={index === 0 ? 'Gender' : `Traveler ${index + 1} gender`}
-              >
-                {GENDER_OPTIONS.map((g) => (
-                  <option key={g} value={g}>
-                    {g.charAt(0) + g.slice(1).toLowerCase()}
-                  </option>
-                ))}
+              <label htmlFor={`travelers.${index}.gender`} className="block text-xs font-medium text-neutral-600 mb-1">Gender</label>
+              <select id={`travelers.${index}.gender`} {...register(`travelers.${index}.gender`)} className="input w-full">
+                {(['MALE', 'FEMALE', 'OTHER'] as const).map((g) => <option key={g} value={g}>{g.charAt(0) + g.slice(1).toLowerCase()}</option>)}
               </select>
             </div>
           </div>
-
-          {/* Emergency contact (optional) */}
           <details className="mt-2">
-            <summary className="text-xs text-neutral-500 cursor-pointer hover:text-neutral-700">
-              Emergency Contact (optional)
-            </summary>
+            <summary className="text-xs text-neutral-500 cursor-pointer hover:text-neutral-700">Emergency Contact (optional)</summary>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
               <div>
-                <label htmlFor={`travelers.${index}.emergencyContactName`} className="block text-xs font-medium text-neutral-600 mb-1">
-                  Emergency Contact Name
-                </label>
-                <input
-                  id={`travelers.${index}.emergencyContactName`}
-                  {...register(`travelers.${index}.emergencyContactName`)}
-                  className="input w-full"
-                  placeholder="Contact name"
-                />
+                <label htmlFor={`travelers.${index}.emergencyContactName`} className="block text-xs font-medium text-neutral-600 mb-1">Emergency Contact Name</label>
+                <input id={`travelers.${index}.emergencyContactName`} {...register(`travelers.${index}.emergencyContactName`)} className="input w-full" placeholder="Contact name" />
               </div>
-              <Controller
-                name={`travelers.${index}.emergencyContactPhone`}
-                control={control}
-                render={({ field }) => (
-                  <PhoneInput
-                    id={`travelers-${index}-emergencyPhone`}
-                    label="Emergency Contact Phone"
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    ref={field.ref}
-                  />
-                )}
-              />
+              <Controller name={`travelers.${index}.emergencyContactPhone`} control={control} render={({ field }) => (
+                <PhoneInput id={`travelers-${index}-emergencyPhone`} label="Emergency Contact Phone" value={field.value ?? ''} onChange={field.onChange} onBlur={field.onBlur} ref={field.ref} />
+              )} />
             </div>
           </details>
         </fieldset>
       ))}
+      [TravelerDetail] */}
 
       {/* Submit button */}
       <button
