@@ -354,7 +354,7 @@ describe('TripCategoryService — Redis Cache', () => {
       expect(result).toEqual(cached)
       expect(mockRedisCache.getOrSet).toHaveBeenCalledWith(
         'cache:categories:active',
-        600,
+        3600,
         expect.any(Function),
       )
       expect(mockTripCategoryRepo.findAllActive).not.toHaveBeenCalled()

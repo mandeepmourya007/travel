@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import Image from 'next/image'
+import { BlurImage } from '@/components/shared/blur-image'
 import Link from 'next/link'
 import { MapPin, Calendar, Users, CheckCircle, Share2, ChevronLeft, ChevronRight, Armchair } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -66,7 +66,7 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
             <CarouselContent className="-ml-0 h-full">
               {photos.map((photo, i) => (
                 <CarouselItem key={photo} className="pl-0 relative h-72 md:h-96">
-                  <Image
+                  <BlurImage
                     src={photo}
                     alt={`${trip.title} ${i + 1}`}
                     fill

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import { BlurImage } from '@/components/shared/blur-image'
 import { MapPin } from 'lucide-react'
 import { usePopularDestinations } from '@/hooks/use-destinations'
 import type { Destination } from '@shared/types/destination.types'
@@ -74,7 +74,7 @@ export function PopularDestinations({ initialData }: PopularDestinationsProps) {
               className="group relative h-36 overflow-hidden rounded-xl bg-neutral-200"
             >
               {dest.photoUrl && (
-                <Image
+                <BlurImage
                   src={dest.photoUrl}
                   alt={dest.name}
                   fill

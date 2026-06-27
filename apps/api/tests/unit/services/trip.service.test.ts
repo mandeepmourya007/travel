@@ -877,7 +877,7 @@ describe('TripService — Redis Cache', () => {
       expect(result).toEqual(cachedResult)
       expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
         expect.stringContaining('cache:trips:search:'),
-        60,
+        300,
         expect.any(Function),
       )
       expect(mockTripRepo.search).not.toHaveBeenCalled()
@@ -907,7 +907,7 @@ describe('TripService — Redis Cache', () => {
       expect(result).toEqual(cachedDetail)
       expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
         'cache:trips:detail:cached-trip',
-        300,
+        600,
         expect.any(Function),
       )
       expect(mockTripRepo.findBySlug).not.toHaveBeenCalled()

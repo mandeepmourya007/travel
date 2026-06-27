@@ -326,7 +326,7 @@ describe('DestinationService — Redis Cache', () => {
       expect(result).toEqual(cached)
       expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
         'cache:destinations:list',
-        600,
+        3600,
         expect.any(Function),
       )
       expect(mockDestinationRepo.findAll).not.toHaveBeenCalled()
@@ -362,7 +362,7 @@ describe('DestinationService — Redis Cache', () => {
       expect(result).toEqual(cachedDetail)
       expect(mockCacheService.getOrSet).toHaveBeenCalledWith(
         'cache:destinations:detail:goa',
-        300,
+        900,
         expect.any(Function),
       )
       expect(mockDestinationRepo.findBySlugPublic).not.toHaveBeenCalled()

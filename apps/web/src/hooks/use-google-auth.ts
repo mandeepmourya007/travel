@@ -5,12 +5,25 @@ import type { AuthResponse } from '@shared/types/auth.types'
 
 type GoogleAuthResponse = AuthResponse & { isNewUser: boolean }
 
+interface UseGoogleAuthOptions {
+  onSuccess?: (data: GoogleAuthResponse) => void
+  onError?: () => void
+}
+
 /**
  * Sends Google idToken to backend for authentication.
- * On success: sets auth state in Zustand store.
- * Returns isNewUser for routing to onboarding.
+ * On success: sets auth state in Zustand store, then runs the caller's onSuccess.
+ *
+ * IMPORTANT: callbacks are registered at the MUTATION level (here), NOT via the
+ * per-call mutate(idToken, { onSuccess }) form. The login page swaps to a loading
+ * spinner the instant the user taps the Google button, which unmounts the
+ * GoogleAuthSection that calls mutate(). React Query drops per-call callbacks on
+ * unmount but still runs mutation-level ones — so the post-login redirect (which
+ * lives in the caller's onSuccess) only fires reliably from here. Without this the
+ * user authenticates (navbar shows their name) but is never redirected, and is
+ * stranded on the login page.
  */
-export function useGoogleAuth() {
+export function useGoogleAuth(opts?: UseGoogleAuthOptions) {
   const setAuth = useAuthStore((s) => s.setAuth)
 
   return useMutation({
@@ -27,6 +40,10 @@ export function useGoogleAuth() {
         },
         data.tokens.accessToken,
       )
+      opts?.onSuccess?.(data)
+    },
+    onError: () => {
+      opts?.onError?.()
     },
   })
 }

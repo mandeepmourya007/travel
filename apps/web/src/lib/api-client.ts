@@ -90,7 +90,7 @@ apiClient.interceptors.response.use(
 
     // Token refresh on 401 — use mutex to avoid concurrent refreshes
     // Skip refresh for auth endpoints (401 = real credential error, not expired token)
-    const isAuthEndpoint = /\/auth\/(login|signup|otp\/|google-auth|logout)/.test(originalRequest?.url || '')
+    const isAuthEndpoint = /\/auth\/(login|signup|otp|google|refresh|logout)/.test(originalRequest?.url || '')
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true
 

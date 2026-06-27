@@ -2,7 +2,7 @@
 
 import { memo, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { BlurImage } from '@/components/shared/blur-image'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows, Armchair } from 'lucide-react'
@@ -97,7 +97,7 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
       {/* Image */}
       <Link href={`/trips/${trip.slug}`} prefetch={false} className="block">
         <div className="relative h-48 overflow-hidden bg-neutral-200">
-          <Image
+          <BlurImage
             src={coverPhoto}
             alt={trip.title}
             fill

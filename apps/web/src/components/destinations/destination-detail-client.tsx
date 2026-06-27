@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { BlurImage } from '@/components/shared/blur-image'
 import {
   ArrowLeft, MapPin, Users, CalendarClock, IndianRupee,
   TrendingDown, SlidersHorizontal, X,
@@ -87,7 +87,7 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
       {/* Hero */}
       <div className="relative mt-4 h-52 overflow-hidden rounded-xl sm:h-64 lg:h-80">
         {destination.photoUrl ? (
-          <Image
+          <BlurImage
             src={destination.photoUrl}
             alt={destination.name}
             fill

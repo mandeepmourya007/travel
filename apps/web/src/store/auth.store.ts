@@ -56,7 +56,12 @@ export const useAuthStore = create<AuthState>()(
         // If the user was not previously authenticated (or storage is corrupt), unblock
         // the UI immediately — nothing to restore.
         if (!state?.isAuthenticated) {
-          useAuthStore.setState({ _hasHydrated: true })
+          // Deferred via microtask: with synchronous localStorage, onRehydrateStorage
+          // runs DURING create(), when the `useAuthStore` binding is still in its
+          // temporal dead zone. Calling setState synchronously here throws
+          // "Cannot access 'useAuthStore' before initialization", so _hasHydrated
+          // never flips and the UI stays stuck on the loading spinner.
+          queueMicrotask(() => useAuthStore.setState({ _hasHydrated: true }))
           return
         }
 

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { BlurImage } from '@/components/shared/blur-image'
 import { MapPin } from 'lucide-react'
 import type { Destination } from '@shared/types/destination.types'
 
@@ -16,7 +16,7 @@ export const DestinationCard = memo(function DestinationCard({ destination }: De
       className="group relative block h-48 overflow-hidden rounded-xl bg-neutral-200"
     >
       {destination.photoUrl ? (
-        <Image
+        <BlurImage
           src={destination.photoUrl}
           alt={destination.name}
           fill

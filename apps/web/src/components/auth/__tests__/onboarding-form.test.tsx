@@ -37,12 +37,11 @@ describe('OnboardingForm', () => {
     vi.clearAllMocks()
   })
 
-  it('should render name input and role selector', () => {
+  it('should render name input and submit button', () => {
     renderWithQuery(<OnboardingForm onComplete={onComplete} />)
 
     expect(screen.getByTestId('onboarding-name-input')).toBeInTheDocument()
-    expect(screen.getByTestId('role-traveler')).toBeInTheDocument()
-    expect(screen.getByTestId('role-organizer')).toBeInTheDocument()
+    expect(screen.getByTestId('onboarding-submit')).toBeInTheDocument()
   })
 
   it('should disable submit when name is empty', () => {
@@ -69,21 +68,21 @@ describe('OnboardingForm', () => {
     expect(screen.getByText(/name must be at least 2 characters/i)).toBeInTheDocument()
   })
 
-  it('should select TRAVELER role by default', () => {
+  it('should show submit button as disabled by default', () => {
     renderWithQuery(<OnboardingForm onComplete={onComplete} />)
 
-    const travelerBtn = screen.getByTestId('role-traveler')
-    expect(travelerBtn.className).toContain('border-primary-500')
+    expect(screen.getByTestId('onboarding-submit')).toBeDisabled()
   })
 
-  it('should toggle to ORGANIZER role on click', async () => {
+  it('should enable submit when name has 2+ chars and show Continue label', async () => {
     const user = userEvent.setup()
     renderWithQuery(<OnboardingForm onComplete={onComplete} />)
 
-    await user.click(screen.getByTestId('role-organizer'))
+    await user.type(screen.getByTestId('onboarding-name-input'), 'AB')
 
-    const organizerBtn = screen.getByTestId('role-organizer')
-    expect(organizerBtn.className).toContain('border-primary-500')
+    const btn = screen.getByTestId('onboarding-submit')
+    expect(btn).toBeEnabled()
+    expect(btn).toHaveTextContent('Continue')
   })
 
   it('should call onComplete and updateUser on successful submit', async () => {

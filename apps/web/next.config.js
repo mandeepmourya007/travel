@@ -7,22 +7,24 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
-  compress: false, // Nginx handles gzip in production — avoid double-compression overhead
+  compress: true, // Compress at the app layer — required on Render (no proxy in front);
+  // on the Nginx path it passes through already-gzipped responses (no double-compression).
   trailingSlash: false,
   transpilePackages: ['@travel/shared'],
   images: {
+    // Custom loader — serve images straight from the Cloudinary/Unsplash CDN with
+    // CDN-side transforms (f_auto/q_auto/resize), bypassing Next's server-side
+    // `sharp` optimizer. This removes the per-image cold-optimization latency
+    // (3-6s on Render free) and offloads delivery to a global CDN.
+    // NOTE: with a custom loader, `formats` and `minimumCacheTTL` no longer apply
+    // (Next isn't serving the bytes). `remotePatterns` still restricts which
+    // domains are allowed in <Image src> props — keep it as the whitelist.
+    loader: 'custom',
+    loaderFile: './src/lib/image-loader.ts',
     remotePatterns: IMAGE_HOSTS.map((hostname) => ({
       protocol: 'https',
       hostname,
     })),
-    // Next.js default TTL is 60s — re-optimises (and re-fetches from Cloudinary)
-    // on every expiry, causing 3-6s cold hits per image. 24h keeps the optimised
-    // copy warm for a full day; images are versioned via Cloudinary's upload ID
-    // so stale content is not a risk.
-    minimumCacheTTL: 86400,
-    // Prefer AVIF (40-50% smaller than WebP). Next.js falls back to WebP/JPEG
-    // for browsers that don't support it — no UI change, purely delivery.
-    formats: ['image/avif', 'image/webp'],
   },
   headers: async () => [
     {

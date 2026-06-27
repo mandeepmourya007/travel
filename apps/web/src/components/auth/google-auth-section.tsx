@@ -14,7 +14,13 @@ interface GoogleAuthSectionProps {
 }
 
 export function GoogleAuthSection({ onSuccess, onInitiate, onError, label = 'Or' }: GoogleAuthSectionProps) {
-  const { mutate, isPending, error } = useGoogleAuth()
+  // Register success/error at the mutation level (inside the hook) so they still
+  // fire if this component unmounts mid-flow (the login page swaps to a spinner
+  // on click, unmounting us — per-call mutate callbacks would be dropped).
+  const { mutate, isPending, error } = useGoogleAuth({
+    onSuccess: (data) => onSuccess(data.isNewUser),
+    onError: () => onError?.(),
+  })
 
   // Guard: GoogleLogin requires GoogleOAuthProvider which is only mounted when env var exists
   if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return null
@@ -39,10 +45,7 @@ export function GoogleAuthSection({ onSuccess, onInitiate, onError, label = 'Or'
           <GoogleLogin
             onSuccess={(response) => {
               if (response.credential) {
-                mutate(response.credential, {
-                  onSuccess: (data) => onSuccess(data.isNewUser),
-                  onError: () => onError?.(),
-                })
+                mutate(response.credential)
               } else {
                 onError?.()
               }
