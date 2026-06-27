@@ -42,7 +42,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
     params.set('sort', sort)
     const result = await fetchApiWithPagination<TripSummary[]>(
       `/trips?${params.toString()}`,
-      { revalidate: 0 },
+      { revalidate: 30 },
     )
     trips = result.data
     pagination = result.pagination

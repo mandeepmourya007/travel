@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { useAuthStore } from '@/store/auth.store'
@@ -17,6 +17,9 @@ interface SearchContentProps {
 function SearchContent({ initialData }: SearchContentProps) {
   const searchParams = useSearchParams()
   const { selectedIds, toggle } = useCompareQueue()
+  const [isFiltering, setIsFiltering] = useState(false)
+  const handleFilterChange = useCallback(() => setIsFiltering(true), [])
+  const handleFetchComplete = useCallback(() => setIsFiltering(false), [])
 
   const filters = useMemo<TripFiltersType>(() => ({
     q: searchParams.get('q') || undefined,
@@ -34,7 +37,7 @@ function SearchContent({ initialData }: SearchContentProps) {
     <div className="lg:flex lg:gap-8">
       {/* Filters — mobile: toggle + drawer, desktop: sidebar */}
       <aside className="lg:w-64 lg:shrink-0">
-        <TripFilters currentFilters={filters} />
+        <TripFilters currentFilters={filters} onFilterChange={handleFilterChange} />
       </aside>
 
       {/* Grid */}
@@ -44,6 +47,8 @@ function SearchContent({ initialData }: SearchContentProps) {
           onCompare={toggle}
           selectedTripIds={selectedIds}
           initialData={initialData}
+          isFiltering={isFiltering}
+          onFetchComplete={handleFetchComplete}
         />
       </div>
     </div>

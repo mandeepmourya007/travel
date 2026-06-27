@@ -124,7 +124,7 @@ function PaymentRow({
       </td>
       {showUser && (
         <td className="px-4 py-3 text-neutral-700">
-          {transaction.booking.user?.name ?? '\u2014'}
+          {transaction.booking.user?.name ?? '—'}
         </td>
       )}
       <td className="px-4 py-3">

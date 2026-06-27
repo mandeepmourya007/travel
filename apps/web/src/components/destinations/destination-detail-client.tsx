@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { BlurImage } from '@/components/shared/blur-image'
@@ -14,6 +14,7 @@ import { DestinationCard } from '@/components/destinations/destination-card'
 import { TripCard } from '@/components/trips/trip-card'
 import { TripCardSkeleton } from '@/components/trips/trip-card-skeleton'
 import { NumberInput } from '@/components/shared/number-input'
+import { PriceRangeSlider } from '@/components/shared/price-range-slider'
 import { Pagination } from '@/components/shared/pagination'
 import { formatCurrency, tripTypeLabel } from '@/lib/format'
 import { useTripCategories } from '@/hooks/use-trip-categories'
@@ -38,12 +39,12 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
   searchParamsRef.current = searchParams
 
   const page = searchParams.get('page') ? Number(searchParams.get('page')) : 1
-  const filters: DestinationTripFilters = {
+  const filters = useMemo<DestinationTripFilters>(() => ({
     tripType: (searchParams.get('tripType') as DestinationTripFilters['tripType']) || undefined,
     sort: (searchParams.get('sort') as DestinationTripFilters['sort']) || undefined,
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
-  }
+  }), [searchParams])
 
   const [showFilters, setShowFilters] = useState(false)
   const [minPriceStr, setMinPriceStr] = useState(searchParams.get('minPrice') || '')
@@ -107,6 +108,37 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
       maxPrice: maxPriceStr || undefined,
     })
   }, [minPriceStr, maxPriceStr, pushParams])
+
+  // ---------------------------------------------------------------------------
+  // Price slider: derive bounds from real destination stats (snapped to step).
+  // Fall back to 0–100,000 when stats are missing or degenerate.
+  // ---------------------------------------------------------------------------
+  const PRICE_STEP = 500
+  const { sliderMin, sliderMax } = useMemo(() => {
+    const rawMin = stats.minPrice || 0
+    const rawMax = stats.maxPrice || 0
+    const sMin = Math.floor(rawMin / PRICE_STEP) * PRICE_STEP
+    const sMaxRaw = Math.ceil(rawMax / PRICE_STEP) * PRICE_STEP
+    const sMax = sMaxRaw > sMin ? sMaxRaw : 90000
+    return { sliderMin: sMin, sliderMax: sMax }
+  }, [stats.minPrice, stats.maxPrice])
+
+  const sliderValue: [number, number] = [
+    Math.min(Math.max(minPriceStr ? Number(minPriceStr) : sliderMin, sliderMin), sliderMax),
+    Math.min(Math.max(maxPriceStr ? Number(maxPriceStr) : sliderMax, sliderMin), sliderMax),
+  ]
+
+  const handleSliderChange = useCallback(([lo, hi]: [number, number]) => {
+    setMinPriceStr(lo <= sliderMin ? '' : String(lo))
+    setMaxPriceStr(hi >= sliderMax ? '' : String(hi))
+  }, [sliderMin, sliderMax])
+
+  const handleSliderCommit = useCallback(([lo, hi]: [number, number]) => {
+    pushParams({
+      minPrice: lo <= sliderMin ? undefined : String(lo),
+      maxPrice: hi >= sliderMax ? undefined : String(hi),
+    })
+  }, [sliderMin, sliderMax, pushParams])
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
@@ -267,6 +299,15 @@ export function DestinationDetailClient({ initialData, slug }: DestinationDetail
             {/* Price range */}
             <div>
               <p className="text-xs font-medium text-neutral-500 mb-2">Price Range</p>
+              <PriceRangeSlider
+                min={sliderMin}
+                max={sliderMax}
+                step={PRICE_STEP}
+                value={sliderValue}
+                onValueChange={handleSliderChange}
+                onValueCommit={handleSliderCommit}
+                className="mb-3"
+              />
               <div className="flex items-end gap-2">
                 <NumberInput
                   value={minPriceStr}

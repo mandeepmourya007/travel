@@ -1,12 +1,12 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTrips } from '@/hooks/use-trips'
 import { TripCard } from './trip-card'
 import { TripCardSkeleton } from './trip-card-skeleton'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import { FetchingOverlay } from '@/components/shared/fetching-overlay'
 import type { TripFilters, TripSummary } from '@shared/types/trip.types'
 
 interface TripGridProps {
@@ -14,13 +14,19 @@ interface TripGridProps {
   onCompare: (trip: TripSummary) => void
   selectedTripIds?: string[]
   initialData?: { trips: TripSummary[]; pagination: { page: number; limit: number; total: number; totalPages: number } | null }
+  isFiltering?: boolean
+  onFetchComplete?: () => void
 }
 
-export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData }: TripGridProps) {
+export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData, isFiltering = false, onFetchComplete }: TripGridProps) {
   const searchParams = useSearchParams()
-  const { data, isLoading, isFetching, isPlaceholderData, error, refetch } = useTrips(filters, { initialData })
+  const { data, isLoading, isFetching, error, refetch } = useTrips(filters, { initialData })
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isFetching) onFetchComplete?.()
+  }, [isFetching, onFetchComplete])
+
+  if (isLoading || isFetching || isFiltering) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -45,10 +51,8 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData
   }
 
   return (
-    <div className="relative">
-      {isFetching && isPlaceholderData && <FetchingOverlay />}
-      <div className={isFetching && isPlaceholderData ? 'opacity-50 pointer-events-none transition-opacity' : 'transition-opacity'}>
-        <p className="text-sm text-neutral-500 mb-4">
+    <div>
+      <p className="text-sm text-neutral-500 mb-4">
           {data.pagination?.total ?? data.trips.length} trips found
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -74,7 +78,6 @@ export function TripGrid({ filters, onCompare, selectedTripIds = [], initialData
             />
           </div>
         )}
-      </div>
     </div>
   )
 }

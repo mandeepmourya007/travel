@@ -1,4 +1,5 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useRef } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { tripKeys } from '@/lib/query-keys'
 import type { TripSummary, TripFilters } from '@shared/types/trip.types'
@@ -10,6 +11,12 @@ interface UseTripsOptions {
 }
 
 export function useTrips(filters: TripFilters, options?: UseTripsOptions) {
+  // Capture mount time once — Date.now() in the query config would run on every render.
+  const mountedAtRef = useRef<number | null>(null)
+  if (mountedAtRef.current === null && options?.initialData && (options?.staleTime ?? 0) > 0) {
+    mountedAtRef.current = Date.now()
+  }
+
   return useQuery({
     queryKey: tripKeys.list(filters),
     queryFn: async () => {
@@ -35,7 +42,7 @@ export function useTrips(filters: TripFilters, options?: UseTripsOptions) {
     // client won't immediately refetch. When staleTime is 0 (filter pages), mark data
     // as born-at-epoch so React Query treats it as stale and refetches on mount.
     initialDataUpdatedAt: options?.initialData
-      ? (options?.staleTime ?? 0) > 0 ? Date.now() : 0
+      ? (options?.staleTime ?? 0) > 0 ? (mountedAtRef.current ?? 0) : 0
       : undefined,
   })
 }
