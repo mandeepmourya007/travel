@@ -1,0 +1,30 @@
+apps/api/tests/unit/services/payment.service.test.ts
+  s_73d42031180d8b::t_7a09f68ad30799 156-170
+  s_73d42031180d8b::t_58018d6a0780e0 4
+apps/api/src/services/booking.service.ts
+  s_73d42031180d8b::t_dd3a3bf5fe2bc6 452-457
+apps/api/src/errors/app-error.ts
+  s_73d42031180d8b::t_54eaa3a8f5f2e6 11,13-16
+  s_73d42031180d8b::t_862692a1599faf 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "aff2ce7244e4545f4f1dde9ff7ce88274ff69f16",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_73d42031180d8b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6162639a-8b7f-4cf9-871c-1eb7661d90c6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
