@@ -1,0 +1,122 @@
+packages/shared/src/validators/trip.schema.ts
+  s_627e51380de897::t_1a1c5879c2883a 94,136
+  s_627e51380de897::t_bf735bb188298d 2
+apps/api/src/services/payment-history.service.ts
+  s_627e51380de897::t_f9781cc4490d3b 105-106
+  s_627e51380de897::t_336064d1c20c11 67
+apps/api/prisma/migrations/20260627000003_conversation_admin_support_unique/migration.sql
+  s_627e51380de897::t_5088bc8dd8c135 1-44
+packages/shared/src/validators/payment.schema.ts
+  s_627e51380de897::t_ae5bc252554e21 34-35
+  s_627e51380de897::t_25e8178b281e75 2
+apps/api/tests/unit/services/trip-lifecycle.service.test.ts
+  s_c8680d1491ec5b::t_dd68a724a4c470 3
+  s_c8680d1491ec5b::t_d7d8566c597a66 310-385
+  s_c8680d1491ec5b::t_000e9cdf6a8d06 386
+packages/shared/src/validators/review.schema.ts
+  s_627e51380de897::t_2191c305859754 9-10
+  s_627e51380de897::t_6b3aca3cd4c0b3 2
+apps/api/package.json
+  s_627e51380de897::t_bd88e1689512a0 21
+  s_627e51380de897::t_04d3139a40c18a 41
+apps/api/prisma/schema.prisma
+  s_627e51380de897::t_3a8ceb19f2eab7 260,275,296,349,353,404,427,453,481,688,711,752,771,798,811
+  s_627e51380de897::t_398f36d7efe762 599-604
+  s_627e51380de897::t_81b3cac858ca3e 175,211,223,242,514,543,569-570,576,614,651,670,827,843,871
+apps/api/tests/unit/repositories/conversation.repository.test.ts
+  s_c8680d1491ec5b::t_1fa781f14541db 1-128
+apps/api/prisma/DB_SCALING_RUNBOOK.md
+  s_627e51380de897::t_f6c49e1a3dadfe 1-121
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_3dd8d19fa2077f::t_dbca136b9a8670 240
+  s_c8680d1491ec5b::t_81dbbb5eb1b7ed 215,233,235-239
+apps/api/src/utils/cron-jobs.ts
+  s_627e51380de897::t_c117725289788c 25-28
+  s_627e51380de897::t_d4d83cb427ead8 435-436
+  s_627e51380de897::t_8d334c2e78edd7 397
+  s_627e51380de897::t_b6cb9feeae3cab 7
+  s_627e51380de897::t_b33242c319031c 155-169
+  s_c8680d1491ec5b::t_d34de4bac4e8fb 434
+  s_627e51380de897::t_67b341f563459c 154
+  s_627e51380de897::t_519d85a2bbd7d9 170-172
+  s_c8680d1491ec5b::t_2bb7061e70d968 433
+  s_627e51380de897::t_7b3ba47e864805 437
+apps/api/src/services/trip-lifecycle.service.ts
+  s_627e51380de897::t_7dfaf321be25ec 200
+  s_627e51380de897::t_989c20dc6bc0f5 224-225
+apps/api/prisma/migrations/20260627000002_commission_decimal_drop_seatcelltype/migration.sql
+  s_627e51380de897::t_bb85c93eecdcbc 1-6,22-26
+  s_c8680d1491ec5b::t_130b85e12a517f 7-21
+apps/api/tests/unit/repositories/webhook-event.repository.test.ts
+  s_c8680d1491ec5b::t_0c71f7c81cd533 1-135
+apps/api/tests/unit/services/payment-history.service.test.ts
+  s_c8680d1491ec5b::t_d3291ab72a59a5 460-546
+  s_c8680d1491ec5b::t_2f459cb45face5 2
+apps/api/src/repositories/webhook-event.repository.ts
+  s_627e51380de897::t_b022ddbe7f437d 153-158,161,188
+  s_c8680d1491ec5b::t_c2923def721d6f 159-160,162-187
+apps/api/src/config/dependencies.ts
+  s_627e51380de897::t_6e6c16e77165a8 283
+packages/shared/src/validators/booking.schema.ts
+  s_627e51380de897::t_0dc75acf224c9b 2
+  s_627e51380de897::t_376d50900c3443 18,27
+  s_627e51380de897::t_0f942d314c1ddf 19-20
+packages/shared/src/validators/admin.schema.ts
+  s_627e51380de897::t_26be85b2b0ab1a 5
+  s_627e51380de897::t_80069548894688 31,35-36
+apps/api/src/repositories/conversation.repository.ts
+  s_3dd8d19fa2077f::t_3ec6a44f8b89fb 87-106
+packages/shared/src/validators/chat.schema.ts
+  s_627e51380de897::t_f3077356cf8bea 16,20,35
+  s_627e51380de897::t_aa3da594835e40 2
+apps/api/prisma/migrations/20260627000001_drop_redundant_indexes/migration.sql
+  s_627e51380de897::t_11994adf67c106 1-42
+packages/shared/src/validators/common.schema.ts
+  s_c8680d1491ec5b::t_4625037251c047 6-10,19
+  s_627e51380de897::t_bae4b0d5aa588c 3-5,11-18,20-22,24,32,36,40-41,45
+apps/api/tests/unit/utils/cron-jobs.test.ts
+  s_c8680d1491ec5b::t_ed1bc26da1c6b7 36-58,60,69,71,73-75
+  s_c8680d1491ec5b::t_89a309ef4cad59 211-215,217-230
+  s_c8680d1491ec5b::t_182c3cf13301a4 216
+apps/api/tests/unit/validators/common.schema.test.ts
+  s_c8680d1491ec5b::t_84b2d5bc8c7ec2 1-156
+apps/api/src/repositories/booking.repository.ts
+  s_c8680d1491ec5b::t_53ea6240c5ff27 290,306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "b2d11d70e189c343aa4949ce760d985793d078c4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3dd8d19fa2077f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9658908c-65f0-476a-8b35-d82cffaf40a8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_627e51380de897": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5bf015e5-c3df-4939-8310-3dd6eea9cc79",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_c8680d1491ec5b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "01550f56-b497-4af0-9b91-1afbf9a4afc8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
