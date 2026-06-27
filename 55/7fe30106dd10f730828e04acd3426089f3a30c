@@ -1,0 +1,93 @@
+apps/web/src/components/trips/trip-detail-header.tsx
+  s_627e51380de897::t_b3d14ed3314468 69
+  s_627e51380de897::t_9f872ca0dcbcbe 4
+.claude/skills/debug-runtime/SKILL.md
+  s_627e51380de897::t_4cfb0a2ccc42aa 1-87
+apps/web/src/app/apple-icon.tsx
+  s_b42978fcd92eeb::t_7bc6e791e23005 24
+apps/web/src/hooks/use-google-auth.ts
+  s_627e51380de897::t_4f73dceff1cec8 8-12,15-24,26,43-46
+apps/web/src/app/icon.svg
+  s_b42978fcd92eeb::t_0cfe81d27ad48b 1
+  s_627e51380de897::t_143237f11cb1c7 2-5
+apps/web/src/components/trips/trip-card.tsx
+  s_627e51380de897::t_71022cdaab041c 5
+  s_627e51380de897::t_e9a2ada4585515 100
+apps/api/tests/unit/services/trip.service.test.ts
+  s_3dd8d19fa2077f::t_e9bd63d55242e2 880
+  s_3dd8d19fa2077f::t_d8a2405ed7cdaa 910
+apps/api/tests/unit/services/trip-category.service.test.ts
+  s_3dd8d19fa2077f::t_887aa2abf0f690 357
+apps/web/src/lib/image-loader.ts
+  s_627e51380de897::t_97143a7182b00a 1-44
+apps/web/src/components/destinations/destination-detail-client.tsx
+  s_627e51380de897::t_c9f8d87754db7e 90
+  s_627e51380de897::t_55f6a3a6964630 5
+apps/web/src/lib/api-client.ts
+  s_627e51380de897::t_83b6b7f86ad522 93
+apps/web/src/components/auth/__tests__/onboarding-form.test.tsx
+  s_3dd8d19fa2077f::t_596adde6bf07cd 71,74,77,81,83-85
+  s_3dd8d19fa2077f::t_1b3047f43087db 40,44
+docker-compose.yml
+  s_627e51380de897::t_6fbace1e710f8a 148-150,158-162,164-166,168-169,171
+apps/web/src/store/auth.store.ts
+  s_627e51380de897::t_027e3f9e5572f1 59-62,64
+  s_627e51380de897::t_343e4f3fca7f82 63
+apps/web/src/components/shared/blur-image.tsx
+  s_627e51380de897::t_04c9cf17be6187 1-34
+apps/web/src/components/auth/google-auth-section.tsx
+  s_627e51380de897::t_b349fb9392e1b1 17-23
+  s_627e51380de897::t_fddd4ebb7e5f1f 48
+apps/web/src/components/destinations/destination-card.tsx
+  s_627e51380de897::t_6d6e4e097d80c0 19
+  s_627e51380de897::t_588c2cf6c6187d 3
+apps/web/src/components/home/popular-destinations.tsx
+  s_627e51380de897::t_77ae28b00d82a4 4
+  s_627e51380de897::t_b5843550943ee1 77
+apps/api/tests/unit/services/destination.service.test.ts
+  s_3dd8d19fa2077f::t_d15351417ba1fe 365
+  s_3dd8d19fa2077f::t_4b006668a364c7 329
+apps/web/next.config.js
+  s_627e51380de897::t_92948fa232d6e9 10-11
+  s_627e51380de897::t_e82a83f9ec9d95 15-18,22-23
+  s_b42978fcd92eeb::t_16089128636a73 19-21
+package-lock.json
+  s_627e51380de897::t_7b6b875c3c56b7 30,50,3332-3334,3338,3341-3342,3347-3349,3353-3364,3366-3368,3372-3374,3378-3381,3385-3387,3391-3393,3396-3398,3402-3404,3407,8543-8613,8810-8818,9094-9108,9570-9578,9615-9620,9664-9669,9813-9822,9873-9881,10876-10881,10897-10918,11746-11768,14464-14469,14544-14581,14712-14717,14965-14970,15106-15122,15420-15422,15426-15427,15433,15435-15441,15589-15604,15686-15695,18138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "557fe30106dd10f730828e04acd3426089f3a30c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3dd8d19fa2077f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9658908c-65f0-476a-8b35-d82cffaf40a8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_627e51380de897": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5bf015e5-c3df-4939-8310-3dd6eea9cc79",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_b42978fcd92eeb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c63840e9-e883-42e6-936e-996574115fbb",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
