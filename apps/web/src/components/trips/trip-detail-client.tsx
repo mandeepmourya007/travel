@@ -57,7 +57,7 @@ export function TripDetailClient({ trip: initialTrip, slug }: TripDetailClientPr
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 pb-24 lg:pb-8 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 py-8 pb-36 md:pb-28 lg:pb-8 sm:px-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-10">

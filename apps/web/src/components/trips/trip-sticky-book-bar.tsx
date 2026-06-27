@@ -10,7 +10,7 @@ interface TripStickyBookBarProps {
 
 export function TripStickyBookBar({ trip }: TripStickyBookBarProps) {
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 lg:hidden border-t border-neutral-200 bg-white/95 backdrop-blur-md shadow-xl safe-area-bottom">
+    <div className="fixed bottom-16 md:bottom-0 inset-x-0 z-50 lg:hidden border-t border-neutral-200 bg-white/95 backdrop-blur-md shadow-xl safe-area-bottom">
       <div className="mx-auto max-w-7xl flex items-center justify-between gap-4 px-4 py-3">
         {/* Price */}
         <div className="min-w-0 shrink-0">
