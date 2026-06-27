@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { CheckCircle2, Clock, CreditCard, AlertTriangle } from 'lucide-react'
+import { Clock, CreditCard, AlertTriangle } from 'lucide-react'
 import { getSeatsLeft } from '@/lib/format'
 import { useAuthStore } from '@/store/auth.store'
 import { useMyTripBookingStatus } from '@/hooks/use-my-trip-booking-status'
@@ -51,9 +51,23 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
   return (
     <>
       {tripStatus?.bookingStatus === 'CONFIRMED' ? (
-        <button disabled className={disabledCls}>
-          <CheckCircle2 className="h-4 w-4" /> {isCard ? 'Already Booked' : 'Booked'}
-        </button>
+        isOrganizer ? (
+          <button type="button" onClick={handleOrganizerClick} className={primaryCls}>
+            Book Again
+          </button>
+        ) : trip.bookingMode === 'INSTANT' ? (
+          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={primaryCls}>
+            Book Again
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowRequestModal(true)}
+            className={primaryCls}
+          >
+            Book Again
+          </button>
+        )
       ) : tripStatus?.bookingStatus === 'PENDING_PAYMENT' ? (
         isOrganizer ? (
           <button type="button" onClick={handleOrganizerClick} className={accentCls}>

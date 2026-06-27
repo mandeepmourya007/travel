@@ -3,8 +3,6 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useSeatMap } from '@/hooks/use-vehicle'
-import { SeatGrid } from '@/components/vehicle/seat-grid'
-import { SeatLegend } from '@/components/vehicle/seat-legend'
 import { VehicleImageLightbox } from '@/components/vehicle/vehicle-image-lightbox'
 import { Armchair, RefreshCw, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -50,7 +48,7 @@ function PreviewError({ onRetry }: { onRetry: () => void }) {
 // ─── Single Vehicle Panel ───────────────────────────
 
 function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
-  const { vehicle, seats, summary } = entry
+  const { vehicle, summary } = entry
   const icon = VEHICLE_ICONS[vehicle.vehicleType] ?? '🚗'
   const photos = vehicle.photos ?? []
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -64,8 +62,8 @@ function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
           {icon}
         </span>
         <span className="text-sm font-semibold text-neutral-700">{vehicle.label}</span>
-        <span className="ml-auto text-xs text-neutral-400">
-          {summary.available} of {summary.total} available
+        <span className="ml-auto text-xs font-bold text-primary-600">
+          {summary.available} {summary.available === 1 ? 'seat' : 'seats'} left
         </span>
       </div>
 
@@ -107,18 +105,6 @@ function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
         />
       )}
 
-      {/* Seat grid (read-only, small size) */}
-      <div className="overflow-x-auto">
-        <SeatGrid
-          layout={vehicle.layout}
-          seats={seats}
-          aisleAfterCol={vehicle.layoutConfig.aisleAfterCol}
-          size="sm"
-        />
-      </div>
-
-      {/* Legend */}
-      <SeatLegend variant="picker" />
     </div>
   )
 }

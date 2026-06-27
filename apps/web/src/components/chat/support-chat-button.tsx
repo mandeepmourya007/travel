@@ -38,7 +38,7 @@ export function SupportChatButton({ className }: SupportChatButtonProps) {
       onMouseLeave={() => setIsHovered(false)}
       disabled={isPending}
       className={cn(
-        'fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-white shadow-lg transition-all hover:bg-primary-700 hover:shadow-xl disabled:opacity-70',
+        'fixed bottom-36 right-4 z-50 flex items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-white shadow-lg transition-all hover:bg-primary-700 hover:shadow-xl disabled:opacity-70 md:bottom-6 md:right-6',
         !isHovered && 'px-3',
         className,
       )}
