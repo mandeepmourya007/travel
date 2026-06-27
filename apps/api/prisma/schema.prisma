@@ -8,654 +8,39 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Booking {
-  id                                                         String               @id
-  bookingRef                                                 String               @unique
-  tripId                                                     String
-  userId                                                     String
-  numTravelers                                               Int                  @default(1)
-  totalAmount                                                Int
-  tripProtection                                             Boolean              @default(false)
-  bookingStatus                                              BookingStatus        @default(PENDING_PAYMENT)
-  expiresAt                                                  DateTime?
-  cancellationReason                                         String?
-  cancelledAt                                                DateTime?
-  cancelledById                                              String?
-  isActive                                                   Boolean              @default(true)
-  isDeleted                                                  Boolean              @default(false)
-  createdAt                                                  DateTime             @default(now())
-  updatedAt                                                  DateTime
-  deletedAt                                                  DateTime?
-  dropPointId                                                String?
-  pickupPointId                                              String?
-  walletAmount                                               Int                  @default(0)
-  tripReminderSentAt                                         DateTime?
-  User_Booking_cancelledByIdToUser                           User?                @relation("Booking_cancelledByIdToUser", fields: [cancelledById], references: [id])
-  TripTransferPoint_Booking_dropPointIdToTripTransferPoint   TripTransferPoint?   @relation("Booking_dropPointIdToTripTransferPoint", fields: [dropPointId], references: [id])
-  TripTransferPoint_Booking_pickupPointIdToTripTransferPoint TripTransferPoint?   @relation("Booking_pickupPointIdToTripTransferPoint", fields: [pickupPointId], references: [id])
-  Trip                                                       Trip                 @relation(fields: [tripId], references: [id])
-  User_Booking_userIdToUser                                  User                 @relation("Booking_userIdToUser", fields: [userId], references: [id])
-  PaymentTransaction                                         PaymentTransaction[]
-  Review                                                     Review?
-  TravelerDetail                                             TravelerDetail[]
-  TripRequest                                                TripRequest?
-  VehicleSeat                                                VehicleSeat[]
+// ─── Enums ────────────────────────────────────────────────
 
-  @@index([bookingRef])
-  @@index([bookingStatus, expiresAt])
-  @@index([bookingStatus, tripReminderSentAt])
-  @@index([isDeleted])
-  @@index([tripId, bookingStatus])
-  @@index([userId, bookingStatus])
+enum UserRole {
+  TRAVELER
+  ORGANIZER
+  ADMIN
 }
 
-model Conversation {
-  id                   String             @id
-  tripId               String?
-  travelerId           String
-  organizerProfileId   String?
-  lastMessageAt        DateTime?
-  isActive             Boolean            @default(true)
-  isDeleted            Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime
-  deletedAt            DateTime?
-  adminId              String?
-  lastMessagePreview   String?
-  status               ConversationStatus @default(ACTIVE)
-  type                 ConversationType   @default(TRIP_CHAT)
-  unreadCountOrganizer Int                @default(0)
-  unreadCountTraveler  Int                @default(0)
-  OrganizerProfile     OrganizerProfile?  @relation(fields: [organizerProfileId], references: [id])
-  User                 User               @relation(fields: [travelerId], references: [id])
-  Trip                 Trip?              @relation(fields: [tripId], references: [id])
-  Message              Message[]
-
-  @@unique([type, tripId, travelerId])
-  @@index([adminId])
-  @@index([isDeleted])
-  @@index([lastMessageAt])
-  @@index([organizerProfileId])
-  @@index([travelerId, type])
-  @@index([type, status])
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUIRED
 }
 
-model Destination {
-  id          String    @id
-  name        String
-  slug        String    @unique
-  state       String
-  photoUrl    String?
-  tripCount   Int       @default(0)
-  isPopular   Boolean   @default(false)
-  isActive    Boolean   @default(true)
-  isDeleted   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-  deletedAt   DateTime?
-  description String?
-  Trip        Trip[]
-
-  @@index([isDeleted])
-  @@index([isPopular, tripCount])
+enum DocumentReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-model DocumentReview {
-  id               String               @id
-  organizerId      String
-  docType          String
-  status           DocumentReviewStatus @default(PENDING)
-  currentUrl       String?
-  reviewedAt       DateTime?
-  reviewedBy       String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime
-  OrganizerProfile OrganizerProfile     @relation(fields: [organizerId], references: [id])
-
-  @@unique([organizerId, docType])
-  @@index([organizerId])
-  @@index([status])
+enum TripStatus {
+  DRAFT
+  ACTIVE
+  FULL
+  COMPLETED
+  CANCELLED
 }
 
-model DocumentReviewComment {
-  id               String           @id
-  organizerId      String
-  authorId         String
-  authorRole       String
-  docType          String?
-  comment          String
-  attachmentUrl    String?
-  createdAt        DateTime         @default(now())
-  OrganizerProfile OrganizerProfile @relation(fields: [organizerId], references: [id])
-
-  @@index([organizerId, createdAt])
-}
-
-model Message {
-  id              String       @id
-  conversationId  String
-  senderId        String
-  content         String
-  isFlagged       Boolean      @default(false)
-  readAt          DateTime?
-  isActive        Boolean      @default(true)
-  isDeleted       Boolean      @default(false)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime
-  deletedAt       DateTime?
-  fileName        String?
-  fileSize        Int?
-  fileUrl         String?
-  originalContent String?
-  reactions       Json         @default("[]")
-  replyToId       String?
-  type            MessageType  @default(TEXT)
-  clientMsgId     String?
-  Conversation    Conversation @relation(fields: [conversationId], references: [id])
-  Message         Message?     @relation("MessageToMessage", fields: [replyToId], references: [id])
-  other_Message   Message[]    @relation("MessageToMessage")
-  User            User         @relation(fields: [senderId], references: [id])
-
-  @@unique([conversationId, senderId, clientMsgId])
-  @@index([conversationId, createdAt])
-  @@index([conversationId, readAt])
-  @@index([isDeleted])
-  @@index([isFlagged])
-}
-
-model Notification {
-  id            String              @id
-  userId        String
-  channel       NotificationChannel
-  type          NotificationType
-  title         String
-  body          String
-  data          Json?
-  sentAt        DateTime?
-  readAt        DateTime?
-  failureReason String?
-  isActive      Boolean             @default(true)
-  isDeleted     Boolean             @default(false)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime
-  deletedAt     DateTime?
-  User          User                @relation(fields: [userId], references: [id])
-
-  @@index([channel, sentAt])
-  @@index([isDeleted])
-  @@index([userId, readAt])
-}
-
-model OrganizerInvite {
-  id         String    @id
-  email      String    @unique
-  token      String    @unique
-  sentAt     DateTime  @default(now())
-  acceptedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime
-  sentBy     String?
-  User       User?     @relation(fields: [sentBy], references: [id])
-
-  @@index([acceptedAt])
-  @@index([sentBy])
-}
-
-model OrganizerProfile {
-  id                    String                  @id
-  userId                String                  @unique
-  businessName          String
-  description           String?
-  verificationStatus    VerificationStatus      @default(PENDING)
-  documents             Json?
-  rating                Float                   @default(0)
-  totalReviews          Int                     @default(0)
-  totalTripsCompleted   Int                     @default(0)
-  bankAccountLinked     Boolean                 @default(false)
-  commissionRate        Float                   @default(10.0)
-  isActive              Boolean                 @default(true)
-  isDeleted             Boolean                 @default(false)
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime
-  deletedAt             DateTime?
-  razorpayAccountId     String?
-  slug                  String                  @unique
-  Conversation          Conversation[]
-  DocumentReview        DocumentReview[]
-  DocumentReviewComment DocumentReviewComment[]
-  User                  User                    @relation(fields: [userId], references: [id])
-  Trip                  Trip[]
-  TripTypeRequest       TripTypeRequest[]
-
-  @@index([isDeleted])
-  @@index([verificationStatus])
-}
-
-model PaymentTransaction {
-  id                 String        @id
-  bookingId          String
-  type               PaymentType
-  amount             Int
-  currency           String        @default("INR")
-  razorpayOrderId    String?
-  razorpayPaymentId  String?
-  razorpayRefundId   String?
-  razorpayTransferId String?
-  status             PaymentStatus @default(INITIATED)
-  failureReason      String?
-  metadata           Json?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime
-  Booking            Booking       @relation(fields: [bookingId], references: [id])
-
-  @@index([bookingId])
-  @@index([razorpayOrderId])
-  @@index([razorpayPaymentId])
-  @@index([status])
-  @@index([status, type])
-}
-
-model RefreshToken {
-  id         String    @id @default(cuid())
-  userId     String
-  tokenHash  String    @unique
-  deviceInfo String?
-  ipAddress  String?
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime
-  familyId   String?
-  User       User      @relation(fields: [userId], references: [id])
-
-  @@index([expiresAt])
-  @@index([familyId])
-  @@index([userId, revokedAt])
-}
-
-model Review {
-  id                 String    @id
-  tripId             String
-  bookingId          String    @unique
-  userId             String
-  overallRating      Int
-  organizationRating Int?
-  valueRating        Int?
-  safetyRating       Int?
-  accuracyRating     Int?
-  comment            String?
-  photos             String[]
-  isActive           Boolean   @default(true)
-  isDeleted          Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime
-  deletedAt          DateTime?
-  editedAt           DateTime?
-  organizerReply     String?
-  organizerReplyAt   DateTime?
-  Booking            Booking   @relation(fields: [bookingId], references: [id])
-  Trip               Trip      @relation(fields: [tripId], references: [id])
-  User               User      @relation(fields: [userId], references: [id])
-
-  @@index([isDeleted])
-  @@index([tripId])
-  @@index([tripId, isDeleted, createdAt(sort: Desc)])
-  @@index([userId])
-}
-
-model TravelerDetail {
-  id                    String       @id
-  bookingId             String?
-  name                  String
-  phone                 String?
-  age                   Int?
-  gender                Gender?
-  isPrimary             Boolean      @default(false)
-  isActive              Boolean      @default(true)
-  isDeleted             Boolean      @default(false)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime
-  deletedAt             DateTime?
-  emergencyContactName  String?
-  emergencyContactPhone String?
-  tripRequestId         String?
-  Booking               Booking?     @relation(fields: [bookingId], references: [id])
-  TripRequest           TripRequest? @relation(fields: [tripRequestId], references: [id])
-  VehicleSeat           VehicleSeat?
-
-  @@index([bookingId])
-  @@index([isDeleted])
-  @@index([tripRequestId])
-}
-
-model Trip {
-  id                   String              @id
-  organizerId          String
-  destinationId        String
-  title                String
-  slug                 String              @unique
-  tripType             String
-  description          String
-  itinerary            Json
-  startDate            DateTime
-  endDate              DateTime
-  bookingDeadline      DateTime?
-  pricePerPerson       Int
-  earlyBirdPrice       Int?
-  earlyBirdDeadline    DateTime?
-  minGroupSize         Int
-  maxGroupSize         Int
-  currentBookings      Int                 @default(0)
-  version              Int                 @default(0)
-  inclusions           Json
-  cancellationPolicy   CancellationPolicy  @default(FLEXIBLE)
-  photos               String[]
-  status               TripStatus          @default(DRAFT)
-  bookingMode          BookingMode         @default(INSTANT)
-  isActive             Boolean             @default(true)
-  isDeleted            Boolean             @default(false)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime
-  deletedAt            DateTime?
-  acceptingBookings    Boolean             @default(true)
-  exclusions           Json                @default("[]")
-  itineraryDocUrl      String?
-  seatSelectionEnabled Boolean             @default(false)
-  Booking              Booking[]
-  Conversation         Conversation[]
-  Review               Review[]
-  Destination          Destination         @relation(fields: [destinationId], references: [id])
-  OrganizerProfile     OrganizerProfile    @relation(fields: [organizerId], references: [id])
-  TripEditHistory      TripEditHistory[]
-  TripRequest          TripRequest[]
-  TripTransferPoint    TripTransferPoint[]
-  TripVehicle          TripVehicle[]
-
-  @@index([destinationId, startDate, status])
-  @@index([isDeleted, status, currentBookings])
-  @@index([isDeleted, status])
-  @@index([isDeleted, status, pricePerPerson])
-  @@index([isDeleted, status, startDate])
-  @@index([isDeleted, status, tripType])
-  @@index([isDeleted, status, updatedAt(sort: Desc)])
-  @@index([organizerId, status])
-  @@index([slug])
-  @@index([status, endDate])
-  @@index([status, startDate])
-}
-
-model TripCategory {
-  id        String   @id
-  value     String   @unique
-  label     String
-  icon      String?
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-
-  @@index([isActive, sortOrder])
-}
-
-model TripEditHistory {
-  id            String   @id
-  tripId        String
-  editedById    String
-  snapshot      Json
-  changedFields String[]
-  editNote      String?
-  createdAt     DateTime @default(now())
-  User          User     @relation(fields: [editedById], references: [id])
-  Trip          Trip     @relation(fields: [tripId], references: [id])
-
-  @@index([editedById])
-  @@index([tripId, createdAt])
-}
-
-model TripRequest {
-  id                String            @id
-  tripId            String
-  userId            String
-  numTravelers      Int               @default(1)
-  message           String?
-  status            TripRequestStatus @default(PENDING)
-  respondedAt       DateTime?
-  responseNote      String?
-  approvalExpiresAt DateTime?
-  bookingId         String?           @unique
-  isActive          Boolean           @default(true)
-  isDeleted         Boolean           @default(false)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime
-  deletedAt         DateTime?
-  TravelerDetail    TravelerDetail[]
-  Booking           Booking?          @relation(fields: [bookingId], references: [id])
-  Trip              Trip              @relation(fields: [tripId], references: [id])
-  User              User              @relation(fields: [userId], references: [id])
-
-  @@unique([tripId, userId])
-  @@index([isDeleted])
-  @@index([status, approvalExpiresAt])
-  @@index([tripId, status])
-  @@index([userId, status])
-}
-
-model TripTransferPoint {
-  id                                               String            @id
-  tripId                                           String
-  type                                             TransferPointType
-  label                                            String
-  address                                          String?
-  time                                             String?
-  extraCharge                                      Int               @default(0)
-  sortOrder                                        Int               @default(0)
-  isActive                                         Boolean           @default(true)
-  isDeleted                                        Boolean           @default(false)
-  createdAt                                        DateTime          @default(now())
-  updatedAt                                        DateTime
-  deletedAt                                        DateTime?
-  Booking_Booking_dropPointIdToTripTransferPoint   Booking[]         @relation("Booking_dropPointIdToTripTransferPoint")
-  Booking_Booking_pickupPointIdToTripTransferPoint Booking[]         @relation("Booking_pickupPointIdToTripTransferPoint")
-  Trip                                             Trip              @relation(fields: [tripId], references: [id])
-
-  @@index([isDeleted])
-  @@index([tripId, type])
-}
-
-model TripTypeRequest {
-  id               String                @id
-  organizerId      String
-  suggestedName    String
-  reason           String
-  status           TripTypeRequestStatus @default(PENDING)
-  adminNote        String?
-  reviewedAt       DateTime?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime
-  OrganizerProfile OrganizerProfile      @relation(fields: [organizerId], references: [id])
-
-  @@index([organizerId])
-  @@index([status])
-}
-
-model TripVehicle {
-  id            String        @id
-  tripId        String
-  label         String        @default("Main Vehicle")
-  vehicleType   String
-  sortOrder     Int           @default(0)
-  rows          Int
-  cols          Int
-  aisleAfterCol Int?
-  driverRow     Int           @default(0)
-  driverCol     Int
-  layout        Json
-  isActive      Boolean       @default(true)
-  isDeleted     Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime
-  deletedAt     DateTime?
-  photos        String[]
-  Trip          Trip          @relation(fields: [tripId], references: [id])
-  VehicleSeat   VehicleSeat[]
-
-  @@index([isDeleted])
-  @@index([tripId])
-}
-
-model User {
-  id                                  String             @id
-  name                                String
-  email                               String?            @unique
-  phone                               String?            @unique
-  passwordHash                        String?
-  googleId                            String?            @unique
-  role                                UserRole           @default(TRAVELER)
-  avatarUrl                           String?
-  aadhaarVerified                     Boolean            @default(false)
-  isActive                            Boolean            @default(true)
-  isDeleted                           Boolean            @default(false)
-  createdAt                           DateTime           @default(now())
-  updatedAt                           DateTime
-  deletedAt                           DateTime?
-  phoneVerified                       Boolean            @default(false)
-  emailVerified                       Boolean            @default(false)
-  Booking_Booking_cancelledByIdToUser Booking[]          @relation("Booking_cancelledByIdToUser")
-  Booking_Booking_userIdToUser        Booking[]          @relation("Booking_userIdToUser")
-  Conversation                        Conversation[]
-  Message                             Message[]
-  Notification                        Notification[]
-  OrganizerInvite                     OrganizerInvite[]
-  OrganizerProfile                    OrganizerProfile?
-  RefreshToken                        RefreshToken[]
-  Review                              Review[]
-  TripEditHistory                     TripEditHistory[]
-  TripRequest                         TripRequest[]
-  VerificationCode                    VerificationCode[]
-  Wallet                              Wallet?
-
-  @@index([email])
-  @@index([isDeleted])
-  @@index([role])
-}
-
-model VehicleSeat {
-  id               String          @id
-  tripVehicleId    String
-  row              Int
-  col              Int
-  seatLabel        String
-  seatNumber       Int
-  status           SeatStatus      @default(AVAILABLE)
-  bookingId        String?
-  travelerDetailId String?         @unique
-  heldAt           DateTime?
-  heldUntil        DateTime?
-  heldByUserId     String?
-  isActive         Boolean         @default(true)
-  isDeleted        Boolean         @default(false)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime
-  deletedAt        DateTime?
-  Booking          Booking?        @relation(fields: [bookingId], references: [id])
-  TravelerDetail   TravelerDetail? @relation(fields: [travelerDetailId], references: [id])
-  TripVehicle      TripVehicle     @relation(fields: [tripVehicleId], references: [id])
-
-  @@unique([tripVehicleId, row, col])
-  @@unique([tripVehicleId, seatNumber])
-  @@index([bookingId])
-  @@index([isDeleted])
-  @@index([status, heldUntil])
-  @@index([tripVehicleId, status])
-}
-
-model VerificationCode {
-  id         String               @id
-  userId     String?
-  type       VerificationCodeType
-  identifier String
-  codeHash   String
-  expiresAt  DateTime
-  usedAt     DateTime?
-  attempts   Int                  @default(0)
-  createdAt  DateTime             @default(now())
-  updatedAt  DateTime
-  User       User?                @relation(fields: [userId], references: [id])
-
-  @@index([expiresAt])
-  @@index([identifier, type])
-}
-
-model Wallet {
-  id                String              @id
-  userId            String              @unique
-  balance           Int                 @default(0)
-  currency          String              @default("INR")
-  isActive          Boolean             @default(true)
-  isDeleted         Boolean             @default(false)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  deletedAt         DateTime?
-  User              User                @relation(fields: [userId], references: [id])
-  WalletTransaction WalletTransaction[]
-
-  @@index([isDeleted])
-}
-
-model WalletTransaction {
-  id                   String                @id
-  walletId             String
-  amount               Int
-  type                 WalletTransactionType
-  referenceModel       String?
-  referenceId          String?
-  description          String
-  balanceBefore        Int
-  balanceAfter         Int
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime
-  expiresAt            DateTime?
-  expiryReminderSentAt DateTime?
-  Wallet               Wallet                @relation(fields: [walletId], references: [id])
-
-  @@unique([type, referenceModel, referenceId])
-  @@index([expiresAt])
-  @@index([referenceModel, referenceId])
-  @@index([type])
-  @@index([walletId, createdAt])
-}
-
-model WebhookEvent {
-  id              String    @id
-  payload         Json
-  status          String    @default("RECEIVED")
-  processedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime
-  attempts        Int       @default(1)
-  eventType       String
-  externalEventId String
-  externalId      String?
-  failureReason   String?
-  headers         Json?
-  mode            String    @default("live")
-  referenceId     String?
-  referenceModel  String?
-  response        Json?
-  source          String
-
-  @@unique([source, externalEventId])
-  @@index([createdAt])
-  @@index([externalId])
-  @@index([mode])
-  @@index([referenceModel, referenceId])
-  @@index([source, eventType])
-  @@index([status])
-}
-
-enum BookingMode {
-  INSTANT
-  REQUEST_BASED
+enum CancellationPolicy {
+  FLEXIBLE
+  MODERATE
+  STRICT
 }
 
 enum BookingStatus {
@@ -667,27 +52,18 @@ enum BookingStatus {
   EXPIRED
 }
 
-enum CancellationPolicy {
-  FLEXIBLE
-  MODERATE
-  STRICT
+enum PaymentType {
+  PAYMENT
+  REFUND
+  ESCROW_RELEASE
 }
 
-enum ConversationStatus {
-  ACTIVE
-  ARCHIVED
-  CLOSED
-}
-
-enum ConversationType {
-  TRIP_CHAT
-  ADMIN_SUPPORT
-}
-
-enum DocumentReviewStatus {
-  PENDING
-  APPROVED
-  REJECTED
+enum PaymentStatus {
+  INITIATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
 }
 
 enum Gender {
@@ -695,13 +71,6 @@ enum Gender {
   FEMALE
   OTHER
   PREFER_NOT_TO_SAY
-}
-
-enum MessageType {
-  TEXT
-  IMAGE
-  FILE
-  SYSTEM
 }
 
 enum NotificationChannel {
@@ -725,27 +94,62 @@ enum NotificationType {
   TRIP_REQUEST_RECEIVED
   TRIP_REQUEST_APPROVED
   TRIP_REQUEST_REJECTED
-  SYSTEM_ALERT
   TRIP_REQUEST_EXPIRED
   ADMIN_SUPPORT_MESSAGE
+  SYSTEM_ALERT
   TRIP_TYPE_REQUEST_APPROVED
   TRIP_TYPE_REQUEST_REJECTED
   DOCUMENT_REUPLOAD_REQUIRED
   WALLET_CREDIT_EXPIRING
 }
 
-enum PaymentStatus {
-  INITIATED
-  CAPTURED
-  FAILED
-  REFUNDED
-  AUTHORIZED
+enum VerificationCodeType {
+  EMAIL_VERIFY
+  PHONE_OTP
+  EMAIL_OTP
+  PASSWORD_RESET
 }
 
-enum PaymentType {
-  PAYMENT
-  REFUND
-  ESCROW_RELEASE
+enum BookingMode {
+  INSTANT
+  REQUEST_BASED
+}
+
+enum TripRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum TransferPointType {
+  PICKUP
+  DROP
+}
+
+enum ConversationType {
+  TRIP_CHAT
+  ADMIN_SUPPORT
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  SYSTEM
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+  CLOSED
+}
+
+enum TripTypeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum SeatCellType {
@@ -762,53 +166,6 @@ enum SeatStatus {
   BLOCKED
 }
 
-enum TransferPointType {
-  PICKUP
-  DROP
-}
-
-enum TripRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
-  CONVERTED
-}
-
-enum TripStatus {
-  DRAFT
-  ACTIVE
-  FULL
-  COMPLETED
-  CANCELLED
-}
-
-enum TripTypeRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum UserRole {
-  TRAVELER
-  ORGANIZER
-  ADMIN
-}
-
-enum VerificationCodeType {
-  EMAIL_VERIFY
-  PHONE_OTP
-  PASSWORD_RESET
-  EMAIL_OTP
-}
-
-enum VerificationStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  REVISION_REQUIRED
-}
-
 enum WalletTransactionType {
   REFUND
   CASHBACK
@@ -817,4 +174,728 @@ enum WalletTransactionType {
   ADMIN_DEBIT
   PROMOTIONAL_CREDIT
   EXPIRY
+}
+
+// ─── Models (15 MVP Tables) ──────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  email           String?   @unique
+  phone           String?   @unique
+  passwordHash    String?
+  googleId        String?   @unique
+  role            UserRole  @default(TRAVELER)
+  avatarUrl       String?
+  aadhaarVerified Boolean   @default(false)
+  phoneVerified   Boolean   @default(false)
+  emailVerified   Boolean   @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organizerProfile  OrganizerProfile?
+  bookings          Booking[]
+  reviews           Review[]
+  sentMessages      Message[]          @relation("sender")
+  conversations     Conversation[]     @relation("traveler")
+  refreshTokens     RefreshToken[]
+  verificationCodes VerificationCode[]
+  notifications     Notification[]
+  cancelledBookings Booking[]          @relation("canceller")
+  tripRequests      TripRequest[]
+  tripEdits          TripEditHistory[]
+  wallet             Wallet?
+  organizerInvitesSent OrganizerInvite[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isDeleted])
+}
+
+model OrganizerProfile {
+  id                  String             @id @default(cuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id])
+  businessName        String
+  slug                String             @unique
+  description         String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  documents           Json?
+  rating              Float              @default(0)
+  totalReviews        Int                @default(0)
+  totalTripsCompleted Int                @default(0)
+  bankAccountLinked   Boolean            @default(false)
+  commissionRate      Float              @default(10.0)
+  razorpayAccountId   String?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  trips             Trip[]
+  conversations     Conversation[] @relation("organizer")
+  tripTypeRequests  TripTypeRequest[]
+  documentReviews   DocumentReview[]
+  reviewComments    DocumentReviewComment[]
+
+  @@index([verificationStatus])
+  @@index([isDeleted])
+}
+
+model DocumentReview {
+  id          String               @id @default(cuid())
+  organizerId String
+  organizer   OrganizerProfile     @relation(fields: [organizerId], references: [id])
+  docType     String               // "aadhaarFront" | "aadhaarBack" | "panCard"
+  status      DocumentReviewStatus @default(PENDING)
+  currentUrl  String?
+  reviewedAt  DateTime?
+  reviewedBy  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizerId, docType])
+  @@index([organizerId])
+  @@index([status])
+}
+
+model DocumentReviewComment {
+  id            String           @id @default(cuid())
+  organizerId   String
+  organizer     OrganizerProfile @relation(fields: [organizerId], references: [id])
+  authorId      String
+  authorRole    String           // "ADMIN" | "ORGANIZER"
+  docType       String?
+  comment       String
+  attachmentUrl String?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizerId, createdAt])
+}
+
+model Destination {
+  id        String  @id @default(cuid())
+  name      String
+  slug      String  @unique
+  state     String
+  photoUrl    String?
+  description String?
+  tripCount   Int     @default(0)
+  isPopular   Boolean @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  trips Trip[]
+
+  @@index([isPopular, tripCount])
+  @@index([isDeleted])
+}
+
+model Trip {
+  id                 String             @id @default(cuid())
+  organizerId        String
+  organizer          OrganizerProfile   @relation(fields: [organizerId], references: [id])
+  destinationId      String
+  destination        Destination        @relation(fields: [destinationId], references: [id])
+  title              String
+  slug               String             @unique
+  tripType           String
+  description        String
+  itinerary          Json
+  startDate          DateTime
+  endDate            DateTime
+  bookingDeadline    DateTime?
+  pricePerPerson     Int
+  earlyBirdPrice     Int?
+  earlyBirdDeadline  DateTime?
+  minGroupSize       Int
+  maxGroupSize       Int
+  currentBookings    Int                @default(0)
+  version            Int                @default(0)
+  inclusions         Json
+  exclusions         Json               @default("[]")
+  cancellationPolicy CancellationPolicy @default(FLEXIBLE)
+  photos             String[]
+  itineraryDocUrl    String?
+  status             TripStatus         @default(DRAFT)
+  bookingMode        BookingMode        @default(INSTANT)
+  acceptingBookings  Boolean            @default(true)
+  seatSelectionEnabled Boolean           @default(false)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookings      Booking[]
+  reviews       Review[]
+  conversations Conversation[]
+  tripRequests  TripRequest[]
+  editHistory      TripEditHistory[]
+  transferPoints   TripTransferPoint[]
+  vehicles         TripVehicle[]
+
+  @@index([destinationId, startDate, status])
+  @@index([slug])
+  @@index([organizerId, status])
+  @@index([status, startDate])
+  @@index([isDeleted, status])
+  @@index([isDeleted, status, startDate])
+  @@index([isDeleted, status, pricePerPerson])
+  @@index([isDeleted, status, currentBookings])
+  @@index([isDeleted, status, tripType])  // tripType filtered in search/countByType queries
+  @@index([status, endDate])             // findTripsToComplete filters on status + endDate
+  @@index([isDeleted, status, updatedAt]) // findSlugsForSitemap — ORDER BY updatedAt DESC
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  bookingRef     String        @unique
+  tripId         String
+  trip           Trip          @relation(fields: [tripId], references: [id])
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  numTravelers   Int           @default(1)
+  totalAmount    Int
+  walletAmount   Int           @default(0)
+  tripProtection Boolean       @default(false)
+  bookingStatus  BookingStatus @default(PENDING_PAYMENT)
+  expiresAt      DateTime?
+
+  cancellationReason String?
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledBy        User?     @relation("canceller", fields: [cancelledById], references: [id])
+
+  pickupPointId String?
+  pickupPoint   TripTransferPoint? @relation("pickupPoint", fields: [pickupPointId], references: [id])
+  dropPointId   String?
+  dropPoint     TripTransferPoint? @relation("dropPoint", fields: [dropPointId], references: [id])
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Set when the trip-reminder notification has been sent for this booking.
+  // Prevents the cron from re-firing on each run.
+  tripReminderSentAt DateTime?
+
+  travelerDetails     TravelerDetail[]
+  paymentTransactions PaymentTransaction[]
+  vehicleSeats        VehicleSeat[]
+  review              Review?
+  tripRequest         TripRequest?
+
+  @@index([tripId, bookingStatus])
+  @@index([userId, bookingStatus])
+  @@index([bookingRef])
+  @@index([bookingStatus, expiresAt])
+  @@index([isDeleted])
+  @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
+  // Partial unique index (not expressible in Prisma DSL — see migration 20260621000001):
+  // CREATE UNIQUE INDEX "Booking_active_user_trip_unique" ON "Booking" ("userId", "tripId")
+  // WHERE "bookingStatus" IN ('PENDING_PAYMENT', 'CONFIRMED') AND "isDeleted" = false
+  // Prevents duplicate active bookings for the same user+trip at the DB level.
+}
+
+model TripTransferPoint {
+  id          String             @id @default(cuid())
+  tripId      String
+  trip        Trip               @relation(fields: [tripId], references: [id])
+  type        TransferPointType
+  label       String
+  address     String?
+  time        String?
+  extraCharge Int                @default(0)
+  sortOrder   Int                @default(0)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookingsAsPickup Booking[] @relation("pickupPoint")
+  bookingsAsDrop   Booking[] @relation("dropPoint")
+
+  @@index([tripId, type])
+  @@index([isDeleted])
+}
+
+model TravelerDetail {
+  id            String       @id @default(cuid())
+  bookingId     String?
+  booking       Booking?     @relation(fields: [bookingId], references: [id])
+  tripRequestId String?
+  tripRequest   TripRequest? @relation(fields: [tripRequestId], references: [id])
+  name          String
+  phone         String?
+  age           Int?
+  gender        Gender?
+  isPrimary     Boolean      @default(false)
+  emergencyContactName  String?
+  emergencyContactPhone String?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  assignedSeat VehicleSeat?
+
+  @@index([bookingId])
+  @@index([tripRequestId])
+  @@index([isDeleted])
+}
+
+model TripVehicle {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  label         String   @default("Main Vehicle")
+  vehicleType   String
+  sortOrder     Int      @default(0)
+
+  rows          Int
+  cols          Int
+  aisleAfterCol Int?
+  driverRow     Int      @default(0)
+  driverCol     Int
+
+  layout        Json
+  photos        String[]
+
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  seats         VehicleSeat[]
+
+  @@index([tripId])
+  @@index([isDeleted])
+}
+
+model VehicleSeat {
+  id              String      @id @default(cuid())
+  tripVehicleId   String
+  tripVehicle     TripVehicle @relation(fields: [tripVehicleId], references: [id])
+
+  row             Int
+  col             Int
+  seatLabel       String
+  seatNumber      Int
+  status          SeatStatus  @default(AVAILABLE)
+
+  bookingId       String?
+  booking         Booking?    @relation(fields: [bookingId], references: [id])
+  travelerDetailId String?    @unique
+  travelerDetail  TravelerDetail? @relation(fields: [travelerDetailId], references: [id])
+
+  heldAt          DateTime?
+  heldUntil       DateTime?
+  heldByUserId    String?
+
+  isActive        Boolean  @default(true)
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@unique([tripVehicleId, row, col])
+  @@unique([tripVehicleId, seatNumber])
+  @@index([tripVehicleId, status])
+  @@index([bookingId])
+  @@index([status, heldUntil])
+  @@index([isDeleted])
+}
+
+model PaymentTransaction {
+  id                  String        @id @default(cuid())
+  bookingId           String
+  booking             Booking       @relation(fields: [bookingId], references: [id])
+  type                PaymentType
+  amount              Int
+  currency            String        @default("INR")
+  razorpayOrderId     String?
+  razorpayPaymentId   String?
+  razorpayRefundId    String?
+  razorpayTransferId  String?
+  status              PaymentStatus @default(INITIATED)
+  failureReason       String?
+  metadata            Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([bookingId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+  @@index([status, type])
+  // Partial unique index (not expressible in Prisma SDL — lives in raw migration):
+  //   CREATE UNIQUE INDEX "payment_transaction_booking_refund_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'REFUND'
+  // Ensures at most one REFUND row per booking — DB-level backstop against double-refund.
+}
+
+model Review {
+  id                 String  @id @default(cuid())
+  tripId             String
+  trip               Trip    @relation(fields: [tripId], references: [id])
+  bookingId          String  @unique
+  booking            Booking @relation(fields: [bookingId], references: [id])
+  userId             String
+  user               User    @relation(fields: [userId], references: [id])
+  overallRating      Int
+  organizationRating Int?
+  valueRating        Int?
+  safetyRating       Int?
+  accuracyRating     Int?
+  comment            String?
+  photos             String[]
+  editedAt           DateTime?
+  organizerReply     String?
+  organizerReplyAt   DateTime?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Composite index serves the most common access pattern:
+  // WHERE tripId = ? AND isDeleted = false ORDER BY createdAt DESC
+  // The standalone [tripId] index is now redundant but left for Prisma relation queries.
+  @@index([tripId, isDeleted, createdAt(sort: Desc)])
+  @@index([tripId])
+  @@index([userId])
+  @@index([isDeleted])
+}
+
+model Conversation {
+  id                 String             @id @default(cuid())
+  type               ConversationType   @default(TRIP_CHAT)
+  status             ConversationStatus @default(ACTIVE)
+  tripId             String?
+  trip               Trip?              @relation(fields: [tripId], references: [id])
+  travelerId         String
+  traveler           User               @relation("traveler", fields: [travelerId], references: [id])
+  organizerProfileId String?
+  organizerProfile   OrganizerProfile?  @relation("organizer", fields: [organizerProfileId], references: [id])
+  adminId            String?
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+  unreadCountTraveler  Int             @default(0)
+  unreadCountOrganizer Int             @default(0)
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  messages Message[]
+
+  @@unique([type, tripId, travelerId])
+  @@index([travelerId, type])
+  @@index([organizerProfileId])
+  @@index([adminId])
+  @@index([type, status])
+  @@index([isDeleted])
+  @@index([lastMessageAt])  // conversation lists sort by lastMessageAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation("sender", fields: [senderId], references: [id])
+  type           MessageType  @default(TEXT)
+  content        String
+  /// Client-generated idempotency key — a retried send (socket ack timeout →
+  /// REST fallback) maps onto the same row instead of creating a duplicate.
+  /// Nullable: system messages and older clients don't send one.
+  clientMsgId    String?
+  originalContent String?
+  isFlagged      Boolean      @default(false)
+  readAt         DateTime?
+  fileUrl        String?
+  fileName       String?
+  fileSize       Int?
+  reactions      Json         @default("[]")
+  replyToId      String?
+  replyTo        Message?     @relation("replies", fields: [replyToId], references: [id])
+  replies        Message[]    @relation("replies")
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Scoped to sender so one user's key can never collide with (or block) another's.
+  // Postgres treats NULLs as distinct, so legacy/system rows are unaffected.
+  @@unique([conversationId, senderId, clientMsgId])
+  @@index([conversationId, createdAt])
+  @@index([conversationId, readAt])
+  @@index([isFlagged])
+  @@index([isDeleted])
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  tokenHash  String    @unique
+  familyId   String?
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@index([familyId])
+}
+
+model VerificationCode {
+  id         String               @id @default(cuid())
+  userId     String?
+  user       User?                @relation(fields: [userId], references: [id])
+  type       VerificationCodeType
+  identifier String
+  codeHash   String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  attempts   Int                  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([identifier, type])
+  @@index([expiresAt])
+}
+
+model Notification {
+  id            String              @id @default(cuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id])
+  channel       NotificationChannel
+  type          NotificationType
+  title         String
+  body          String
+  data          Json?
+  sentAt        DateTime?
+  readAt        DateTime?
+  failureReason String?
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([userId, readAt])
+  @@index([channel, sentAt])
+  @@index([isDeleted])
+}
+
+model WebhookEvent {
+  id                String    @id @default(cuid())
+
+  // ── Source Identification ──────────────────────────
+  source            String
+  externalEventId   String
+  eventType         String
+
+  // ── Internal Reference (Polymorphic) ───────────────
+  referenceModel    String?
+  referenceId       String?
+
+  // ── External Reference ─────────────────────────────
+  externalId        String?
+
+  // ── Payload Storage ────────────────────────────────
+  headers           Json?
+  payload           Json
+  response          Json?
+
+  // ── Processing Status ──────────────────────────────
+  status            String    @default("RECEIVED")
+  mode              String    @default("live")
+  failureReason     String?
+  attempts          Int       @default(1)
+  processedAt       DateTime?
+
+  // ── Timestamps (NO soft-delete — immutable audit trail) ──
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // ── Indexes ────────────────────────────────────────
+  @@unique([source, externalEventId])
+  @@index([source, eventType])
+  @@index([referenceModel, referenceId])
+  @@index([externalId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([mode])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  currency  String   @default("INR")
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transactions WalletTransaction[]
+
+  @@index([isDeleted])
+  // IMPORTANT: After migration, run raw SQL to add CHECK constraint:
+  // ALTER TABLE "Wallet" ADD CONSTRAINT wallet_balance_non_negative CHECK (balance >= 0);
+}
+
+model WalletTransaction {
+  id             String                @id @default(cuid())
+  walletId       String
+  wallet         Wallet                @relation(fields: [walletId], references: [id])
+  amount         Int
+  type           WalletTransactionType
+  referenceModel String?
+  referenceId    String?
+  description    String
+  balanceBefore  Int
+  balanceAfter   Int
+
+  // Nullable — set only on expirable credits (cashback, promotional credit).
+  // Refunds and admin credits leave these null.
+  expiresAt             DateTime?
+  expiryReminderSentAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type, referenceModel, referenceId])
+  @@index([walletId, createdAt])
+  @@index([referenceModel, referenceId])
+  @@index([type])
+  @@index([expiresAt])  // wallet expiry sweep cron
+}
+
+model TripCategory {
+  id        String   @id @default(cuid())
+  value     String   @unique
+  label     String
+  icon      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model TripTypeRequest {
+  id            String                @id @default(cuid())
+  organizerId   String
+  organizer     OrganizerProfile      @relation(fields: [organizerId], references: [id])
+  suggestedName String
+  reason        String
+  status        TripTypeRequestStatus @default(PENDING)
+  adminNote     String?
+  reviewedAt    DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@index([status])
+  @@index([organizerId])
+}
+
+model TripEditHistory {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id])
+  editedById    String
+  editedBy      User     @relation(fields: [editedById], references: [id])
+  snapshot      Json
+  changedFields String[]
+  editNote      String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([tripId, createdAt])
+  @@index([editedById])
+}
+
+model TripRequest {
+  id                String            @id @default(cuid())
+  tripId            String
+  trip              Trip              @relation(fields: [tripId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  numTravelers      Int               @default(1)
+  message           String?
+  travelerDetails   TravelerDetail[]
+  status            TripRequestStatus @default(PENDING)
+  respondedAt       DateTime?
+  responseNote      String?
+  approvalExpiresAt DateTime?
+  bookingId         String?           @unique
+  booking           Booking?          @relation(fields: [bookingId], references: [id])
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([tripId, userId])
+  @@index([tripId, status])
+  @@index([userId, status])
+  @@index([status, approvalExpiresAt])
+  @@index([isDeleted])
+}
+
+model OrganizerInvite {
+  id         String    @id @default(cuid())
+  email      String    @unique
+  token      String    @unique
+  sentAt     DateTime  @default(now())
+  acceptedAt DateTime?
+  sentBy     String?
+  sentByUser User?     @relation(fields: [sentBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([acceptedAt])
+  @@index([sentBy])
 }

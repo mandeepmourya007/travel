@@ -284,10 +284,10 @@ export class BookingRepository {
   async atomicConfirmGate(id: string): Promise<number> {
     return this.prisma.$executeRaw`
       UPDATE "Booking"
-      SET "bookingStatus" = ${BOOKING_STATUS.CONFIRMED},
+      SET "bookingStatus" = ${BOOKING_STATUS.CONFIRMED}::"BookingStatus",
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT}
+        AND "bookingStatus"::text = ${BOOKING_STATUS.PENDING_PAYMENT}
         AND "isDeleted" = false
     `
   }
@@ -300,10 +300,10 @@ export class BookingRepository {
   async revertConfirmGate(id: string): Promise<void> {
     const rows = await this.prisma.$executeRaw`
       UPDATE "Booking"
-      SET "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT},
+      SET "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT}::"BookingStatus",
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus" = ${BOOKING_STATUS.CONFIRMED}
+        AND "bookingStatus"::text = ${BOOKING_STATUS.CONFIRMED}
         AND "isDeleted" = false
     `
     if (rows === 0) {
