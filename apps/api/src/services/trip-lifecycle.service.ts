@@ -197,7 +197,7 @@ export class TripLifecycleService {
       razorpayPaymentId: string | null
       booking: {
         totalAmount: number
-        trip: { organizer: { commissionRate: number | null } }
+        trip: { organizer: { commissionRate: Prisma.Decimal | null } }
       }
     },
     meta: { tripId?: string; crashRecovery?: boolean },
@@ -221,7 +221,8 @@ export class TripLifecycleService {
       }
 
       // Calculate actual transfer amount (organizer's share)
-      const commissionRate = payment.booking.trip.organizer.commissionRate ?? PLATFORM_COMMISSION_PERCENT
+      const rawRate = payment.booking.trip.organizer.commissionRate
+      const commissionRate = rawRate != null ? Number(rawRate) : PLATFORM_COMMISSION_PERCENT
       const transferAmount = Math.round(payment.booking.totalAmount * (1 - commissionRate / 100))
 
       // Record ESCROW_RELEASE BEFORE calling Razorpay.

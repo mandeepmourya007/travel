@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { idSchema } from './common.schema'
 
 /** Accepts a string (newline-separated) or string[] and normalizes to string[] */
 const stringOrArray = z.preprocess(
@@ -90,7 +91,7 @@ export const createTripSchema = z
 export const updateTripSchema = z
   .object({
     title: z.string().min(5, 'Title must be at least 5 characters').max(100).trim().optional(),
-    destinationId: z.string().cuid().optional(),
+    destinationId: idSchema.optional(),
     tripType: z.string().min(1).optional(),
     bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).optional(),
     description: z.string().min(20, 'Description must be at least 20 characters').optional(),
@@ -132,7 +133,7 @@ export const updateTripSchema = z
   )
 
 export const tripFiltersSchema = z.object({
-  destinationId: z.string().cuid().optional(),
+  destinationId: idSchema.optional(),
   destination: z.string().optional(),
   /** Free-text search — OR-matches title, description, destination name */
   q: z.string().trim().min(1).max(100).optional(),

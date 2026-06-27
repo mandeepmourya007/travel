@@ -150,4 +150,40 @@ export class WebhookEventRepository {
       take: limit,
     })
   }
+
+  /**
+   * Retention sweep — hard-deletes terminal webhook events (COMPLETED / SKIPPED)
+   * older than `cutoff`. FAILED / RECEIVED / PROCESSING rows are intentionally
+   * kept for debugging and retry, regardless of age.
+   *
+   * Deletes in batches of `batchSize` (default 1000) to avoid holding a large
+   * lock on the WebhookEvent table. Returns total rows removed across all batches.
+   */
+  async deleteOldTerminalEvents(cutoff: Date, batchSize = 1_000): Promise<number> {
+    const where = {
+      status: { in: [WEBHOOK_STATUS.COMPLETED, WEBHOOK_STATUS.SKIPPED] },
+      createdAt: { lt: cutoff },
+    }
+
+    let totalDeleted = 0
+    let batch: { count: number }
+
+    do {
+      // Prisma deleteMany doesn't support `take`, so we select IDs first then delete.
+      const ids = await this.prisma.webhookEvent.findMany({
+        where,
+        select: { id: true },
+        take: batchSize,
+      })
+
+      if (ids.length === 0) break
+
+      batch = await this.prisma.webhookEvent.deleteMany({
+        where: { id: { in: ids.map((r) => r.id) } },
+      })
+      totalDeleted += batch.count
+    } while (batch.count === batchSize)
+
+    return totalDeleted
+  }
 }

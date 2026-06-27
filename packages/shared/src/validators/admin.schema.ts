@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { VERIFICATION_STATUSES, APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
 import { BOOKING_STATUSES } from '../constants/booking-status'
 import { DOC_TYPES } from '../constants/upload'
-import { paginationSchema } from './common.schema'
+import { paginationSchema, idSchema } from './common.schema'
 
 /** Validates query params for GET /admin/organizers */
 export const organizerApprovalFiltersSchema = paginationSchema.extend({
@@ -28,12 +28,12 @@ export const cashbackTripFiltersSchema = paginationSchema.extend({
 
 /** Validates body for POST /admin/cashback/issue */
 export const issueCashbackSchema = z.object({
-  tripId: z.string().cuid(),
+  tripId: idSchema,
   items: z
     .array(
       z.object({
-        bookingId: z.string().cuid(),
-        userId: z.string().cuid(),
+        bookingId: idSchema,
+        userId: idSchema,
         amount: z.number().int().positive(),
       }),
     )

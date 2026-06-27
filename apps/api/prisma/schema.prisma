@@ -152,13 +152,6 @@ enum TripTypeRequestStatus {
   REJECTED
 }
 
-enum SeatCellType {
-  SEAT
-  DRIVER
-  EMPTY
-  BLOCKED
-}
-
 enum SeatStatus {
   AVAILABLE
   HELD
@@ -179,7 +172,7 @@ enum WalletTransactionType {
 // ─── Models (15 MVP Tables) ──────────────────────────────
 
 model User {
-  id              String    @id @default(cuid())
+  id              String    @id @default(uuid(7))
   name            String
   email           String?   @unique
   phone           String?   @unique
@@ -211,13 +204,11 @@ model User {
   wallet             Wallet?
   organizerInvitesSent OrganizerInvite[]
 
-  @@index([email])
   @@index([role])
-  @@index([isDeleted])
 }
 
 model OrganizerProfile {
-  id                  String             @id @default(cuid())
+  id                  String             @id @default(uuid(7))
   userId              String             @unique
   user                User               @relation(fields: [userId], references: [id])
   businessName        String
@@ -229,7 +220,7 @@ model OrganizerProfile {
   totalReviews        Int                @default(0)
   totalTripsCompleted Int                @default(0)
   bankAccountLinked   Boolean            @default(false)
-  commissionRate      Float              @default(10.0)
+  commissionRate      Decimal            @default(10.0) @db.Decimal(5, 2)
   razorpayAccountId   String?
 
   isActive  Boolean   @default(true)
@@ -245,11 +236,10 @@ model OrganizerProfile {
   reviewComments    DocumentReviewComment[]
 
   @@index([verificationStatus])
-  @@index([isDeleted])
 }
 
 model DocumentReview {
-  id          String               @id @default(cuid())
+  id          String               @id @default(uuid(7))
   organizerId String
   organizer   OrganizerProfile     @relation(fields: [organizerId], references: [id])
   docType     String               // "aadhaarFront" | "aadhaarBack" | "panCard"
@@ -267,7 +257,7 @@ model DocumentReview {
 }
 
 model DocumentReviewComment {
-  id            String           @id @default(cuid())
+  id            String           @id @default(uuid(7))
   organizerId   String
   organizer     OrganizerProfile @relation(fields: [organizerId], references: [id])
   authorId      String
@@ -282,7 +272,7 @@ model DocumentReviewComment {
 }
 
 model Destination {
-  id        String  @id @default(cuid())
+  id        String  @id @default(uuid(7))
   name      String
   slug      String  @unique
   state     String
@@ -300,11 +290,10 @@ model Destination {
   trips Trip[]
 
   @@index([isPopular, tripCount])
-  @@index([isDeleted])
 }
 
 model Trip {
-  id                 String             @id @default(cuid())
+  id                 String             @id @default(uuid(7))
   organizerId        String
   organizer          OrganizerProfile   @relation(fields: [organizerId], references: [id])
   destinationId      String
@@ -352,17 +341,16 @@ model Trip {
   @@index([slug])
   @@index([organizerId, status])
   @@index([status, startDate])
-  @@index([isDeleted, status])
   @@index([isDeleted, status, startDate])
   @@index([isDeleted, status, pricePerPerson])
   @@index([isDeleted, status, currentBookings])
   @@index([isDeleted, status, tripType])  // tripType filtered in search/countByType queries
   @@index([status, endDate])             // findTripsToComplete filters on status + endDate
-  @@index([isDeleted, status, updatedAt]) // findSlugsForSitemap — ORDER BY updatedAt DESC
+  @@index([isDeleted, status, updatedAt(sort: Desc)]) // findSlugsForSitemap — ORDER BY updatedAt DESC
 }
 
 model Booking {
-  id             String        @id @default(cuid())
+  id             String        @id @default(uuid(7))
   bookingRef     String        @unique
   tripId         String
   trip           Trip          @relation(fields: [tripId], references: [id])
@@ -405,7 +393,6 @@ model Booking {
   @@index([userId, bookingStatus])
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])
-  @@index([isDeleted])
   @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
   // Partial unique index (not expressible in Prisma DSL — see migration 20260621000001):
   // CREATE UNIQUE INDEX "Booking_active_user_trip_unique" ON "Booking" ("userId", "tripId")
@@ -414,7 +401,7 @@ model Booking {
 }
 
 model TripTransferPoint {
-  id          String             @id @default(cuid())
+  id          String             @id @default(uuid(7))
   tripId      String
   trip        Trip               @relation(fields: [tripId], references: [id])
   type        TransferPointType
@@ -434,11 +421,10 @@ model TripTransferPoint {
   bookingsAsDrop   Booking[] @relation("dropPoint")
 
   @@index([tripId, type])
-  @@index([isDeleted])
 }
 
 model TravelerDetail {
-  id            String       @id @default(cuid())
+  id            String       @id @default(uuid(7))
   bookingId     String?
   booking       Booking?     @relation(fields: [bookingId], references: [id])
   tripRequestId String?
@@ -461,11 +447,10 @@ model TravelerDetail {
 
   @@index([bookingId])
   @@index([tripRequestId])
-  @@index([isDeleted])
 }
 
 model TripVehicle {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid(7))
   tripId        String
   trip          Trip     @relation(fields: [tripId], references: [id])
   label         String   @default("Main Vehicle")
@@ -490,11 +475,10 @@ model TripVehicle {
   seats         VehicleSeat[]
 
   @@index([tripId])
-  @@index([isDeleted])
 }
 
 model VehicleSeat {
-  id              String      @id @default(cuid())
+  id              String      @id @default(uuid(7))
   tripVehicleId   String
   tripVehicle     TripVehicle @relation(fields: [tripVehicleId], references: [id])
 
@@ -524,11 +508,10 @@ model VehicleSeat {
   @@index([tripVehicleId, status])
   @@index([bookingId])
   @@index([status, heldUntil])
-  @@index([isDeleted])
 }
 
 model PaymentTransaction {
-  id                  String        @id @default(cuid())
+  id                  String        @id @default(uuid(7))
   bookingId           String
   booking             Booking       @relation(fields: [bookingId], references: [id])
   type                PaymentType
@@ -557,7 +540,7 @@ model PaymentTransaction {
 }
 
 model Review {
-  id                 String  @id @default(cuid())
+  id                 String  @id @default(uuid(7))
   tripId             String
   trip               Trip    @relation(fields: [tripId], references: [id])
   bookingId          String  @unique
@@ -583,15 +566,14 @@ model Review {
 
   // Composite index serves the most common access pattern:
   // WHERE tripId = ? AND isDeleted = false ORDER BY createdAt DESC
-  // The standalone [tripId] index is now redundant but left for Prisma relation queries.
+  // It also covers plain tripId lookups via its leading-column prefix, so no
+  // standalone [tripId] index is needed.
   @@index([tripId, isDeleted, createdAt(sort: Desc)])
-  @@index([tripId])
   @@index([userId])
-  @@index([isDeleted])
 }
 
 model Conversation {
-  id                 String             @id @default(cuid())
+  id                 String             @id @default(uuid(7))
   type               ConversationType   @default(TRIP_CHAT)
   status             ConversationStatus @default(ACTIVE)
   tripId             String?
@@ -614,17 +596,22 @@ model Conversation {
 
   messages Message[]
 
+  // For TRIP_CHAT this enforces one thread per (trip, traveler). It does NOT
+  // constrain ADMIN_SUPPORT rows, because tripId is NULL there and Postgres
+  // treats NULLs as distinct — so a partial unique index (raw SQL, see migration
+  // 20260627000003) enforces a single ADMIN_SUPPORT thread per traveler:
+  //   CREATE UNIQUE INDEX "Conversation_admin_support_unique" ON "Conversation" ("travelerId")
+  //   WHERE "type" = 'ADMIN_SUPPORT' AND "isDeleted" = false
   @@unique([type, tripId, travelerId])
   @@index([travelerId, type])
   @@index([organizerProfileId])
   @@index([adminId])
   @@index([type, status])
-  @@index([isDeleted])
   @@index([lastMessageAt])  // conversation lists sort by lastMessageAt
 }
 
 model Message {
-  id             String       @id @default(cuid())
+  id             String       @id @default(uuid(7))
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   senderId       String
@@ -658,11 +645,10 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([conversationId, readAt])
   @@index([isFlagged])
-  @@index([isDeleted])
 }
 
 model RefreshToken {
-  id         String    @id @default(cuid())
+  id         String    @id @default(uuid(7))
   userId     String
   user       User      @relation(fields: [userId], references: [id])
   tokenHash  String    @unique
@@ -681,7 +667,7 @@ model RefreshToken {
 }
 
 model VerificationCode {
-  id         String               @id @default(cuid())
+  id         String               @id @default(uuid(7))
   userId     String?
   user       User?                @relation(fields: [userId], references: [id])
   type       VerificationCodeType
@@ -699,7 +685,7 @@ model VerificationCode {
 }
 
 model Notification {
-  id            String              @id @default(cuid())
+  id            String              @id @default(uuid(7))
   userId        String
   user          User                @relation(fields: [userId], references: [id])
   channel       NotificationChannel
@@ -719,11 +705,10 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([channel, sentAt])
-  @@index([isDeleted])
 }
 
 model WebhookEvent {
-  id                String    @id @default(cuid())
+  id                String    @id @default(uuid(7))
 
   // ── Source Identification ──────────────────────────
   source            String
@@ -764,7 +749,7 @@ model WebhookEvent {
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7))
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
   balance   Int      @default(0)
@@ -778,13 +763,12 @@ model Wallet {
 
   transactions WalletTransaction[]
 
-  @@index([isDeleted])
   // IMPORTANT: After migration, run raw SQL to add CHECK constraint:
   // ALTER TABLE "Wallet" ADD CONSTRAINT wallet_balance_non_negative CHECK (balance >= 0);
 }
 
 model WalletTransaction {
-  id             String                @id @default(cuid())
+  id             String                @id @default(uuid(7))
   walletId       String
   wallet         Wallet                @relation(fields: [walletId], references: [id])
   amount         Int
@@ -811,7 +795,7 @@ model WalletTransaction {
 }
 
 model TripCategory {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7))
   value     String   @unique
   label     String
   icon      String?
@@ -824,7 +808,7 @@ model TripCategory {
 }
 
 model TripTypeRequest {
-  id            String                @id @default(cuid())
+  id            String                @id @default(uuid(7))
   organizerId   String
   organizer     OrganizerProfile      @relation(fields: [organizerId], references: [id])
   suggestedName String
@@ -840,7 +824,7 @@ model TripTypeRequest {
 }
 
 model TripEditHistory {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid(7))
   tripId        String
   trip          Trip     @relation(fields: [tripId], references: [id])
   editedById    String
@@ -856,7 +840,7 @@ model TripEditHistory {
 }
 
 model TripRequest {
-  id                String            @id @default(cuid())
+  id                String            @id @default(uuid(7))
   tripId            String
   trip              Trip              @relation(fields: [tripId], references: [id])
   userId            String
@@ -881,11 +865,10 @@ model TripRequest {
   @@index([tripId, status])
   @@index([userId, status])
   @@index([status, approvalExpiresAt])
-  @@index([isDeleted])
 }
 
 model OrganizerInvite {
-  id         String    @id @default(cuid())
+  id         String    @id @default(uuid(7))
   email      String    @unique
   token      String    @unique
   sentAt     DateTime  @default(now())

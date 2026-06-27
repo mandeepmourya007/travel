@@ -1,7 +1,27 @@
 import { z } from 'zod'
 
+/**
+ * Resource identifier validator. Accepts BOTH id formats so rows from before
+ * and after the UUIDv7 migration both validate:
+ *   - Legacy cuid v1 (rows created while the schema used @default(cuid())).
+ *     Format: 'c' + exactly 24 lowercase alphanumeric chars = 25 chars total.
+ *     e.g. "clh3k2abc0001234567890abc"
+ *   - UUIDv7 (current default — @default(uuid(7))).
+ *     Standard 8-4-4-4-12 hex format.
+ *
+ * IMPORTANT: do NOT use z.string().uuid() here — zod's uuid regex only allows
+ * versions 1–5 and REJECTS the version-7 nibble, so it would 400 every new id.
+ * The regex below is version-agnostic for the UUID branch.
+ */
+export const idSchema = z
+  .string()
+  .regex(
+    /^(c[a-z0-9]{24}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+    'Invalid id',
+  )
+
 export const cuidParamSchema = z.object({
-  id: z.string().cuid(),
+  id: idSchema,
 })
 
 export const slugParamSchema = z.object({
@@ -9,20 +29,20 @@ export const slugParamSchema = z.object({
 })
 
 export const tripIdParamSchema = z.object({
-  tripId: z.string().cuid(),
+  tripId: idSchema,
 })
 
 export const bookingIdParamSchema = z.object({
-  bookingId: z.string().cuid(),
+  bookingId: idSchema,
 })
 
 export const tripRequestParamSchema = z.object({
-  tripId: z.string().cuid(),
-  requestId: z.string().cuid(),
+  tripId: idSchema,
+  requestId: idSchema,
 })
 
 export const organizerIdParamSchema = z.object({
-  organizerId: z.string().cuid(),
+  organizerId: idSchema,
 })
 
 /** Generic page + limit pagination schema — reuse across admin/wallet/etc routes */

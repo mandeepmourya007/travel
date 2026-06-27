@@ -280,6 +280,7 @@ export const cronDeps = {
   tripRequestRepo,
   refreshTokenRepo,
   verifCodeRepo,
+  webhookEventRepo,
   paymentService,
   bookingService,
   tripLifecycleService,

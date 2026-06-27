@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { TripLifecycleService } from '../../../src/services/trip-lifecycle.service'
 import { logger } from '../../../src/utils/logger'
 
@@ -304,6 +305,83 @@ describe('TripLifecycleService', () => {
       const result = await serviceNoPayment.releaseUnreleasedEscrows()
 
       expect(result).toEqual({ released: 0, failed: 0 })
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // commissionRate — Prisma.Decimal handling
+  // After the Float → Decimal(5,2) migration, OrganizerProfile.commissionRate
+  // arrives as a Prisma.Decimal. The service calls Number() to convert it.
+  // ═══════════════════════════════════════════════════════
+
+  describe('releaseEscrowForTrip — Decimal commissionRate', () => {
+    beforeEach(() => {
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
+      mockPaymentTxRepo.create.mockResolvedValue({})
+    })
+
+    it('correctly converts Prisma.Decimal commissionRate when calculating transfer amount', async () => {
+      const payment = createMockCapturedPayment({
+        booking: {
+          totalAmount: 10000,
+          tripId: 'trip-1',
+          trip: {
+            organizer: {
+              // Simulate Prisma.Decimal as returned by the DB after Float→Decimal migration
+              commissionRate: new Prisma.Decimal('20.00'),
+            },
+          },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+
+      await service.releaseEscrowForTrip('trip-1')
+
+      // 10000 * (1 - 20/100) = 8000
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 8000 }),
+      )
+    })
+
+    it('falls back to PLATFORM_COMMISSION_PERCENT (10%) when commissionRate is null', async () => {
+      const payment = createMockCapturedPayment({
+        booking: {
+          totalAmount: 10000,
+          tripId: 'trip-1',
+          trip: {
+            organizer: { commissionRate: null },
+          },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+
+      await service.releaseEscrowForTrip('trip-1')
+
+      // null → 10% default → 10000 * (1 - 0.10) = 9000
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 9000 }),
+      )
+    })
+
+    it('handles a Decimal with fractional precision without rounding errors', async () => {
+      const payment = createMockCapturedPayment({
+        booking: {
+          totalAmount: 9999,
+          tripId: 'trip-1',
+          trip: {
+            organizer: { commissionRate: new Prisma.Decimal('12.50') },
+          },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+
+      await service.releaseEscrowForTrip('trip-1')
+
+      // 9999 * (1 - 0.125) = 9999 * 0.875 = 8749.125 → Math.round → 8749
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 8749 }),
+      )
     })
   })
 })

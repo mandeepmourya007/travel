@@ -64,7 +64,7 @@ export class PaymentHistoryService {
 
     const raw = await this.paymentTxRepo.getTripSummary(tripId)
     const netRevenue = raw.totalRevenue - raw.totalRefunded
-    const commissionRate = (profile.commissionRate ?? DEFAULT_COMMISSION_RATE) / 100
+    const commissionRate = (profile.commissionRate != null ? Number(profile.commissionRate) : DEFAULT_COMMISSION_RATE) / 100
     const platformCommission = Math.round(netRevenue * commissionRate)
     const organizerEarnings = netRevenue - platformCommission
 
@@ -102,7 +102,8 @@ export class PaymentHistoryService {
     const releasedTotal = released.reduce((sum, r) => sum + r.amount, 0)
 
     const pendingTotal = pendingPayments.reduce((sum, p) => {
-      const commissionRate = (p.booking.trip.organizer.commissionRate ?? DEFAULT_COMMISSION_RATE) / 100
+      const rawRate = p.booking.trip.organizer.commissionRate
+      const commissionRate = (rawRate != null ? Number(rawRate) : DEFAULT_COMMISSION_RATE) / 100
       return sum + Math.round(p.amount * (1 - commissionRate))
     }, 0)
 

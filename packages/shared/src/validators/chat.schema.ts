@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { idSchema } from './common.schema'
 import { CONVERSATION_TYPE, CONVERSATION_STATUS, MESSAGE_TYPE } from '../types/chat.types'
 
 export const CHAT_MAX_MESSAGE_LENGTH = 2000
@@ -12,11 +13,11 @@ export const sendMessageSchema = z.object({
   fileUrl: z.string().url().optional(),
   fileName: z.string().max(255).optional(),
   fileSize: z.number().int().min(1).max(CHAT_MAX_FILE_SIZE).optional(),
-  replyToId: z.string().cuid().optional(),
+  replyToId: idSchema.optional(),
 })
 
 export const createTripConversationSchema = z.object({
-  tripId: z.string().cuid(),
+  tripId: idSchema,
 })
 
 export const addReactionSchema = z.object({
@@ -31,7 +32,7 @@ export const conversationListFiltersSchema = z.object({
 })
 
 export const messageListFiltersSchema = z.object({
-  cursor: z.string().cuid().optional(),
+  cursor: idSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 })
 

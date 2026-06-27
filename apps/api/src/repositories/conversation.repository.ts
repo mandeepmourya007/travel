@@ -84,14 +84,26 @@ export class ConversationRepository {
 
     if (existing) return existing
 
-    return this.prisma.conversation.create({
-      data: {
-        type: CONVERSATION_TYPE.ADMIN_SUPPORT,
-        travelerId: userId,
-        status: CONVERSATION_STATUS.ACTIVE,
-      },
-      select: CONVERSATION_SELECT,
-    })
+    try {
+      return await this.prisma.conversation.create({
+        data: {
+          type: CONVERSATION_TYPE.ADMIN_SUPPORT,
+          travelerId: userId,
+          status: CONVERSATION_STATUS.ACTIVE,
+        },
+        select: CONVERSATION_SELECT,
+      })
+    } catch (err) {
+      // Concurrent request won the race — unique constraint (P2002) means
+      // the row now exists; re-fetch and return it.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        return this.prisma.conversation.findFirstOrThrow({
+          where: { type: CONVERSATION_TYPE.ADMIN_SUPPORT, travelerId: userId, isDeleted: false },
+          select: CONVERSATION_SELECT,
+        })
+      }
+      throw err
+    }
   }
 
   /**

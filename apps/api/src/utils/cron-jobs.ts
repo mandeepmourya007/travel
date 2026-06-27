@@ -4,6 +4,7 @@ import { BookingRepository } from '../repositories/booking.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { VerificationCodeRepository } from '../repositories/verification-code.repository'
+import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentService } from '../services/payment.service'
 import { BookingService } from '../services/booking.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
@@ -21,6 +22,10 @@ const ONE_HOUR = 60 * 60 * 1000
 const SIX_HOURS = 6 * 60 * 60 * 1000
 const ONE_MINUTE = 60 * 1000
 const FOURTEEN_MINUTES = 14 * 60 * 1000
+const ONE_DAY = 24 * 60 * 60 * 1000
+
+// Terminal (COMPLETED/SKIPPED) webhook events older than this are purged.
+const WEBHOOK_EVENT_RETENTION_DAYS = 90
 
 // ── Lock TTLs (ms) ───────────────────────────────────
 // Sized generously above worst-case job runtime. A dropped lock (volatile-lru
@@ -143,6 +148,25 @@ async function cleanupStaleTokens(refreshTokenRepo: RefreshTokenRepository) {
     }
   } catch (error) {
     logger.error({ error }, 'Refresh token cleanup job failed')
+  }
+}
+
+/**
+ * Purges terminal (COMPLETED/SKIPPED) webhook events older than the retention
+ * window. WebhookEvent is an append-only audit table with no soft-delete, so
+ * without this it grows unbounded. FAILED/unprocessed rows are kept for debugging.
+ *
+ * Intended to be called via setInterval() once a day.
+ */
+async function cleanupOldWebhookEvents(webhookEventRepo: WebhookEventRepository) {
+  try {
+    const cutoff = new Date(Date.now() - WEBHOOK_EVENT_RETENTION_DAYS * ONE_DAY)
+    const count = await webhookEventRepo.deleteOldTerminalEvents(cutoff)
+    if (count > 0) {
+      logger.info({ count, retentionDays: WEBHOOK_EVENT_RETENTION_DAYS }, 'Purged old webhook events')
+    }
+  } catch (error) {
+    logger.error({ error }, 'Webhook event retention job failed')
   }
 }
 
@@ -370,6 +394,7 @@ export function startCronJobs(deps: {
   tripRequestRepo: TripRequestRepository
   refreshTokenRepo: RefreshTokenRepository
   verifCodeRepo: VerificationCodeRepository
+  webhookEventRepo: WebhookEventRepository
   paymentService: PaymentService | null
   bookingService: BookingService | null
   tripLifecycleService: TripLifecycleService
@@ -404,6 +429,11 @@ export function startCronJobs(deps: {
       () => withLock('cron:cleanup-stale-tokens', LOCK_TTL_1HOUR,
         () => cleanupStaleTokens(deps.refreshTokenRepo)),
       ONE_HOUR,
+    ),
+    setInterval(
+      () => withLock('cron:cleanup-webhook-events', LOCK_TTL_6HOUR,
+        () => cleanupOldWebhookEvents(deps.webhookEventRepo)),
+      ONE_DAY,
     ),
     setInterval(
       () => withLock('cron:complete-trips-escrow', LOCK_TTL_30MIN,

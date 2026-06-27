@@ -287,7 +287,7 @@ export class BookingRepository {
       SET "bookingStatus" = ${BOOKING_STATUS.CONFIRMED}::"BookingStatus",
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus"::text = ${BOOKING_STATUS.PENDING_PAYMENT}
+        AND "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT}::"BookingStatus"
         AND "isDeleted" = false
     `
   }
@@ -303,7 +303,7 @@ export class BookingRepository {
       SET "bookingStatus" = ${BOOKING_STATUS.PENDING_PAYMENT}::"BookingStatus",
           "updatedAt"     = NOW()
       WHERE id = ${id}
-        AND "bookingStatus"::text = ${BOOKING_STATUS.CONFIRMED}
+        AND "bookingStatus" = ${BOOKING_STATUS.CONFIRMED}::"BookingStatus"
         AND "isDeleted" = false
     `
     if (rows === 0) {

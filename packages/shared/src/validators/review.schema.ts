@@ -1,12 +1,13 @@
 import { z } from 'zod'
+import { idSchema } from './common.schema'
 import { REVIEW_MAX_PHOTOS, REVIEW_MAX_COMMENT_LENGTH, REVIEW_MAX_REPLY_LENGTH } from '../constants/review'
 
 const ratingField = z.coerce.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5')
 const optionalRatingField = z.coerce.number().int().min(1).max(5).optional()
 
 export const createReviewSchema = z.object({
-  tripId: z.string().cuid(),
-  bookingId: z.string().cuid(),
+  tripId: idSchema,
+  bookingId: idSchema,
   overallRating: ratingField,
   organizationRating: optionalRatingField,
   valueRating: optionalRatingField,

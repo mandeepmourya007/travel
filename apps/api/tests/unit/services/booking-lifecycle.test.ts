@@ -212,7 +212,7 @@ beforeEach(() => {
 // FLOW 1: Happy Path — Create → Confirm → FULL
 // ══════════════════════════════════════════════════════
 describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
-  it('should create booking with correct on_hold_until (endDate + 90 days)', async () => {
+  it('should create Razorpay order with correct amount in paise, receipt format, and notes', async () => {
     mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
     mockTripRepo.findByIdForBooking.mockResolvedValue(BASE_TRIP)
     mockPaymentService.createOrder.mockResolvedValue({ id: 'order_new', amount: 1000000 })
@@ -230,20 +230,14 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
       ],
     })
 
-    // Verify Razorpay order was created with transfer that has correct on_hold_until
-    const createOrderCall = mockPaymentService.createOrder.mock.calls[0]
-    const transfers = createOrderCall[2] as Record<string, unknown>[]
-    expect(transfers).toHaveLength(1)
+    const [amountPaise, receipt, notes] = mockPaymentService.createOrder.mock.calls[0] as [number, string, Record<string, unknown>]
 
-    const onHoldUntil = transfers[0].on_hold_until as number
-    const expectedTimestamp = Math.floor(
-      new Date(BASE_TRIP.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
-    )
-    expect(onHoldUntil).toBe(expectedTimestamp)
-
-    // Verify transfer amount = total * (1 - commission/100)
-    const expectedTransferPaise = Math.round(1000000 * (1 - 10 / 100))
-    expect(transfers[0].amount).toBe(expectedTransferPaise)
+    // 2 travelers × ₹5000 = ₹10000 → 1,000,000 paise
+    expect(amountPaise).toBe(1_000_000)
+    // receipt is used for Razorpay idempotency — format is "booking-<timestamp>"
+    expect(receipt).toMatch(/^booking-\d+$/)
+    // notes are stored on the Razorpay order for support/reconciliation
+    expect(notes).toMatchObject({ tripId: 'trip-1', userId: 'user-1' })
   })
 
   it('should confirm booking, capture payment, increment seats, and check FULL', async () => {

@@ -33,7 +33,31 @@ const mockTripLifecycleService = {
   releaseUnreleasedEscrows: vi.fn().mockResolvedValue({ released: 0, failed: 0 }),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
+const mockWebhookEventRepo = {
+  deleteOldTerminalEvents: vi.fn().mockResolvedValue(0),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const mockVehicleService = {
+  releaseSeats: vi.fn().mockResolvedValue(undefined),
+  expireHeldSeats: vi.fn().mockResolvedValue(0),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const mockWalletService = {
+  reconcile: vi.fn().mockResolvedValue({ checked: 0, drifted: 0 }),
+  expireCredits: vi.fn().mockResolvedValue({ voided: 0, skipped: 0 }),
+  findCreditsNeedingExpiryReminder: vi.fn().mockResolvedValue([]),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const mockNotificationService = {
+  send: vi.fn().mockResolvedValue(undefined),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const mockBookingService = {
+  recoverPaidBooking: vi.fn().mockResolvedValue(undefined),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
 const FIVE_MINUTES = 5 * 60 * 1000
+const ONE_DAY = 24 * 60 * 60 * 1000
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createDeps(paymentService = mockPaymentService as any) {
@@ -42,8 +66,13 @@ function createDeps(paymentService = mockPaymentService as any) {
     tripRequestRepo: mockTripRequestRepo,
     refreshTokenRepo: mockRefreshTokenRepo,
     verifCodeRepo: mockVerifCodeRepo,
+    webhookEventRepo: mockWebhookEventRepo,
     paymentService,
+    bookingService: mockBookingService,
     tripLifecycleService: mockTripLifecycleService,
+    vehicleService: mockVehicleService,
+    walletService: mockWalletService,
+    notificationService: mockNotificationService,
   }
 }
 
@@ -178,5 +207,25 @@ describe('startCronJobs', () => {
     await vi.advanceTimersByTimeAsync(25 * 60 * 1000)
     expect(mockTripLifecycleService.completeEndedTrips).toHaveBeenCalledTimes(1)
     expect(mockTripLifecycleService.releaseUnreleasedEscrows).toHaveBeenCalledTimes(1)
+  })
+
+  it('should NOT fire webhook event cleanup before 24 hours', async () => {
+    stopCrons = startCronJobs(createDeps(null))
+
+    // 1 hour — cleanup has not fired yet
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
+    expect(mockWebhookEventRepo.deleteOldTerminalEvents).not.toHaveBeenCalled()
+  })
+
+  it('should fire webhook event cleanup cron after 24 hours', async () => {
+    stopCrons = startCronJobs(createDeps(null))
+
+    // Advance to just before 24 h — must not fire yet
+    await vi.advanceTimersByTimeAsync(ONE_DAY - 1)
+    expect(mockWebhookEventRepo.deleteOldTerminalEvents).not.toHaveBeenCalled()
+
+    // Tick past the 24-hour mark — cleanup fires once
+    await vi.advanceTimersByTimeAsync(2)
+    expect(mockWebhookEventRepo.deleteOldTerminalEvents).toHaveBeenCalledTimes(1)
   })
 })

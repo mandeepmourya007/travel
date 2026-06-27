@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { idSchema } from './common.schema'
 
 // ─── Payment History Filters ──────────────────────────
 
@@ -30,7 +31,7 @@ export const paymentHistoryFiltersSchema = basePaymentFilters.refine(dateRangeRe
 
 /** Validates query params for GET /payments/admin — extends base with search fields */
 export const adminPaymentFiltersSchema = basePaymentFilters.extend({
-  userId: z.string().cuid().optional(),
-  tripId: z.string().cuid().optional(),
+  userId: idSchema.optional(),
+  tripId: idSchema.optional(),
   bookingRef: z.string().max(50).optional(),
 }).refine(dateRangeRefine, dateRangeMessage)

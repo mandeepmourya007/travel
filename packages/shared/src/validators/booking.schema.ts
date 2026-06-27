@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { idSchema } from './common.schema'
 import { APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
 import { TRIP_REQUEST_STATUSES } from '../constants/booking-status'
 
@@ -14,16 +15,16 @@ export const travelerDetailSchema = z.object({
 })
 
 export const createBookingSchema = z.object({
-  tripId: z.string().cuid(),
-  pickupPointId: z.string().cuid('Invalid pickup point').optional(),
-  dropPointId: z.string().cuid('Invalid drop point').optional(),
+  tripId: idSchema,
+  pickupPointId: idSchema.optional(),
+  dropPointId: idSchema.optional(),
   numTravelers: z.number().int().min(1).max(10),
   travelers: z.array(travelerDetailSchema).min(1),
   seatIds: z.array(z.string().min(1)).min(1).max(10).optional(),
 })
 
 export const createTripRequestSchema = z.object({
-  tripId: z.string().cuid(),
+  tripId: idSchema,
   message: z.string().max(500).optional(),
   numberOfTravelers: z.number().int().min(1).max(10),
 })

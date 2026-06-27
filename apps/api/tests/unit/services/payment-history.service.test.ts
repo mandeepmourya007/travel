@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { PaymentHistoryService } from '../../../src/services/payment-history.service'
 import { logger } from '../../../src/utils/logger'
 
@@ -454,6 +455,93 @@ describe('PaymentHistoryService', () => {
       expect(result.totalRevenue).toBe(0)
       expect(result.netRevenue).toBe(0)
       expect(result.totalCommission).toBe(0)
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // commissionRate — Prisma.Decimal handling
+  // After the Float → Decimal(5,2) migration, OrganizerProfile.commissionRate
+  // is a Prisma.Decimal, not a plain JS number. The service calls Number() on it.
+  // ═══════════════════════════════════════════════════════
+
+  describe('Decimal commissionRate in getTripPaymentSummary', () => {
+    it('correctly converts Prisma.Decimal commissionRate to a number for commission math', async () => {
+      const trip = makeTrip()
+      // Simulate what Prisma returns after the Float→Decimal migration
+      const profile = makeOrganizerProfile({ commissionRate: new Prisma.Decimal('12.5') })
+      mockTripRepo.findById.mockResolvedValue(trip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.getTripSummary.mockResolvedValue({
+        totalRevenue: 20000, totalRefunded: 0,
+        transactionCount: 4, refundCount: 0,
+      })
+
+      const result = await service.getTripPaymentSummary('organizer_1', 'trip_1')
+
+      // 20000 * 12.5% = 2500 commission
+      expect(result.platformCommission).toBe(2500)
+      expect(result.organizerEarnings).toBe(17500)
+    })
+
+    it('falls back to DEFAULT_COMMISSION_RATE (10%) when commissionRate is null', async () => {
+      const trip = makeTrip()
+      const profile = makeOrganizerProfile({ commissionRate: null })
+      mockTripRepo.findById.mockResolvedValue(trip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.getTripSummary.mockResolvedValue({
+        totalRevenue: 10000, totalRefunded: 0,
+        transactionCount: 2, refundCount: 0,
+      })
+
+      const result = await service.getTripPaymentSummary('organizer_1', 'trip_1')
+
+      // null → 10% default → 10000 * 10% = 1000
+      expect(result.platformCommission).toBe(1000)
+      expect(result.organizerEarnings).toBe(9000)
+    })
+  })
+
+  describe('Decimal commissionRate in getPayoutStatement (pendingTotal)', () => {
+    it('correctly converts Prisma.Decimal commissionRate when calculating pending escrow', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+        {
+          id: 'pt_1',
+          amount: 10000,
+          booking: {
+            trip: {
+              organizer: { commissionRate: new Prisma.Decimal('15.00') },
+            },
+          },
+        },
+      ])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      // 10000 * (1 - 0.15) = 8500
+      expect(result.pendingTotal).toBe(8500)
+    })
+
+    it('falls back to DEFAULT_COMMISSION_RATE when pending payment commissionRate is null', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
+      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+        {
+          id: 'pt_1',
+          amount: 5000,
+          booking: {
+            trip: {
+              organizer: { commissionRate: null },
+            },
+          },
+        },
+      ])
+
+      const result = await service.getPayoutStatement('organizer_1')
+
+      // null → 10% default → 5000 * (1 - 0.10) = 4500
+      expect(result.pendingTotal).toBe(4500)
     })
   })
 })
