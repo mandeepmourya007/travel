@@ -8,8 +8,12 @@ export class AppError extends Error {
     public statusCode: number,
     public code: string,
     public isOperational: boolean = true,
+    cause?: unknown,
   ) {
-    super(message)
+    // Pass `cause` to the native Error so the underlying error is preserved in
+    // the exception chain — Sentry walks `.cause` and surfaces the real reason
+    // (e.g. the Razorpay/network failure behind a wrapped PaymentError).
+    super(message, cause !== undefined ? { cause } : undefined)
     Error.captureStackTrace(this, this.constructor)
   }
 }
@@ -53,7 +57,7 @@ export class PaymentError extends AppError {
     message: string,
     public razorpayError?: unknown,
   ) {
-    super(message, 502, 'PAYMENT_FAILED')
+    super(message, 502, 'PAYMENT_FAILED', true, razorpayError)
   }
 }
 

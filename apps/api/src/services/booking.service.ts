@@ -449,9 +449,12 @@ export class BookingService {
       if (!trip.organizer?.razorpayAccountId) {
         throw new ValidationError('Organizer has not set up payment — booking unavailable')
       }
-      // [TravelerDetail] if (input.numTravelers !== input.travelers.length) {
-      // [TravelerDetail]   throw new ValidationError('Number of traveler details must match numTravelers')
-      // [TravelerDetail] }
+      // travelers is optional (collected later in some flows), but when provided
+      // it must match numTravelers — a mismatched list would assign seats/details
+      // to the wrong number of people.
+      if (input.travelers?.length && input.travelers.length !== input.numTravelers) {
+        throw new ValidationError('Number of traveler details must match numTravelers')
+      }
       if (input.seatIds?.length && input.seatIds.length !== input.numTravelers) {
         throw new ValidationError('Number of selected seats must match number of travelers')
       }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import crypto from 'crypto'
 import { PaymentService } from '../../../src/services/payment.service'
+import { PaymentError } from '../../../src/errors/app-error'
 
 // ── Mock Dependencies ──────────────────────────────
 const mockRazorpay = {
@@ -150,6 +151,21 @@ describe('PaymentService', () => {
       await expect(
         service.createOrder(500000, 'booking-1', {}),
       ).rejects.toThrow('Failed to create Razorpay order')
+    })
+
+    it('should preserve the underlying Razorpay error as cause for Sentry triage', async () => {
+      const underlying = new Error('connect ETIMEDOUT api.razorpay.com:443')
+      mockRazorpay.orders.create.mockRejectedValue(underlying)
+
+      const err = await service
+        .createOrder(500000, 'booking-1', {})
+        .catch((e) => e)
+
+      expect(err).toBeInstanceOf(PaymentError)
+      // Native `cause` is what Sentry walks to surface the real failure reason
+      expect(err.cause).toBe(underlying)
+      // Back-compat property still populated
+      expect(err.razorpayError).toBe(underlying)
     })
 
     it('should throw ValidationError when amount is zero', async () => {
