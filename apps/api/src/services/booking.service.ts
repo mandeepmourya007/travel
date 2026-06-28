@@ -699,8 +699,11 @@ export class BookingService {
     if (this.vehicleService) {
       try {
         const heldSeats = await this.vehicleService.getBookingSeats(booking.id)
-        const travelers: Array<{ id: string }> = booking.travelerDetails ?? []
-        if (heldSeats.length > 0 && travelers.length > 0) {
+        if (heldSeats.length > 0) {
+          // Flip HELD → BOOKED. Traveler assignments are best-effort (only populated
+          // when travelerDetails are persisted); confirmSeats itself only needs
+          // bookingId+userId to do the status transition.
+          const travelers: Array<{ id: string }> = booking.travelerDetails ?? []
           const assignments = heldSeats
             .map((seat: { id: string }, i: number) => ({
               seatId: seat.id,

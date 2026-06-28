@@ -1,5 +1,6 @@
 import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
+import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import { TripCtaButton } from './trip-cta-button'
 import type { TripDetail, TransferPoint } from '@shared/types/trip.types'
 
@@ -67,10 +68,12 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
             }}
           />
         </div>
-        {!isFull && seatsLeft <= 5 && (
-          <p className="mt-1 text-xs text-accent-600 font-medium">
-            Only {seatsLeft} seats left!
-          </p>
+        {!isFull && (
+          <SeatsLeftBadge
+            maxGroupSize={trip.maxGroupSize}
+            currentBookings={trip.currentBookings}
+            className="mt-1"
+          />
         )}
       </div>
 

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useSeatMap } from '@/hooks/use-vehicle'
 import { VehicleImageLightbox } from '@/components/vehicle/vehicle-image-lightbox'
+import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import { Armchair, RefreshCw, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { VEHICLE_ICONS } from '@shared/constants/vehicle'
@@ -13,6 +14,8 @@ import type { SeatMapResponse } from '@shared/types/vehicle.types'
 
 interface TripVehiclePreviewProps {
   tripId: string
+  maxGroupSize: number
+  currentBookings: number
 }
 
 // ─── Skeleton ───────────────────────────────────────
@@ -48,7 +51,7 @@ function PreviewError({ onRetry }: { onRetry: () => void }) {
 // ─── Single Vehicle Panel ───────────────────────────
 
 function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
-  const { vehicle, summary } = entry
+  const { vehicle } = entry
   const icon = VEHICLE_ICONS[vehicle.vehicleType] ?? '🚗'
   const photos = vehicle.photos ?? []
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -62,9 +65,6 @@ function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
           {icon}
         </span>
         <span className="text-sm font-semibold text-neutral-700">{vehicle.label}</span>
-        <span className="ml-auto text-xs font-bold text-primary-600">
-          {summary.available} {summary.available === 1 ? 'seat' : 'seats'} left
-        </span>
       </div>
 
       {/* Vehicle photos */}
@@ -111,7 +111,7 @@ function VehiclePanel({ entry }: { entry: SeatMapResponse }) {
 
 // ─── Main Component ─────────────────────────────────
 
-export function TripVehiclePreview({ tripId }: TripVehiclePreviewProps) {
+export function TripVehiclePreview({ tripId, maxGroupSize, currentBookings }: TripVehiclePreviewProps) {
   const { data, isLoading, error, refetch } = useSeatMap(tripId)
 
   if (isLoading) return <PreviewSkeleton />
@@ -126,6 +126,7 @@ export function TripVehiclePreview({ tripId }: TripVehiclePreviewProps) {
         <h2 className="font-display text-lg font-bold text-neutral-800 sm:text-xl">
           Vehicle & Seat Layout
         </h2>
+        <SeatsLeftBadge maxGroupSize={maxGroupSize} currentBookings={currentBookings} />
       </div>
 
       {/* Vehicles */}

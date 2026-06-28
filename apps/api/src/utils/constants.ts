@@ -1,4 +1,4 @@
-export const BOOKING_EXPIRY_MINUTES = 30
+export const BOOKING_EXPIRY_MINUTES = 10
 
 // 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
 // + all DB operations inside the lock with comfortable headroom.
@@ -47,7 +47,7 @@ export const TRIP_COMPLETION_BATCH_SIZE = 50
 export const SITEMAP_MAX_TRIPS = 50_000
 
 // ─── Vehicle / Seat ─────────────────────────────────
-export const SEAT_HOLD_MINUTES = 30
+export const SEAT_HOLD_MINUTES = 10
 
 // ─── Wallet ──────────────────────────────────────────
 export const WALLET_CASHBACK_PERCENT = 5

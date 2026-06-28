@@ -63,7 +63,13 @@ export function TripDetailClient({ trip: initialTrip, slug }: TripDetailClientPr
         <div className="lg:col-span-2 space-y-10">
           <TripDetailHeader trip={trip} />
           <TripItinerary itinerary={trip.itinerary} />
-          {trip.seatSelectionEnabled && <TripVehiclePreview tripId={trip.id} />}
+          {trip.seatSelectionEnabled && (
+            <TripVehiclePreview
+              tripId={trip.id}
+              maxGroupSize={trip.maxGroupSize}
+              currentBookings={trip.currentBookings}
+            />
+          )}
           <TransferPointsTable pickupPoints={trip.pickupPoints} dropPoints={trip.dropPoints} />
           <TripOrganizerCard organizer={trip.organizer} />
           <ChatWithOrganizerButton tripId={trip.id} />

@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { MapPin, Calendar, Users, CheckCircle, GitCompareArrows, Armchair } from 'lucide-react'
 import { StarRating } from '@/components/shared/star-rating'
-import { formatCurrency, formatDateRange, getTripDuration, getSeatsLeft } from '@/lib/format'
+import { formatCurrency, formatDateRange, getTripDuration } from '@/lib/format'
+import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import { cn } from '@/lib/utils'
 import { tripKeys } from '@/lib/query-keys'
 import { fetchTripDetail } from '@/hooks/use-trip-detail'
@@ -37,7 +38,6 @@ interface TripCardProps {
 export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = false, priority = false }: TripCardProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const coverPhoto = trip.photos[0] || '/placeholder-trip.jpg'
   const hasInteracted = useRef(false)
 
@@ -116,11 +116,11 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
             {trip.bookingMode === 'INSTANT' ? 'Instant Book' : 'Request'}
           </span>
           {/* Seats urgency */}
-          {seatsLeft > 0 && seatsLeft <= 5 && (
-            <span className="absolute bottom-3 right-3 badge bg-accent-50 text-accent-700 text-xs font-semibold">
-              {seatsLeft} seats left
-            </span>
-          )}
+          <SeatsLeftBadge
+            maxGroupSize={trip.maxGroupSize}
+            currentBookings={trip.currentBookings}
+            className="absolute bottom-3 right-3"
+          />
           {trip.seatSelectionEnabled && (
             <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
               <Armchair className="h-3 w-3" />

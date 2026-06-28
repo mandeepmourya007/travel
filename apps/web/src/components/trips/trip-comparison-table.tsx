@@ -9,6 +9,8 @@ import {
   formatDateRange,
   getTripDuration,
   getSeatsLeft,
+  formatSeatsLeft,
+  isSeatsLeftUrgent,
 } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { TripDetail } from '@shared/types/trip.types'
@@ -175,8 +177,8 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
                 return (
                   <td key={trip.id} className={valueCell}>
                     <span className="text-xs sm:text-sm">{trip.maxGroupSize} people</span>
-                    <div className={cn('text-xs font-medium mt-0.5', seatsLeft <= 5 ? 'text-accent-500' : 'text-neutral-500')}>
-                      {seatsLeft} left
+                    <div className={cn('text-xs font-medium mt-0.5', isSeatsLeftUrgent(seatsLeft) ? 'text-accent-500' : 'text-neutral-500')}>
+                      {formatSeatsLeft(seatsLeft)}
                     </div>
                   </td>
                 )

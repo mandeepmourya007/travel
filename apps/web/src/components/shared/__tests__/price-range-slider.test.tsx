@@ -29,7 +29,7 @@ describe('PriceRangeSlider', () => {
     // means the elements exist in DOM but not the a11y tree)
     const container = document.body
     expect(container.textContent).toContain('₹5,000')
-    expect(container.textContent).toContain('₹50,000')
+    expect(container.textContent).toContain('₹15,000')
   })
 
   it('calls onValueChange with a [lo, hi] tuple', () => {

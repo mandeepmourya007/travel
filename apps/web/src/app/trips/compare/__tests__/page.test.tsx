@@ -264,8 +264,8 @@ describe('Compare Page', () => {
     // ── Group size data ──
     expect(screen.getAllByText('20 people').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('15 people').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('12 left').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('3 left').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('12 seats left').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('3 seats left').length).toBeGreaterThanOrEqual(1)
 
     // ── Booking mode ──
     expect(screen.getAllByText('Instant Book').length).toBeGreaterThanOrEqual(1)

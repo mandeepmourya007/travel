@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node'
 import { logger } from './logger'
 import { withLock } from './redis-lock'
 import { BookingRepository } from '../repositories/booking.repository'
@@ -50,56 +51,59 @@ async function expireStaleBookings(
   vehicleService: VehicleService,
   bookingService: BookingService | null,
 ) {
-  try {
-    const expiredBookings = await bookingRepo.findExpiredPendingBookings()
+  await Sentry.withMonitor('cron-expire-stale-bookings', async () => {
+    try {
+      const expiredBookings = await bookingRepo.findExpiredPendingBookings()
 
-    if (expiredBookings.length === 0) return
+      if (expiredBookings.length === 0) return
 
-    logger.info({ count: expiredBookings.length }, 'Processing expired bookings')
+      logger.info({ count: expiredBookings.length }, 'Processing expired bookings')
 
-    for (const booking of expiredBookings) {
-      try {
-        const paymentTx = booking.paymentTransactions[0]
+      for (const booking of expiredBookings) {
+        try {
+          const paymentTx = booking.paymentTransactions[0]
 
-        // H3 fix: Poll Razorpay before expiring — payment might have succeeded
-        if (paymentService && paymentTx?.razorpayOrderId) {
-          try {
-            const orderStatus = await paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
-            if (orderStatus === RAZORPAY_ORDER_STATUS.PAID) {
-              logger.warn(
-                { bookingId: booking.id, orderId: paymentTx.razorpayOrderId },
-                'Order already paid on Razorpay — attempting booking recovery (webhook may have been missed)',
-              )
-              if (bookingService) {
-                try {
-                  await bookingService.recoverPaidBooking(booking.id)
-                } catch (recoverErr) {
-                  logger.error({ recoverErr, bookingId: booking.id }, 'Booking recovery failed — booking remains PENDING_PAYMENT')
+          // H3 fix: Poll Razorpay before expiring — payment might have succeeded
+          if (paymentService && paymentTx?.razorpayOrderId) {
+            try {
+              const orderStatus = await paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
+              if (orderStatus === RAZORPAY_ORDER_STATUS.PAID) {
+                logger.warn(
+                  { bookingId: booking.id, orderId: paymentTx.razorpayOrderId },
+                  'Order already paid on Razorpay — attempting booking recovery (webhook may have been missed)',
+                )
+                if (bookingService) {
+                  try {
+                    await bookingService.recoverPaidBooking(booking.id)
+                  } catch (recoverErr) {
+                    logger.error({ recoverErr, bookingId: booking.id }, 'Booking recovery failed — booking remains PENDING_PAYMENT')
+                  }
                 }
+                continue
               }
-              continue
+            } catch (error) {
+              logger.warn(
+                { bookingId: booking.id, error },
+                'Failed to check Razorpay order status — proceeding with expiry',
+              )
             }
-          } catch (error) {
-            logger.warn(
-              { bookingId: booking.id, error },
-              'Failed to check Razorpay order status — proceeding with expiry',
-            )
           }
+
+          await bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
+          logger.info({ bookingId: booking.id }, 'Booking expired')
+
+          // Explicitly release seats — seat-hold timer may not coincide with booking expiry
+          vehicleService.releaseSeats(booking.id)
+            .catch((err) => logger.error({ err, bookingId: booking.id }, 'Failed to release seats on booking expiry'))
+        } catch (error) {
+          logger.error({ bookingId: booking.id, error }, 'Failed to expire booking')
         }
-
-        await bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
-        logger.info({ bookingId: booking.id }, 'Booking expired')
-
-        // Explicitly release seats — seat-hold timer may not coincide with booking expiry
-        vehicleService.releaseSeats(booking.id)
-          .catch((err) => logger.error({ err, bookingId: booking.id }, 'Failed to release seats on booking expiry'))
-      } catch (error) {
-        logger.error({ bookingId: booking.id, error }, 'Failed to expire booking')
       }
+    } catch (error) {
+      logger.error({ error }, 'Stale booking expiry job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Stale booking expiry job failed')
-  }
+  }, { schedule: { type: 'interval', value: 5, unit: 'minute' }, checkinMargin: 2, maxRuntime: 4 })
 }
 
 /**
@@ -109,14 +113,17 @@ async function expireStaleBookings(
  * Intended to be called via setInterval() every 5 minutes.
  */
 async function expireStaleRequests(tripRequestRepo: TripRequestRepository) {
-  try {
-    const result = await tripRequestRepo.expireApprovedRequests()
-    if (result.count > 0) {
-      logger.info({ count: result.count }, 'Expired stale trip requests')
+  await Sentry.withMonitor('cron-expire-stale-requests', async () => {
+    try {
+      const result = await tripRequestRepo.expireApprovedRequests()
+      if (result.count > 0) {
+        logger.info({ count: result.count }, 'Expired stale trip requests')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Trip request expiry job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Trip request expiry job failed')
-  }
+  }, { schedule: { type: 'interval', value: 5, unit: 'minute' }, checkinMargin: 2, maxRuntime: 4 })
 }
 
 /**
@@ -125,14 +132,17 @@ async function expireStaleRequests(tripRequestRepo: TripRequestRepository) {
  * Intended to be called via setInterval() every hour.
  */
 async function cleanupExpiredCodes(verifCodeRepo: VerificationCodeRepository) {
-  try {
-    const result = await verifCodeRepo.deleteExpired()
-    if (result.count > 0) {
-      logger.info({ count: result.count }, 'Cleaned up expired verification codes')
+  await Sentry.withMonitor('cron-cleanup-expired-codes', async () => {
+    try {
+      const result = await verifCodeRepo.deleteExpired()
+      if (result.count > 0) {
+        logger.info({ count: result.count }, 'Cleaned up expired verification codes')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Verification code cleanup job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Verification code cleanup job failed')
-  }
+  }, { schedule: { type: 'interval', value: 1, unit: 'hour' }, checkinMargin: 5, maxRuntime: 10 })
 }
 
 /**
@@ -141,14 +151,17 @@ async function cleanupExpiredCodes(verifCodeRepo: VerificationCodeRepository) {
  * Intended to be called via setInterval() every hour.
  */
 async function cleanupStaleTokens(refreshTokenRepo: RefreshTokenRepository) {
-  try {
-    const result = await refreshTokenRepo.deleteExpired()
-    if (result.count > 0) {
-      logger.info({ count: result.count }, 'Cleaned up stale refresh tokens')
+  await Sentry.withMonitor('cron-cleanup-stale-tokens', async () => {
+    try {
+      const result = await refreshTokenRepo.deleteExpired()
+      if (result.count > 0) {
+        logger.info({ count: result.count }, 'Cleaned up stale refresh tokens')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Refresh token cleanup job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Refresh token cleanup job failed')
-  }
+  }, { schedule: { type: 'interval', value: 1, unit: 'hour' }, checkinMargin: 5, maxRuntime: 10 })
 }
 
 /**
@@ -159,15 +172,18 @@ async function cleanupStaleTokens(refreshTokenRepo: RefreshTokenRepository) {
  * Intended to be called via setInterval() once a day.
  */
 async function cleanupOldWebhookEvents(webhookEventRepo: WebhookEventRepository) {
-  try {
-    const cutoff = new Date(Date.now() - WEBHOOK_EVENT_RETENTION_DAYS * ONE_DAY)
-    const count = await webhookEventRepo.deleteOldTerminalEvents(cutoff)
-    if (count > 0) {
-      logger.info({ count, retentionDays: WEBHOOK_EVENT_RETENTION_DAYS }, 'Purged old webhook events')
+  await Sentry.withMonitor('cron-cleanup-webhook-events', async () => {
+    try {
+      const cutoff = new Date(Date.now() - WEBHOOK_EVENT_RETENTION_DAYS * ONE_DAY)
+      const count = await webhookEventRepo.deleteOldTerminalEvents(cutoff)
+      if (count > 0) {
+        logger.info({ count, retentionDays: WEBHOOK_EVENT_RETENTION_DAYS }, 'Purged old webhook events')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Webhook event retention job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Webhook event retention job failed')
-  }
+  }, { schedule: { type: 'interval', value: 24, unit: 'hour' }, checkinMargin: 30, maxRuntime: 30 })
 }
 
 /**
@@ -177,12 +193,15 @@ async function cleanupOldWebhookEvents(webhookEventRepo: WebhookEventRepository)
  * Intended to be called via setInterval() every 30 minutes.
  */
 async function completeTripsAndReleaseEscrow(tripLifecycleService: TripLifecycleService) {
-  try {
-    await tripLifecycleService.completeEndedTrips()
-    await tripLifecycleService.releaseUnreleasedEscrows()
-  } catch (error) {
-    logger.error({ error }, 'Trip completion / escrow release job failed')
-  }
+  await Sentry.withMonitor('cron-complete-trips-escrow', async () => {
+    try {
+      await tripLifecycleService.completeEndedTrips()
+      await tripLifecycleService.releaseUnreleasedEscrows()
+    } catch (error) {
+      logger.error({ error }, 'Trip completion / escrow release job failed')
+      throw error
+    }
+  }, { schedule: { type: 'interval', value: 30, unit: 'minute' }, checkinMargin: 5, maxRuntime: 20 })
 }
 
 /**
@@ -194,22 +213,25 @@ async function completeTripsAndReleaseEscrow(tripLifecycleService: TripLifecycle
  * Intended to be called via setInterval() every 30 minutes.
  */
 async function sweepOrphanedConfirmedBookings(bookingRepo: BookingRepository) {
-  try {
-    const orphans = await bookingRepo.findOrphanedConfirmedBookings(30)
-    if (orphans.length === 0) return
+  await Sentry.withMonitor('cron-sweep-orphaned-bookings', async () => {
+    try {
+      const orphans = await bookingRepo.findOrphanedConfirmedBookings(30)
+      if (orphans.length === 0) return
 
-    logger.warn({ count: orphans.length }, 'Sweeping orphaned CONFIRMED bookings (no captured payment)')
-    for (const booking of orphans) {
-      try {
-        await bookingRepo.revertConfirmGate(booking.id)
-        logger.info({ bookingId: booking.id }, 'Orphaned CONFIRMED booking reverted to PENDING_PAYMENT')
-      } catch (err) {
-        logger.error({ err, bookingId: booking.id }, 'Failed to revert orphaned CONFIRMED booking')
+      logger.warn({ count: orphans.length }, 'Sweeping orphaned CONFIRMED bookings (no captured payment)')
+      for (const booking of orphans) {
+        try {
+          await bookingRepo.revertConfirmGate(booking.id)
+          logger.info({ bookingId: booking.id }, 'Orphaned CONFIRMED booking reverted to PENDING_PAYMENT')
+        } catch (err) {
+          logger.error({ err, bookingId: booking.id }, 'Failed to revert orphaned CONFIRMED booking')
+        }
       }
+    } catch (error) {
+      logger.error({ error }, 'Orphaned confirmed booking sweep failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Orphaned confirmed booking sweep failed')
-  }
+  }, { schedule: { type: 'interval', value: 30, unit: 'minute' }, checkinMargin: 5, maxRuntime: 20 })
 }
 
 /**
@@ -217,14 +239,17 @@ async function sweepOrphanedConfirmedBookings(bookingRepo: BookingRepository) {
  * Runs every minute to keep seat availability fresh.
  */
 async function expireHeldSeats(vehicleService: VehicleService) {
-  try {
-    const count = await vehicleService.expireHeldSeats()
-    if (count > 0) {
-      logger.info({ count }, 'Expired held seats')
+  await Sentry.withMonitor('cron-expire-held-seats', async () => {
+    try {
+      const count = await vehicleService.expireHeldSeats()
+      if (count > 0) {
+        logger.info({ count }, 'Expired held seats')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Seat hold expiry job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Seat hold expiry job failed')
-  }
+  }, { schedule: { type: 'interval', value: 1, unit: 'minute' }, checkinMargin: 1, maxRuntime: 1 })
 }
 
 /**
@@ -234,16 +259,19 @@ async function expireHeldSeats(vehicleService: VehicleService) {
  * Intended to be called via setInterval() every hour.
  */
 async function reconcileWallets(walletService: WalletService) {
-  try {
-    const { checked, drifted } = await walletService.reconcile()
-    if (drifted > 0) {
-      logger.error({ checked, drifted }, 'Wallet reconciliation found drift — manual investigation required')
-    } else {
-      logger.info({ checked }, 'Wallet reconciliation: no drift found')
+  await Sentry.withMonitor('cron-reconcile-wallets', async () => {
+    try {
+      const { checked, drifted } = await walletService.reconcile()
+      if (drifted > 0) {
+        logger.error({ checked, drifted }, 'Wallet reconciliation found drift — manual investigation required')
+      } else {
+        logger.info({ checked }, 'Wallet reconciliation: no drift found')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Wallet reconciliation job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Wallet reconciliation job failed')
-  }
+  }, { schedule: { type: 'interval', value: 1, unit: 'hour' }, checkinMargin: 5, maxRuntime: 30 })
 }
 
 /**
@@ -259,55 +287,58 @@ async function sendTripReminders(
   bookingRepo: BookingRepository,
   notificationService: NotificationService,
 ) {
-  try {
-    const now = new Date()
-    const from = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-    const to = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+  await Sentry.withMonitor('cron-send-trip-reminders', async () => {
+    try {
+      const now = new Date()
+      const from = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+      const to = new Date(now.getTime() + 48 * 60 * 60 * 1000)
 
-    const bookings = await bookingRepo.findBookingsNeedingTripReminder(from, to)
-    if (bookings.length === 0) return
+      const bookings = await bookingRepo.findBookingsNeedingTripReminder(from, to)
+      if (bookings.length === 0) return
 
-    logger.info({ count: bookings.length }, 'Sending trip reminder notifications')
+      logger.info({ count: bookings.length }, 'Sending trip reminder notifications')
 
-    const sentAt = new Date()
-    const sentIds: string[] = []
+      const sentAt = new Date()
+      const sentIds: string[] = []
 
-    await Promise.allSettled(
-      bookings.map(async (booking) => {
-        const pickupLabel = booking.pickupPoint?.label ?? ''
-        const pickupTime = booking.pickupPoint?.time ?? ''
-        const pickupDetails = [pickupLabel, pickupTime].filter(Boolean).join(' @ ')
-        const body = pickupDetails
-          ? `"${booking.trip.title}" starts soon. Pickup: ${pickupDetails}`
-          : `"${booking.trip.title}" starts soon. Check your booking for details.`
+      await Promise.allSettled(
+        bookings.map(async (booking) => {
+          const pickupLabel = booking.pickupPoint?.label ?? ''
+          const pickupTime = booking.pickupPoint?.time ?? ''
+          const pickupDetails = [pickupLabel, pickupTime].filter(Boolean).join(' @ ')
+          const body = pickupDetails
+            ? `"${booking.trip.title}" starts soon. Pickup: ${pickupDetails}`
+            : `"${booking.trip.title}" starts soon. Check your booking for details.`
 
-        try {
-          await notificationService.send({
-            userId: booking.userId,
-            type: NOTIFICATION_TYPE.TRIP_REMINDER,
-            title: 'Your trip is almost here!',
-            body,
-            data: {
-              tripSlug: booking.trip.slug,
-              tripName: booking.trip.title,
-              pickupLabel,
-              pickupTime,
-            },
-          })
-          sentIds.push(booking.id)
-        } catch (err) {
-          logger.warn({ bookingId: booking.id, err }, 'Trip reminder notification failed')
-        }
-      }),
-    )
+          try {
+            await notificationService.send({
+              userId: booking.userId,
+              type: NOTIFICATION_TYPE.TRIP_REMINDER,
+              title: 'Your trip is almost here!',
+              body,
+              data: {
+                tripSlug: booking.trip.slug,
+                tripName: booking.trip.title,
+                pickupLabel,
+                pickupTime,
+              },
+            })
+            sentIds.push(booking.id)
+          } catch (err) {
+            logger.warn({ bookingId: booking.id, err }, 'Trip reminder notification failed')
+          }
+        }),
+      )
 
-    if (sentIds.length > 0) {
-      await bookingRepo.markTripReminderSent(sentIds, sentAt)
-      logger.info({ sent: sentIds.length, total: bookings.length }, 'Trip reminders sent')
+      if (sentIds.length > 0) {
+        await bookingRepo.markTripReminderSent(sentIds, sentAt)
+        logger.info({ sent: sentIds.length, total: bookings.length }, 'Trip reminders sent')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Trip reminder job failed')
+      throw error
     }
-  } catch (error) {
-    logger.error({ error }, 'Trip reminder job failed')
-  }
+  }, { schedule: { type: 'interval', value: 1, unit: 'hour' }, checkinMargin: 5, maxRuntime: 15 })
 }
 
 /**
@@ -320,49 +351,52 @@ async function expireWalletCreditsAndWarn(
   walletService: WalletService,
   notificationService: NotificationService,
 ) {
-  try {
-    // 1. Void expired credits
-    const { voided, skipped } = await walletService.expireCredits()
-    if (voided > 0) {
-      logger.info({ voided, skipped }, 'Wallet credits expired')
+  await Sentry.withMonitor('cron-expire-wallet-credits', async () => {
+    try {
+      // 1. Void expired credits
+      const { voided, skipped } = await walletService.expireCredits()
+      if (voided > 0) {
+        logger.info({ voided, skipped }, 'Wallet credits expired')
+      }
+
+      // 2. Send advance-warning notifications for credits approaching expiry
+      const approaching = await walletService.findCreditsNeedingExpiryReminder()
+      if (approaching.length === 0) return
+
+      logger.info({ count: approaching.length }, 'Sending wallet expiry warning notifications')
+
+      const sentAt = new Date()
+      const sentIds: string[] = []
+
+      await Promise.allSettled(
+        approaching.map(async (credit) => {
+          const daysLeft = credit.expiresAt
+            ? Math.max(1, Math.ceil((credit.expiresAt.getTime() - sentAt.getTime()) / (86400 * 1000)))
+            : WALLET_EXPIRY_WARN_DAYS
+
+          try {
+            await notificationService.send({
+              userId: credit.wallet.userId,
+              type: NOTIFICATION_TYPE.WALLET_CREDIT_EXPIRING,
+              title: `₹${credit.amount} wallet credit expiring soon`,
+              body: `Your ₹${credit.amount} wallet balance expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Book a trip to use it!`,
+              data: { amount: credit.amount, daysLeft },
+            })
+            sentIds.push(credit.id)
+          } catch (err) {
+            logger.warn({ creditId: credit.id, err }, 'Wallet expiry warning notification failed')
+          }
+        }),
+      )
+
+      if (sentIds.length > 0) {
+        await walletService.markExpiryReminderSent(sentIds, sentAt)
+      }
+    } catch (error) {
+      logger.error({ error }, 'Wallet credit expiry job failed')
+      throw error
     }
-
-    // 2. Send advance-warning notifications for credits approaching expiry
-    const approaching = await walletService.findCreditsNeedingExpiryReminder()
-    if (approaching.length === 0) return
-
-    logger.info({ count: approaching.length }, 'Sending wallet expiry warning notifications')
-
-    const sentAt = new Date()
-    const sentIds: string[] = []
-
-    await Promise.allSettled(
-      approaching.map(async (credit) => {
-        const daysLeft = credit.expiresAt
-          ? Math.max(1, Math.ceil((credit.expiresAt.getTime() - sentAt.getTime()) / (86400 * 1000)))
-          : WALLET_EXPIRY_WARN_DAYS
-
-        try {
-          await notificationService.send({
-            userId: credit.wallet.userId,
-            type: NOTIFICATION_TYPE.WALLET_CREDIT_EXPIRING,
-            title: `₹${credit.amount} wallet credit expiring soon`,
-            body: `Your ₹${credit.amount} wallet balance expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Book a trip to use it!`,
-            data: { amount: credit.amount, daysLeft },
-          })
-          sentIds.push(credit.id)
-        } catch (err) {
-          logger.warn({ creditId: credit.id, err }, 'Wallet expiry warning notification failed')
-        }
-      }),
-    )
-
-    if (sentIds.length > 0) {
-      await walletService.markExpiryReminderSent(sentIds, sentAt)
-    }
-  } catch (error) {
-    logger.error({ error }, 'Wallet credit expiry job failed')
-  }
+  }, { schedule: { type: 'interval', value: 6, unit: 'hour' }, checkinMargin: 10, maxRuntime: 30 })
 }
 
 /**
@@ -404,60 +438,68 @@ export function startCronJobs(deps: {
 }): () => void {
   logger.info('Starting background cron jobs')
 
+  // withLock propagates errors from the job callback (via its try/finally).
+  // setInterval doesn't await Promises, so without .catch() a failing job would
+  // produce an unhandled promise rejection — crashing the process in Node 15+.
+  // The jobs themselves throw (so Sentry marks the check-in as failed); we catch
+  // at this level only to prevent the rejection from escaping the event loop.
+  const guard = (key: string, p: Promise<unknown>) =>
+    p.catch((err) => logger.error({ err }, `${key} threw an unhandled error`))
+
   const intervals = [
     setInterval(
-      () => withLock('cron:expire-stale-bookings', LOCK_TTL_5MIN,
-        () => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService, deps.bookingService)),
+      () => guard('cron:expire-stale-bookings', withLock('cron:expire-stale-bookings', LOCK_TTL_5MIN,
+        () => expireStaleBookings(deps.bookingRepo, deps.paymentService, deps.vehicleService, deps.bookingService))),
       FIVE_MINUTES,
     ),
     setInterval(
-      () => withLock('cron:expire-stale-requests', LOCK_TTL_5MIN,
-        () => expireStaleRequests(deps.tripRequestRepo)),
+      () => guard('cron:expire-stale-requests', withLock('cron:expire-stale-requests', LOCK_TTL_5MIN,
+        () => expireStaleRequests(deps.tripRequestRepo))),
       FIVE_MINUTES,
     ),
     setInterval(
-      () => withLock('cron:sweep-orphaned-bookings', LOCK_TTL_30MIN,
-        () => sweepOrphanedConfirmedBookings(deps.bookingRepo)),
+      () => guard('cron:sweep-orphaned-bookings', withLock('cron:sweep-orphaned-bookings', LOCK_TTL_30MIN,
+        () => sweepOrphanedConfirmedBookings(deps.bookingRepo))),
       THIRTY_MINUTES,
     ),
     setInterval(
-      () => withLock('cron:cleanup-expired-codes', LOCK_TTL_1HOUR,
-        () => cleanupExpiredCodes(deps.verifCodeRepo)),
+      () => guard('cron:cleanup-expired-codes', withLock('cron:cleanup-expired-codes', LOCK_TTL_1HOUR,
+        () => cleanupExpiredCodes(deps.verifCodeRepo))),
       ONE_HOUR,
     ),
     setInterval(
-      () => withLock('cron:cleanup-stale-tokens', LOCK_TTL_1HOUR,
-        () => cleanupStaleTokens(deps.refreshTokenRepo)),
+      () => guard('cron:cleanup-stale-tokens', withLock('cron:cleanup-stale-tokens', LOCK_TTL_1HOUR,
+        () => cleanupStaleTokens(deps.refreshTokenRepo))),
       ONE_HOUR,
     ),
     setInterval(
-      () => withLock('cron:cleanup-webhook-events', LOCK_TTL_6HOUR,
-        () => cleanupOldWebhookEvents(deps.webhookEventRepo)),
+      () => guard('cron:cleanup-webhook-events', withLock('cron:cleanup-webhook-events', LOCK_TTL_6HOUR,
+        () => cleanupOldWebhookEvents(deps.webhookEventRepo))),
       ONE_DAY,
     ),
     setInterval(
-      () => withLock('cron:complete-trips-escrow', LOCK_TTL_30MIN,
-        () => completeTripsAndReleaseEscrow(deps.tripLifecycleService)),
+      () => guard('cron:complete-trips-escrow', withLock('cron:complete-trips-escrow', LOCK_TTL_30MIN,
+        () => completeTripsAndReleaseEscrow(deps.tripLifecycleService))),
       THIRTY_MINUTES,
     ),
     setInterval(
-      () => withLock('cron:expire-held-seats', LOCK_TTL_1MIN,
-        () => expireHeldSeats(deps.vehicleService)),
+      () => guard('cron:expire-held-seats', withLock('cron:expire-held-seats', LOCK_TTL_1MIN,
+        () => expireHeldSeats(deps.vehicleService))),
       ONE_MINUTE,
     ),
     setInterval(
-      () => withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
-        () => reconcileWallets(deps.walletService)),
+      () => guard('cron:reconcile-wallets', withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
+        () => reconcileWallets(deps.walletService))),
       ONE_HOUR,
     ),
     setInterval(
-      () => withLock('cron:trip-reminders', LOCK_TTL_1HOUR,
-        () => sendTripReminders(deps.bookingRepo, deps.notificationService)),
+      () => guard('cron:trip-reminders', withLock('cron:trip-reminders', LOCK_TTL_1HOUR,
+        () => sendTripReminders(deps.bookingRepo, deps.notificationService))),
       ONE_HOUR,
     ),
     setInterval(
-      () => withLock('cron:expire-wallet-credits', LOCK_TTL_6HOUR,
-        () => expireWalletCreditsAndWarn(deps.walletService, deps.notificationService)),
+      () => guard('cron:expire-wallet-credits', withLock('cron:expire-wallet-credits', LOCK_TTL_6HOUR,
+        () => expireWalletCreditsAndWarn(deps.walletService, deps.notificationService))),
       SIX_HOURS,
     ),
     // Render free tier spins down after 15 min — ping ourselves every 14 min to stay awake

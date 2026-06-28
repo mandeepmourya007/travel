@@ -47,6 +47,18 @@ export function getSeatsLeft(max: number, current: number): number {
   return Math.max(0, max - current)
 }
 
+export const SEATS_LEFT_URGENCY_THRESHOLD = 5
+
+export function formatSeatsLeft(seatsLeft: number): string {
+  if (seatsLeft === 0) return 'Sold out'
+  if (seatsLeft === 1) return '1 seat left'
+  return `${seatsLeft} seats left`
+}
+
+export function isSeatsLeftUrgent(seatsLeft: number): boolean {
+  return seatsLeft > 0 && seatsLeft <= SEATS_LEFT_URGENCY_THRESHOLD
+}
+
 export function tripTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     ADVENTURE: 'Adventure',

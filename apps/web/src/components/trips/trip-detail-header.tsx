@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/carousel'
 import { useToast } from '@/components/shared/toast'
 import { StarRating } from '@/components/shared/star-rating'
-import { formatDateRange, getTripDuration, getSeatsLeft } from '@/lib/format'
+import { formatDateRange, getTripDuration } from '@/lib/format'
+import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import type { TripDetail } from '@shared/types/trip.types'
 
 interface TripDetailHeaderProps {
@@ -23,7 +24,6 @@ interface TripDetailHeaderProps {
 
 export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
   const { toast } = useToast()
-  const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const photos = trip.photos?.length ? trip.photos : []
   const totalPhotos = photos.length
 
@@ -153,11 +153,10 @@ export function TripDetailHeader({ trip }: TripDetailHeaderProps) {
               Seat Selection
             </span>
           )}
-          {seatsLeft > 0 && seatsLeft <= 5 && (
-            <span className="badge bg-accent-50 text-accent-700 text-xs font-semibold">
-              Only {seatsLeft} seats left!
-            </span>
-          )}
+          <SeatsLeftBadge
+            maxGroupSize={trip.maxGroupSize}
+            currentBookings={trip.currentBookings}
+          />
         </div>
 
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-neutral-900">

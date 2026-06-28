@@ -16,6 +16,7 @@ export default defineConfig({
     },
     setupFiles: ['src/test/setup.ts'],
     css: false,
+    pool: 'forks',
   },
   resolve: {
     alias: [
