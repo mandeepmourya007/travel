@@ -1,0 +1,24 @@
+docker/api.prod.Dockerfile
+  s_73d42031180d8b::t_c410aa9d2a31ef 58-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "bb8fc009fd5037a01c539f80b14c83007ea5c22b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_73d42031180d8b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6162639a-8b7f-4cf9-871c-1eb7661d90c6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
