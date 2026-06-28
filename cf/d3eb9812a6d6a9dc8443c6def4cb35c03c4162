@@ -1,0 +1,86 @@
+apps/web/src/components/trips/trip-detail-header.tsx
+  s_fec25db368ece0::t_eb028b3554cc3c 18
+  s_fec25db368ece0::t_d8f72826bb6b97 156-159
+  s_fec25db368ece0::t_cf0027bb6251e5 17
+apps/api/src/services/booking.service.ts
+  s_fec25db368ece0::t_e0f83c3917ffbe 702-706
+apps/web/src/components/trips/seats-left-badge.tsx
+  s_fec25db368ece0::t_c6e62b944cfaf1 12,25-27,29
+  s_fec25db368ece0::t_3b25608c4b6ee8 1-11,13-24,28,30-36
+apps/web/vitest.config.ts
+  s_fec25db368ece0::t_15994b1b4fd12c 19
+apps/web/src/components/shared/__tests__/price-range-slider.test.tsx
+  s_fec25db368ece0::t_7ac35c6f76c011 32
+apps/web/src/components/trips/trip-detail-client.tsx
+  s_fec25db368ece0::t_28f75e869446b5 66-72
+apps/api/src/utils/cron-jobs.ts
+  s_fec25db368ece0::t_ac03fd33f20131 196-204
+  s_fec25db368ece0::t_76a3fe80e6dee8 216-228,230-232,234
+  s_fec25db368ece0::t_fdf7496afc3aa6 355-360,362-364,366,368-369,371-375,377-390,392-397
+  s_fec25db368ece0::t_e827cdee4ef124 55-56,58,60,62-80,82,84-88,92-93,95-100,102-104
+  s_fec25db368ece0::t_c814c4e737fe70 290
+  s_fec25db368ece0::t_95ac070ec2f5c5 54
+  s_fec25db368ece0::t_a81bfa5f46758e 291-294,296-297,299,301-302,304-311,313-331,333-339
+  s_fec25db368ece0::t_4d48d4b2217043 106
+  s_fec25db368ece0::t_002b6647847d6c 441-448,451-452,456-457,461-462,466-467,471-472,476-477,481-482,486-487,491-492,496-497,501-502
+  s_fec25db368ece0::t_ac0cb8e6880031 1
+  s_fec25db368ece0::t_5dc386f9eedb60 175-184,186
+  s_fec25db368ece0::t_a79f6c028711b0 135-143,145
+  s_fec25db368ece0::t_cc58ad367df9cf 354
+  s_fec25db368ece0::t_88c029cb693a2b 399
+  s_fec25db368ece0::t_76f84ffadeb55b 341
+  s_fec25db368ece0::t_92316ac6fc87a9 154-162,164
+  s_fec25db368ece0::t_4c793deb0da3d0 242-250,252
+  s_fec25db368ece0::t_e5ac3868dc5f4d 262-272,274
+  s_fec25db368ece0::t_2de2fb89919a36 116-124,126
+apps/api/src/utils/constants.ts
+  s_fec25db368ece0::t_9c8e6bad4ca356 1
+  s_fec25db368ece0::t_4d97cc9a08735f 50
+apps/web/src/lib/format.ts
+  s_fec25db368ece0::t_8260c19f8d0a92 50-61
+apps/web/src/components/trips/trip-card.tsx
+  s_fec25db368ece0::t_c0667e2dc57fd9 10
+  s_fec25db368ece0::t_8d3ba0e2be4777 11
+  s_fec25db368ece0::t_c186231033dd43 119-123
+apps/web/src/app/trips/[slug]/page.tsx
+  s_fec25db368ece0::t_3e7d89843e287f 30
+apps/web/src/components/trips/__tests__/seats-left-badge.test.tsx
+  s_fec25db368ece0::t_313388cc6c0ad3 59-60
+  s_fec25db368ece0::t_7913b920226435 1-58,61-64
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_fec25db368ece0::t_9d4bb4c0e1b5d3 72-76
+  s_fec25db368ece0::t_3de84b759403d7 3
+  s_fec25db368ece0::t_0286eef7b054f2 71
+apps/web/src/components/trips/trip-comparison-table.tsx
+  s_fec25db368ece0::t_d7a7d8efc4fb7c 180-181
+  s_fec25db368ece0::t_044533d71a5d3f 12-13
+apps/web/src/app/trips/compare/__tests__/page.test.tsx
+  s_fec25db368ece0::t_9abd25b3729e62 267-268
+apps/web/src/components/trips/trip-vehicle-preview.tsx
+  s_fec25db368ece0::t_c3c874bb345b87 17-18
+  s_fec25db368ece0::t_5068ba7620cd9d 7
+  s_fec25db368ece0::t_fdaf7c2b0d01af 114
+  s_fec25db368ece0::t_a57007732eb783 129
+  s_fec25db368ece0::t_4970369bcfff8f 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "cfd3eb9812a6d6a9dc8443c6def4cb35c03c4162",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fec25db368ece0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f3873744-c114-41e8-b890-962b70d23aae",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
