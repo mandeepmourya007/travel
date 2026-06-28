@@ -59,7 +59,7 @@ export function TimePicker({
           )}
         >
           <ClockIcon className="h-4 w-4 shrink-0 text-neutral-400" />
-          <span className="font-mono">{value || placeholder}</span>
+          <span className="font-mono whitespace-nowrap">{value || placeholder}</span>
         </button>
       </PopoverTrigger>
 
