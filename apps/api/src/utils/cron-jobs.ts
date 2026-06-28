@@ -405,12 +405,12 @@ async function expireWalletCreditsAndWarn(
  * No-op in development or when PORT is not set.
  */
 async function keepAlive() {
-  const port = process.env.PORT
-  if (!port || process.env.NODE_ENV !== 'production') return
+  const url = process.env.RENDER_EXTERNAL_URL
+  if (!url || process.env.NODE_ENV !== 'production') return
   try {
-    await fetch(`http://localhost:${port}/health`)
+    await fetch(`${url}/health`)
   } catch {
-    // Ignore — if the server can't reach itself it's already awake
+    // Ignore
   }
 }
 
