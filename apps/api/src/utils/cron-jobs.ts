@@ -249,7 +249,7 @@ async function expireHeldSeats(vehicleService: VehicleService) {
       logger.error({ error }, 'Seat hold expiry job failed')
       throw error
     }
-  }, { schedule: { type: 'interval', value: 1, unit: 'minute' }, checkinMargin: 1, maxRuntime: 1 })
+  }, { schedule: { type: 'interval', value: 1, unit: 'minute' }, checkinMargin: 2, maxRuntime: 1 })
 }
 
 /**
