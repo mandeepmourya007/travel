@@ -58,6 +58,10 @@ apiClient.interceptors.request.use((config) => {
 })
 
 // ── Refresh Mutex ────────────────────────────────────
+// null  → no refresh in flight
+// Promise resolving to string → token obtained, retry the original request
+// Promise resolving to null   → confirmed auth failure (401), clear session
+// Promise rejecting           → transient error, do NOT clear session (server temporarily down)
 let refreshPromise: Promise<string | null> | null = null
 
 function doRefresh(): Promise<string | null> {
@@ -70,9 +74,20 @@ function doRefresh(): Promise<string | null> {
         useAuthStore.setState({ accessToken: token })
         return token
       }
+      // Unexpected response shape — treat as auth failure so we don't loop
       return null
     })
-    .catch(() => null)
+    .catch((err: unknown) => {
+      // 401 = confirmed auth failure (refresh token expired / revoked / missing)
+      // → resolve null so the interceptor clears the session and redirects to login
+      const status = (err as { response?: { status?: number } }).response?.status
+      if (status === 401) return null
+
+      // Anything else (5xx, network error, timeout) is transient.
+      // Reject so the interceptor does NOT clear the session — the user stays
+      // logged in and will be retried on the next API call once the server recovers.
+      throw err
+    })
     .finally(() => {
       refreshPromise = null
     })
@@ -97,7 +112,16 @@ apiClient.interceptors.response.use(
       if (!refreshPromise) {
         refreshPromise = doRefresh()
       }
-      const newToken = await refreshPromise
+
+      let newToken: string | null
+      try {
+        newToken = await refreshPromise
+      } catch {
+        // doRefresh() rejected → transient server error (5xx / network).
+        // Do NOT clear the session; let the original request fail normally.
+        // The user stays logged in and the next API call will retry once the server recovers.
+        return Promise.reject(error)
+      }
 
       if (newToken) {
         originalRequest.headers.Authorization = `Bearer ${newToken}`

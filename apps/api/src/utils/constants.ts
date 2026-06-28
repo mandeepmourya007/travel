@@ -188,10 +188,25 @@ export const REFERENCE_MODEL = {
   BOOKING: 'Booking',
 } as const
 
+// Both the frontend (safarnama.store) and the API are served under the same domain —
+// the Next.js app proxies /api/* to the Render backend (see next.config.js rewrites).
+// Same-domain means the browser treats all requests as same-site, so SameSite=Lax works
+// without any cross-origin cookie workarounds.
+// Lax is preferred over Strict: Strict blocks the cookie even on top-level navigations from
+// other sites (e.g. clicking a link from Google), which would show the user as logged-out
+// until the hydration refresh completes — a noticeable UX flicker.
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  sameSite: 'lax' as const,
   maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
+  path: '/api/v1/auth',
+}
+
+// clearCookie must echo the same Secure + SameSite + path used at set-time;
+// mismatched attributes cause browsers to silently ignore the clear.
+export const CLEAR_COOKIE_OPTIONS = {
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
   path: '/api/v1/auth',
 }

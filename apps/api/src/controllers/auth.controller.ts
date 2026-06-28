@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import { AuthService } from '../services/auth.service'
 import { asyncHandler } from '../utils/async-handler'
 import { AuthError } from '../errors/app-error'
-import { COOKIE_OPTIONS } from '../utils/constants'
+import { COOKIE_OPTIONS, CLEAR_COOKIE_OPTIONS } from '../utils/constants'
 
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -49,7 +49,7 @@ export class AuthController {
       await this.authService.logout(rawToken)
     }
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' })
+    res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS)
     res.json({ success: true, data: { message: 'Logged out successfully' } })
   })
 
@@ -57,7 +57,7 @@ export class AuthController {
     if (!req.user) throw new AuthError('Not authenticated')
     await this.authService.logoutAll(req.user.userId)
 
-    res.clearCookie('refreshToken', { path: '/api/v1/auth' })
+    res.clearCookie('refreshToken', CLEAR_COOKIE_OPTIONS)
     res.json({ success: true, data: { message: 'All sessions revoked' } })
   })
 

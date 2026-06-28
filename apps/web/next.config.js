@@ -26,6 +26,25 @@ const nextConfig = {
       hostname,
     })),
   },
+  // ── API reverse proxy ───────────────────────────────────────────────────────
+  // When BACKEND_API_URL is set (Render cloud: FE and BE are on separate services),
+  // Next.js acts as a transparent proxy: browser requests to /api/* are forwarded
+  // server-side to the actual API host. This keeps everything under the same domain
+  // (safarnama.store) so the HttpOnly refresh-token cookie is always same-site — no
+  // SameSite=None or cross-origin workarounds needed.
+  //
+  // In Docker (VPS + Nginx) or local dev, BACKEND_API_URL is not set — Nginx / the
+  // local dev server already routes /api/* to the backend, so no rewrite is needed.
+  rewrites: async () => {
+    const backend = process.env.BACKEND_API_URL
+    if (!backend) return []
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backend}/api/:path*`,
+      },
+    ]
+  },
   headers: async () => [
     {
       source: '/(.*)',
