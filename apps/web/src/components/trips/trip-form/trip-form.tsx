@@ -47,9 +47,29 @@ function saveDraft(key: string, data: Partial<CreateTripDto>) {
   } catch { /* quota exceeded — ignore */ }
 }
 
+function loadVehicleDraft(key: string): CreateVehicleDto[] | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(`${key}-vehicles`)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveVehicleDraft(key: string, data: CreateVehicleDto[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(`${key}-vehicles`, JSON.stringify(data))
+  } catch { /* quota exceeded — ignore */ }
+}
+
+/** Clears all three draft keys: form data, active tab, and vehicle layouts. */
 export function clearTripDraft(key = 'trip-form-draft') {
   if (typeof window === 'undefined') return
   localStorage.removeItem(key)
+  localStorage.removeItem(`${key}-vehicles`)
+  localStorage.removeItem(`${key}-tab`)
 }
 
 const DEFAULT_VALUES: Partial<CreateTripDto> = {
@@ -82,6 +102,7 @@ export function TripForm({
   initialVehicleData,
 }: TripFormProps) {
   const draft = loadDraft(storageKey)
+  const initialVehicle = initialVehicleData ?? loadVehicleDraft(storageKey)
   const [activeTab, setActiveTab] = useState<TripFormTabId>('basic')
 
   // Restore saved tab client-side only to avoid SSR hydration mismatch
@@ -98,7 +119,16 @@ export function TripForm({
 
   const { handleSubmit, formState: { errors }, watch } = methods
   const [submitAttempted, setSubmitAttempted] = useState(false)
-  const vehicleDataRef = useRef<CreateVehicleDto[] | null>(initialVehicleData ?? null)
+  const vehicleDataRef = useRef<CreateVehicleDto[] | null>(initialVehicle)
+
+  const handleVehicleChange = useCallback((data: CreateVehicleDto[] | null) => {
+    vehicleDataRef.current = data
+    if (data) {
+      saveVehicleDraft(storageKey, data)
+    } else if (typeof window !== 'undefined') {
+      localStorage.removeItem(`${storageKey}-vehicles`)
+    }
+  }, [storageKey])
 
   // Debounced auto-save to localStorage
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
@@ -123,7 +153,6 @@ export function TripForm({
       if (currentIdx !== TRIP_FORM_TABS.length - 1) return
 
       clearTripDraft(storageKey)
-      if (typeof window !== 'undefined') localStorage.removeItem(`${storageKey}-tab`)
       onSubmit(data, vehicleDataRef.current ?? undefined)
     },
     [onSubmit, storageKey],
@@ -180,13 +209,16 @@ export function TripForm({
           {activeTab === 'dates' && <DatesPricingTab />}
           {activeTab === 'itinerary' && <ItineraryTab />}
           {activeTab === 'transfers' && <TransferPointsTab />}
-          {activeTab === 'vehicle' && (
+          {/* VehicleTab is always mounted (never conditionally removed) so its internal
+              state (enabled toggle, in-progress seat builder edits) survives tab switches.
+              The HTML `hidden` attribute keeps it visually absent when not active. */}
+          <div hidden={activeTab !== 'vehicle'}>
             <VehicleTab
-              initialEnabled={!!(initialVehicleData && initialVehicleData.length > 0)}
-              initialVehicleData={initialVehicleData}
-              onVehicleChange={(data) => { vehicleDataRef.current = data }}
+              initialEnabled={!!(initialVehicle && initialVehicle.length > 0)}
+              initialVehicleData={initialVehicle}
+              onVehicleChange={handleVehicleChange}
             />
-          )}
+          </div>
           {activeTab === 'media' && <MediaTab />}
           {activeTab === 'review' && <ReviewTab />}
         </div>

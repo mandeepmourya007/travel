@@ -132,7 +132,7 @@ export function TravelerForm({
                 >
                   {trip.pickupPoints.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ''}
+                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ' · No charges'}
                     </option>
                   ))}
                 </select>
@@ -151,7 +151,7 @@ export function TravelerForm({
                 >
                   {trip.dropPoints.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ''}
+                      {p.label}{p.time ? ` · ${p.time}` : ''}{p.extraCharge > 0 ? ` (+${formatCurrency(p.extraCharge)})` : ' · No charges'}
                     </option>
                   ))}
                 </select>

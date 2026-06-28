@@ -15,8 +15,10 @@ function PointsList({ title, iconColor, points }: { title: string; iconColor: st
         {points.map((p) => (
           <li key={p.id} className="flex items-center justify-between text-sm">
             <span className="text-neutral-600">{p.label}{p.time ? ` · ${p.time}` : ''}</span>
-            {p.extraCharge > 0 && (
+            {p.extraCharge > 0 ? (
               <span className="text-xs text-accent-600">+{formatCurrency(p.extraCharge)}</span>
+            ) : (
+              <span className="text-xs text-success-500">Included</span>
             )}
           </li>
         ))}

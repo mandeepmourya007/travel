@@ -1,5 +1,6 @@
 'use client'
 
+import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export const TRIP_FORM_TABS = [
@@ -33,15 +34,17 @@ export function TabNavigation({ activeTab, onTabChange, tabErrors }: TabNavigati
             onClick={() => onTabChange(tab.id)}
             className={cn(
               'relative px-4 py-3 text-sm font-medium transition-colors',
-              activeTab === tab.id
-                ? 'text-primary-600'
-                : 'text-neutral-500 hover:text-neutral-700',
+              tabErrors?.[tab.id]
+                ? 'text-error-500'
+                : activeTab === tab.id
+                  ? 'text-primary-600'
+                  : 'text-neutral-500 hover:text-neutral-700',
             )}
           >
-            {tab.label}
-            {tabErrors?.[tab.id] && (
-              <span className="absolute right-1 top-2 h-2 w-2 rounded-full bg-error-500" />
-            )}
+            <span className="flex items-center gap-1.5">
+              {tab.label}
+              {tabErrors?.[tab.id] && <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
+            </span>
             {activeTab === tab.id && (
               <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary-500" />
             )}
