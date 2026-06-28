@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,12 +23,19 @@ interface TabNavigationProps {
 }
 
 export function TabNavigation({ activeTab, onTabChange, tabErrors }: TabNavigationProps) {
+  const activeRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+  }, [activeTab])
+
   return (
     <div className="overflow-x-auto w-full border-b border-neutral-200" role="tablist">
       <div className="flex whitespace-nowrap">
         {TRIP_FORM_TABS.map((tab) => (
           <button
             key={tab.id}
+            ref={activeTab === tab.id ? activeRef : null}
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}

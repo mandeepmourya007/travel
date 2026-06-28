@@ -24,7 +24,7 @@ export function ItineraryTab() {
         <button
           type="button"
           onClick={() => addDay({ day: days.length + 1, title: '', description: '', activities: [] })}
-          className="btn-outline flex items-center gap-1"
+          className="btn-outline flex shrink-0 items-center gap-1"
         >
           <Plus className="h-4 w-4" /> Add Day
         </button>
@@ -105,7 +105,7 @@ function ItineraryDayCard({ index, onRemove, register, control, errors: _errors 
         </button>
       </div>
 
-      <div className="mt-3 pl-14">
+      <div className="mt-3 pl-8 sm:pl-14">
         <textarea
           {...register(`itinerary.${index}.description`)}
           rows={2}
@@ -116,7 +116,7 @@ function ItineraryDayCard({ index, onRemove, register, control, errors: _errors 
         {/* Activities */}
         <div className="mt-3 space-y-2">
           {activities.map((activity, actIdx) => (
-            <div key={activity.id} className="flex items-center gap-2">
+            <div key={activity.id} className="flex items-center gap-1.5">
               <Controller
                 name={`itinerary.${index}.activities.${actIdx}.time`}
                 control={control}
@@ -125,19 +125,19 @@ function ItineraryDayCard({ index, onRemove, register, control, errors: _errors 
                     value={field.value ?? undefined}
                     onChange={field.onChange}
                     placeholder="Time"
-                    className="w-36 py-1.5 text-sm"
+                    className="w-28 shrink-0 py-1.5 text-sm sm:w-36"
                   />
                 )}
               />
               <input
                 {...register(`itinerary.${index}.activities.${actIdx}.title`)}
                 placeholder="Activity"
-                className="input flex-1 py-1.5 text-sm"
+                className="input min-w-0 flex-1 py-1.5 text-sm"
               />
               <button
                 type="button"
                 onClick={() => removeActivity(actIdx)}
-                className="btn-ghost p-1 text-neutral-400 hover:text-error-500"
+                className="btn-ghost shrink-0 p-1 text-neutral-400 hover:text-error-500"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>

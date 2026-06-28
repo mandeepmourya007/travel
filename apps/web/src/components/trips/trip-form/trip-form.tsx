@@ -14,6 +14,7 @@ import { TransferPointsTab } from './transfer-points-tab'
 import { VehicleTab } from './vehicle-tab'
 import { ReviewTab } from './review-tab'
 import { Alert } from '@/components/shared/alert'
+import { Modal } from '@/components/shared/modal'
 import type { TripFormTabId } from './tab-navigation'
 import type { CreateTripDto } from '@shared/types/trip.types'
 import type { CreateVehicleDto } from '@shared/types/vehicle.types'
@@ -119,6 +120,8 @@ export function TripForm({
 
   const { handleSubmit, formState: { errors }, watch } = methods
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const pendingDataRef = useRef<CreateTripDto | null>(null)
   const vehicleDataRef = useRef<CreateVehicleDto[] | null>(initialVehicle)
 
   const handleVehicleChange = useCallback((data: CreateVehicleDto[] | null) => {
@@ -148,15 +151,20 @@ export function TripForm({
 
   const handleFormSubmit = useCallback(
     (data: CreateTripDto) => {
-      // Guard: only allow actual submission from the review (last) tab
-      const currentIdx = TRIP_FORM_TABS.findIndex((t) => t.id === activeTabRef.current)
-      if (currentIdx !== TRIP_FORM_TABS.length - 1) return
-
-      clearTripDraft(storageKey)
-      onSubmit(data, vehicleDataRef.current ?? undefined)
+      pendingDataRef.current = data
+      setShowConfirm(true)
     },
-    [onSubmit, storageKey],
+    [],
   )
+
+  const handleConfirmedSubmit = useCallback(() => {
+    if (!pendingDataRef.current) return
+    setShowConfirm(false)
+    clearTimeout(timerRef.current)
+    clearTripDraft(storageKey)
+    onSubmit(pendingDataRef.current, vehicleDataRef.current ?? undefined)
+    pendingDataRef.current = null
+  }, [onSubmit, storageKey])
 
   const tabIndex = TRIP_FORM_TABS.findIndex((t) => t.id === activeTab)
   const isFirstTab = tabIndex === 0
@@ -191,12 +199,9 @@ export function TripForm({
   return (
     <FormProvider {...methods}>
       <form
-        onSubmit={(e) => {
-          if (!isLastTab) { e.preventDefault(); return }
-          handleSubmit(handleFormSubmit, onInvalidSubmit)(e)
-        }}
+        onSubmit={(e) => e.preventDefault()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !isLastTab && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
             e.preventDefault()
           }
         }}
@@ -253,8 +258,9 @@ export function TripForm({
           <div className="flex items-center gap-3">
             {isLastTab ? (
               <button
-                type="submit"
+                type="button"
                 disabled={isSubmitting}
+                onClick={() => handleSubmit(handleFormSubmit, onInvalidSubmit)()}
                 className="btn-primary flex items-center gap-2"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -272,6 +278,35 @@ export function TripForm({
           </div>
         </div>
       </form>
+      <Modal
+        open={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        title="Create this trip?"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowConfirm(false)}
+              className="btn-outline"
+            >
+              Go back &amp; review
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmedSubmit}
+              disabled={isSubmitting}
+              className="btn-primary flex items-center gap-2"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {submitLabel}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-neutral-500">
+          Once created, the trip will be saved as a draft. You can edit details and publish it when ready.
+        </p>
+      </Modal>
     </FormProvider>
   )
 }

@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCreateTrip } from '@/hooks/use-create-trip'
 import { createVehiclesForTrip } from '@/hooks/use-sync-vehicles'
 import { useProfile } from '@/hooks/use-profile'
-import { TripForm } from '@/components/trips/trip-form/trip-form'
+import { TripForm, clearTripDraft } from '@/components/trips/trip-form/trip-form'
 import { useToast } from '@/components/shared/toast'
 import { areDocsComplete } from '@/lib/organizer-utils'
 import type { CreateTripDto } from '@shared/types/trip.types'
@@ -26,6 +26,7 @@ export default function CreateTripPage() {
   const handleSubmit = (data: CreateTripDto, vehicleData?: CreateVehicleDto[]) => {
     createTrip.mutate(data, {
       onSuccess: async (trip) => {
+        clearTripDraft()
         if (vehicleData && vehicleData.length > 0 && trip.id) {
           try {
             await createVehiclesForTrip(trip.id, vehicleData)
