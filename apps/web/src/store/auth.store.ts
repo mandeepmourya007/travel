@@ -22,8 +22,10 @@ interface AuthState {
   setHasHydrated: (v: boolean) => void
 }
 
+type PersistedAuthState = Pick<AuthState, 'user' | 'isAuthenticated' | 'completedOnboarding'>
+
 export const useAuthStore = create<AuthState>()(
-  persist(
+  persist<AuthState, [], [], PersistedAuthState>(
     (set) => ({
       user: null,
       accessToken: null,
@@ -43,7 +45,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'travel-auth',
-      partialize: (state) => ({
+      partialize: (state): PersistedAuthState => ({
         user: state.user,
         // accessToken is intentionally NOT persisted — storing raw JWTs in localStorage
         // exposes them to XSS. The HttpOnly refresh-token cookie is the durable credential.
@@ -86,11 +88,12 @@ export const useAuthStore = create<AuthState>()(
         //   the AuthGuard spinner, no API calls fire without a token, and the 401/doRefresh
         //   path is never triggered during hydration.
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1'
+        const refreshUrl = `${apiBase}/auth/refresh`
         const controller = new AbortController()
         // Covers Render free-tier cold starts (typically 30-50s after inactivity).
         const HYDRATION_REFRESH_TIMEOUT_MS = 50_000
         const timeoutId = setTimeout(() => controller.abort(), HYDRATION_REFRESH_TIMEOUT_MS)
-        fetch(`${apiBase}/auth/refresh`, { method: 'POST', credentials: 'include', signal: controller.signal })
+        fetch(refreshUrl, { method: 'POST', credentials: 'include', signal: controller.signal })
           .then((r): Promise<{ data?: { accessToken?: unknown } } | null> => {
             if (r.ok) return r.json() as Promise<{ data?: { accessToken?: unknown } }>
             // 401 = confirmed auth failure (token expired/revoked/missing).

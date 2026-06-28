@@ -42,12 +42,14 @@ export function ChatWithOrganizerButton({ tripId, className }: ChatWithOrganizer
       onClick={handleClick}
       disabled={isPending}
       className={cn(
-        'fixed bottom-44 right-4 z-40 flex items-center gap-2 rounded-full bg-primary-600 px-5 py-3 text-sm font-medium text-white shadow-lg transition-all hover:bg-primary-700 hover:shadow-xl disabled:opacity-70 md:bottom-6 md:right-6',
+        'fixed bottom-36 right-4 z-40 flex items-center gap-2 rounded-full bg-primary-600 px-3 py-3 text-sm font-medium text-white shadow-lg transition-all hover:bg-primary-700 hover:shadow-xl disabled:opacity-70 md:bottom-6 md:right-6 md:px-5',
         className,
       )}
+      aria-label="Chat with Organizer"
+      title="Chat with Organizer"
     >
       <MessageCircle className="h-5 w-5" />
-      {isPending ? 'Opening...' : 'Chat with Organizer'}
+      <span className="hidden md:inline">{isPending ? 'Opening...' : 'Chat with Organizer'}</span>
     </button>
   )
 }
