@@ -1,0 +1,29 @@
+apps/web/src/components/trips/trip-form/itinerary-tab.tsx
+  s_c8560ee506b23e::t_1ef0a0b7dacd17 108
+  s_c8560ee506b23e::t_dd44817726a796 119-136,138-163
+  s_c8560ee506b23e::t_0acd39675c423a 94
+  s_c8560ee506b23e::t_76728a5fb29529 111
+apps/web/src/components/shared/time-picker.tsx
+  s_c8560ee506b23e::t_1ba15917b6d674 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "54886b0ec01e4c600c156cd1194396d28df6d8a8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_c8560ee506b23e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4ffc9d2-0ee7-413a-967c-2ab86f6d06fe",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
