@@ -1,0 +1,35 @@
+apps/api/src/controllers/auth.controller.ts
+  s_58b24a27e3c875::t_c17cd1d42b1622 52,60
+  s_58b24a27e3c875::t_5b7ba5bcc729d2 5
+apps/web/next.config.js
+  s_58b24a27e3c875::t_921dfa11953c4e 29-47
+apps/web/src/lib/api-client.ts
+  s_58b24a27e3c875::t_2291c45f5e9fbf 61-64,77,80-90
+  s_58b24a27e3c875::t_c0326d21d9deb1 115-123
+  s_58b24a27e3c875::t_6061c4ff09d729 124
+apps/api/src/utils/constants.ts
+  s_58b24a27e3c875::t_b18c89e3362fa2 205,208
+  s_58b24a27e3c875::t_763cea6b91ea6a 191-197,201,206-207,209-210
+  s_58b24a27e3c875::t_b072620d6ed5fd 211-212
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "11cd2c5f269bab9890635b992eb5d15b814b272e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_58b24a27e3c875": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ecd590d7-cbf9-4558-a931-5ce40cb965b0",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
