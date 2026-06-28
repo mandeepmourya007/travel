@@ -738,7 +738,7 @@ export class BookingService {
       type: NOTIFICATION_TYPE.BOOKING_CONFIRMED,
       title: 'Booking Confirmed!',
       body: `Your booking for ${booking.trip.title} has been confirmed.`,
-      data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title },
+      data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title, tripImage: booking.trip.photos?.[0] ?? null },
     }).catch((err) => this.logger.error({ err, bookingId }, 'Failed to send booking confirmation notification'))
 
     await this.invalidateTripCaches(booking.trip.slug)

@@ -555,6 +555,7 @@ export class BookingRepository {
             acceptingBookings: true,
             status: true,
             bookingDeadline: true,
+            photos: true,
             organizer: {
               select: {
                 id: true,

@@ -7,7 +7,10 @@ const CLIENT_URL = env.CLIENT_URL
 const BRAND_COLOR = '#0FBAB5'
 const BRAND_BG = '#E0FFFE'
 
-function baseLayout(content: string): string {
+// heroBlock is rendered full-bleed between the brand header and the padded content area.
+// Keeping it outside the padded div avoids the 24px side gutters that width:100% would
+// otherwise inherit from the parent's padding.
+function baseLayout(content: string, heroBlock = ''): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -18,8 +21,11 @@ function baseLayout(content: string): string {
       <div style="background:${BRAND_COLOR};border-radius:12px 12px 0 0;padding:20px 24px;">
         <span style="font-size:20px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;">${APP_NAME}</span>
       </div>
-      <div style="background:#fff;border:1px solid #e2e7eb;border-top:none;border-radius:0 0 12px 12px;padding:28px 24px;">
-        ${content}
+      <div style="background:#fff;border:1px solid #e2e7eb;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
+        ${heroBlock}
+        <div style="padding:28px 24px;">
+          ${content}
+        </div>
       </div>
       <div style="text-align:center;padding:20px 0;color:#9aa5b1;font-size:12px;">
         &copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.
@@ -46,6 +52,31 @@ function cta(label: string, href: string): string {
   return `<a href="${href}" style="display:inline-block;background:${BRAND_COLOR};color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px;">${label}</a>`
 }
 
+// Escapes characters that can break out of an HTML attribute value.
+function escapeAttr(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Only embed https:// URLs — rejects data: URIs, javascript: schemes, and malformed URLs.
+function isSafeHttpsUrl(url: string): boolean {
+  try {
+    return new URL(url).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+// Full-bleed hero image block for email.
+// - display:block prevents the phantom 4-6px gap email clients add below inline images.
+// - width="560" HTML attribute is required by Outlook (Windows) which ignores CSS width:100%.
+// - height:auto preserves natural aspect ratio; object-fit is intentionally omitted because
+//   it is unsupported in Outlook, Samsung Mail, and older Android webview mail clients.
+// - The overflow:hidden wrapper caps tall images and handles border-radius for Outlook,
+//   which ignores border-radius applied directly to <img>.
+function heroImageBlock(src: string, alt: string): string {
+  return `<div style="overflow:hidden;max-height:220px;line-height:0;"><img src="${src}" alt="${alt}" width="560" style="display:block;width:100%;height:auto;"></div>`
+}
+
 // ── Template registry ──────────────────────────────────
 
 interface TemplateResult {
@@ -59,6 +90,8 @@ type TemplateData = Record<string, unknown> | undefined
 function bookingConfirmed(title: string, body: string, data: TemplateData): TemplateResult {
   const tripName = (data?.tripName as string) || 'your trip'
   const bookingId = (data?.bookingId as string) || ''
+  const rawImage = (data?.tripImage as string) || ''
+  const hero = rawImage && isSafeHttpsUrl(rawImage) ? heroImageBlock(rawImage, escapeAttr(tripName)) : ''
   return {
     subject: `Booking Confirmed — ${tripName}`,
     html: baseLayout(
@@ -67,6 +100,7 @@ function bookingConfirmed(title: string, body: string, data: TemplateData): Temp
       (bookingId ? highlight(`Booking ID: ${bookingId}`) : '') +
       paragraph('Your payment is safely held in escrow until the trip is completed.') +
       cta('View My Bookings', `${CLIENT_URL}/bookings`),
+      hero,
     ),
     text: `${title}\n\n${body}`,
   }
