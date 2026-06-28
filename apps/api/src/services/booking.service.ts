@@ -704,12 +704,10 @@ export class BookingService {
           // when travelerDetails are persisted); confirmSeats itself only needs
           // bookingId+userId to do the status transition.
           const travelers: Array<{ id: string }> = booking.travelerDetails ?? []
-          const assignments = heldSeats
-            .map((seat: { id: string }, i: number) => ({
-              seatId: seat.id,
-              travelerDetailId: travelers[i]?.id ?? '',
-            }))
-            .filter((a: { travelerDetailId: string }) => a.travelerDetailId)
+          const assignments: Array<{ seatId: string; travelerDetailId: string }> = heldSeats
+            .flatMap((seat: { id: string }, i: number) =>
+              travelers[i]?.id ? [{ seatId: seat.id, travelerDetailId: travelers[i].id }] : []
+            )
 
           await this.vehicleService.confirmSeats(booking.id, booking.userId, assignments)
         }
