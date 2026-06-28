@@ -1,0 +1,46 @@
+apps/web/src/components/trips/trip-form/trip-form.tsx
+  s_4070b4e882a862::t_968131de0b7d1f 122-123,125,131
+  s_4070b4e882a862::t_0a1ffb6be61926 124
+  s_4070b4e882a862::t_8c0708a51fd2cb 212-215,217-219,221
+  s_4070b4e882a862::t_a4961e5ce44e30 50-67,71-72
+  s_4070b4e882a862::t_77f9398e1081b4 126-130
+  s_4070b4e882a862::t_982b11a0b716f4 105
+apps/web/src/components/booking/traveler-form.tsx
+  s_4070b4e882a862::t_9ad14f25891ec1 135,154
+apps/web/src/components/trips/trip-form/tab-navigation.tsx
+  s_4070b4e882a862::t_0d502480819636 38
+  s_4070b4e882a862::t_c3de0679338b81 37,39-41,44-47
+  s_4070b4e882a862::t_4fa6a63c64b2fa 3
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_4070b4e882a862::t_51fca6e93f7267 21
+  s_5fce8c941ac4e3::t_942de1c1a397cf 18,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "0cdc57c638be356a83e89ac29fd022d529b7128a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4070b4e882a862": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a0d4710c-ed65-464e-b648-1d20766e0c26",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_5fce8c941ac4e3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ea0b092d-7fac-47dc-ad0e-95936e0b4d4e",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
