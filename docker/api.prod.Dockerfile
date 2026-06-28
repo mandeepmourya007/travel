@@ -55,4 +55,6 @@ EXPOSE 4000
 
 USER node
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "if [ -f /etc/secrets/.env.prod ]; then node --env-file=/etc/secrets/.env.prod npx prisma migrate deploy && exec node --env-file=/etc/secrets/.env.prod --import=tsx src/index.ts; else npx prisma migrate deploy && exec node --import=tsx src/index.ts; fi"]
+# migrate deploy reads DATABASE_URL/DIRECT_URL from the Render-injected env (no --env-file needed);
+# the server then loads the full secret set from /etc/secrets/.env.prod when present.
+CMD ["sh", "-c", "npx prisma migrate deploy && if [ -f /etc/secrets/.env.prod ]; then exec node --env-file=/etc/secrets/.env.prod --import=tsx src/index.ts; else exec node --import=tsx src/index.ts; fi"]
