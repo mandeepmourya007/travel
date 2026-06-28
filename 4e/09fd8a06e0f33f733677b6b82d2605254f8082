@@ -1,0 +1,24 @@
+apps/api/src/utils/cron-jobs.ts
+  s_7d723e13ebddb2::t_12d582d608e33b 408-409,411,413
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "4e09fd8a06e0f33f733677b6b82d2605254f8082",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7d723e13ebddb2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "41e86c72-019a-4334-b7b4-988bd586800b",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
