@@ -71,6 +71,7 @@ const mockTrip = {
   maxGroupSize: 20,
   currentBookings: 12,
   status: 'ACTIVE',
+  photos: ['https://example.com/trip.jpg'],
 }
 
 function createMockBooking(overrides = {}) {

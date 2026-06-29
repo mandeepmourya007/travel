@@ -356,4 +356,5 @@ describe('TripRepository', () => {
       expect(sql).not.toMatch(/status = (ACTIVE|FULL)(?!::)/)
     })
   })
+
 })

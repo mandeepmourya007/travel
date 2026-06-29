@@ -870,6 +870,42 @@ export class BookingRepository {
     })
   }
 
+  /**
+   * Returns booking velocity counts for each trip — used by BookingVelocityStrategy.
+   *
+   * Two non-overlapping time buckets:
+   *   - week_bookings:  confirmed bookings in the last 0–7 days
+   *   - month_bookings: confirmed bookings in the 8–30 day window
+   *
+   * A single aggregation query handles all trips in one DB round-trip.
+   * Trips with no matching bookings are absent from the result — callers
+   * should default to zero for missing entries.
+   */
+  async aggregateBookingVelocity(tripIds: string[]): Promise<Array<{ tripId: string; weekBookings: bigint; monthBookings: bigint }>> {
+    if (tripIds.length === 0) return []
+    const rows = await this.prisma.$queryRaw<Array<{ trip_id: string; week_bookings: bigint; month_bookings: bigint }>>`
+      SELECT
+        b."tripId"                                                       AS trip_id,
+        COUNT(*) FILTER (
+          WHERE b."createdAt" >  NOW() - INTERVAL '7 days'
+        )                                                                AS week_bookings,
+        COUNT(*) FILTER (
+          WHERE b."createdAt" >  NOW() - INTERVAL '30 days'
+            AND b."createdAt" <= NOW() - INTERVAL '7 days'
+        )                                                                AS month_bookings
+      FROM "Booking" b
+      WHERE b."tripId"        = ANY(${tripIds})
+        AND b."bookingStatus" = ${BOOKING_STATUS.CONFIRMED}::"BookingStatus"
+        AND b."isDeleted"     = false
+      GROUP BY b."tripId"
+    `
+    return rows.map((r) => ({
+      tripId: r.trip_id,
+      weekBookings: r.week_bookings,
+      monthBookings: r.month_bookings,
+    }))
+  }
+
   // Maps sort filter to Prisma orderBy
   private buildOrderBy(sort?: string): Prisma.BookingOrderByWithRelationInput {
     switch (sort) {

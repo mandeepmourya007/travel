@@ -37,6 +37,12 @@ export const OTP_RATE_LIMIT_WINDOW_MINUTES = 10
 export const OTP_RATE_LIMIT_MAX_SENDS = 3
 export const DEV_OTP = '0000'
 
+// ─── Trending Score ──────────────────────────────────
+// Minimum precomputed score for a trip to display the "Trending" badge.
+// Formula (BookingVelocityStrategy): (week_bookings × 10) + (month_bookings_8_to_30d × 2) + urgency(5).
+// Threshold of 20 ≈ 2 confirmed bookings in the last 7 days.
+export const TRENDING_SCORE_THRESHOLD = 20
+
 // ─── Trip Lifecycle ──────────────────────────────────
 export const ESCROW_SAFETY_BUFFER_DAYS = 90
 export const TRIP_COMPLETION_BATCH_SIZE = 50

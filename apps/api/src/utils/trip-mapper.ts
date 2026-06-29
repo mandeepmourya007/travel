@@ -1,4 +1,5 @@
 import { VERIFICATION_STATUS } from '@shared/constants'
+import { TRENDING_SCORE_THRESHOLD } from './constants'
 
 /**
  * Structural contract for mapTripToSummary.
@@ -27,6 +28,7 @@ export interface TripForSummary {
   acceptingBookings: boolean
   photos: string[]
   seatSelectionEnabled?: boolean | null
+  trendingScore?: number | null
   _tripTypeLabel?: string
   destination?: { id: string; name: string; slug: string } | null
   organizer?: {
@@ -64,6 +66,7 @@ export function mapTripToSummary(trip: TripForSummary) {
     acceptingBookings: trip.acceptingBookings,
     photos: trip.photos,
     seatSelectionEnabled: trip.seatSelectionEnabled ?? false,
+    isTrending: (trip.trendingScore ?? 0) >= TRENDING_SCORE_THRESHOLD,
     reviewCount: trip._count?.reviews ?? 0,
     organizer: trip.organizer
       ? {

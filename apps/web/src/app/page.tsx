@@ -35,7 +35,7 @@ export default async function HomePage() {
   // SSR-fetch homepage data in parallel — eliminates client-side waterfall
   const [destinations, tripsResult] = await Promise.all([
     fetchApi<Destination[]>('/destinations?popular=true', { revalidate: 300 }).catch(() => []),
-    fetchApiWithPagination<TripSummary[]>('/trips?sort=popularity&limit=6', { revalidate: 300 }).catch(() => null),
+    fetchApiWithPagination<TripSummary[]>('/trips?sort=trending&limit=6', { revalidate: 900 }).catch(() => null),
   ])
 
   const trendingTrips = tripsResult

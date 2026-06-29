@@ -87,6 +87,8 @@ import { CacheService } from '../services/cache.service'
 import { redis } from './redis'
 import { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 import { SitemapService } from '../services/sitemap.service'
+import { BookingVelocityStrategy } from '../services/trending/booking-velocity.strategy'
+import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -273,6 +275,10 @@ export const webhookRoutes = (() => {
 // ── Sitemap Service ──────────────────────────────────
 export const sitemapService = new SitemapService(tripRepo, destinationRepo, organizerProfileRepo)
 
+// ── Trending Score Pipeline ───────────────────────────
+const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo, logger)
+const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
+
 // ── Cron Job Dependencies ────────────────────────────
 // Scoped export for background jobs — keeps raw repos private to this module
 export const cronDeps = {
@@ -287,4 +293,5 @@ export const cronDeps = {
   vehicleService,
   walletService,
   notificationService,
+  trendingScoreService,
 } as const
