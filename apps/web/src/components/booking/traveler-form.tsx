@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 // [TravelerDetail] import { useEffect } from 'react'
 // [TravelerDetail] import { useForm, useFieldArray, Controller } from 'react-hook-form'
 // [TravelerDetail] import { zodResolver } from '@hookform/resolvers/zod'
@@ -21,8 +20,13 @@ interface TravelerFormProps {
   trip: TripDetail
   numTravelers: number
   onNumTravelersChange: (count: number) => void
+  pickupPointId: string | undefined
+  dropPointId: string | undefined
+  onPickupChange: (id: string | undefined) => void
+  onDropChange: (id: string | undefined) => void
+  transferExtra: number
   // [TravelerDetail] onSubmit: (data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) => void
-  onSubmit: (data: { pickupPointId?: string; dropPointId?: string }) => void
+  onSubmit: () => void
   isPending: boolean
   lockedTravelers?: boolean
 }
@@ -31,6 +35,11 @@ export function TravelerForm({
   trip,
   numTravelers,
   onNumTravelersChange,
+  pickupPointId,
+  dropPointId,
+  onPickupChange,
+  onDropChange,
+  transferExtra,
   onSubmit,
   isPending,
   lockedTravelers = false,
@@ -52,13 +61,6 @@ export function TravelerForm({
   // [TravelerDetail] useEffect(() => { if (lockedTravelers) { handleNumChange(numTravelers) } else if (saved && saved.numTravelers !== numTravelers) { onNumTravelersChange(saved.numTravelers) } }, [])
   // [TravelerDetail] const { fields, append, remove } = useFieldArray({ control, name: 'travelers' })
 
-  const [pickupPointId, setPickupPointId] = useState<string | undefined>(
-    trip.pickupPoints?.[0]?.id ?? undefined,
-  )
-  const [dropPointId, setDropPointId] = useState<string | undefined>(
-    trip.dropPoints?.[0]?.id ?? undefined,
-  )
-
   function handleNumChange(newCount: number) {
     if (newCount < 1 || newCount > maxTravelers) return
     // [TravelerDetail] if (newCount > fields.length) { for (let i = fields.length; i < newCount; i++) { append({ name: '', phone: '', age: undefined as unknown as number, gender: 'MALE', isPrimary: false, emergencyContactName: '', emergencyContactPhone: '' }) } }
@@ -69,10 +71,10 @@ export function TravelerForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    onSubmit({ pickupPointId, dropPointId })
+    onSubmit()
   }
 
-  const totalPrice = getEffectivePrice(trip) * numTravelers
+  const totalPrice = (getEffectivePrice(trip) + transferExtra) * numTravelers
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -128,7 +130,7 @@ export function TravelerForm({
                   id="pickupPointId"
                   className="input w-full"
                   value={pickupPointId ?? ''}
-                  onChange={(e) => setPickupPointId(e.target.value || undefined)}
+                  onChange={(e) => onPickupChange(e.target.value || undefined)}
                 >
                   {trip.pickupPoints.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -147,7 +149,7 @@ export function TravelerForm({
                   id="dropPointId"
                   className="input w-full"
                   value={dropPointId ?? ''}
-                  onChange={(e) => setDropPointId(e.target.value || undefined)}
+                  onChange={(e) => onDropChange(e.target.value || undefined)}
                 >
                   {trip.dropPoints.map((p) => (
                     <option key={p.id} value={p.id}>

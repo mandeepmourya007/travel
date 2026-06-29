@@ -253,27 +253,108 @@ describe('BookingPage', () => {
   })
 
   it('should update price when traveler count changes', async () => {
+    // Default trip factory: pricePerPerson 5000, pickup extraCharge 500, drop extraCharge 500
+    // 1 traveler: 5000 + 500 + 500 = 6000
+    // 2 travelers: (5000 + 500 + 500) × 2 = 12000
     setupTripHandler()
     renderBookingPage()
     const user = userEvent.setup()
 
-    // Wait for form to render with price summary
     await waitFor(() => {
       expect(screen.getByText('Total')).toBeInTheDocument()
     })
 
-    // Check initial total is ₹5,000 (1 traveler)
     const totalSection = screen.getByText('Total').closest('div')!
-    expect(totalSection.textContent).toContain('₹5,000')
+    expect(totalSection.textContent).toContain('₹6,000')
 
-    // Increase travelers to 2
-    const incrementBtn = screen.getByRole('button', { name: /increase/i })
-    await user.click(incrementBtn)
+    await user.click(screen.getByRole('button', { name: /increase/i }))
 
     await waitFor(() => {
       const updatedSection = screen.getByText('Total').closest('div')!
-      expect(updatedSection.textContent).toContain('₹10,000')
+      expect(updatedSection.textContent).toContain('₹12,000')
     })
+  })
+
+  // ── 4a-ii. Transfer surcharge price display ──
+
+  it('should show correct total including transfer surcharges on first render (R1 — no price flash)', async () => {
+    // Default trip factory has pickup extraCharge:500 and drop extraCharge:500
+    // 1 traveler: 5000 base + 500 pickup + 500 drop = 6000
+    setupTripHandler()
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Total')).toBeInTheDocument()
+    })
+
+    // Total must show ₹6,000 immediately — not ₹5,000 then flash to ₹6,000
+    const totalSection = screen.getByText('Total').closest('div')!
+    expect(totalSection.textContent).toContain('₹6,000')
+  })
+
+  it('should show pickup surcharge row in price summary when extraCharge > 0', async () => {
+    setupTripHandler()
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/pickup:/i)).toBeInTheDocument()
+    })
+
+    // "Delhi Airport T3" appears in the select option AND the price summary row — both are expected
+    expect(screen.getAllByText(/delhi airport t3/i).length).toBeGreaterThanOrEqual(1)
+    // Both pickup and drop have ₹500 charge in the factory — multiple rows expected
+    expect(screen.getAllByText(/₹500\/person/i).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('should update total when user changes traveler count with transfer surcharges', async () => {
+    // trip: 5000 base, pickup 500, drop 500
+    setupTripHandler()
+    renderBookingPage()
+    const user = userEvent.setup()
+
+    await waitFor(() => {
+      expect(screen.getByText('Total')).toBeInTheDocument()
+    })
+
+    // 1 traveler: 5000 + 500 + 500 = 6000
+    expect(screen.getByText('Total').closest('div')!.textContent).toContain('₹6,000')
+
+    await user.click(screen.getByRole('button', { name: /increase/i }))
+
+    // 2 travelers: (5000 + 500 + 500) × 2 = 12000
+    await waitFor(() => {
+      expect(screen.getByText('Total').closest('div')!.textContent).toContain('₹12,000')
+    })
+  })
+
+  it('should show correct total on Pay button including transfer surcharges', async () => {
+    // 1 traveler: 5000 + 500 pickup + 500 drop = 6000
+    setupTripHandler()
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /pay ₹6,000/i })).toBeInTheDocument()
+    })
+  })
+
+  it('should show base total only when trip has no transfer points', async () => {
+    setupTripHandler(
+      makeTripDetail({
+        slug: 'goa-beach',
+        pricePerPerson: 5000,
+        pickupPoints: [],
+        dropPoints: [],
+        acceptingBookings: true,
+      }),
+    )
+    renderBookingPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Total')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Total').closest('div')!.textContent).toContain('₹5,000')
+    expect(screen.queryByText(/pickup:/i)).not.toBeInTheDocument()
   })
 
   // ── 4b. Transfer Points ──

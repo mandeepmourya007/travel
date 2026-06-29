@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-// [TravelerDetail] import { useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
@@ -84,10 +83,18 @@ export default function BookingPage({
   // Bumped on seat conflicts to remount the seat picker (clears its internal selection)
   const [seatMapResetKey, setSeatMapResetKey] = useState(0)
   // [TravelerDetail] const [pendingTravelerData, setPendingTravelerData] = useState<{ travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string } | null>(null)
-  const [pendingTravelerData, setPendingTravelerData] = useState<{
-    pickupPointId?: string
-    dropPointId?: string
-  } | null>(null)
+  const [seatStepReady, setSeatStepReady] = useState(false)
+
+  // Pickup / drop state lifted here so PriceSummary always reflects the selected points
+  const [pickupPointId, setPickupPointId] = useState<string | undefined>(undefined)
+  const [dropPointId, setDropPointId] = useState<string | undefined>(undefined)
+
+  // Initialise defaults once trip data arrives
+  useEffect(() => {
+    if (!trip) return
+    setPickupPointId(trip.pickupPoints?.[0]?.id ?? undefined)
+    setDropPointId(trip.dropPoints?.[0]?.id ?? undefined)
+  }, [trip?.id])
 
   const handleSeatSelectionChange = useCallback((ids: string[]) => {
     setSelectedSeatIds(ids)
@@ -111,21 +118,36 @@ export default function BookingPage({
     : !trip.acceptingBookings ? 'notAccepting'
     : 'form'
 
+  // Effective IDs fall back to the trip's first point before the useEffect fires on first render,
+  // preventing a price flash where the total briefly shows base-only then jumps to include surcharges.
+  const effectivePickupId = pickupPointId ?? trip?.pickupPoints?.[0]?.id
+  const effectiveDropId = dropPointId ?? trip?.dropPoints?.[0]?.id
+
+  const selectedPickupPoint = useMemo(
+    () => trip?.pickupPoints?.find((p) => p.id === effectivePickupId),
+    [trip?.pickupPoints, effectivePickupId],
+  )
+  const selectedDropPoint = useMemo(
+    () => trip?.dropPoints?.find((p) => p.id === effectiveDropId),
+    [trip?.dropPoints, effectiveDropId],
+  )
+  const transferExtra = (selectedPickupPoint?.extraCharge ?? 0) + (selectedDropPoint?.extraCharge ?? 0)
+
   // [TravelerDetail] function handleTravelerFormSubmit(data: { travelers: TravelerFormValues['travelers']; pickupPointId?: string; dropPointId?: string }) {
   // [TravelerDetail]   if (showSeatStep) { setPendingTravelerData({ travelers: data.travelers, pickupPointId: data.pickupPointId, dropPointId: data.dropPointId }); setBookingStep('seats') }
   // [TravelerDetail]   else { startPayment(data.travelers, data.pickupPointId, data.dropPointId) }
   // [TravelerDetail] }
-  function handleTravelerFormSubmit(data: { pickupPointId?: string; dropPointId?: string }) {
+  function handleTravelerFormSubmit() {
     if (showSeatStep) {
-      setPendingTravelerData({ pickupPointId: data.pickupPointId, dropPointId: data.dropPointId })
+      setSeatStepReady(true)
       setBookingStep('seats')
     } else {
-      startPayment(data.pickupPointId, data.dropPointId)
+      startPayment()
     }
   }
 
   // [TravelerDetail] async function startPayment(travelers: TravelerFormValues['travelers'], pickupPointId?: string, dropPointId?: string) {
-  async function startPayment(pickupPointId?: string, dropPointId?: string) {
+  async function startPayment() {
     if (!trip || !user) return
     setIsProcessing(true)
 
@@ -133,8 +155,8 @@ export default function BookingPage({
       const result = await createBooking.mutateAsync({
         tripId: trip.id,
         numTravelers,
-        pickupPointId: pickupPointId || undefined,
-        dropPointId: dropPointId || undefined,
+        pickupPointId: effectivePickupId,
+        dropPointId: effectiveDropId,
         // [TravelerDetail] travelers,
         seatIds: selectedSeatIds.length > 0 ? selectedSeatIds : undefined,
       })
@@ -381,7 +403,7 @@ export default function BookingPage({
                         </button>
                       </div>
                     ) : ( ... and close with ) at the end */}
-                {bookingStep === 'seats' && pendingTravelerData ? (
+                {bookingStep === 'seats' && seatStepReady ? (
                   /* ── Seat selection step ── */
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -404,10 +426,7 @@ export default function BookingPage({
 
                     <button
                       type="button"
-                      onClick={() => startPayment(
-                        pendingTravelerData.pickupPointId,
-                        pendingTravelerData.dropPointId,
-                      )}
+                      onClick={() => startPayment()}
                       disabled={isProcessing || selectedSeatIds.length !== numTravelers}
                       className="btn-primary w-full flex items-center justify-center gap-2"
                     >
@@ -417,7 +436,7 @@ export default function BookingPage({
                           Processing...
                         </>
                       ) : (
-                        `Continue to Payment — ${formatCurrency(getEffectivePrice(trip) * numTravelers)}`
+                        `Continue to Payment — ${formatCurrency((getEffectivePrice(trip) + transferExtra) * numTravelers)}`
                       )}
                     </button>
                   </div>
@@ -427,6 +446,11 @@ export default function BookingPage({
                     trip={trip}
                     numTravelers={numTravelers}
                     onNumTravelersChange={setNumTravelers}
+                    pickupPointId={effectivePickupId}
+                    dropPointId={effectiveDropId}
+                    onPickupChange={setPickupPointId}
+                    onDropChange={setDropPointId}
+                    transferExtra={transferExtra}
                     onSubmit={handleTravelerFormSubmit}
                     isPending={isProcessing}
                     lockedTravelers={lockedTravelers}
@@ -435,7 +459,12 @@ export default function BookingPage({
               </div>
               {/* [TravelerDetail] {!isPayOnlyMode && ( */}
               <div className="lg:col-span-1">
-                <PriceSummary trip={trip} numTravelers={numTravelers} />
+                <PriceSummary
+                  trip={trip}
+                  numTravelers={numTravelers}
+                  selectedPickupPoint={selectedPickupPoint}
+                  selectedDropPoint={selectedDropPoint}
+                />
               </div>
               {/* [TravelerDetail] )} */}
             </div>
