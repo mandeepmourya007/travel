@@ -1,0 +1,39 @@
+apps/api/src/utils/trip-mapper.ts
+  s_72a0be062c6a56::t_f725952903ded0 62
+  s_72a0be062c6a56::t_8778ba51b620d8 40
+apps/web/src/components/dashboard/trip-list-card.tsx
+  s_72a0be062c6a56::t_53c66b09239814 118-121
+apps/api/src/repositories/trip.repository.ts
+  s_72a0be062c6a56::t_b3d696f2f6970c 73,76
+  s_72a0be062c6a56::t_6dceef62ed7661 74-75
+packages/shared/src/types/trip.types.ts
+  s_72a0be062c6a56::t_b22b92c21f6073 153
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_72a0be062c6a56::t_0dc7a711966a1b 276,284
+  s_72a0be062c6a56::t_cf692bfc5db3cb 3,7,14-15,17,19-21
+  s_72a0be062c6a56::t_66cdc6d75dff0f 48,50,52-55,58-128
+  s_72a0be062c6a56::t_df0bec4ff17744 255,270-275,277-283
+  s_72a0be062c6a56::t_6a5a92b74c3df1 252-254,256-258
+  s_72a0be062c6a56::t_b4b440b772621a 129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "5685c0b2fa97ae216a347e9d6d159b97cc208221",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_72a0be062c6a56": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "77061c25-465c-4a4f-b082-e0a737fad9f2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
