@@ -1,0 +1,34 @@
+apps/api/src/utils/cron-jobs.ts
+  s_73e3f123e5e8f3::t_4462f70f5c8826 34
+  s_73e3f123e5e8f3::t_a1fac587855697 281-285,305,317-320,333,340
+  s_73e3f123e5e8f3::t_60ae5b68aa1e7a 381-384
+apps/api/src/services/payment.service.ts
+  s_73e3f123e5e8f3::t_3507650a1ed375 404,444,570-572,585-597
+  s_73e3f123e5e8f3::t_d2600aff1e4cce 416-422,434-442
+  s_73e3f123e5e8f3::t_91ea0510ef033e 380-383,397-402
+  s_73e3f123e5e8f3::t_ab51e0585542a7 403
+  s_73e3f123e5e8f3::t_8a10889fe7b9c2 405
+  s_73e3f123e5e8f3::t_76da5f48ffdd07 443
+  s_73e3f123e5e8f3::t_de0657d3d0327d 445
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "2ff09182aadf1f6a777412462fa48020de1b2df0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_73e3f123e5e8f3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8c20943d-9bf8-46bc-a6c6-35ff31fefc85",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
