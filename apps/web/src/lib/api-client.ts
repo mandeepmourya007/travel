@@ -30,6 +30,7 @@ export function getErrorMessage(err: Error | null, fallback = 'Something went wr
   return err.message || fallback
 }
 
+// Must point to the frontend domain, not the raw API host — see COOKIE/AUTH NOTES in render.yaml.
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'
 
 export const apiClient = axios.create({

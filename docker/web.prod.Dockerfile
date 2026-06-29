@@ -33,7 +33,10 @@ COPY --from=deps /app ./
 COPY packages/shared/ packages/shared/
 COPY apps/web/ apps/web/
 
-# NEXT_PUBLIC_* vars must be available at build time (baked into JS bundle)
+# NEXT_PUBLIC_* vars are baked into the JS bundle at build time.
+# BACKEND_API_URL is server-side only but also needed at build time — Next.js compiles
+# rewrites() into the routing manifest during `next build`. If missing, the proxy is
+# silently disabled. Changing it later requires a full rebuild, not just a restart.
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SOCKET_URL
 ARG NEXT_PUBLIC_APP_NAME=Safarnama
@@ -46,12 +49,14 @@ ARG NEXT_PUBLIC_FIREBASE_APP_ID
 ARG NEXT_PUBLIC_PHONE_AUTH_STRATEGY=backend
 ARG NEXT_PUBLIC_LOG_LEVEL=warn
 ARG API_URL_INTERNAL
+ARG BACKEND_API_URL
 # Sentry — optional; leave blank to disable tracing
 ARG NEXT_PUBLIC_SENTRY_DSN
 ARG NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.2
 ARG SENTRY_AUTH_TOKEN
 
 ENV API_URL_INTERNAL=$API_URL_INTERNAL \
+    BACKEND_API_URL=$BACKEND_API_URL \
     NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL \
     NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME \

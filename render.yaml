@@ -22,9 +22,14 @@
 #  DEPLOY STEPS:
 #    1. Push this file to GitHub repo root
 #    2. Render Dashboard → New → Blueprint → connect repo
-#    3. Fill in sync:false secrets when prompted
-#    4. After API deploys, set NEXT_PUBLIC_API_URL + NEXT_PUBLIC_SOCKET_URL on safarnama-web
-#    5. Migrations run automatically via preDeployCommand on every deploy
+#    3. Fill in sync:false secrets when prompted (see inline comments per key below)
+#    4. Migrations run automatically via preDeployCommand on every deploy
+#
+#  COOKIE / AUTH NOTES:
+#    NEXT_PUBLIC_API_URL must be the *frontend* domain, not the raw API host.
+#    Next.js proxies /api/* → BACKEND_API_URL server-side, keeping cookies same-site.
+#    Pointing NEXT_PUBLIC_API_URL directly at the API host makes cookies cross-origin
+#    and causes users to be logged out on every request.
 # ─────────────────────────────────────────────────────────
 
 services:
@@ -70,7 +75,7 @@ services:
       - key: JWT_SECRET
         sync: false   # openssl rand -hex 32
       - key: CLIENT_URL
-        sync: false   # https://safarnama-web.onrender.com
+        sync: false   # https://safarnama.store
       - key: ALLOWED_ORIGINS
         sync: false   # comma-separated extra origins e.g. https://www.safarnama.in,https://safarnama.in
 
@@ -157,9 +162,11 @@ services:
 
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        sync: false   # https://safarnama-api.onrender.com/api/v1
+        sync: false   # your frontend domain + /api/v1 — must NOT be the raw API host (see COOKIE/AUTH NOTES)
+      - key: BACKEND_API_URL
+        sync: false   # your API service URL — used server-side by the Next.js proxy; changing this requires a full rebuild
       - key: NEXT_PUBLIC_SOCKET_URL
-        sync: false   # https://safarnama-api.onrender.com
+        sync: false   # your API service URL — used for Socket.IO connections
       - key: API_URL_INTERNAL
         sync: false   # http://safarnama-api:10000
       - key: NEXT_PUBLIC_APP_NAME
