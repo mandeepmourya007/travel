@@ -312,6 +312,7 @@ model Trip {
   minGroupSize       Int
   maxGroupSize       Int
   currentBookings    Int                @default(0)
+  trendingScore      Float?             // recomputed every 2h by cron; null until first run
   version            Int                @default(0)
   inclusions         Json
   exclusions         Json               @default("[]")
@@ -344,6 +345,7 @@ model Trip {
   @@index([isDeleted, status, startDate])
   @@index([isDeleted, status, pricePerPerson])
   @@index([isDeleted, status, currentBookings])
+  @@index([isDeleted, status, trendingScore])  // sort=trending query
   @@index([isDeleted, status, tripType])  // tripType filtered in search/countByType queries
   @@index([status, endDate])             // findTripsToComplete filters on status + endDate
   @@index([isDeleted, status, updatedAt(sort: Desc)]) // findSlugsForSitemap — ORDER BY updatedAt DESC
@@ -390,6 +392,7 @@ model Booking {
   tripRequest         TripRequest?
 
   @@index([tripId, bookingStatus])
+  @@index([tripId, bookingStatus, createdAt])  // trending cron aggregation — COUNT recent CONFIRMED bookings per trip
   @@index([userId, bookingStatus])
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])

@@ -123,7 +123,7 @@ describe('useTrips', () => {
 describe('useTrendingTrips', () => {
   beforeEach(() => resetTripFactory())
 
-  it('fetches trending trips (sort=popularity, limit=6) when no initialData', async () => {
+  it('fetches trending trips (sort=trending, limit=6) when no initialData', async () => {
     let capturedUrl = ''
     server.use(
       http.get(`${API}/trips`, ({ request }) => {
@@ -140,7 +140,7 @@ describe('useTrendingTrips', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.data?.trips).toHaveLength(2)
-    expect(capturedUrl).toContain('sort=popularity')
+    expect(capturedUrl).toContain('sort=trending')
     expect(capturedUrl).toContain('limit=6')
   })
 

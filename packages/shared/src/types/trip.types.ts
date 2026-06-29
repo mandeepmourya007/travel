@@ -27,6 +27,7 @@ export interface TripSummary {
   }
   photos: string[]
   seatSelectionEnabled?: boolean
+  isTrending?: boolean
 }
 
 export interface TripDetailReview {
@@ -107,7 +108,7 @@ export interface TripFilters {
   maxPrice?: number
   startDate?: string
   endDate?: string
-  sort?: 'price_asc' | 'price_desc' | 'rating' | 'date' | 'popularity' | 'newest'
+  sort?: 'price_asc' | 'price_desc' | 'rating' | 'date' | 'popularity' | 'newest' | 'trending'
   page?: number
   limit?: number
 }

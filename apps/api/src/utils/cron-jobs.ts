@@ -15,14 +15,16 @@ import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
 import { RAZORPAY_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
+import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // ── Intervals (ms) ───────────────────────────────────
+const ONE_MINUTE = 60 * 1000
 const FIVE_MINUTES = 5 * 60 * 1000
+const FOURTEEN_MINUTES = 14 * 60 * 1000
 const THIRTY_MINUTES = 30 * 60 * 1000
 const ONE_HOUR = 60 * 60 * 1000
+const TWO_HOURS = 2 * 60 * 60 * 1000
 const SIX_HOURS = 6 * 60 * 60 * 1000
-const ONE_MINUTE = 60 * 1000
-const FOURTEEN_MINUTES = 14 * 60 * 1000
 const ONE_DAY = 24 * 60 * 60 * 1000
 
 // Terminal (COMPLETED/SKIPPED) webhook events older than this are purged.
@@ -31,10 +33,11 @@ const WEBHOOK_EVENT_RETENTION_DAYS = 90
 // ── Lock TTLs (ms) ───────────────────────────────────
 // Sized generously above worst-case job runtime. A dropped lock (volatile-lru
 // eviction) is safe — the DB partial unique index is the escrow backstop.
-const LOCK_TTL_1MIN = 90 * 1000          // generous above worst-case 1-min job runtime
+const LOCK_TTL_1MIN = 90 * 1000           // generous above worst-case 1-min job runtime
 const LOCK_TTL_5MIN = 4 * 60 * 1000
 const LOCK_TTL_30MIN = 20 * 60 * 1000
 const LOCK_TTL_1HOUR = 50 * 60 * 1000
+const LOCK_TTL_90MIN = 90 * 60 * 1000    // 2-hour trending cron: lock lasts 90 min
 const LOCK_TTL_6HOUR = 5 * 60 * 60 * 1000
 
 /**
@@ -402,6 +405,24 @@ async function expireWalletCreditsAndWarn(
 }
 
 /**
+ * Recomputes trending scores for all ACTIVE/FULL trips every 2 hours.
+ * The score formula is encapsulated in the injected strategy — the cron itself
+ * has no knowledge of how scores are calculated.
+ *
+ * Intended to be called via setInterval() every 2 hours.
+ */
+async function updateTrendingScores(trendingScoreService: TrendingScoreService) {
+  await Sentry.withMonitor('cron-update-trending-scores', async () => {
+    try {
+      await trendingScoreService.recompute()
+    } catch (error) {
+      logger.error({ error }, 'Trending score update job failed')
+      throw error
+    }
+  }, { schedule: { type: 'interval', value: 2, unit: 'hour' }, checkinMargin: 10, maxRuntime: 60 })
+}
+
+/**
  * Pings the API's own health endpoint every 14 minutes to prevent Render free
  * tier from spinning down (Render sleeps services after 15 min of inactivity).
  * No-op in development or when PORT is not set.
@@ -437,6 +458,7 @@ export function startCronJobs(deps: {
   vehicleService: VehicleService
   walletService: WalletService
   notificationService: NotificationService
+  trendingScoreService: TrendingScoreService
 }): () => void {
   logger.info('Starting background cron jobs')
 
@@ -447,6 +469,12 @@ export function startCronJobs(deps: {
   // at this level only to prevent the rejection from escaping the event loop.
   const guard = (key: string, p: Promise<unknown>) =>
     p.catch((err) => logger.error({ err }, `${key} threw an unhandled error`))
+
+  // Compute trending scores immediately on startup so the homepage shows correct
+  // scores from the first request — setInterval alone would leave all scores NULL
+  // for the first 2 hours after every deploy or server restart.
+  guard('cron:update-trending-scores', withLock('cron:update-trending-scores', LOCK_TTL_90MIN,
+    () => updateTrendingScores(deps.trendingScoreService)))
 
   const intervals = [
     setInterval(
@@ -503,6 +531,11 @@ export function startCronJobs(deps: {
       () => guard('cron:expire-wallet-credits', withLock('cron:expire-wallet-credits', LOCK_TTL_6HOUR,
         () => expireWalletCreditsAndWarn(deps.walletService, deps.notificationService))),
       SIX_HOURS,
+    ),
+    setInterval(
+      () => guard('cron:update-trending-scores', withLock('cron:update-trending-scores', LOCK_TTL_90MIN,
+        () => updateTrendingScores(deps.trendingScoreService))),
+      TWO_HOURS,
     ),
     // Render free tier spins down after 15 min — ping ourselves every 14 min to stay awake
     setInterval(keepAlive, FOURTEEN_MINUTES),

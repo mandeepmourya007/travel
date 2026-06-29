@@ -54,6 +54,7 @@ export const TRIP_SELECT_SUMMARY = {
   acceptingBookings: true,
   photos: true,
   seatSelectionEnabled: true,
+  trendingScore: true,
   createdAt: true,
   // Relations — narrow to exactly what the mapper uses
   destination: {
@@ -672,6 +673,40 @@ export class TripRepository {
     return { data, total }
   }
 
+  /**
+   * Fetches all ACTIVE/FULL trips for trending score computation.
+   * Returns only id and startDate — the minimum ScoringInput needed by any strategy.
+   */
+  async findActiveTripIdsForScoring(): Promise<Array<{ tripId: string; startDate: Date }>> {
+    const trips = await this.prisma.trip.findMany({
+      where: { isDeleted: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
+      select: { id: true, startDate: true },
+    })
+    return trips.map((t) => ({ tripId: t.id, startDate: t.startDate }))
+  }
+
+  /**
+   * Batch-updates trendingScore for all scored trips in a single SQL statement.
+   *
+   * Uses UPDATE ... FROM (VALUES ...) to avoid N individual round-trips to the DB.
+   * The @updatedAt column is set explicitly via NOW() because @updatedAt is a Prisma
+   * ORM directive that only fires for Prisma client operations, not raw SQL.
+   */
+  async batchUpdateTrendingScores(scores: Array<{ tripId: string; score: number }>): Promise<void> {
+    if (scores.length === 0) return
+
+    const values = scores.map(({ tripId, score }) => Prisma.sql`(${tripId}, ${score}::float8)`)
+
+    await this.prisma.$executeRaw`
+      UPDATE "Trip" t
+      SET    "trendingScore" = v.score,
+             "updatedAt"     = NOW()
+      FROM   (VALUES ${Prisma.join(values)}) AS v(id, score)
+      WHERE  t.id          = v.id
+        AND  t."isDeleted" = false
+    `
+  }
+
   private buildOrderBy(sort?: string): Prisma.TripOrderByWithRelationInput {
     switch (sort) {
       case 'price_asc':
@@ -686,6 +721,9 @@ export class TripRepository {
         return { createdAt: 'desc' }
       case 'date':
         return { startDate: 'asc' }
+      case 'trending':
+        // NULLS LAST: newly-created trips with no score yet don't crowd out scored trips
+        return { trendingScore: { sort: 'desc', nulls: 'last' } }
       default:
         return { createdAt: 'desc' }
     }

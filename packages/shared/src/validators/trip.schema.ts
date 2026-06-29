@@ -143,7 +143,7 @@ export const tripFiltersSchema = z.object({
   maxPrice: z.coerce.number().optional(),
   startDate: z.string().optional(),
   sort: z
-    .enum(['price_asc', 'price_desc', 'rating', 'date', 'popularity', 'newest'])
+    .enum(['price_asc', 'price_desc', 'rating', 'date', 'popularity', 'newest', 'trending'])
     .default('newest'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
