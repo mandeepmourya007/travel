@@ -34,7 +34,8 @@ export const createTripRequestSchema = z.object({
 export const createTripRequestBodySchema = z.object({
   message: z.string().max(500).optional(),
   numberOfTravelers: z.number().int().min(1).max(10),
-  travelers: z.array(travelerDetailSchema).min(1),
+  // [TravelerDetail] travelers: z.array(travelerDetailSchema).min(1),
+  travelers: z.array(travelerDetailSchema).optional(),
 })
 
 export const respondTripRequestSchema = z.object({

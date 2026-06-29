@@ -55,11 +55,12 @@ export function MyBookingsList() {
   }
 
   // ── Payment Pending tab — separate data source (C3 fix) ──
-  const handlePayNow = (request: { id: string; numTravelers: number; travelerDetails: unknown; trip: { slug: string } }) => {
-    // Store traveler details from approved request for pre-fill on booking page
-    if (request.travelerDetails) {
-      sessionStorage.setItem(`request-travelers-${request.id}`, JSON.stringify(request.travelerDetails))
-    }
+  // [TravelerDetail] const handlePayNow = (request: { id: string; numTravelers: number; travelerDetails: unknown; trip: { slug: string } }) => {
+  const handlePayNow = (request: { id: string; numTravelers: number; trip: { slug: string } }) => {
+    // [TravelerDetail] Store traveler details from approved request for pre-fill on booking page
+    // [TravelerDetail] if (request.travelerDetails) {
+    // [TravelerDetail]   sessionStorage.setItem(`request-travelers-${request.id}`, JSON.stringify(request.travelerDetails))
+    // [TravelerDetail] }
     router.push(`/trips/${request.trip.slug}/book?requestId=${request.id}&numTravelers=${request.numTravelers}`)
   }
 

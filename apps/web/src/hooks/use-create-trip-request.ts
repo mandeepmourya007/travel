@@ -8,7 +8,8 @@ interface CreateTripRequestInput {
   tripId: string
   numberOfTravelers: number
   message?: string
-  travelers: TripRequestTraveler[]
+  // [TravelerDetail] travelers: TripRequestTraveler[]
+  travelers?: TripRequestTraveler[]
 }
 
 /**

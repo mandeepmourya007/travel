@@ -1,21 +1,23 @@
 'use client'
 
-import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import { useState } from 'react'
+// [TravelerDetail] import { useForm, useFieldArray, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Modal } from '@/components/shared/modal'
 import { useCreateTripRequest } from '@/hooks/use-create-trip-request'
-import { useAuthStore } from '@/store/auth.store'
-import { cn } from '@/lib/utils'
-import { PhoneInput } from '@/components/shared/phone-input'
-import { NumberInput } from '@/components/shared/number-input'
-import { travelerDetailSchema } from '@shared/validators/booking.schema'
+// [TravelerDetail] import { useAuthStore } from '@/store/auth.store'
+// [TravelerDetail] import { cn } from '@/lib/utils'
+// [TravelerDetail] import { PhoneInput } from '@/components/shared/phone-input'
+// [TravelerDetail] import { NumberInput } from '@/components/shared/number-input'
+// [TravelerDetail] import { travelerDetailSchema } from '@shared/validators/booking.schema'
 
-const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER'] as const
+// [TravelerDetail] const GENDER_OPTIONS = ['MALE', 'FEMALE', 'OTHER'] as const
 
 const requestFormSchema = z.object({
   message: z.string().max(500).optional().default(''),
-  travelers: z.array(travelerDetailSchema).min(1),
+  // [TravelerDetail] travelers: z.array(travelerDetailSchema).min(1),
 })
 
 type RequestFormValues = z.infer<typeof requestFormSchema>
@@ -37,40 +39,46 @@ export function RequestToBookModal({
   pricePerPerson,
   seatsLeft,
 }: RequestToBookModalProps) {
-  const user = useAuthStore((s) => s.user)
+  // [TravelerDetail] const user = useAuthStore((s) => s.user)
   const createRequest = useCreateTripRequest()
   const maxTravelers = Math.min(10, seatsLeft)
+  const [numTravelers, setNumTravelers] = useState(1)
 
-  const { register, control, handleSubmit, formState: { errors }, watch } = useForm<RequestFormValues>({
+  // [TravelerDetail] const { register, control, handleSubmit, formState: { errors }, watch } = useForm<RequestFormValues>({
+  // [TravelerDetail]   resolver: zodResolver(requestFormSchema),
+  // [TravelerDetail]   defaultValues: {
+  // [TravelerDetail]     message: '',
+  // [TravelerDetail]     travelers: [{ name: user?.name || '', phone: '', age: 0 as unknown as number, gender: 'MALE', isPrimary: true }],
+  // [TravelerDetail]   },
+  // [TravelerDetail] })
+  const { register, handleSubmit, watch } = useForm<RequestFormValues>({
     resolver: zodResolver(requestFormSchema),
-    defaultValues: {
-      message: '',
-      travelers: [{ name: user?.name || '', phone: '', age: 0 as unknown as number, gender: 'MALE', isPrimary: true }],
-    },
+    defaultValues: { message: '' },
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'travelers' })
-  const numTravelers = fields.length
+  // [TravelerDetail] const { fields, append, remove } = useFieldArray({ control, name: 'travelers' })
+  // [TravelerDetail] const numTravelers = fields.length
 
-  const handleNumChange = (newCount: number) => {
-    if (newCount > fields.length) {
-      for (let i = fields.length; i < newCount; i++) {
-        append({ name: '', phone: '', age: 0 as unknown as number, gender: 'MALE', isPrimary: false })
-      }
-    } else {
-      for (let i = fields.length - 1; i >= newCount; i--) {
-        remove(i)
-      }
-    }
-  }
+  // [TravelerDetail] const handleNumChange = (newCount: number) => {
+  // [TravelerDetail]   if (newCount > fields.length) {
+  // [TravelerDetail]     for (let i = fields.length; i < newCount; i++) {
+  // [TravelerDetail]       append({ name: '', phone: '', age: 0 as unknown as number, gender: 'MALE', isPrimary: false })
+  // [TravelerDetail]     }
+  // [TravelerDetail]   } else {
+  // [TravelerDetail]     for (let i = fields.length - 1; i >= newCount; i--) {
+  // [TravelerDetail]       remove(i)
+  // [TravelerDetail]     }
+  // [TravelerDetail]   }
+  // [TravelerDetail] }
 
   const onSubmit = (data: RequestFormValues) => {
     createRequest.mutate(
       {
         tripId,
-        numberOfTravelers: data.travelers.length,
+        numberOfTravelers: numTravelers,
         message: data.message?.trim() || undefined,
-        travelers: data.travelers.map((t, i) => ({ ...t, isPrimary: i === 0 })),
+        // [TravelerDetail] travelers: data.travelers.map((t, i) => ({ ...t, isPrimary: i === 0 })),
+        // [TravelerDetail] travelers: [],
       },
       { onSuccess: () => onClose() },
     )
@@ -117,7 +125,8 @@ export function RequestToBookModal({
         <select
           id="num-travelers"
           value={numTravelers}
-          onChange={(e) => handleNumChange(Number(e.target.value))}
+          // [TravelerDetail] onChange={(e) => handleNumChange(Number(e.target.value))}
+          onChange={(e) => setNumTravelers(Number(e.target.value))}
           className="input"
         >
           {Array.from({ length: maxTravelers }, (_, i) => i + 1).map((n) => (
@@ -129,7 +138,7 @@ export function RequestToBookModal({
         <p className="mt-1 text-xs text-neutral-400">{seatsLeft} seats available</p>
       </div>
 
-      {/* Traveler detail fields */}
+      {/* [TravelerDetail] Traveler detail fields — uncomment to restore
       <div className="mb-4 space-y-3 max-h-[40vh] overflow-y-auto">
         {fields.map((field, i) => (
           <fieldset key={field.id} className="rounded-lg border border-neutral-200 p-3 space-y-2">
@@ -200,6 +209,7 @@ export function RequestToBookModal({
           </fieldset>
         ))}
       </div>
+      [TravelerDetail] */}
 
       {/* Message */}
       <div>
