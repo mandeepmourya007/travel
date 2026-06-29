@@ -31,7 +31,7 @@ const WEBHOOK_EVENT_RETENTION_DAYS = 90
 // ── Lock TTLs (ms) ───────────────────────────────────
 // Sized generously above worst-case job runtime. A dropped lock (volatile-lru
 // eviction) is safe — the DB partial unique index is the escrow backstop.
-const LOCK_TTL_1MIN = 55 * 1000          // just under 1-min interval
+const LOCK_TTL_1MIN = 90 * 1000          // generous above worst-case 1-min job runtime
 const LOCK_TTL_5MIN = 4 * 60 * 1000
 const LOCK_TTL_30MIN = 20 * 60 * 1000
 const LOCK_TTL_1HOUR = 50 * 60 * 1000
@@ -278,8 +278,11 @@ async function reconcileWallets(walletService: WalletService) {
  * Sends TRIP_REMINDER notifications to travelers whose trip starts in the
  * next 24-48 hours and haven't received a reminder yet.
  *
- * Uses a durable dedup flag (Booking.tripReminderSentAt) so the job is safe
- * to run hourly without re-notifying travelers.
+ * Uses a durable dedup flag (Booking.tripReminderSentAt) written BEFORE each
+ * notification send (accept-then-deliver). This guarantees at-most-once delivery
+ * even if the process crashes mid-run — the next hourly tick finds those bookings
+ * already flagged and skips them. The trade-off: a notification failure means
+ * the traveler misses one reminder rather than receiving many duplicates.
  *
  * Intended to be called via setInterval() every hour.
  */
@@ -299,7 +302,7 @@ async function sendTripReminders(
       logger.info({ count: bookings.length }, 'Sending trip reminder notifications')
 
       const sentAt = new Date()
-      const sentIds: string[] = []
+      let sent = 0
 
       await Promise.allSettled(
         bookings.map(async (booking) => {
@@ -311,6 +314,10 @@ async function sendTripReminders(
             : `"${booking.trip.title}" starts soon. Check your booking for details.`
 
           try {
+            // Write the dedup flag BEFORE sending (accept-then-deliver).
+            // A process crash after this write but before send means the traveler
+            // misses one reminder — acceptable vs. receiving duplicates every hour.
+            await bookingRepo.markTripReminderSent([booking.id], sentAt)
             await notificationService.send({
               userId: booking.userId,
               type: NOTIFICATION_TYPE.TRIP_REMINDER,
@@ -323,17 +330,14 @@ async function sendTripReminders(
                 pickupTime,
               },
             })
-            sentIds.push(booking.id)
+            sent++
           } catch (err) {
             logger.warn({ bookingId: booking.id, err }, 'Trip reminder notification failed')
           }
         }),
       )
 
-      if (sentIds.length > 0) {
-        await bookingRepo.markTripReminderSent(sentIds, sentAt)
-        logger.info({ sent: sentIds.length, total: bookings.length }, 'Trip reminders sent')
-      }
+      logger.info({ sent, total: bookings.length }, 'Trip reminders processed')
     } catch (error) {
       logger.error({ error }, 'Trip reminder job failed')
       throw error
@@ -366,7 +370,6 @@ async function expireWalletCreditsAndWarn(
       logger.info({ count: approaching.length }, 'Sending wallet expiry warning notifications')
 
       const sentAt = new Date()
-      const sentIds: string[] = []
 
       await Promise.allSettled(
         approaching.map(async (credit) => {
@@ -375,6 +378,10 @@ async function expireWalletCreditsAndWarn(
             : WALLET_EXPIRY_WARN_DAYS
 
           try {
+            // Write the dedup flag BEFORE sending (accept-then-deliver).
+            // A crash between flag write and send means the user misses one warning —
+            // acceptable vs. receiving duplicates every 6 hours until expiry.
+            await walletService.markExpiryReminderSent([credit.id], sentAt)
             await notificationService.send({
               userId: credit.wallet.userId,
               type: NOTIFICATION_TYPE.WALLET_CREDIT_EXPIRING,
@@ -382,16 +389,11 @@ async function expireWalletCreditsAndWarn(
               body: `Your ₹${credit.amount} wallet balance expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}. Book a trip to use it!`,
               data: { amount: credit.amount, daysLeft },
             })
-            sentIds.push(credit.id)
           } catch (err) {
             logger.warn({ creditId: credit.id, err }, 'Wallet expiry warning notification failed')
           }
         }),
       )
-
-      if (sentIds.length > 0) {
-        await walletService.markExpiryReminderSent(sentIds, sentAt)
-      }
     } catch (error) {
       logger.error({ error }, 'Wallet credit expiry job failed')
       throw error

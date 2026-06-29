@@ -377,6 +377,10 @@ export class PaymentService {
   /**
    * Handles order.paid webhook — the most reliable "payment complete" signal (C3 fix).
    * Fires exactly once when order transitions to 'paid'.
+   *
+   * Guards against out-of-order delivery — a late order.paid must not overwrite a
+   * REFUNDED transaction back to CAPTURED, which would corrupt the payment ledger and
+   * make the booking appear unrefunded to reconciliation crons and revenue reports.
    */
   async handleOrderPaid(payload: RazorpayWebhookPayload) {
     const order = payload.order?.entity
@@ -390,6 +394,15 @@ export class PaymentService {
       return
     }
 
+    // Guard: never overwrite a REFUNDED transaction back to CAPTURED — ledger corruption.
+    if (paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
+      this.logger.info(
+        { paymentTxId: paymentTx.id },
+        'order.paid received but tx is already REFUNDED — skipping update',
+      )
+      return
+    }
+
     if (payment?.id) {
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
     }
@@ -400,6 +413,13 @@ export class PaymentService {
    * Handles payment.failed webhook (C2 fix).
    * Logs the failure as PaymentTransaction(FAILED) but does NOT expire the booking.
    * UPI TPAPs allow retry within the same session.
+   *
+   * Guards against out-of-order delivery — a stale payment.failed must not overwrite
+   * an already-CAPTURED or REFUNDED transaction. Scenario: user fails a first UPI
+   * attempt, retries successfully (booking confirmed, payment CAPTURED), then the
+   * delayed payment.failed event arrives. Without this guard it overwrites CAPTURED
+   * → FAILED, making the orphaned-booking sweep revert the confirmed booking and
+   * triggering duplicate confirmation emails.
    */
   async handlePaymentFailed(payload: RazorpayWebhookPayload) {
     const payment = payload.payment?.entity
@@ -408,6 +428,18 @@ export class PaymentService {
     const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
     if (!paymentTx) {
       this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for failed payment')
+      return
+    }
+
+    // Only advance status — never overwrite a terminal/advanced status with FAILED.
+    if (
+      paymentTx.status === PAYMENT_TX_STATUS.CAPTURED ||
+      paymentTx.status === PAYMENT_TX_STATUS.REFUNDED
+    ) {
+      this.logger.info(
+        { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
+        'payment.failed received but tx is already at a terminal status — skipping update',
+      )
       return
     }
 
@@ -535,6 +567,9 @@ export class PaymentService {
    * The REFUND tx (created in BookingService.initiateBookingRefund) has no razorpayPaymentId,
    * so it cannot be found via findByRazorpayPaymentId. We look it up separately by bookingId
    * to close the INITIATED → REFUNDED lifecycle correctly.
+   *
+   * Idempotent on duplicate delivery: if the PAYMENT tx is already REFUNDED we skip the
+   * write but still attempt to close the REFUND tx in case that half was missed.
    */
   async handleRefundProcessed(payload: RazorpayWebhookPayload) {
     const refund = payload.refund?.entity
@@ -547,10 +582,19 @@ export class PaymentService {
       return
     }
 
-    // Mark the PAYMENT tx as REFUNDED (ledger: this payment was refunded)
-    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.REFUNDED, {
-      razorpayRefundId: refund.id,
-    })
+    // Guard: idempotent on duplicate delivery. PAYMENT tx already REFUNDED means the
+    // first delivery completed successfully — skip the write but fall through to close
+    // the REFUND tx in case it was the part that was missed.
+    if (paymentTx.status !== PAYMENT_TX_STATUS.REFUNDED) {
+      await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.REFUNDED, {
+        razorpayRefundId: refund.id,
+      })
+    } else {
+      this.logger.info(
+        { paymentTxId: paymentTx.id },
+        'refund.processed: PAYMENT tx is already REFUNDED — skipping (duplicate delivery)',
+      )
+    }
 
     // Mark the REFUND tx as REFUNDED (audit trail: this refund request is fulfilled)
     const refundTx = await this.paymentTxRepo.findInitiatedRefundByBookingId(paymentTx.bookingId)
