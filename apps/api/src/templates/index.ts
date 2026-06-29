@@ -136,15 +136,27 @@ function paymentReceived(title: string, body: string, data: TemplateData): Templ
 
 function tripRequestApproved(title: string, body: string, data: TemplateData): TemplateResult {
   const tripName = (data?.tripName as string) || 'the trip'
+  const tripSlug = (data?.tripSlug as string) || ''
+  const rawImage = (data?.tripImage as string) || ''
+  const numTravelers = (data?.numTravelers as number) || 1
+
+  const hero = rawImage && isSafeHttpsUrl(rawImage) ? heroImageBlock(rawImage, escapeAttr(tripName)) : ''
+  const payUrl = tripSlug ? `${CLIENT_URL}/trips/${escapeAttr(tripSlug)}/book` : `${CLIENT_URL}/my-bookings`
+  const travelersLine = numTravelers > 1 ? ` for ${numTravelers} travelers` : ''
+
   return {
-    subject: `Request Approved — ${tripName}`,
+    subject: `🎉 Your request for ${tripName} is approved — complete payment now`,
     html: baseLayout(
-      heading('Your Request Was Approved!') +
-      paragraph(body) +
-      highlight('You have 48 hours to complete your payment.') +
-      cta('Complete Payment', `${CLIENT_URL}/bookings`),
+      heading('Great news — you\'re approved!') +
+      `<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1f2937;">${escapeAttr(tripName)}</p>` +
+      paragraph(`Your request${travelersLine} has been approved by the organizer. Secure your spot before the window closes.`) +
+      highlight('⏰ You have <strong>48 hours</strong> to complete your payment — after that, the spot is released.') +
+      paragraph('Click the button below to go directly to the payment page:') +
+      `<div style="margin:8px 0 24px;">${cta('Complete Payment Now', payUrl)}</div>` +
+      `<p style="margin:0;font-size:13px;color:#9aa5b1;">If the button doesn't work, copy this link: <a href="${payUrl}" style="color:#0FBAB5;word-break:break-all;">${payUrl}</a></p>`,
+      hero,
     ),
-    text: `${title}\n\n${body}\n\nYou have 48 hours to complete your payment.`,
+    text: `${title}\n\n${tripName}\n\n${body}\n\nComplete your payment here: ${payUrl}\n\nYou have 48 hours before the spot is released.`,
   }
 }
 

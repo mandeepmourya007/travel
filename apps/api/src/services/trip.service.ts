@@ -697,7 +697,14 @@ export class TripService {
       type: notifType,
       title,
       body,
-      data: { tripId, requestId, tripSlug: trip.slug, tripName: trip.title },
+      data: {
+        tripId,
+        requestId,
+        tripSlug: trip.slug,
+        tripName: trip.title,
+        tripImage: (trip.photos as string[])[0] ?? '',
+        numTravelers: request.numTravelers,
+      },
     }).catch((err) => this.logger.error({ err, requestId }, 'Failed to send trip request response notification'))
 
     return this.toRequestListItem(updated)
