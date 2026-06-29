@@ -695,6 +695,16 @@ export class BookingService {
       throw error
     }
 
+    // Persist CAPTURED status immediately after a successful Razorpay capture so that
+    // sweepOrphanedConfirmedBookings never reverts this booking to PENDING_PAYMENT and
+    // triggers a duplicate confirmation email. Non-fatal: if the DB write fails, the
+    // incoming payment.captured webhook is the safety net and will update it shortly.
+    try {
+      await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
+    } catch (dbErr) {
+      this.logger.warn({ dbErr, bookingId }, 'Could not persist CAPTURED status after capture — payment.captured webhook is safety net')
+    }
+
     // Confirm held seats → BOOKED and auto-assign travelers
     if (this.vehicleService) {
       try {
