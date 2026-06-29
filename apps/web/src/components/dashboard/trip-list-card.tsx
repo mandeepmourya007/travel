@@ -115,7 +115,10 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
               Publish
             </button>
             <Link href={`/dashboard/trips/${trip.id}/users?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
-              <Users className="h-4 w-4 shrink-0" /> Participants <span className="font-mono text-xs text-neutral-500">({trip.currentBookings})</span>
+              <Users className="h-4 w-4 shrink-0" /> Participants{' '}
+              <span className="font-mono text-xs text-neutral-500">
+                ({trip.currentBookings}{trip.pendingBookingsCount > 0 ? `+${trip.pendingBookingsCount}` : ''})
+              </span>
             </Link>
             <Link href={`/dashboard/trips/${trip.id}/payments?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Wallet className="h-4 w-4 shrink-0" /> Payments

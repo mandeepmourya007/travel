@@ -1,16 +1,24 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin, Calendar, Users, Star, Pencil, RefreshCw } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { StarRating } from '@/components/shared/star-rating'
 import type { MyBookingListItem } from '@shared/types/booking.types'
 import { formatCurrency, formatDateRange, formatDateFull } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
 import { TravelerDetailsAccordion } from './traveler-details-accordion'
 import { useSyncPayment } from '@/hooks/use-sync-payment'
+import { useCreateBooking } from '@/hooks/use-create-booking'
+import { useVerifyPayment } from '@/hooks/use-verify-payment'
 import { useToast } from '@/components/shared/toast'
+import { useAuthStore } from '@/store/auth.store'
 import { getErrorMessage } from '@/lib/api-client'
+import { loadRazorpayScript } from '@/lib/razorpay'
+import { bookingKeys } from '@/lib/query-keys'
+import { APP_NAME } from '@/lib/constants'
 
 interface MyBookingCardProps {
   booking: MyBookingListItem
@@ -37,9 +45,87 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
   const showLeaveReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
   const showEditReview = booking.bookingStatus === 'COMPLETED' && booking.hasReview
   const showSyncPayment = booking.bookingStatus === 'PENDING_PAYMENT'
+  const showPayNow = booking.bookingStatus === 'PENDING_PAYMENT' || booking.bookingStatus === 'EXPIRED'
 
+  const [isPaying, setIsPaying] = useState(false)
   const syncPayment = useSyncPayment()
+  const createBooking = useCreateBooking()
+  const verifyPayment = useVerifyPayment()
+  const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
   const { toast } = useToast()
+
+  async function handlePayNow() {
+    if (!user) return
+    setIsPaying(true)
+    try {
+      const result = await createBooking.mutateAsync({
+        tripId: trip.id,
+        numTravelers: booking.numTravelers,
+        pickupPointId: booking.pickupPoint?.id,
+        dropPointId: booking.dropPoint?.id,
+      })
+
+      if (!result.razorpayKeyId) {
+        toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
+        setIsPaying(false)
+        return
+      }
+
+      try {
+        const RazorpayClass = await loadRazorpayScript()
+        new RazorpayClass({
+          key: result.razorpayKeyId,
+          amount: result.amountInRupees * 100,
+          currency: 'INR',
+          order_id: result.razorpayOrderId,
+          name: APP_NAME,
+          description: `Booking for ${trip.title}`,
+          prefill: { name: user.name, email: user.email },
+          handler: async (response) => {
+            try {
+              await verifyPayment.mutateAsync({
+                bookingId: result.bookingId,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                tripSlug: trip.slug,
+                tripId: trip.id,
+              })
+              queryClient.invalidateQueries({ queryKey: bookingKeys.all })
+              toast({ variant: 'success', title: 'Payment successful! Your booking is confirmed.' })
+            } catch {
+              toast({
+                variant: 'error',
+                title: 'Payment verification failed',
+                description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
+                duration: 15000,
+              })
+            } finally {
+              setIsPaying(false)
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
+              setIsPaying(false)
+            },
+          },
+        }).open()
+      } catch {
+        toast({
+          variant: 'error',
+          title: 'Could not open payment',
+          description: `Your booking (ref: ${result.bookingRef}) is reserved. Please try again or contact support.`,
+          duration: 15000,
+        })
+        setIsPaying(false)
+      }
+    } catch (err) {
+      toast({ variant: 'error', title: getErrorMessage(err as Error, 'Failed to initiate payment. Please try again.')! })
+      setIsPaying(false)
+    }
+  }
 
   async function handleSyncPayment() {
     try {
@@ -163,6 +249,13 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
           </div>
         )}
 
+        {/* Expired nudge */}
+        {booking.bookingStatus === 'EXPIRED' && (
+          <p className="text-sm text-neutral-500">
+            Your payment window expired. Pay now to secure your spot.
+          </p>
+        )}
+
         {/* Bottom: amount + actions — mobile: stacked, desktop: row */}
         <div className="flex flex-col gap-2 border-t border-neutral-100 pt-2 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -174,6 +267,21 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
 
           {/* Actions — mobile: full width buttons, desktop: inline */}
           <div className="flex flex-col gap-2 md:flex-row">
+            {showPayNow && (
+              <button
+                type="button"
+                onClick={handlePayNow}
+                disabled={isPaying}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 transition-colors disabled:opacity-60"
+              >
+                {isPaying ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Processing...
+                  </>
+                ) : 'Pay Now'}
+              </button>
+            )}
             {showSyncPayment && (
               <button
                 type="button"

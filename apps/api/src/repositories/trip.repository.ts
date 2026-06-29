@@ -70,7 +70,10 @@ export const TRIP_SELECT_SUMMARY = {
     },
   },
   _count: {
-    select: { reviews: { where: { isDeleted: false } } },
+    select: {
+      reviews: { where: { isDeleted: false } },
+      bookings: { where: { bookingStatus: 'PENDING_PAYMENT', isDeleted: false } },
+    },
   },
 } as const
 

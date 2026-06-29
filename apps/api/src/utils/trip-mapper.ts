@@ -37,7 +37,7 @@ export interface TripForSummary {
     totalReviews: number
     verificationStatus: string
   } | null
-  _count?: { reviews: number }
+  _count?: { reviews: number; bookings?: number }
 }
 
 export function mapTripToSummary(trip: TripForSummary) {
@@ -59,6 +59,7 @@ export function mapTripToSummary(trip: TripForSummary) {
     endDate: trip.endDate,
     maxGroupSize: trip.maxGroupSize,
     currentBookings: trip.currentBookings,
+    pendingBookingsCount: trip._count?.bookings ?? 0,
     status: trip.status,
     acceptingBookings: trip.acceptingBookings,
     photos: trip.photos,

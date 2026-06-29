@@ -150,6 +150,7 @@ export interface OrganizerTripListItem {
   endDate: string
   pricePerPerson: number
   currentBookings: number
+  pendingBookingsCount: number
   maxGroupSize: number
   bookingMode: BookingMode
   destination: { name: string }
