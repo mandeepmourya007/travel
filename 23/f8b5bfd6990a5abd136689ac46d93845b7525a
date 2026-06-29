@@ -1,0 +1,53 @@
+apps/web/src/components/booking/price-summary.tsx
+  s_fddbad8604d9b1::t_a0ba1c23d8fd37 74-94
+  s_fddbad8604d9b1::t_6f8972a524abe6 31-34
+  s_fddbad8604d9b1::t_681e6dc42fe4e1 28-30
+  s_fddbad8604d9b1::t_e860d00e5c5ebd 35
+  s_fddbad8604d9b1::t_b307dcd916031f 72-73
+  s_fddbad8604d9b1::t_46ecd9eedf647c 95-97
+  s_fddbad8604d9b1::t_5f01d8e75c15f4 6,12-13,22,56,59,61,98-99
+apps/web/src/components/booking/traveler-form.tsx
+  s_fddbad8604d9b1::t_bd45d384f61ccc 152
+  s_fddbad8604d9b1::t_2fbb8abc54c412 23-27,29,38-42,74,77
+  s_fddbad8604d9b1::t_4142cf4882b358 133
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_fddbad8604d9b1::t_a4d5595cb86b2a 86-97
+  s_fddbad8604d9b1::t_11db4a9a24a55f 3
+  s_fddbad8604d9b1::t_9816c37d7ea4a3 406,429,439
+  s_fddbad8604d9b1::t_e9c78536d71088 449-450
+  s_fddbad8604d9b1::t_fab438e1d1061b 158-159
+  s_fddbad8604d9b1::t_5d988b94e5dd2f 451-453
+  s_fddbad8604d9b1::t_7b7ee095ecc733 462-467
+  s_fddbad8604d9b1::t_17fcc908e9899c 121-125,127-128,131-132
+  s_fddbad8604d9b1::t_9987f89735d2b8 126,129-130,133-135,140,142,145,150
+apps/web/src/components/booking/__tests__/booking-page.test.tsx
+  s_fddbad8604d9b1::t_f6ecb77d3fd292 303-304
+  s_fddbad8604d9b1::t_7063dea2a40759 305-306
+  s_fddbad8604d9b1::t_0b5704bf37d791 256-258,268,270,274
+  s_fddbad8604d9b1::t_67edee5c114c4b 278-302,307-359
+apps/web/src/components/booking/__tests__/price-summary.test.tsx
+  s_fddbad8604d9b1::t_05f252990126bc 157-161
+  s_fddbad8604d9b1::t_4fb871fca46ce7 1-55,60-63,66-67,69-156,162-222
+  s_fddbad8604d9b1::t_c152ae6c0d5236 56-59,64-65,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "23f8b5bfd6990a5abd136689ac46d93845b7525a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fddbad8604d9b1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "579680fc-87f3-4e11-89fc-ca304ecd8cdf",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
