@@ -1,0 +1,39 @@
+apps/api/src/config/dependencies.ts
+  s_532832bf9fbb2b::t_983fd6db747e97 90-91
+  s_532832bf9fbb2b::t_0cdc1e5e68b537 280
+apps/api/src/repositories/trip.repository.ts
+  s_532832bf9fbb2b::t_979a6f0ec93358 675-701,716-717
+apps/api/prisma/migrations/20260630000001_add_trending_score_to_trip/migration.sql
+  s_532832bf9fbb2b::t_4578a9204f4c35 1-3
+apps/api/src/services/trending/trending-scoring.strategy.ts
+  s_532832bf9fbb2b::t_820ae6ee4aa2c3 1-13
+apps/api/src/utils/constants.ts
+  s_532832bf9fbb2b::t_4d3e18a89b069a 40-43
+apps/api/src/repositories/booking.repository.ts
+  s_532832bf9fbb2b::t_d6db3cd2afcbee 873-890
+apps/api/prisma/schema.prisma
+  s_532832bf9fbb2b::t_833691b6bdca33 325
+apps/api/src/services/trending/trending-score.service.ts
+  s_532832bf9fbb2b::t_971dda96a9a576 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "06cc7f1d868fe0a0c76af43acd7bbc01db837519",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_532832bf9fbb2b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cd00db65-158a-4bca-8993-d0eab9221f0a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
