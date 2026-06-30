@@ -8,7 +8,7 @@ A full-stack group travel aggregator platform ("Swiggy for group trips") targeti
 |-------|-----------|
 | **Frontend** | Next.js 14, React 18, Tailwind CSS, shadcn/ui, TanStack Query 5 |
 | **Backend** | Express 4, TypeScript 5, Prisma 5, PostgreSQL |
-| **Payments** | Razorpay Escrow |
+| **Payments** | Razorpay SafePay |
 | **Real-time** | Socket.IO |
 | **Cache/Rate Limit** | Redis (ioredis) |
 | **File Uploads** | Cloudinary (direct upload with signed URLs) |

@@ -6,7 +6,7 @@
  *
  *   create booking → payment → confirm → FULL auto-transition
  *     → cancel → seat release → FULL→ACTIVE revert
- *     → trip endDate passes → cron completes trip → escrow released
+ *     → trip endDate passes → cron completes trip → SafePay released
  *
  * These tests verify cross-method interactions and state transitions
  * that isolated unit tests do not cover.
@@ -96,7 +96,7 @@ const mockPaymentTxRepo = {
   updatePaymentId: vi.fn(),
   recordRetryAttempt: vi.fn(),
   findCapturedTransfersForTrip: vi.fn(),
-  findUnreleasedEscrows: vi.fn(),
+  findUnreleasedSafePays: vi.fn(),
 }
 
 const mockPaymentService = {
@@ -482,9 +482,9 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
 })
 
 // ══════════════════════════════════════════════════════
-// FLOW 3: Trip Completion → Escrow Release
+// FLOW 3: Trip Completion → SafePay Release
 // ══════════════════════════════════════════════════════
-describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
+describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
   it('should complete trip + bookings + stats in single transaction', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
@@ -516,7 +516,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     }))
   })
 
-  it('should release escrow after trip completion with correct organizer amount', async () => {
+  it('should release SafePay after trip completion with correct organizer amount', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'FULL' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -540,8 +540,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     const result = await lifecycleService.completeEndedTrips()
 
     expect(result.completed).toBe(1)
-    expect(result.escrowReleased).toBe(2)
-    expect(result.escrowFailed).toBe(0)
+    expect(result.safePayReleased).toBe(2)
+    expect(result.safePayFailed).toBe(0)
 
     // Transfer holds released
     expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_001')
@@ -563,7 +563,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     }))
   })
 
-  it('should NOT rollback trip completion when Razorpay escrow release fails', async () => {
+  it('should NOT rollback trip completion when Razorpay SafePay release fails', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -575,7 +575,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     // ESCROW_RELEASE DB row is written first (P2002-guard ordering), then Razorpay is called
-    mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-escrow-1' })
+    mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-SafePay-1' })
     mockPaymentService.releaseTransferHold.mockRejectedValue(new Error('Razorpay 503'))
 
     const result = await lifecycleService.completeEndedTrips()
@@ -585,15 +585,15 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     expect(mockLifecycleTx.trip.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status: 'COMPLETED' }),
     }))
-    // Escrow release failed at Razorpay (after the DB row was written)
-    expect(result.escrowFailed).toBe(1)
+    // SafePay release failed at Razorpay (after the DB row was written)
+    expect(result.safePayFailed).toBe(1)
     // ESCROW_RELEASE DB row IS written before calling Razorpay (idempotency ordering)
     expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({ bookingId: 'b1', type: 'ESCROW_RELEASE' }),
     )
   })
 
-  it('should skip already-released bookings during escrow release (idempotency)', async () => {
+  it('should skip already-released bookings during SafePay release (idempotency)', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -608,7 +608,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
 
     const result = await lifecycleService.completeEndedTrips()
 
-    expect(result.escrowReleased).toBe(0)
+    expect(result.safePayReleased).toBe(0)
     expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
     expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
   })
@@ -631,7 +631,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
 
     const result = await lifecycleService.completeEndedTrips()
 
-    expect(result.escrowReleased).toBe(1)
+    expect(result.safePayReleased).toBe(1)
     // Fetched transfer ID from Razorpay
     expect(mockPaymentService.fetchTransferId).toHaveBeenCalledWith('pay_001')
     // Persisted it
@@ -640,7 +640,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
     expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_lazy_fetched')
   })
 
-  it('should fail escrow if transfer ID cannot be fetched', async () => {
+  it('should fail SafePay if transfer ID cannot be fetched', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -655,9 +655,9 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
 
     const result = await lifecycleService.completeEndedTrips()
 
-    // Trip completed, escrow failed
+    // Trip completed, SafePay failed
     expect(result.completed).toBe(1)
-    expect(result.escrowFailed).toBe(1)
+    expect(result.safePayFailed).toBe(1)
     expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
   })
 
@@ -705,20 +705,20 @@ describe('Flow 3: Trip EndDate → Cron Completes → Escrow Released', () => {
 })
 
 // ══════════════════════════════════════════════════════
-// FLOW 4: Crash Recovery — Unreleased Escrows
+// FLOW 4: Crash Recovery — Unreleased SafePays
 // ══════════════════════════════════════════════════════
-describe('Flow 4: Crash Recovery — Unreleased Escrow Sweep', () => {
-  it('should release escrows that failed in a previous cron cycle', async () => {
+describe('Flow 4: Crash Recovery — Unreleased SafePay Sweep', () => {
+  it('should release SafePays that failed in a previous cron cycle', async () => {
     const unreleased = {
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_orphan', razorpayPaymentId: 'pay_001',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
-    mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([unreleased])
+    mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased])
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
 
-    const result = await lifecycleService.releaseUnreleasedEscrows()
+    const result = await lifecycleService.releaseUnreleasedSafePays()
 
     expect(result.released).toBe(1)
     expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_orphan')
@@ -740,13 +740,13 @@ describe('Flow 4: Crash Recovery — Unreleased Escrow Sweep', () => {
       razorpayTransferId: 'trf_ok', razorpayPaymentId: 'pay_002',
       booking: { totalAmount: 8000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
-    mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([unreleased1, unreleased2])
+    mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased1, unreleased2])
     mockPaymentService.releaseTransferHold
       .mockRejectedValueOnce(new Error('Razorpay 500'))
       .mockResolvedValueOnce(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
 
-    const result = await lifecycleService.releaseUnreleasedEscrows()
+    const result = await lifecycleService.releaseUnreleasedSafePays()
 
     // Partial success — one released, one failed
     expect(result.released).toBe(1)
@@ -759,12 +759,12 @@ describe('Flow 4: Crash Recovery — Unreleased Escrow Sweep', () => {
       razorpayTransferId: null, razorpayPaymentId: 'pay_orphan',
       booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
-    mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([unreleased])
+    mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased])
     mockPaymentService.fetchTransferId.mockResolvedValue('trf_recovered')
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
     mockPaymentTxRepo.create.mockResolvedValue({})
 
-    const result = await lifecycleService.releaseUnreleasedEscrows()
+    const result = await lifecycleService.releaseUnreleasedSafePays()
 
     expect(result.released).toBe(1)
     expect(mockPaymentService.fetchTransferId).toHaveBeenCalledWith('pay_orphan')
@@ -772,10 +772,10 @@ describe('Flow 4: Crash Recovery — Unreleased Escrow Sweep', () => {
     expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_recovered')
   })
 
-  it('should be a no-op when all escrows are already released', async () => {
-    mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([])
+  it('should be a no-op when all SafePays are already released', async () => {
+    mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([])
 
-    const result = await lifecycleService.releaseUnreleasedEscrows()
+    const result = await lifecycleService.releaseUnreleasedSafePays()
 
     expect(result).toEqual({ released: 0, failed: 0 })
     expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
@@ -949,7 +949,7 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
     expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
   })
 
-  it('should handle escrow release when payment service is null (dev mode)', async () => {
+  it('should handle SafePay release when payment service is null (dev mode)', async () => {
     const devLifecycle = new TripLifecycleService(
       mockTripRepo as any,
       mockPaymentTxRepo as any,
@@ -957,7 +957,7 @@ describe('Flow 5: Edge Cases & Concurrency', () => {
       logger as any,
     )
 
-    const result = await devLifecycle.releaseEscrowForTrip('trip-1')
+    const result = await devLifecycle.releaseSafePayForTrip('trip-1')
 
     expect(result).toEqual({ released: 0, failed: 0, skipped: 0 })
   })

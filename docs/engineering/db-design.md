@@ -127,7 +127,7 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 | # | Problem | Severity | Fix Applied |
 |---|---------|----------|-------------|
 | 1 | No `RefreshToken` table — can't revoke tokens or track sessions | High | Added `RefreshToken` table |
-| 2 | No `PaymentTransaction` — single `amountPaid` int can't track retries, partial refunds, escrow release | High | Added `PaymentTransaction` table; removed payment columns from `Booking` |
+| 2 | No `PaymentTransaction` — single `amountPaid` int can't track retries, partial refunds, SafePay release | High | Added `PaymentTransaction` table; removed payment columns from `Booking` |
 | 3 | No `Notification` — no tracking for email/SMS/push delivery | Medium | Added `Notification` table |
 | 4 | No `Destination` — free-text string causes duplicates ("Goa" vs "goa" vs "North Goa"), blocks trending/SEO | High | Added `Destination` lookup table; `Trip.destination` → `Trip.destinationId` FK |
 | 5 | `Trip.currentBookings` race condition — no optimistic locking | High | Added `version Int` column for optimistic locking |
@@ -137,7 +137,7 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 | 9 | No `cancellationReason` on `Booking` — needed for refund disputes | Medium | Added `cancellationReason`, `cancelledAt`, `cancelledBy` |
 | 10 | No CHECK constraints — prices can be negative, ratings out of range | Medium | Added DB-level constraints (documented, enforced via service + Zod) |
 | 11 | No duplicate-booking prevention (same user + same trip) | Medium | Service-layer check inside `$transaction` |
-| 12 | `OrganizerProfile` missing `bankAccountLinked` — needed before escrow release | Medium | Added column |
+| 12 | `OrganizerProfile` missing `bankAccountLinked` — needed before SafePay release | Medium | Added column |
 
 ---
 
@@ -154,7 +154,7 @@ const allUsersIncludingDeleted = await basePrisma.user.findMany()
 | 5 | **Booking** | — | ✅ | Trip bookings with full lifecycle |
 | 6 | **TripTransferPoint** | ✅ NEW | ✅ | Pickup/drop points per trip with optional extra charges |
 | 7 | **TravelerDetail** | ✅ NEW | ✅ | Per-traveler info per booking OR trip request (1NF compliant) |
-| 8 | **PaymentTransaction** | ✅ NEW | ❌ | Full payment/refund/escrow audit trail |
+| 8 | **PaymentTransaction** | ✅ NEW | ❌ | Full payment/refund/SafePay audit trail |
 | 9 | **Review** | — | ✅ | Post-trip verified reviews (multi-dimension) |
 | 10 | **Conversation** | — | ✅ | 1:1 chat threads (traveler ↔ organizer per trip) |
 | 11 | **Message** | — | ✅ | Individual chat messages with read tracking |
@@ -346,7 +346,7 @@ model OrganizerProfile {
   rating              Float              @default(0)        // Materialized cache — recompute on review write
   totalReviews        Int                @default(0)        // Materialized cache
   totalTripsCompleted Int                @default(0)        // Materialized cache
-  bankAccountLinked   Boolean            @default(false)    // Gate escrow release
+  bankAccountLinked   Boolean            @default(false)    // Gate SafePay release
   commissionRate      Float              @default(10.0)     // Platform commission %
   razorpayAccountId   String?                               // Razorpay linked account for route-based transfers
 

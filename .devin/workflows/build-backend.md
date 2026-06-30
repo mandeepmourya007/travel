@@ -261,7 +261,7 @@ describe('BookingService', () => {
   beforeEach(() => {
     mockBookingRepo = { create: vi.fn(), findById: vi.fn() }
     mockTripRepo = { findById: vi.fn(), incrementBookings: vi.fn() }
-    mockPaymentService = { createEscrowOrder: vi.fn() }
+    mockPaymentService = { createSafePayOrder: vi.fn() }
     bookingService = new BookingService(mockBookingRepo, mockTripRepo, mockPaymentService)
   })
 
@@ -270,7 +270,7 @@ describe('BookingService', () => {
       // Arrange
       const trip = createMockTrip({ maxGroupSize: 20, currentBookings: 10 })
       mockTripRepo.findById.mockResolvedValue(trip)
-      mockPaymentService.createEscrowOrder.mockResolvedValue({ id: 'order_123' })
+      mockPaymentService.createSafePayOrder.mockResolvedValue({ id: 'order_123' })
       mockBookingRepo.create.mockResolvedValue({ id: 'booking_1', status: 'PENDING_PAYMENT' })
 
       // Act
@@ -281,7 +281,7 @@ describe('BookingService', () => {
 
       // Assert
       expect(result.id).toBe('booking_1')
-      expect(mockPaymentService.createEscrowOrder).toHaveBeenCalledWith(trip.pricePerPerson)
+      expect(mockPaymentService.createSafePayOrder).toHaveBeenCalledWith(trip.pricePerPerson)
       expect(mockBookingRepo.create).toHaveBeenCalled()
     })
 

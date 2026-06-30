@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   openGraph: {
     title: `Terms of Service | ${APP_NAME}`,
-    description: `Terms governing your use of ${APP_NAME}, India's escrow-protected group travel platform.`,
+    description: `Terms governing your use of ${APP_NAME}, India's SafePay-protected group travel platform.`,
     type: 'website',
     url: '/terms',
   },

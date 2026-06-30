@@ -29,17 +29,17 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description:
-    'Discover and book curated group trips. Escrow-protected payments, verified organizers, and hassle-free group travel from Pune.',
+    'Discover and book curated group trips. SafePay-protected payments, verified organizers, and hassle-free group travel from Pune.',
   keywords: [
     'group trips', 'group travel', 'weekend trips from Pune', 'adventure trips India',
-    'trekking trips', 'beach trips Goa', 'Ladakh bike trip', 'escrow payment travel',
+    'trekking trips', 'beach trips Goa', 'Ladakh bike trip', 'SafePay payment travel',
     'verified trip organizers', 'compare group trips',
   ],
   twitter: {
     card: 'summary_large_image',
     title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
     description:
-      'Discover curated group trips from verified organizers. Escrow-protected payments and real reviews.',
+      'Discover curated group trips from verified organizers. SafePay-protected payments and real reviews.',
   },
   robots: {
     index: true,

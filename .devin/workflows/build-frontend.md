@@ -703,9 +703,9 @@ export function BookingForm({ trip }: BookingFormProps) {
         )}
       </Button>
 
-      {/* Escrow trust badge */}
+      {/* SafePay trust badge */}
       <p className="text-xs text-neutral-500 text-center mt-3">
-        🔒 Escrow protected — money released only after trip completion
+        🔒 SafePay protected — money released only after trip completion
       </p>
     </div>
   )
@@ -759,7 +759,7 @@ import type { Metadata } from 'next'
 // SSR SEO metadata (runs on server)
 export const metadata: Metadata = {
   title: 'Explore Group Trips from Pune | TripCompare',
-  description: 'Compare and book group trips from Pune. Goa, Manali, Rishikesh and more. Escrow protected payments.',
+  description: 'Compare and book group trips from Pune. Goa, Manali, Rishikesh and more. SafePay protected payments.',
 }
 
 // Page component (server component by default)

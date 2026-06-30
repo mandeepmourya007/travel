@@ -52,12 +52,12 @@ export const HERO_COPY = {
   headlinePart2: 'Book group trips safely.',
   subheadline:
     'Find and compare curated group trips from verified organizers across India. ' +
-    'Your payment is held in escrow — the organizer gets paid only after the trip is done. ' +
+    'Your payment is held safely via SafePay — the organizer gets paid only after the trip is done. ' +
     'No UPI to strangers. No WhatsApp chaos. No surprises.',
 } as const
 
 export const HERO_TRUST_BADGES: TrustBadge[] = [
-  { icon: Shield,     label: 'Money held in escrow until your trip is done' },
+  { icon: Shield,     label: 'Money held safely via SafePay until your trip is done' },
   { icon: Star,       label: 'Reviews only from travelers who actually went' },
   { icon: LayoutList, label: 'Compare up to 3 trips side-by-side' },
 ]
@@ -86,7 +86,7 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
     step:        '02',
     icon:        CreditCard,
     title:       'Book with your money protected',
-    description: 'Pay securely via Razorpay (UPI, card, net banking). Your money is held in escrow — the organizer only gets paid after the trip is done. Cancel anytime, refund goes straight to your wallet.',
+    description: 'Pay securely via Razorpay (UPI, card, net banking). Your money is held safely via SafePay — the organizer only gets paid after the trip is done. Cancel anytime, refund goes straight to your wallet.',
     iconColor:   'text-highlight-600',
     iconBg:      'bg-highlight-50',
     iconBorder:  'border-highlight-100',
@@ -111,7 +111,7 @@ export const WHY_BOOK_COPY = {
   subheading: "Sending ₹15,000 to a stranger's UPI and hoping for the best is not a booking process. We built something better.",
   organizer: {
     heading: 'Are you a trip organizer?',
-    body:    'Stop managing bookings on WhatsApp. List your trips, get discovered by travelers beyond your Instagram, and get paid securely via escrow.',
+    body:    'Stop managing bookings on WhatsApp. List your trips, get discovered by travelers beyond your Instagram, and get paid securely via SafePay.',
     cta:     "List your trips — it's free",
     ctaHref: '/signup?role=organizer',
   },
@@ -120,7 +120,7 @@ export const WHY_BOOK_COPY = {
 export const WHY_BOOK_FEATURES: WhyBookFeature[] = [
   {
     icon:        Shield,
-    title:       'Escrow-protected payments',
+    title:       'SafePay-protected payments',
     description: 'You pay via Razorpay. Your money is held securely — the organizer gets it only after the trip is done. If the organizer cancels, you get a full refund instantly.',
     iconColor:   'text-primary-600',
     iconBg:      'bg-primary-50',

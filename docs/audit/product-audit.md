@@ -10,7 +10,7 @@
 
 **`docs/mvp/mvp-plan.md`** — besides the shipped tracker, its "⬜ Not Started — Viral & Differentiator" section (lines 1317-1598) plans: Destination Pages, Organizer Public Profile (marked done), **Wishlist/Save Trips** (incl. "price dropped / 2 seats left" notifications on saved trips), Transparent Price Breakdown, Local Intel, Solo→Squad, Trip Replay, Trust Score. Tech-stack table also names "PostgreSQL full-text search (MVP)… Algolia later" and the Page 4 wireframe includes a "Similar Trips" section — both **planned but never built**. "Organizer analytics dashboard" is explicitly deferred ("Not needed until 50+ organizers", line 29).
 
-**`docs/rnd/local-intel-rnd.md`** — full design for community destination tips (categories, upvotes, comments, moderation, leaderboard, SEO pages). **`docs/rnd/group-travel-market-research.md`** — market/leakage strategy, escrow, portable reputation, trip protection.
+**`docs/rnd/local-intel-rnd.md`** — full design for community destination tips (categories, upvotes, comments, moderation, leaderboard, SEO pages). **`docs/rnd/group-travel-market-research.md`** — market/leakage strategy, SafePay, portable reputation, trip protection.
 
 **Doc-staleness finding:** mvp-plan lists Destination Pages as "Not Started", but they're shipped — SSR + JSON-LD + OG at `apps/web/src/app/destinations/[slug]/page.tsx` (confirms `fetchApi('/destinations/slug/:slug')`, `generateMetadata`, `buildDestinationJsonLd`).
 

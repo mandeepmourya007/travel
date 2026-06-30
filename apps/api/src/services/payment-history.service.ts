@@ -86,7 +86,7 @@ export class PaymentHistoryService {
    *
    * Returns:
    * - Released payouts: ESCROW_RELEASE records with per-trip breakdown
-   * - Pending estimate: captured payments with no escrow release yet
+   * - Pending estimate: captured payments with no SafePay release yet
    *
    * Ownership is enforced via the organizer profile lookup.
    */
@@ -95,8 +95,8 @@ export class PaymentHistoryService {
     if (!profile) throw new ForbiddenError('Organizer profile not found')
 
     const [released, pendingPayments] = await Promise.all([
-      this.paymentTxRepo.findEscrowReleasesForOrganizer(profile.id, tripId),
-      this.paymentTxRepo.findPendingEscrowForOrganizer(profile.id),
+      this.paymentTxRepo.findSafePayReleasesForOrganizer(profile.id, tripId),
+      this.paymentTxRepo.findPendingSafePayForOrganizer(profile.id),
     ])
 
     const releasedTotal = released.reduce((sum, r) => sum + r.amount, 0)

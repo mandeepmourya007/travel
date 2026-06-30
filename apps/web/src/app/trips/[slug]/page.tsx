@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: TripDetailPageProps): Promise
 
   const title = `${trip.title} — ${trip.destination.name} | ${APP_NAME}`
   const raw = trip.description
-    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with escrow protection.`
+    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with SafePay protection.`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw

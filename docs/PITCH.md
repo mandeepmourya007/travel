@@ -335,7 +335,7 @@ Still keen?
 >
 > **This is a ₹45,000 crore market — and it runs on trust, luck, and screenshots.**
 >
-> We built [AppName] — India's first marketplace for group travel. Organizers list their trips, travelers discover and book with seat selection and Razorpay payments. Money is held in escrow until the trip is done. Cancellations are handled automatically. No WhatsApp required.
+> We built [AppName] — India's first marketplace for group travel. Organizers list their trips, travelers discover and book with seat selection and Razorpay payments. Money is held via SafePay until the trip is done. Cancellations are handled automatically. No WhatsApp required.
 >
 > We're not building a travel agency. We're building the infrastructure layer for the group travel economy that already exists — and has no platform to run on.
 >
@@ -402,20 +402,20 @@ Still keen?
 
 > "[AppName] is a two-sided marketplace for group travel."
 
-**For travelers:** discover, compare (up to 3 trips side-by-side), book, select seats, pay via Razorpay with escrow protection, cancel with automatic refund policy.
+**For travelers:** discover, compare (up to 3 trips side-by-side), book, select seats, pay via Razorpay with SafePay protection, cancel with automatic refund policy.
 
 **For organizers:** list trips, receive bookings automatically, manage seat layouts, collect payments, release traveler details — one dashboard replaces 5 WhatsApp groups and 2 spreadsheets.
 
 | Differentiator | Why it matters |
 |----------------|----------------|
-| Escrow payments | Traveler money protected; organizer trust is earned |
+| SafePay payments | Traveler money protected; organizer trust is earned |
 | Anti-leakage chat filter | Blocks phone/UPI/email in chat — keeps transactions on-platform |
 | Seat layout builder | Organizers map their bus; travelers pick seats at booking |
 | Trip comparison | Travelers compare up to 3 trips side-by-side |
-| Auto trip lifecycle | Trips auto-complete; escrow releases automatically |
+| Auto trip lifecycle | Trips auto-complete; SafePay releases automatically |
 | Request-based booking | Organizers approve travelers before payment (curated groups) |
 
-> "Three things that are hard to copy: the escrow trust layer, the anti-leakage filter, and network effects — the more organizers we have, the more travelers come, the more organizers want to list."
+> "Three things that are hard to copy: the SafePay trust layer, the anti-leakage filter, and network effects — the more organizers we have, the more travelers come, the more organizers want to list."
 
 ---
 
@@ -452,11 +452,11 @@ Still keen?
 
 ### Slide 7 — Traction
 
-- Full platform built and deployed — booking flow, seat selection, escrow payments, real-time chat, organizer dashboard, admin panel
+- Full platform built and deployed — booking flow, seat selection, SafePay payments, real-time chat, organizer dashboard, admin panel
 - [X] organizers onboarded across Pune
 - [X] trips listed, [X] bookings completed
 - ₹[X] GMV processed
-- Zero payment disputes to date — escrow model works
+- Zero payment disputes to date — SafePay model works
 - [Insert organic growth metric]
 
 > "We're pre-scale but post-product. The infrastructure is built and working. What we need now is distribution."
@@ -490,7 +490,7 @@ Still keen?
 
 ## One-liner for Cold Investor Emails
 
-> *"[AppName] is India's group travel marketplace — replacing WhatsApp + UPI as the operating system for 50,000 trip organizers, starting with escrow-protected bookings on a ₹45,000 crore market with zero organized players."*
+> *"[AppName] is India's group travel marketplace — replacing WhatsApp + UPI as the operating system for 50,000 trip organizers, starting with SafePay-protected bookings on a ₹45,000 crore market with zero organized players."*
 
 ---
 

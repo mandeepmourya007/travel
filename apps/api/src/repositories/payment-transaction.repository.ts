@@ -324,11 +324,11 @@ export class PaymentTransactionRepository {
     return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
   }
 
-  // ─── Escrow Release Queries ────────────────────────
+  // ─── SafePay Release Queries ────────────────────────
 
   /**
    * Finds CAPTURED PAYMENT transactions for a trip.
-   * Used by: TripLifecycleService.releaseEscrowForTrip()
+   * Used by: TripLifecycleService.releaseSafePayForTrip()
    *
    * Includes payments with AND without razorpayTransferId —
    * the service lazy-fetches missing transfer IDs from Razorpay.
@@ -338,7 +338,7 @@ export class PaymentTransactionRepository {
       where: {
         type: PAYMENT_TX_TYPE.PAYMENT,
         status: PAYMENT_TX_STATUS.CAPTURED,
-        // Only release escrow for bookings that completed — CANCELLED bookings must never receive a transfer
+        // Only release SafePay for bookings that completed — CANCELLED bookings must never receive a transfer
         booking: { tripId, isDeleted: false, bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] } },
       },
       select: {
@@ -366,11 +366,11 @@ export class PaymentTransactionRepository {
   /**
    * Finds CAPTURED payments with transfer IDs on COMPLETED trips
    * that do NOT yet have a corresponding ESCROW_RELEASE record.
-   * Used by: TripLifecycleService.releaseUnreleasedEscrows() — crash recovery.
+   * Used by: TripLifecycleService.releaseUnreleasedSafePays() — crash recovery.
    *
    * Groups by tripId for batch processing.
    */
-  async findUnreleasedEscrows() {
+  async findUnreleasedSafePays() {
     // Subquery: booking IDs that already have an ESCROW_RELEASE
     const releasedBookingIds = await this.prisma.paymentTransaction.findMany({
       where: { type: 'ESCROW_RELEASE' },
@@ -383,7 +383,7 @@ export class PaymentTransactionRepository {
       where: {
         type: PAYMENT_TX_TYPE.PAYMENT,
         status: PAYMENT_TX_STATUS.CAPTURED,
-        // Only crash-recover escrow for bookings that actually completed
+        // Only crash-recover SafePay for bookings that actually completed
         booking: {
           isDeleted: false,
           bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] },
@@ -435,8 +435,8 @@ export class PaymentTransactionRepository {
 
   /**
    * Returns the set of bookingIds on a trip that already have an ESCROW_RELEASE record.
-   * Replaces the N+1 findByBookingId loop in TripLifecycleService.releaseEscrowForTrip().
-   * Used by: TripLifecycleService.releaseEscrowForTrip()
+   * Replaces the N+1 findByBookingId loop in TripLifecycleService.releaseSafePayForTrip().
+   * Used by: TripLifecycleService.releaseSafePayForTrip()
    */
   async findReleasedBookingIdsForTrip(tripId: string): Promise<Set<string>> {
     const rows = await this.prisma.paymentTransaction.findMany({
@@ -454,7 +454,7 @@ export class PaymentTransactionRepository {
    * Returns ESCROW_RELEASE transactions for an organizer's trips, scoped to
    * a specific trip if provided. Used for payout statements.
    */
-  async findEscrowReleasesForOrganizer(organizerId: string, tripId?: string) {
+  async findSafePayReleasesForOrganizer(organizerId: string, tripId?: string) {
     return this.prisma.paymentTransaction.findMany({
       where: {
         type: 'ESCROW_RELEASE',
@@ -491,7 +491,7 @@ export class PaymentTransactionRepository {
    * Returns total captured-payment amount for an organizer's trips that do NOT
    * yet have an ESCROW_RELEASE record — i.e., the pending payout amount.
    */
-  async findPendingEscrowForOrganizer(organizerId: string) {
+  async findPendingSafePayForOrganizer(organizerId: string) {
     return this.prisma.paymentTransaction.findMany({
       where: {
         type: PAYMENT_TX_TYPE.PAYMENT,

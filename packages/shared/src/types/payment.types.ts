@@ -13,6 +13,7 @@ export interface CreateBookingResponse {
 /** Single payment transaction row — used in all 3 views (traveler/organizer/admin) */
 export interface PaymentHistoryItem {
   id: string
+  // ESCROW_RELEASE = SafePay payout — funds released to organizer after trip completion. Kept as DB enum value.
   type: 'PAYMENT' | 'REFUND' | 'ESCROW_RELEASE'
   status: 'INITIATED' | 'AUTHORIZED' | 'CAPTURED' | 'REFUNDED' | 'FAILED'
   amount: number
@@ -41,6 +42,7 @@ export interface PaymentHistoryItem {
 
 /** Filters for GET /payments/my and GET /payments/trip/:tripId */
 export interface PaymentHistoryFilters {
+  // ESCROW_RELEASE = SafePay payout. See PaymentHistoryItem for details.
   type?: 'PAYMENT' | 'REFUND' | 'ESCROW_RELEASE'
   status?: 'INITIATED' | 'AUTHORIZED' | 'CAPTURED' | 'REFUNDED' | 'FAILED'
   fromDate?: string

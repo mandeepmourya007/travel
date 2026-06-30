@@ -3,6 +3,8 @@ import { idSchema } from './common.schema'
 
 // ─── Payment History Filters ──────────────────────────
 
+// ESCROW_RELEASE = SafePay payout (funds released to organizer after trip completion).
+// The string 'ESCROW_RELEASE' is stored in the DB and cannot be renamed without a data migration.
 export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE'] as const
 export const PAYMENT_STATUSES = ['INITIATED', 'AUTHORIZED', 'CAPTURED', 'REFUNDED', 'FAILED'] as const
 

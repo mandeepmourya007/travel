@@ -108,7 +108,7 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
           />
           {/* Trending badge — offset below the compare button (top-3 left-3 on outer card) */}
           {trip.isTrending && (
-            <span className="absolute top-10 left-3 badge text-xs font-semibold bg-accent-50 text-accent-700 z-10">
+            <span className="absolute top-10 left-3 badge badge-accent text-xs font-semibold z-10">
               🔥 Trending
             </span>
           )}

@@ -1,4 +1,3 @@
-import type { Logger } from 'pino'
 import type { ITrendingScoringStrategy, ScoringInput, TripScore } from './trending-scoring.strategy'
 import type { BookingRepository } from '../../repositories/booking.repository'
 
@@ -12,6 +11,7 @@ const WEIGHT_WEEK = 10
 const WEIGHT_MONTH = 2
 const URGENCY_BONUS = 5
 const URGENCY_DAYS = 14
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 /**
  * Scores trips by booking velocity: recent bookings dominate, older ones add
@@ -32,7 +32,6 @@ const URGENCY_DAYS = 14
 export class BookingVelocityStrategy implements ITrendingScoringStrategy {
   constructor(
     private bookingRepo: BookingRepository,
-    private logger: Logger,
   ) {}
 
   async computeScores(trips: ScoringInput[]): Promise<TripScore[]> {
@@ -41,25 +40,22 @@ export class BookingVelocityStrategy implements ITrendingScoringStrategy {
     const tripIds = trips.map((t) => t.tripId)
     const now = new Date()
 
-    try {
-      const rows = await this.bookingRepo.aggregateBookingVelocity(tripIds)
+    // Errors propagate to TrendingScoreService, which lets the cron skip
+    // batchUpdateTrendingScores — preserving existing scores in DB rather than
+    // zeroing them all out on a transient DB failure.
+    const rows = await this.bookingRepo.aggregateBookingVelocity(tripIds)
+    const rowMap = new Map(rows.map((r) => [r.tripId, r]))
 
-      const rowMap = new Map(rows.map((r) => [r.tripId, r]))
+    return trips.map(({ tripId, startDate }) => {
+      const row = rowMap.get(tripId)
+      const weekBookings = Number(row?.weekBookings ?? 0n)
+      const monthBookings = Number(row?.monthBookings ?? 0n)
 
-      return trips.map(({ tripId, startDate }) => {
-        const row = rowMap.get(tripId)
-        const weekBookings = Number(row?.weekBookings ?? 0n)
-        const monthBookings = Number(row?.monthBookings ?? 0n)
+      const daysUntilStart = Math.ceil((startDate.getTime() - now.getTime()) / MS_PER_DAY)
+      const urgency = daysUntilStart > 0 && daysUntilStart <= URGENCY_DAYS ? URGENCY_BONUS : 0
 
-        const daysUntilStart = Math.ceil((startDate.getTime() - now.getTime()) / 86_400_000)
-        const urgency = daysUntilStart > 0 && daysUntilStart <= URGENCY_DAYS ? URGENCY_BONUS : 0
-
-        const score = weekBookings * WEIGHT_WEEK + monthBookings * WEIGHT_MONTH + urgency
-        return { tripId, score }
-      })
-    } catch (err) {
-      this.logger.error({ err }, 'BookingVelocityStrategy: aggregation failed — returning zero scores')
-      return trips.map(({ tripId }) => ({ tripId, score: 0 }))
-    }
+      const score = weekBookings * WEIGHT_WEEK + monthBookings * WEIGHT_MONTH + urgency
+      return { tripId, score }
+    })
   }
 }

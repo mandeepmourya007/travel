@@ -357,4 +357,85 @@ describe('TripRepository', () => {
     })
   })
 
+
+  // ── findActiveTripIdsForScoring ──────────────────────
+
+  describe('findActiveTripIdsForScoring', () => {
+    it('queries only ACTIVE and FULL trips that are not soft-deleted', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([])
+
+      await repo.findActiveTripIdsForScoring()
+
+      expect(mockPrisma.trip.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
+          }),
+          select: { id: true, startDate: true },
+        }),
+      )
+    })
+
+    it('maps id to tripId in the returned objects', async () => {
+      const startDate = new Date('2099-01-01')
+      mockPrisma.trip.findMany.mockResolvedValue([{ id: 'trip-1', startDate }])
+
+      const result = await repo.findActiveTripIdsForScoring()
+
+      expect(result).toEqual([{ tripId: 'trip-1', startDate }])
+    })
+
+    it('returns empty array when no eligible trips exist', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([])
+
+      const result = await repo.findActiveTripIdsForScoring()
+
+      expect(result).toEqual([])
+    })
+  })
+
+  // ── batchUpdateTrendingScores ────────────────────────
+
+  describe('batchUpdateTrendingScores', () => {
+    it('no-ops without hitting DB when given an empty array', async () => {
+      await repo.batchUpdateTrendingScores([])
+
+      expect(mockPrisma.$executeRaw).not.toHaveBeenCalled()
+    })
+
+    it('executes raw UPDATE for non-empty score array', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(1)
+
+      await repo.batchUpdateTrendingScores([{ tripId: 'trip-1', score: 30 }])
+
+      expect(mockPrisma.$executeRaw).toHaveBeenCalledOnce()
+    })
+
+    it('UPDATE SQL targets only non-deleted trips (isDeleted = false)', async () => {
+      mockPrisma.$executeRaw.mockResolvedValue(1)
+
+      await repo.batchUpdateTrendingScores([{ tripId: 'trip-1', score: 42 }])
+
+      const sql = rawSqlFromCall(mockPrisma.$executeRaw.mock.calls[0])
+      expect(sql).toContain('isDeleted')
+      expect(sql).toContain('false')
+    })
+  })
+
+  // ── buildOrderBy: trending sort ──────────────────────
+
+  describe('buildOrderBy (sort=trending)', () => {
+    it('returns trendingScore desc with nulls last', async () => {
+      mockPrisma.trip.findMany.mockResolvedValue([])
+      mockPrisma.trip.count.mockResolvedValue(0)
+
+      await repo.search({ sort: 'trending' }, { offset: 0, limit: 20 })
+
+      const call = mockPrisma.trip.findMany.mock.calls[0][0]
+      expect(call.orderBy).toEqual({ trendingScore: { sort: 'desc', nulls: 'last' } })
+    })
+  })
+
+
 })

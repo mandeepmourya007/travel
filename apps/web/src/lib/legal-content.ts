@@ -78,7 +78,7 @@ By registering an account, you confirm that all information you provide is accur
 
 Important: ${APP_NAME} does not own, operate, manage, or conduct any of the trips listed on the platform. Trip organizers are independent third-party service providers who are solely responsible for planning, executing, and delivering their trips. ${APP_NAME} is an intermediary as defined under the Information Technology Act, 2000 and the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.
 
-While we verify organizers and hold payments in escrow for your protection, we are not a party to the contract between you and the trip organizer. You transact with organizers at your own risk, subject to the protections we provide.`,
+While we verify organizers and hold payments via SafePay for your protection, we are not a party to the contract between you and the trip organizer. You transact with organizers at your own risk, subject to the protections we provide.`,
   },
   {
     id: 'accounts',
@@ -101,8 +101,8 @@ Trips listed on ${APP_NAME} are either "Instant Booking" (seat confirmed upon pa
 5.2 Pricing and Taxes
 All prices displayed are in Indian Rupees (₹). Prices are set by trip organizers and may be inclusive or exclusive of applicable taxes (GST). Any additional taxes or charges will be clearly disclosed before payment.
 
-5.3 Escrow Payment Protection
-Your payment is held in a secure escrow account managed through our payment partner, Razorpay. Funds are NOT released to the organizer until the trip is completed. This protects you in the event of trip cancellation or non-delivery of promised services.
+5.3 SafePay Payment Protection
+Your payment is held safely via SafePay, managed by Razorpay. Funds are NOT released to the organizer until the trip is completed. This protects you in the event of trip cancellation or non-delivery of promised services.
 
 5.4 Payment Methods
 We accept payments via UPI (Google Pay, PhonePe, Paytm, BHIM), credit and debit cards (Visa, Mastercard, RuPay), net banking, and digital wallets. All payment processing is handled by Razorpay, which complies with PCI DSS security standards.
@@ -147,7 +147,7 @@ Certain trips offer discounted early bird pricing valid until a specified date. 
     title: '8. Cancellations and Refunds',
     content: `Detailed cancellation and refund terms are governed by our Cancellation & Refund Policy, which is incorporated into these Terms by reference. In summary:
 
-• Organizer Cancellations: If an organizer cancels a trip for any reason, all travelers receive a full refund from escrow within 5–7 business days.
+• Organizer Cancellations: If an organizer cancels a trip for any reason, all travelers receive a full refund via SafePay within 5–7 business days.
 • Traveler Cancellations: Refund eligibility depends on the cancellation policy chosen by the organizer at the time of listing — Flexible, Moderate, or Strict. The applicable policy is prominently displayed on each trip's booking page before payment.
 • Platform-Initiated Cancellations: If ${APP_NAME} cancels a booking due to fraud, policy violations, or organizer misconduct, a full refund will be issued to the traveler.
 
@@ -162,7 +162,7 @@ All refunds are processed to the original payment method via Razorpay.`,
 • Providing false, misleading, or fraudulent information.
 • Listing trips that you are not authorised or licensed to operate.
 • Engaging in any activity that violates applicable Indian law.
-• Attempting to circumvent the escrow system or make off-platform payments to bypass our fees.
+• Attempting to circumvent the SafePay or make off-platform payments to bypass our fees.
 • Harassing, threatening, or abusing other users or ${APP_NAME} staff.
 • Scraping, crawling, or data mining the platform.
 • Attempting to gain unauthorised access to our systems, databases, or user accounts.
@@ -312,7 +312,7 @@ Under the DPDPA 2023, your consent to process personal data is obtained through 
     content: `We use your personal data for the following purposes:
 
 • Account creation and authentication
-• Processing bookings and managing escrow payments via Razorpay
+• Processing bookings and managing SafePay payments via Razorpay
 • Sending booking confirmations, trip reminders, and OTP verification messages via SMS and email
 • Facilitating communication between travelers and organizers
 • Verifying organizer identity (KYC) and publishing organizer profiles
@@ -510,7 +510,7 @@ export const cancellationTimezoneNote =
 
 export const organizerCancellationText = {
   heading: 'Full Refund — Always',
-  body: `If the organizer cancels a trip for any reason — weather, insufficient bookings, operational issues, or any other cause — every traveler booked on that trip receives a 100% refund from escrow. No deductions. No processing fees.`,
+  body: `If the organizer cancels a trip for any reason — weather, insufficient bookings, operational issues, or any other cause — every traveler booked on that trip receives a 100% refund via SafePay. No deductions. No processing fees.`,
   escrowCallout: `A full refund is initiated automatically — credited to your original payment method within 5–7 business days, with no deductions or processing fees.`,
   penaltyNote: `Organizers who cancel trips may be subject to penalties including temporary suspension from the platform and negative impact on their organizer rating.`,
 }
@@ -557,7 +557,7 @@ export const nonRefundableReasons = [
 export const partialCancellationText = `If you booked seats for multiple travelers and wish to cancel only some of them, you may do so through the My Bookings section. The refund for cancelled seats will be calculated based on the trip's cancellation policy and the applicable time window at the time of cancellation. Remaining seats in your booking are not affected.`
 
 export const forceMajeureText = {
-  main: `In the event a trip cannot proceed due to circumstances beyond the organizer's control — including but not limited to natural disasters, floods, extreme weather, government-imposed restrictions, civil unrest, or road closures — the organizer must notify all booked travelers immediately. In such cases, travelers will receive a full refund from escrow, regardless of the trip's stated cancellation policy.`,
+  main: `In the event a trip cannot proceed due to circumstances beyond the organizer's control — including but not limited to natural disasters, floods, extreme weather, government-imposed restrictions, civil unrest, or road closures — the organizer must notify all booked travelers immediately. In such cases, travelers will receive a full refund via SafePay, regardless of the trip's stated cancellation policy.`,
   liability: `${APP_NAME} is not liable for any additional costs (travel to the departure point, accommodation already booked, etc.) incurred by travelers in force majeure situations.`,
 }
 
@@ -685,7 +685,7 @@ export const organizerRuleGroups: RuleGroup[] = [
     title: 'Cancellation Obligations',
     items: [
       `If you must cancel a trip, notify all booked travelers and ${APP_NAME} with as much advance notice as possible — at a minimum, 48 hours before the trip start.`,
-      'All travelers on a cancelled trip will receive a full refund from escrow regardless of the cancellation policy.',
+      'All travelers on a cancelled trip will receive a full refund via SafePay regardless of the cancellation policy.',
       `Repeated cancellations will result in suspension of organizer privileges and investigation by the ${APP_NAME} team.`,
       `Cancellation for reasons within the organizer's control (insufficient bookings, logistical failures) that are not communicated in advance may result in penalties and negative rating impact.`,
     ],
@@ -694,7 +694,7 @@ export const organizerRuleGroups: RuleGroup[] = [
     id: 'organizer-prohibited',
     title: 'Prohibited Organizer Conduct',
     items: [
-      `Accepting payments outside of the ${APP_NAME} platform to circumvent escrow or platform fees.`,
+      `Accepting payments outside of the ${APP_NAME} platform to circumvent SafePay or platform fees.`,
       'Listing trips you do not have the rights, permits, or capacity to operate.',
       'Discriminating against travelers on the basis of religion, caste, gender, sexual orientation, disability, or any other protected characteristic.',
       'Sharing traveler personal information with any third party for purposes other than trip management.',
@@ -796,7 +796,7 @@ Visiting any external link is at your own risk.`,
     title: '7. Force Majeure and Natural Events',
     content: `${APP_NAME} is not liable for any failure or delay in service caused by circumstances beyond our reasonable control, including but not limited to: natural disasters, floods, earthquakes, landslides, cyclones, extreme weather events, road closures, government-imposed restrictions, civil unrest, pandemics, strikes, or acts of terrorism.
 
-In such events, our Cancellation & Refund Policy governs what refunds are available. We will make every reasonable effort to communicate with affected users promptly and facilitate refunds from escrow where applicable.`,
+In such events, our Cancellation & Refund Policy governs what refunds are available. We will make every reasonable effort to communicate with affected users promptly and facilitate refunds via SafePay where applicable.`,
   },
   {
     id: 'investment-disclaimer',
@@ -915,8 +915,8 @@ You must set the maximum group size based on actual capacity — vehicle seating
   {
     id: 'payments-payouts',
     title: '6. Payments and Payouts',
-    content: `6.1 Escrow Model
-All traveler payments are held in escrow via Razorpay until the trip is completed. You will not receive any portion of traveler payments before trip completion except where explicitly stated otherwise.
+    content: `6.1 SafePay Model
+All traveler payments are held safely via SafePay until the trip is completed. You will not receive any portion of traveler payments before trip completion except where explicitly stated otherwise.
 
 6.2 Platform Fee
 ${APP_NAME} charges a platform service fee on each completed booking. The applicable fee rate is communicated during organizer onboarding and may be updated with 30 days' notice. The fee is deducted from your payout — you receive the net amount.
@@ -936,7 +936,7 @@ As an e-commerce operator under Section 194-O of the Income Tax Act, 1961 (inser
     id: 'cancellation-obligations',
     title: '7. Cancellation Obligations',
     content: `7.1 Organizer-Initiated Cancellations
-If you cancel a trip for any reason, all booked travelers are entitled to a full refund from escrow. You must notify ${APP_NAME} and all travelers at least 48 hours before the scheduled departure when a cancellation is anticipated.
+If you cancel a trip for any reason, all booked travelers are entitled to a full refund via SafePay. You must notify ${APP_NAME} and all travelers at least 48 hours before the scheduled departure when a cancellation is anticipated.
 
 7.2 Consequences of Cancellations
 Organizer-initiated cancellations (other than documented force majeure events) will result in:
@@ -1025,8 +1025,8 @@ We will acknowledge within 48 hours and aim to resolve within 30 days as require
 
 export const faqs: FaqItem[] = [
   {
-    question: 'What is escrow payment protection?',
-    answer: `When you book a trip on ${APP_NAME}, your payment is held in a secure escrow account powered by Razorpay. The money is NOT released to the organizer until the trip is successfully completed. If the trip is cancelled by the organizer, you receive an automatic full refund — no questions asked, no processing fees. This protects you from fraud and ensures organizers deliver on their promises.`,
+    question: 'What is SafePay payment protection?',
+    answer: `When you book a trip on ${APP_NAME}, your payment is held in a secure SafePay system powered by Razorpay. The money is NOT released to the organizer until the trip is successfully completed. If the trip is cancelled by the organizer, you receive an automatic full refund — no questions asked, no processing fees. This protects you from fraud and ensures organizers deliver on their promises.`,
   },
   {
     question: 'How do I book a group trip?',
@@ -1038,7 +1038,7 @@ export const faqs: FaqItem[] = [
   },
   {
     question: 'What happens if a trip is cancelled?',
-    answer: `If an organizer cancels a trip for any reason, you receive a 100% full refund from the escrow account — automatically, within 5–7 business days. If you cancel, the refund depends on the trip's cancellation policy — Flexible (full refund up to 7 days before), Moderate (50% refund up to 7 days before), or Strict (25% refund up to 14 days before, no refund after). The policy is clearly shown on the booking page before you pay.`,
+    answer: `If an organizer cancels a trip for any reason, you receive a 100% full refund from the SafePay — automatically, within 5–7 business days. If you cancel, the refund depends on the trip's cancellation policy — Flexible (full refund up to 7 days before), Moderate (50% refund up to 7 days before), or Strict (25% refund up to 14 days before, no refund after). The policy is clearly shown on the booking page before you pay.`,
   },
   {
     question: 'Can I compare trips side by side?',

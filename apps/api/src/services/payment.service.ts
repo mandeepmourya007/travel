@@ -23,7 +23,7 @@ export class PaymentService {
    * Creates a Razorpay order. Full amount is collected into the platform account.
    * Amount must be in PAISE (₹5000 = 500000 paise).
    *
-   * ROUTE_HOOK: To add automatic escrow splits via Razorpay Route, add a
+   * ROUTE_HOOK: To add automatic SafePay splits via Razorpay Route, add a
    * `transfers` param and spread it into the order payload. See the ROUTE_HOOK
    * comment in booking.service.ts for the full transfer object shape.
    *
@@ -452,7 +452,7 @@ export class PaymentService {
     )
   }
 
-  // ─── Escrow Release ───────────────────────────────────
+  // ─── SafePay Release ───────────────────────────────────
 
   /**
    * Releases a held transfer so funds settle to the organizer's linked account.
@@ -468,7 +468,7 @@ export class PaymentService {
       // Razorpay SDK doesn't type transfers.edit — cast through unknown
       const rzp = this.razorpay as unknown as { transfers: { edit: (id: string, data: { on_hold: boolean }) => Promise<void> } }
       await rzp.transfers.edit(transferId, { on_hold: false })
-      this.logger.info({ transferId, durationMs: timer.elapsed() }, 'Escrow transfer hold released')
+      this.logger.info({ transferId, durationMs: timer.elapsed() }, 'SafePay transfer hold released')
     } catch (error: unknown) {
       // Fallback: if SDK method doesn't exist, try raw API call
       if (error instanceof Error && error.message?.includes('is not a function')) {
@@ -477,7 +477,7 @@ export class PaymentService {
         return
       }
       this.logger.error({ error, transferId }, 'Failed to release transfer hold')
-      throw new PaymentError('Failed to release escrow transfer', error)
+      throw new PaymentError('Failed to release SafePay transfer', error)
     }
   }
 
@@ -517,7 +517,7 @@ export class PaymentService {
       )
       return null
     } catch (error) {
-      this.logger.warn({ razorpayPaymentId, error }, 'Failed to fetch transfer ID — will retry during escrow release')
+      this.logger.warn({ razorpayPaymentId, error }, 'Failed to fetch transfer ID — will retry during SafePay release')
       return null
     }
   }
@@ -556,7 +556,7 @@ export class PaymentService {
       const body = await response.text()
       throw new PaymentError(`Razorpay transfer release failed: ${response.status} ${body}`)
     }
-    this.logger.info({ transferId }, 'Escrow transfer hold released (raw API)')
+    this.logger.info({ transferId }, 'SafePay transfer hold released (raw API)')
   }
 
   /**

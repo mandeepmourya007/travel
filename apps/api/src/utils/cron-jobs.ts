@@ -32,7 +32,7 @@ const WEBHOOK_EVENT_RETENTION_DAYS = 90
 
 // ── Lock TTLs (ms) ───────────────────────────────────
 // Sized generously above worst-case job runtime. A dropped lock (volatile-lru
-// eviction) is safe — the DB partial unique index is the escrow backstop.
+// eviction) is safe — the DB partial unique index is the SafePay backstop.
 const LOCK_TTL_1MIN = 90 * 1000           // generous above worst-case 1-min job runtime
 const LOCK_TTL_5MIN = 4 * 60 * 1000
 const LOCK_TTL_30MIN = 20 * 60 * 1000
@@ -190,18 +190,18 @@ async function cleanupOldWebhookEvents(webhookEventRepo: WebhookEventRepository)
 }
 
 /**
- * Completes ACTIVE/FULL trips past their endDate and releases escrow.
- * Also performs crash-recovery sweep for previously-failed escrow releases.
+ * Completes ACTIVE/FULL trips past their endDate and releases SafePay.
+ * Also performs crash-recovery sweep for previously-failed SafePay releases.
  *
  * Intended to be called via setInterval() every 30 minutes.
  */
-async function completeTripsAndReleaseEscrow(tripLifecycleService: TripLifecycleService) {
-  await Sentry.withMonitor('cron-complete-trips-escrow', async () => {
+async function completeTripsAndReleaseSafePay(tripLifecycleService: TripLifecycleService) {
+  await Sentry.withMonitor('cron-complete-trips-safepay', async () => {
     try {
       await tripLifecycleService.completeEndedTrips()
-      await tripLifecycleService.releaseUnreleasedEscrows()
+      await tripLifecycleService.releaseUnreleasedSafePays()
     } catch (error) {
-      logger.error({ error }, 'Trip completion / escrow release job failed')
+      logger.error({ error }, 'Trip completion / SafePay release job failed')
       throw error
     }
   }, { schedule: { type: 'interval', value: 30, unit: 'minute' }, checkinMargin: 5, maxRuntime: 20 })
@@ -508,8 +508,8 @@ export function startCronJobs(deps: {
       ONE_DAY,
     ),
     setInterval(
-      () => guard('cron:complete-trips-escrow', withLock('cron:complete-trips-escrow', LOCK_TTL_30MIN,
-        () => completeTripsAndReleaseEscrow(deps.tripLifecycleService))),
+      () => guard('cron:complete-trips-safepay', withLock('cron:complete-trips-safepay', LOCK_TTL_30MIN,
+        () => completeTripsAndReleaseSafePay(deps.tripLifecycleService))),
       THIRTY_MINUTES,
     ),
     setInterval(

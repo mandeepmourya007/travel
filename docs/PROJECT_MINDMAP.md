@@ -284,7 +284,7 @@
 │  │  Webhook processing (HMAC verified, idempotent)              │   │
 │  │  MockPaymentService for development                           │   │
 │  │  Payment history (traveler/organizer/admin views)            │   │
-│  │  Escrow: hold → release after trip completion (90-day buffer)│   │
+│  │  SafePay: hold → release after trip completion (90-day buffer)│   │
 │  │  Fire-and-forget transfer ID fetch on webhook                 │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
@@ -347,8 +347,8 @@
 │  │  ACTIVE → FULL (auto when capacity reached)                  │   │
 │  │  FULL → ACTIVE (auto when booking cancelled)                 │   │
 │  │  ACTIVE/FULL → COMPLETED (cron, 30min, past endDate)        │   │
-│  │  Escrow release: 90-day buffer, lazy transfer ID fetch       │   │
-│  │  Crash-recovery sweep for failed escrow releases              │   │
+│  │  SafePay release: 90-day buffer, lazy transfer ID fetch       │   │
+│  │  Crash-recovery sweep for failed SafePay releases              │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 

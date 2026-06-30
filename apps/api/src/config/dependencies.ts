@@ -276,8 +276,8 @@ export const webhookRoutes = (() => {
 export const sitemapService = new SitemapService(tripRepo, destinationRepo, organizerProfileRepo)
 
 // ── Trending Score Pipeline ───────────────────────────
-const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo, logger)
-const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
+const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo)
+export const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
 
 // ── Cron Job Dependencies ────────────────────────────
 // Scoped export for background jobs — keeps raw repos private to this module

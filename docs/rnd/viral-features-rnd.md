@@ -62,7 +62,7 @@ Trip: Goa Beach Getaway — ₹5,000/person (base price)
 
 | Guarantee | What's Covered | How It Works |
 |-----------|---------------|-------------|
-| **Listing Accuracy** | Trip doesn't match listing (non-AC bus, bad hotel, missing activities) | Traveler submits photo evidence within 24h of trip end → Platform reviews → Partial/full refund from escrow |
+| **Listing Accuracy** | Trip doesn't match listing (non-AC bus, bad hotel, missing activities) | Traveler submits photo evidence within 24h of trip end → Platform reviews → Partial/full refund via SafePay |
 | **Cancellation Shield** | Organizer cancels < 72h before trip | Platform finds alternative trip at same price OR gives 120% platform credit |
 | **Safety Net** | Emergency evacuation, medical incident during trip | Platform coordinates emergency response + covers up to ₹10,000 emergency expenses |
 | **No-Show Protection** | Organizer doesn't show up at pickup point | Full refund + ₹500 platform credit + organizer penalized |
@@ -77,7 +77,7 @@ Trip: Goa Beach Getaway — ₹5,000/person (base price)
 
 **Revenue:** Optional ₹99-199 add-on per booking (like travel insurance). Or free for all bookings (funded by organizer commission).
 
-**Complexity:** Low — mostly policy/process. Escrow already exists. Just need dispute submission UI + admin review queue.
+**Complexity:** Low — mostly policy/process. SafePay already exists. Just need dispute submission UI + admin review queue.
 
 ---
 
@@ -404,7 +404,7 @@ TRIP EXPENSES: Goa Beach Getaway
 
 When you combine these features, the platform pitch becomes:
 
-> **"Book group trips where the price drops when friends join, your money is protected in escrow with TripShield, you can see exactly where every rupee goes, solo travelers get matched with their squad, and your parents get live safety updates."**
+> **"Book group trips where the price drops when friends join, your money is protected via SafePay with TripShield, you can see exactly where every rupee goes, solo travelers get matched with their squad, and your parents get live safety updates."**
 
 No competitor offers ANY of these. Not MakeMyTrip. Not Tripoto. Not GoGaffl. Not Zostel.
 

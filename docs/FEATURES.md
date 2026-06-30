@@ -22,7 +22,7 @@
 
 ### Payments & Protection
 - Pay securely via Razorpay (UPI, cards, net banking)
-- **Money held in escrow** — organizer gets paid only after the trip is done
+- **Money held via SafePay** — organizer gets paid only after the trip is done
 - Cancel anytime — refund based on cancellation policy (flexible / moderate / strict)
 - Refunds go to your in-app wallet instantly
 
@@ -70,7 +70,7 @@
 
 ### Payments & Earnings
 - Detailed payment history per trip
-- **Escrow protection** — funds released automatically after trip completion (90-day safety buffer)
+- **SafePay protection** — funds released automatically after trip completion (90-day safety buffer)
 - Revenue summaries and per-trip breakdowns
 
 ### Chat & Reviews
@@ -107,7 +107,7 @@
 
 ## Behind the Scenes (What Makes It Reliable)
 
-- **Escrow payments** — traveler money is safe until the trip is done
+- **SafePay payments** — traveler money is safe until the trip is done
 - **Auto trip lifecycle** — trips automatically move from Active → Full → Completed
 - **Seat holds expire** — if you don't pay within the window, seats are released for others
 - **Stale booking cleanup** — unpaid bookings auto-expire so seats aren't blocked forever

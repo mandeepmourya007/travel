@@ -11,8 +11,8 @@ const mockPaymentTxRepo = {
   getUserSummary: vi.fn(),
   getTripSummary: vi.fn(),
   getGlobalSummary: vi.fn(),
-  findEscrowReleasesForOrganizer: vi.fn(),
-  findPendingEscrowForOrganizer: vi.fn(),
+  findSafePayReleasesForOrganizer: vi.fn(),
+  findPendingSafePayForOrganizer: vi.fn(),
 }
 
 const mockTripRepo = {
@@ -299,9 +299,9 @@ describe('PaymentHistoryService', () => {
   })
 
   describe('getPayoutStatement', () => {
-    function makeEscrowRelease(overrides: Record<string, unknown> = {}) {
+    function makeSafePayRelease(overrides: Record<string, unknown> = {}) {
       return {
-        id: 'pt_escrow_1',
+        id: 'pt_safepay_1',
         amount: 9000,
         razorpayTransferId: 'tr_001',
         metadata: { releasedAt: '2025-06-01T10:00:00.000Z' },
@@ -341,8 +341,8 @@ describe('PaymentHistoryService', () => {
 
     it('returns empty trips and zero totals when no releases exist', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([])
 
       const result = await service.getPayoutStatement('organizer_1')
 
@@ -353,11 +353,11 @@ describe('PaymentHistoryService', () => {
 
     it('groups releases by trip correctly', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
-        makeEscrowRelease({ id: 'pt_1', amount: 4000 }),
-        makeEscrowRelease({ id: 'pt_2', amount: 5000 }),
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([
+        makeSafePayRelease({ id: 'pt_1', amount: 4000 }),
+        makeSafePayRelease({ id: 'pt_2', amount: 5000 }),
       ])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([])
 
       const result = await service.getPayoutStatement('organizer_1')
 
@@ -368,11 +368,11 @@ describe('PaymentHistoryService', () => {
 
     it('calculates releasedTotal as sum of all release amounts', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
-        makeEscrowRelease({ amount: 4000 }),
-        makeEscrowRelease({ id: 'pt_2', amount: 6000 }),
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([
+        makeSafePayRelease({ amount: 4000 }),
+        makeSafePayRelease({ id: 'pt_2', amount: 6000 }),
       ])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([])
 
       const result = await service.getPayoutStatement('organizer_1')
 
@@ -381,9 +381,9 @@ describe('PaymentHistoryService', () => {
 
     it('calculates pendingTotal after deducting commission', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([])
       // 10000 * (1 - 10%) = 9000
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([
         makePendingPayment({ amount: 10000 }),
       ])
 
@@ -394,9 +394,9 @@ describe('PaymentHistoryService', () => {
 
     it('groups releases from two different trips into separate trip entries', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
-        makeEscrowRelease({ id: 'pt_1', amount: 4000 }),
-        makeEscrowRelease({
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([
+        makeSafePayRelease({ id: 'pt_1', amount: 4000 }),
+        makeSafePayRelease({
           id: 'pt_2', amount: 3000,
           booking: {
             trip: {
@@ -406,7 +406,7 @@ describe('PaymentHistoryService', () => {
           },
         }),
       ])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([])
 
       const result = await service.getPayoutStatement('organizer_1')
 
@@ -417,10 +417,10 @@ describe('PaymentHistoryService', () => {
     it('uses metadata.releasedAt when available', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
       const releasedAt = '2025-06-15T08:00:00.000Z'
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([
-        makeEscrowRelease({ metadata: { releasedAt } }),
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([
+        makeSafePayRelease({ metadata: { releasedAt } }),
       ])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([])
 
       const result = await service.getPayoutStatement('organizer_1')
 
@@ -502,10 +502,10 @@ describe('PaymentHistoryService', () => {
   })
 
   describe('Decimal commissionRate in getPayoutStatement (pendingTotal)', () => {
-    it('correctly converts Prisma.Decimal commissionRate when calculating pending escrow', async () => {
+    it('correctly converts Prisma.Decimal commissionRate when calculating pending SafePay', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([
         {
           id: 'pt_1',
           amount: 10000,
@@ -525,8 +525,8 @@ describe('PaymentHistoryService', () => {
 
     it('falls back to DEFAULT_COMMISSION_RATE when pending payment commissionRate is null', async () => {
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(makeOrganizerProfile())
-      mockPaymentTxRepo.findEscrowReleasesForOrganizer.mockResolvedValue([])
-      mockPaymentTxRepo.findPendingEscrowForOrganizer.mockResolvedValue([
+      mockPaymentTxRepo.findSafePayReleasesForOrganizer.mockResolvedValue([])
+      mockPaymentTxRepo.findPendingSafePayForOrganizer.mockResolvedValue([
         {
           id: 'pt_1',
           amount: 5000,
