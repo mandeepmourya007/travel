@@ -1,0 +1,43 @@
+apps/web/src/components/dashboard/trip-users/participant-card.tsx
+  s_aac7cbd0757d4b::t_7e274ab3d9817f 123-127
+  s_aac7cbd0757d4b::t_eec9ab20319607 107
+  s_aac7cbd0757d4b::t_71676554fceb46 121,128-130
+  s_aac7cbd0757d4b::t_db0cace341957e 115
+apps/api/src/utils/constants.ts
+  h_b3232c20134322 1
+apps/api/src/services/payment.service.ts
+  s_aac7cbd0757d4b::t_3e1c1e6659839c 37,51
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_aac7cbd0757d4b::t_d465402ec029a9 255
+  s_aac7cbd0757d4b::t_6a887b92a9c729 48
+apps/api/tests/unit/services/booking.service.test.ts
+  s_aac7cbd0757d4b::t_577fc348a77199 841
+  s_aac7cbd0757d4b::t_63dcee77e405dc 1510
+  s_aac7cbd0757d4b::t_7f06bbeaf03740 943
+  s_aac7cbd0757d4b::t_0a58663bb5e861 1088-1111
+  s_aac7cbd0757d4b::t_d7ab6d62ee28a4 1496
+apps/api/src/services/booking.service.ts
+  s_aac7cbd0757d4b::t_cb1b97225102cb 731-737
+  s_aac7cbd0757d4b::t_e063f215f559bd 518
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "e694090dd49f6a0fca51d805ba3742f515b65551",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_aac7cbd0757d4b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "adaeb1d3-d272-419d-a001-7c7a4486ecea",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
