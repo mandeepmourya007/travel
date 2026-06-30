@@ -838,7 +838,6 @@ describe('BookingService', () => {
         expect.any(Number),
         expect.any(String),
         expect.any(Object),
-        expect.any(Number),
       )
     })
 
@@ -942,7 +941,7 @@ describe('BookingService', () => {
 
       // Early bird: 4000 * 2 = 8000 rupees = 800000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        800000, expect.any(String), expect.any(Object), expect.any(Number),
+        800000, expect.any(String), expect.any(Object),
       )
     })
 
@@ -1496,7 +1495,6 @@ describe('BookingService', () => {
         1140000,
         expect.any(String),
         expect.any(Object),
-        expect.any(Number),
       )
     })
 
@@ -1510,7 +1508,6 @@ describe('BookingService', () => {
         1000000,
         expect.any(String),
         expect.any(Object),
-        expect.any(Number),
       )
     })
   })

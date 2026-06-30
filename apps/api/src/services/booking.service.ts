@@ -515,7 +515,6 @@ export class BookingService {
         amountInPaise,
         `booking-${Date.now()}`,
         { tripId: input.tripId, userId },
-        BOOKING_EXPIRY_MINUTES * 60,
       )
 
       // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
