@@ -515,6 +515,7 @@ export class BookingService {
         amountInPaise,
         `booking-${Date.now()}`,
         { tripId: input.tripId, userId },
+        BOOKING_EXPIRY_MINUTES * 60,
       )
 
       // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
@@ -727,9 +728,13 @@ export class BookingService {
       }
     }
 
-    // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow
-    if (booking.tripRequest && booking.tripRequest.status === TRIP_REQUEST_STATUS.APPROVED) {
-      await this.tripRequestRepo.markConverted(booking.tripRequest.id, bookingId)
+    // Mark trip request as CONVERTED if this booking originated from a REQUEST_BASED flow.
+    // We look up by userId+tripId rather than booking.tripRequest because the back-relation
+    // is populated via the bookingId FK on TripRequest — which markConverted itself sets,
+    // making booking.tripRequest always null at this point (chicken-and-egg).
+    const approvedRequest = await this.tripRequestRepo.findApprovedForUser(booking.trip.id, booking.userId)
+    if (approvedRequest) {
+      await this.tripRequestRepo.markConverted(approvedRequest.id, bookingId)
     }
 
     // Auto-transition ACTIVE → FULL if trip is at capacity (atomic, no TOCTOU)

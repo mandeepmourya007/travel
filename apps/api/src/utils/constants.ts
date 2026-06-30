@@ -1,4 +1,4 @@
-export const BOOKING_EXPIRY_MINUTES = 10
+export const BOOKING_EXPIRY_MINUTES = 60
 
 // 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
 // + all DB operations inside the lock with comfortable headroom.

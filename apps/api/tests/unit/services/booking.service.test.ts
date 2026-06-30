@@ -838,6 +838,7 @@ describe('BookingService', () => {
         expect.any(Number),
         expect.any(String),
         expect.any(Object),
+        expect.any(Number),
       )
     })
 
@@ -939,7 +940,7 @@ describe('BookingService', () => {
 
       // Early bird: 4000 * 2 = 8000 rupees = 800000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        800000, expect.any(String), expect.any(Object),
+        800000, expect.any(String), expect.any(Object), expect.any(Number),
       )
     })
 
@@ -1082,6 +1083,30 @@ describe('BookingService', () => {
       await expect(
         service.confirmBooking('booking-1'),
       ).rejects.toThrow('payment')
+    })
+
+    it('should call markConverted with the approved request id on a REQUEST_BASED booking', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockTripRequestRepo.findApprovedForUser.mockResolvedValue({ id: 'req-1', status: 'APPROVED' })
+      mockTripRequestRepo.markConverted.mockResolvedValue(undefined)
+
+      await service.confirmBooking('booking-1')
+
+      expect(mockTripRequestRepo.findApprovedForUser).toHaveBeenCalledWith('trip-1', 'user-1')
+      expect(mockTripRequestRepo.markConverted).toHaveBeenCalledWith('req-1', 'booking-1')
+    })
+
+    it('should not call markConverted when no approved request exists (INSTANT booking)', async () => {
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(mockBookingWithPayment)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockTripRequestRepo.findApprovedForUser.mockResolvedValue(null)
+
+      await service.confirmBooking('booking-1')
+
+      expect(mockTripRequestRepo.markConverted).not.toHaveBeenCalled()
     })
 
     it('should revert gate and decrement seats when razorpayPaymentId is null (payment not yet authorized)', async () => {
@@ -1468,6 +1493,7 @@ describe('BookingService', () => {
         1140000,
         expect.any(String),
         expect.any(Object),
+        expect.any(Number),
       )
     })
 
@@ -1481,6 +1507,7 @@ describe('BookingService', () => {
         1000000,
         expect.any(String),
         expect.any(Object),
+        expect.any(Number),
       )
     })
   })

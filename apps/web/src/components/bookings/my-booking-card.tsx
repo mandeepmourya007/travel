@@ -45,7 +45,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
   const showLeaveReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
   const showEditReview = booking.bookingStatus === 'COMPLETED' && booking.hasReview
   const showSyncPayment = booking.bookingStatus === 'PENDING_PAYMENT'
-  const showPayNow = booking.bookingStatus === 'PENDING_PAYMENT' || booking.bookingStatus === 'EXPIRED'
+  const showPayNow = booking.bookingStatus === 'PENDING_PAYMENT'
 
   const [isPaying, setIsPaying] = useState(false)
   const syncPayment = useSyncPayment()
@@ -252,7 +252,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
         {/* Expired nudge */}
         {booking.bookingStatus === 'EXPIRED' && (
           <p className="text-sm text-neutral-500">
-            Your payment window expired. Pay now to secure your spot.
+            Your payment window expired. Visit the trip page to book again.
           </p>
         )}
 

@@ -104,6 +104,7 @@ interface RequestCardProps {
 
 export function RequestCard({ request, onApprove, onReject, onViewDetails, isResponding }: RequestCardProps) {
   const isPending = request.status === 'PENDING'
+  const isApprovedAwaitingPayment = request.status === 'APPROVED'
   const [showTravelers, setShowTravelers] = useState(false)
   const travelers = request.travelerDetails
 
@@ -111,17 +112,22 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
     <div
       className={cn(
         'card p-4 transition-shadow hover:shadow-card-hover',
-        isPending && 'border-l-4 border-l-warning-400',
+        (isPending || isApprovedAwaitingPayment) && 'border-l-4 border-l-warning-400',
       )}
     >
       <div className="flex items-center gap-4">
         <Avatar name={request.user.name} size="md" color={isPending ? 'highlight' : 'primary'} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="truncate font-semibold text-neutral-800">{request.user.name}</p>
-            <span className={STATUS_COLORS[request.status] ?? 'badge'}>
-              {request.status}
-            </span>
+            {!isApprovedAwaitingPayment && (
+              <span className={STATUS_COLORS[request.status] ?? 'badge'}>
+                {request.status}
+              </span>
+            )}
+            {isApprovedAwaitingPayment && (
+              <span className="badge badge-warning">Payment Pending</span>
+            )}
           </div>
           <p className="mt-0.5 text-sm text-neutral-500">
             {request.user.email}

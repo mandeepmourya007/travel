@@ -34,6 +34,7 @@ export class PaymentService {
     amount: number,
     receipt: string,
     notes: Record<string, unknown>,
+    expireInSeconds?: number,
   ) {
     const timer = startTimer()
     if (amount <= 0) {
@@ -47,6 +48,7 @@ export class PaymentService {
         receipt,
         payment_capture: 0,
         notes,
+        ...(expireInSeconds && { expire_by: Math.floor(Date.now() / 1000) + expireInSeconds }),
       } as Parameters<typeof this.razorpay.orders.create>[0])
       this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created')
       return order
