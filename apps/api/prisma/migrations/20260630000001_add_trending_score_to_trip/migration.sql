@@ -1,3 +1,3 @@
--- Add trendingScore column to Trip for the booking-velocity scoring pipeline.
--- Nullable so existing rows default to NULL (treated as 0 in sort: nulls last).
-ALTER TABLE "Trip" ADD COLUMN "trendingScore" INTEGER;
+-- No-op: trendingScore DOUBLE PRECISION was already added by migration 20260629215303.
+-- This migration was generated when the column type was briefly changed to INTEGER,
+-- then reverted. The schema is back to Float? (DOUBLE PRECISION) so no action needed.
