@@ -1,0 +1,24 @@
+apps/api/tests/unit/services/booking.service.test.ts
+  s_aac7cbd0757d4b::t_7eb926f44d1201 944
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.5",
+  "base_commit_sha": "019ebc17eac2c200ee3a71924b7cc08864b5fb20",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_aac7cbd0757d4b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "adaeb1d3-d272-419d-a001-7c7a4486ecea",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
