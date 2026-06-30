@@ -277,7 +277,7 @@ export const sitemapService = new SitemapService(tripRepo, destinationRepo, orga
 
 // ── Trending Score Pipeline ───────────────────────────
 const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo)
-const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
+export const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
 
 // ── Cron Job Dependencies ────────────────────────────
 // Scoped export for background jobs — keeps raw repos private to this module

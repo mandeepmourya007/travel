@@ -323,6 +323,7 @@ model Trip {
   bookingMode        BookingMode        @default(INSTANT)
   acceptingBookings  Boolean            @default(true)
   seatSelectionEnabled Boolean           @default(false)
+  trendingScore      Int?
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
