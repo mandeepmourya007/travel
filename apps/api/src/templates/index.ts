@@ -98,7 +98,7 @@ function bookingConfirmed(title: string, body: string, data: TemplateData): Temp
       heading('Booking Confirmed!') +
       paragraph(body) +
       (bookingId ? highlight(`Booking ID: ${bookingId}`) : '') +
-      paragraph('Your payment is safely held in escrow until the trip is completed.') +
+      paragraph('Your payment is safely held via SafePay until the trip is completed.') +
       cta('View My Bookings', `${CLIENT_URL}/bookings`),
       hero,
     ),

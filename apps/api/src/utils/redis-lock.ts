@@ -26,7 +26,7 @@ const RELEASE_SCRIPT = `
  * Important: docker-compose.prod.yml uses volatile-lru. Lock keys carry a
  * TTL (PX), so they ARE evictable under memory pressure — this is intentional
  * (a dropped lock is safer than a deadlock). The DB-level partial unique index
- * on PaymentTransaction is the hard backstop for the escrow case.
+ * on PaymentTransaction is the hard backstop for the SafePay case.
  *
  * @param key    Redis lock key, e.g. 'cron:expire-stale-bookings'
  * @param ttlMs  Lock TTL in milliseconds. Size generously above worst-case runtime.

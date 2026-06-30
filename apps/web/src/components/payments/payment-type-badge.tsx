@@ -7,7 +7,7 @@ interface PaymentTypeBadgeProps {
 const typeConfig: Record<string, { label: string; className: string }> = {
   PAYMENT: { label: 'Payment', className: 'text-neutral-600' },
   REFUND: { label: 'Refund', className: 'text-success-600' },
-  ESCROW_RELEASE: { label: 'Escrow', className: 'text-primary-600' },
+  ESCROW_RELEASE: { label: 'SafePay', className: 'text-primary-600' },
 }
 
 export function PaymentTypeBadge({ type }: PaymentTypeBadgeProps) {

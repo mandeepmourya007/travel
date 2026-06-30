@@ -8,7 +8,7 @@
 
 A **group travel aggregator** (brand: *TripCompare*) built for the Indian market (Pune-first). Travelers discover, compare, and book curated group trips from verified organizers. Key differentiators:
 
-- **Escrow-protected payments** via Razorpay (hold → release after trip)
+- **SafePay-protected payments** via Razorpay (hold → release after trip)
 - **Anti-leakage chat filter** (blocks phone/UPI/email/URL sharing between traveler ↔ organizer)
 - **Wallet system** (refunds, cashback, booking deductions)
 - **Trip comparison** (side-by-side compare up to 3 trips)
@@ -164,17 +164,17 @@ apps/api/src/
 │   ├── firebase-auth.service.ts
 │   ├── trip.service.ts         ← Trip CRUD, filters, publish, booking toggle, edit history
 │   ├── destination.service.ts
-│   ├── booking.service.ts      ← Create booking (escrow + seat hold), cancel with refund, confirm (seat assign)
+│   ├── booking.service.ts      ← Create booking (SafePay + seat hold), cancel with refund, confirm (seat assign)
 │   ├── chat.service.ts         ← Conversation creation, messaging, anti-leakage filter, reactions
 │   ├── review.service.ts       ← Create/edit review, organizer reply, rating aggregation
 │   ├── wallet.service.ts       ← Balance, credit, debit, transaction history, cashback
-│   ├── payment.service.ts      ← Razorpay order creation, webhook processing, refund, escrow release
+│   ├── payment.service.ts      ← Razorpay order creation, webhook processing, refund, SafePay release
 │   ├── mock-payment.service.ts ← Dev-mode payment simulation
 │   ├── payment-history.service.ts
 │   ├── upload.service.ts       ← Cloudinary signature generation
 │   ├── admin.service.ts        ← Organizer approvals, platform stats, bookings, cashback issuance
 │   ├── notification.service.ts ← Create/list/mark-read in-app notifications
-│   ├── trip-lifecycle.service.ts ← Auto-complete trips, escrow release (cron-driven)
+│   ├── trip-lifecycle.service.ts ← Auto-complete trips, SafePay release (cron-driven)
 │   └── vehicle.service.ts      ← Vehicle CRUD, seat hold/confirm/release/expire
 ├── repositories/               ← 17 repositories (Prisma queries only)
 │   ├── user.repository.ts
@@ -235,7 +235,7 @@ apps/api/src/
 ├── utils/
 │   ├── async-handler.ts        ← Wraps async route handlers (no try-catch in controllers)
 │   ├── chat-filter.ts          ← Anti-leakage regex filter
-│   ├── constants.ts            ← Business constants (escrow days, max group size, etc.)
+│   ├── constants.ts            ← Business constants (SafePay days, max group size, etc.)
 │   ├── cron-jobs.ts            ← 6 background jobs (see table below)
 │   ├── email.ts
 │   ├── logger.ts               ← Pino logger instance
@@ -257,7 +257,7 @@ apps/api/src/
 | `expireStaleRequests` | 5 min | Expire APPROVED trip requests past approval window |
 | `cleanupExpiredCodes` | 1 hour | Delete verification codes expired > 24h |
 | `cleanupStaleTokens` | 1 hour | Delete refresh tokens expired > 30 days |
-| `completeTripsAndReleaseEscrow` | 30 min | Auto-complete ACTIVE/FULL trips past endDate → COMPLETED, release escrow holds |
+| `completeTripsAndReleaseSafePay` | 30 min | Auto-complete ACTIVE/FULL trips past endDate → COMPLETED, release SafePay holds |
 | `expireHeldSeats` | 1 min | Expire HELD vehicle seats whose hold window has passed |
 
 ---
@@ -426,12 +426,12 @@ All routes require `authMiddleware` + `requireRole('ADMIN')`.
 
 ### Health
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Basic health check |
-| GET | `/health/db` | Database connectivity |
-| GET | `/health/redis` | Redis connectivity |
-| GET | `/api/v1/sitemap-data` | Trip slugs, destination slugs, organizer IDs for sitemap |
+| Method | Path                   | Description                                              |
+| --------| ------------------------| ----------------------------------------------------------|
+| GET    | `/health`              | Basic health check                                       |
+| GET    | `/health/db`           | Database connectivity                                    |
+| GET    | `/health/redis`        | Redis connectivity                                       |
+| GET    | `/api/v1/sitemap-data` | Trip slugs, destination slugs, organizer IDs for sitemap |
 
 ---
 
@@ -448,10 +448,10 @@ All routes require `authMiddleware` + `requireRole('ADMIN')`.
 | `TripTransferPoint` | Pickup/drop points per trip |
 | `TripVehicle` | Vehicle per trip (layout JSON + grid config, vehicle type/name) |
 | `VehicleSeat` | Individual seat per vehicle (status, seatNumber, booking link) |
-| `Booking` | Trip bookings (with escrow, wallet deduction, vehicleSeats relation) |
+| `Booking` | Trip bookings (with SafePay, wallet deduction, vehicleSeats relation) |
 | `TravelerDetail` | Traveler info per booking/request (assignedSeat optional) |
 | `TripRequest` | Request-based booking requests |
-| `PaymentTransaction` | Razorpay payment/refund/escrow records |
+| `PaymentTransaction` | Razorpay payment/refund/SafePay records |
 | `Review` | Trip reviews with multi-dimension ratings |
 | `Conversation` | Chat conversations (TRIP_CHAT, ADMIN_SUPPORT) |
 | `Message` | Chat messages (text, image, file, system) |
@@ -736,7 +736,7 @@ tests/
 │   │   ├── trip.service.test.ts
 │   │   ├── trip-users.service.test.ts
 │   │   ├── trip-request-create.test.ts
-│   │   ├── trip-lifecycle.service.test.ts ← Auto-complete + escrow release tests
+│   │   ├── trip-lifecycle.service.test.ts ← Auto-complete + SafePay release tests
 │   │   ├── payment.service.test.ts
 │   │   ├── payment-history.service.test.ts
 │   │   ├── wallet.service.test.ts

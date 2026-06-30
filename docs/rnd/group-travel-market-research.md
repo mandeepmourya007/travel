@@ -88,7 +88,7 @@ The revised thesis: **Don't build a peer-to-peer trip creator. Build a "Swiggy f
 ### How It Works
 
 ```
-Organizer lists trip → Platform standardizes listing → User compares trips → Books & pays on platform → Platform holds money (escrow) → Trip happens → Platform releases payment to organizer
+Organizer lists trip → Platform standardizes listing → User compares trips → Books & pays on platform → Platform holds money (SafePay) → Trip happens → Platform releases payment to organizer
 ```
 
 ### Global Comparables
@@ -126,21 +126,21 @@ This is called **disintermediation** and it kills marketplaces. Here's how real 
 |---------|----------------|----------------------|
 | **Swiggy/Zomato** | Delivery fleet | Restaurant can't deliver without them |
 | **Urban Company** | Trained & certified professionals | UC-trained pros ARE the product |
-| **Airbnb** | Insurance + escrow + reviews | Off-platform = no protection, no review history |
+| **Airbnb** | Insurance + SafePay + reviews | Off-platform = no protection, no review history |
 | **BlaBlaCar** | Mandatory online payment | No cash option = transaction stays on platform |
 | **Viator** | Traffic + Google ranking | Operators can't match Viator's SEO/SEM spend |
 
 ### 5 Clever Solutions For Your Platform
 
-#### Solution 1: **Own the Money (Escrow Payments)**
+#### Solution 1: **Own the Money (SafePay Payments)**
 > **The single most important feature to build.**
 
-- User pays on YOUR platform → money held in escrow (Razorpay Escrow supports this in India)
+- User pays on YOUR platform → money held via SafePay (Razorpay SafePay supports this in India)
 - Money released to organizer only AFTER trip is completed
 - **Why this prevents leakage:** If user books directly and organizer cancels/scams, user has ZERO protection. On your platform, they get a guaranteed refund.
 - **Indian context:** UPI scams are rampant. "Pay ₹4,500 to a random GPay number" feels risky. "Pay through TripCompare with money-back guarantee" feels safe.
 
-**Implementation:** Razorpay Escrow (razorpay.com/x/escrow-accounts) — built for Indian marketplaces, handles compliance.
+**Implementation:** Razorpay SafePay (razorpay.com/x/SafePay-accounts) — built for Indian marketplaces, handles compliance.
 
 #### Solution 2: **Own the Reviews (Portable Reputation)**
 - Only users who booked AND completed a trip through your platform can leave reviews
@@ -159,7 +159,7 @@ This is your **"delivery fleet" equivalent** — the thing only YOUR platform pr
 | Guarantee | What It Covers | Cost to You |
 |-----------|---------------|-------------|
 | **Cancellation protection** | Full refund if organizer cancels <48hrs before trip | Funded by non-refundable organizer deposit |
-| **Trip mismatch guarantee** | Refund/credit if trip doesn't match listing (e.g., listed "AC bus" but got non-AC) | Funded by escrow hold |
+| **Trip mismatch guarantee** | Refund/credit if trip doesn't match listing (e.g., listed "AC bus" but got non-AC) | Funded by SafePay hold |
 | **Safety SOS** | Emergency contact + live location sharing during trip | Tech cost only |
 | **Rain check credit** | If trip cancelled due to weather, user gets platform credit | Cost of retention |
 
@@ -225,14 +225,14 @@ The ultimate lock-in: become the organizer's **primary source of customers**.
 
 User value prop: **"Compare trips, book safely, guaranteed refund"**
 
-Key strengths: ₹749 revenue/user, review moat, organizer network as defensibility, escrow solves leakage.
+Key strengths: ₹749 revenue/user, review moat, organizer network as defensibility, SafePay solves leakage.
 
 ### Roadmap
 
 **Phase 1 (Month 1-3): Manual MVP in Pune**
 - Onboard 15-20 trip organizers (find them on Instagram — you've already seen their ads)
 - Create standardized listings on a simple website
-- Handle payments via Razorpay escrow
+- Handle payments via Razorpay SafePay
 - Run 50+ trips, collect reviews
 - Budget: ₹3-5 lakh
 
@@ -250,7 +250,7 @@ Key strengths: ₹749 revenue/user, review moat, organizer network as defensibil
 
 ### The One Thing You MUST Get Right
 
-> **Escrow payments + verified reviews = your entire business.** Without these two, you're just a listing site users will bypass. With these two, you're the "safe, trusted way to book group trips."
+> **SafePay payments + verified reviews = your entire business.** Without these two, you're just a listing site users will bypass. With these two, you're the "safe, trusted way to book group trips."
 
 ### Minimum Viable Test (Before Writing Code)
 
@@ -258,4 +258,4 @@ Key strengths: ₹749 revenue/user, review moat, organizer network as defensibil
 
 ---
 
-*Updated sources: Sharetribe Academy, CometChat (platform leakage research), Viator/GetYourGuide business models, Urban Company revenue model, BlaBlaCar business model, Razorpay Escrow documentation, IMARC Group, Mordor Intelligence, TechMagnate, Skift, Collinson International, Failory, Tracxn, Crunchbase, Economic Times*
+*Updated sources: Sharetribe Academy, CometChat (platform leakage research), Viator/GetYourGuide business models, Urban Company revenue model, BlaBlaCar business model, Razorpay SafePay documentation, IMARC Group, Mordor Intelligence, TechMagnate, Skift, Collinson International, Failory, Tracxn, Crunchbase, Economic Times*

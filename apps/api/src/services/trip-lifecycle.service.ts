@@ -35,20 +35,20 @@ export class TripLifecycleService {
    *
    * For each trip:
    * 1. DB Transaction: trip→COMPLETED, bookings→COMPLETED, organizer stats++, destination tripCount--
-   * 2. Release escrow (outside tx — Razorpay failure must not rollback DB changes)
+   * 2. Release SafePay (outside tx — Razorpay failure must not rollback DB changes)
    *
-   * @returns { completed: number; escrowReleased: number; escrowFailed: number }
+   * @returns { completed: number; safePayReleased: number; safePayFailed: number }
    */
   async completeEndedTrips() {
     const trips = await this.tripRepo.findTripsToComplete(TRIP_COMPLETION_BATCH_SIZE)
 
-    if (trips.length === 0) return { completed: 0, escrowReleased: 0, escrowFailed: 0 }
+    if (trips.length === 0) return { completed: 0, safePayReleased: 0, safePayFailed: 0 }
 
     this.logger.info({ count: trips.length }, 'Processing trip completions')
 
     let completed = 0
-    let escrowReleased = 0
-    let escrowFailed = 0
+    let safePayReleased = 0
+    let safePayFailed = 0
 
     for (const trip of trips) {
       try {
@@ -79,13 +79,13 @@ export class TripLifecycleService {
         completed++
         this.logger.info({ tripId: trip.id }, 'Trip marked COMPLETED')
 
-        // Release escrow outside transaction — Razorpay failure must not rollback
+        // Release SafePay outside transaction — Razorpay failure must not rollback
         try {
-          const result = await this.releaseEscrowForTrip(trip.id)
-          escrowReleased += result.released
-          escrowFailed += result.failed
+          const result = await this.releaseSafePayForTrip(trip.id)
+          safePayReleased += result.released
+          safePayFailed += result.failed
         } catch (error) {
-          this.logger.error({ tripId: trip.id, error }, 'Escrow release failed for trip — will retry next cycle')
+          this.logger.error({ tripId: trip.id, error }, 'SafePay release failed for trip — will retry next cycle')
         }
 
         // Post-completion side-effects (notifications + cashback).
@@ -98,21 +98,21 @@ export class TripLifecycleService {
       }
     }
 
-    this.logger.info({ completed, escrowReleased, escrowFailed }, 'Trip completion cron finished')
-    return { completed, escrowReleased, escrowFailed }
+    this.logger.info({ completed, safePayReleased, safePayFailed }, 'Trip completion cron finished')
+    return { completed, safePayReleased, safePayFailed }
   }
 
   /**
-   * Releases escrow holds for all captured payments on a specific trip.
+   * Releases SafePay holds for all captured payments on a specific trip.
    * Idempotent — skips bookings that already have an ESCROW_RELEASE record.
    *
    * If Razorpay API fails for one booking, logs error and continues with next.
    *
    * @returns { released: number; failed: number; skipped: number }
    */
-  async releaseEscrowForTrip(tripId: string): Promise<{ released: number; failed: number; skipped: number }> {
+  async releaseSafePayForTrip(tripId: string): Promise<{ released: number; failed: number; skipped: number }> {
     if (!this.paymentService) {
-      this.logger.warn({ tripId }, 'Payment service not configured — skipping escrow release')
+      this.logger.warn({ tripId }, 'Payment service not configured — skipping SafePay release')
       return { released: 0, failed: 0, skipped: 0 }
     }
 
@@ -144,20 +144,20 @@ export class TripLifecycleService {
   }
 
   /**
-   * Crash recovery: finds COMPLETED trips with unreleased escrows and releases them.
-   * Catches any escrow releases that failed in previous cron runs.
+   * Crash recovery: finds COMPLETED trips with unreleased SafePays and releases them.
+   * Catches any SafePay releases that failed in previous cron runs.
    * Called after completeEndedTrips() in the same cron cycle.
    */
-  async releaseUnreleasedEscrows(): Promise<{ released: number; failed: number }> {
+  async releaseUnreleasedSafePays(): Promise<{ released: number; failed: number }> {
     if (!this.paymentService) {
       return { released: 0, failed: 0 }
     }
 
-    const unreleased = await this.paymentTxRepo.findUnreleasedEscrows()
+    const unreleased = await this.paymentTxRepo.findUnreleasedSafePays()
 
     if (unreleased.length === 0) return { released: 0, failed: 0 }
 
-    this.logger.info({ count: unreleased.length }, 'Processing unreleased escrows (crash recovery)')
+    this.logger.info({ count: unreleased.length }, 'Processing unreleased SafePays (crash recovery)')
 
     let released = 0
     let failed = 0
@@ -170,7 +170,7 @@ export class TripLifecycleService {
     }
 
     if (released > 0 || failed > 0) {
-      this.logger.info({ released, failed }, 'Crash recovery escrow sweep finished')
+      this.logger.info({ released, failed }, 'Crash recovery SafePay sweep finished')
     }
 
     return { released, failed }
@@ -179,8 +179,8 @@ export class TripLifecycleService {
   // ─── Private Helpers ──────────────────────────────────
 
   /**
-   * Core escrow release logic for a single payment.
-   * Shared by releaseEscrowForTrip and releaseUnreleasedEscrows.
+   * Core SafePay release logic for a single payment.
+   * Shared by releaseSafePayForTrip and releaseUnreleasedSafePays.
    *
    * Steps:
    * 1. Lazy-fetch transfer ID from Razorpay if missing
@@ -215,7 +215,7 @@ export class TripLifecycleService {
       if (!transferId) {
         this.logger.warn(
           { bookingId: payment.bookingId, paymentTxId: payment.id, crashRecovery: meta.crashRecovery },
-          'No transfer ID — cannot release escrow',
+          'No transfer ID — cannot release SafePay',
         )
         return 'failed'
       }
@@ -244,7 +244,7 @@ export class TripLifecycleService {
         })
       } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-          // Duplicate — another instance already recorded (and presumably released) this escrow.
+          // Duplicate — another instance already recorded (and presumably released) this SafePay.
           // Do NOT call releaseTransferHold again.
           this.logger.warn(
             { bookingId: payment.bookingId, transferId, crashRecovery: meta.crashRecovery },
@@ -260,13 +260,13 @@ export class TripLifecycleService {
 
       this.logger.info(
         { bookingId: payment.bookingId, transferId, amount: transferAmount, crashRecovery: meta.crashRecovery },
-        'Escrow released for booking',
+        'SafePay released for booking',
       )
       return 'released'
     } catch (error) {
       this.logger.error(
         { bookingId: payment.bookingId, error, crashRecovery: meta.crashRecovery },
-        'Failed to release escrow for booking — will retry next cycle',
+        'Failed to release SafePay for booking — will retry next cycle',
       )
       return 'failed'
     }

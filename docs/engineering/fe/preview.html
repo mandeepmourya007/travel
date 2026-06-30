@@ -1146,7 +1146,7 @@
     /* ============================================
        ESCROW STATUS
        ============================================ */
-    .escrow-status {
+    .safepay-status {
       display: flex;
       align-items: center;
       gap: 16px;
@@ -1156,7 +1156,7 @@
       border-radius: var(--radius-lg);
     }
 
-    .escrow-icon {
+    .safepay-icon {
       width: 44px;
       height: 44px;
       background: var(--success-500);
@@ -1169,9 +1169,9 @@
       flex-shrink: 0;
     }
 
-    .escrow-info { flex: 1; }
-    .escrow-title { font-weight: 700; color: var(--success-500); font-size: 14px; }
-    .escrow-desc { font-size: 13px; color: var(--neutral-600); }
+    .safepay-info { flex: 1; }
+    .safepay-title { font-weight: 700; color: var(--success-500); font-size: 14px; }
+    .safepay-desc { font-size: 13px; color: var(--neutral-600); }
 
     /* ============================================
        TOAST WITH CIRCULAR TIMER
@@ -2082,9 +2082,9 @@
       /* Alerts full width */
       .alerts-container { max-width: 100% !important; }
 
-      /* Escrow full width */
-      .escrow-container { max-width: 100% !important; }
-      .escrow-status { flex-direction: row; gap: 12px; padding: 14px; }
+      /* SafePay full width */
+      .safepay-container { max-width: 100% !important; }
+      .safepay-status { flex-direction: row; gap: 12px; padding: 14px; }
 
       /* Chat full width */
       .chat-container { max-width: 100% !important; }
@@ -2699,7 +2699,7 @@
         <span class="alert-icon">✅</span>
         <div>
           <div class="alert-title">Booking Confirmed!</div>
-          Your trip to Goa (Dec 6-8) is confirmed. Payment held securely in escrow.
+          Your trip to Goa (Dec 6-8) is confirmed. Payment held securely via SafePay.
         </div>
       </div>
       <div class="alert alert-warning">
@@ -2771,7 +2771,7 @@
           </div>
           <div class="toast-content">
             <div class="toast-title">Booking confirmed!</div>
-            <div class="toast-desc">₹4,649 held in escrow</div>
+            <div class="toast-desc">₹4,649 held via SafePay</div>
           </div>
           <button class="toast-close">✕</button>
         </div>
@@ -2832,15 +2832,15 @@
 
   <!-- ======================== ESCROW STATUS ======================== -->
   <div class="section">
-    <h2 class="section-title">Escrow Payment Status</h2>
+    <h2 class="section-title">SafePay Payment Status</h2>
     <p class="section-desc">Trust signal shown on booking page</p>
 
-    <div class="escrow-container" style="max-width: 500px; width: 100%;">
-      <div class="escrow-status">
-        <div class="escrow-icon">🔒</div>
-        <div class="escrow-info">
-          <div class="escrow-title">Payment Secured in Escrow</div>
-          <div class="escrow-desc">₹4,649 is held safely. Released to organizer only after your trip is completed.</div>
+    <div class="safepay-container" style="max-width: 500px; width: 100%;">
+      <div class="safepay-status">
+        <div class="safepay-icon">🔒</div>
+        <div class="safepay-info">
+          <div class="safepay-title">Payment Secured in SafePay</div>
+          <div class="safepay-desc">₹4,649 is held safely. Released to organizer only after your trip is completed.</div>
         </div>
       </div>
     </div>
@@ -2862,7 +2862,7 @@
           <div class="chat-time chat-time-sent" style="color: var(--neutral-400);">10:45 AM</div>
         </div>
         <div>
-          <div class="chat-bubble chat-bubble-received">Yes! Ask them to book through the platform so they're covered by escrow protection. 😊</div>
+          <div class="chat-bubble chat-bubble-received">Yes! Ask them to book through the platform so they're covered by SafePay protection. 😊</div>
           <div class="chat-time">10:50 AM</div>
         </div>
         <div class="alert alert-warning" style="padding: 10px 14px; font-size: 12px;">
@@ -3251,7 +3251,7 @@
         <div class="tooltip">Identity verified via Aadhaar</div>
       </div>
       <div class="tooltip-wrapper">
-        <span class="badge badge-info">🔒 Escrow</span>
+        <span class="badge badge-info">🔒 SafePay</span>
         <div class="tooltip">Money held safely until trip completes</div>
       </div>
       <div class="tooltip-wrapper">
@@ -3895,11 +3895,11 @@
         </div>
       </div>
 
-      <div class="escrow-status" style="padding: 12px 16px;">
-        <div class="escrow-icon" style="width: 36px; height: 36px; font-size: 18px;">🔒</div>
-        <div class="escrow-info">
-          <div class="escrow-title" style="font-size: 13px;">Escrow Protected</div>
-          <div class="escrow-desc" style="font-size: 12px;">Money released only after trip completion</div>
+      <div class="safepay-status" style="padding: 12px 16px;">
+        <div class="safepay-icon" style="width: 36px; height: 36px; font-size: 18px;">🔒</div>
+        <div class="safepay-info">
+          <div class="safepay-title" style="font-size: 13px;">SafePay Protected</div>
+          <div class="safepay-desc" style="font-size: 12px;">Money released only after trip completion</div>
         </div>
       </div>
     </div>
@@ -4157,7 +4157,7 @@ function startFullDemo() {
   var toastId = 0
 
   var TOAST_DATA = {
-    success: { title: 'Booking confirmed!', desc: '₹4,649 held in escrow' },
+    success: { title: 'Booking confirmed!', desc: '₹4,649 held via SafePay' },
     error:   { title: 'Payment failed', desc: 'Please try again' },
     warning: { title: 'Only 3 seats left!', desc: '' },
     info:    { title: 'Trip updated', desc: 'Changes saved successfully' },

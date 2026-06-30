@@ -51,7 +51,7 @@ export default function OrganizerAgreementPage() {
             <li>✓ Complete KYC before listing any trip</li>
             <li>✓ Maintain accurate, honest trip listings at all times</li>
             <li>✓ Meet all vehicle, guide, and safety standards outlined in Section 5</li>
-            <li>✓ All payments go through the {APP_NAME} escrow — no off-platform transactions</li>
+            <li>✓ All payments go through the {APP_NAME} SafePay — no off-platform transactions</li>
             <li>✓ Give 48+ hours notice for cancellations; all travelers get a full refund</li>
             <li>✓ Comply with GST and TDS obligations on your earnings</li>
           </ul>

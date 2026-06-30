@@ -276,7 +276,7 @@ export const webhookRoutes = (() => {
 export const sitemapService = new SitemapService(tripRepo, destinationRepo, organizerProfileRepo)
 
 // ── Trending Score Pipeline ───────────────────────────
-const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo, logger)
+const bookingVelocityStrategy = new BookingVelocityStrategy(bookingRepo)
 const trendingScoreService = new TrendingScoreService(bookingVelocityStrategy, tripRepo, logger)
 
 // ── Cron Job Dependencies ────────────────────────────

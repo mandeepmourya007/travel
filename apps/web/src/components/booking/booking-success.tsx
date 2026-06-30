@@ -39,10 +39,10 @@ export function BookingSuccess({
           </p>
         </div>
 
-        {/* Escrow badge */}
+        {/* SafePay badge */}
         <div className="inline-flex items-center gap-2 bg-success-50 text-success-700 px-4 py-2 rounded-full text-sm">
           <Shield className="h-4 w-4" />
-          Payment held in escrow
+          Payment held safely via SafePay
         </div>
 
         {/* What's next */}
@@ -51,7 +51,7 @@ export function BookingSuccess({
           <ol className="list-decimal list-inside space-y-1 text-sm text-neutral-600">
             <li>You&apos;ll receive a confirmation email shortly</li>
             <li>The organizer will share trip details before departure</li>
-            <li>Your payment is safely held in escrow until trip completion</li>
+            <li>Your payment is safely held safely via SafePay until trip completion</li>
           </ol>
         </div>
 

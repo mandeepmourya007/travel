@@ -7,13 +7,13 @@ import { faqs } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
   title: `FAQ — Group Travel Questions Answered | ${APP_NAME}`,
-  description: `Frequently asked questions about ${APP_NAME}. Learn about escrow payment protection, booking process, cancellation policies, organizer verification, and more.`,
+  description: `Frequently asked questions about ${APP_NAME}. Learn about SafePay payment protection, booking process, cancellation policies, organizer verification, and more.`,
   alternates: {
     canonical: '/faq',
   },
   openGraph: {
     title: `FAQ — Group Travel Questions Answered | ${APP_NAME}`,
-    description: `Get answers to common questions about booking group trips, escrow payments, cancellations, and organizer verification.`,
+    description: `Get answers to common questions about booking group trips, SafePay payments, cancellations, and organizer verification.`,
     type: 'website',
     url: '/faq',
   },

@@ -159,7 +159,7 @@ export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
     '@type': 'Organization',
     name: appName,
     url: siteUrl,
-    description: 'Compare group trips, book safely with escrow-protected payments, and travel with verified organizers.',
+    description: 'Compare group trips, book safely with SafePay-protected payments, and travel with verified organizers.',
   }
 }
 

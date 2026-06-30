@@ -7,13 +7,13 @@ import { Search, Shield, CreditCard, MapPin, Star, MessageCircle } from 'lucide-
 
 export const metadata: Metadata = {
   title: `How It Works — Book Group Trips Safely | ${APP_NAME}`,
-  description: `Learn how ${APP_NAME} works: compare group trips, book with escrow-protected payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`,
+  description: `Learn how ${APP_NAME} works: compare group trips, book with SafePay-protected payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`,
   alternates: {
     canonical: '/how-it-works',
   },
   openGraph: {
     title: `How It Works — Book Group Trips Safely | ${APP_NAME}`,
-    description: `Step-by-step guide: compare group trips, book with escrow protection, and travel safely.`,
+    description: `Step-by-step guide: compare group trips, book with SafePay protection, and travel safely.`,
     type: 'website',
     url: '/how-it-works',
   },
@@ -27,8 +27,8 @@ const travelerSteps = [
   },
   {
     icon: Shield,
-    title: 'Book with Escrow Protection',
-    description: 'Your payment is held in secure escrow — not released to the organizer until your trip is completed. If the trip is cancelled, you get a full refund automatically.',
+    title: 'Book with SafePay Protection',
+    description: 'Your payment is held safely via SafePay — not released to the organizer until your trip is completed. If the trip is cancelled, you get a full refund automatically.',
   },
   {
     icon: CreditCard,
@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
             How {APP_NAME} Works
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Book group trips safely in 3 simple steps — compare, book with escrow protection, and travel worry-free.
+            Book group trips safely in 3 simple steps — compare, book with SafePay protection, and travel worry-free.
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
             <li><strong>Booking Management:</strong> Instant booking or request-based approval flow. Manage traveler details, payments, and communications.</li>
             <li><strong>Seat Selection:</strong> Optionally enable vehicle seat maps so travelers can choose their seats.</li>
             <li><strong>Reviews & Ratings:</strong> Build trust with verified post-trip reviews. Respond to reviews publicly.</li>
-            <li><strong>Secure Payouts:</strong> Receive payouts after trip completion through our escrow system. 10% platform commission.</li>
+            <li><strong>Secure Payouts:</strong> Receive payouts after trip completion via SafePay. 10% platform commission.</li>
             <li><strong>Dashboard:</strong> Track bookings, revenue, pending requests, and trip performance from a single dashboard.</li>
           </ul>
         </div>

@@ -19,15 +19,15 @@ All flows an organizer can perform. For each flow: steps to test, expected resul
 - Invite token marked as used
 
 **DB Verification**
-| Table | Column | Expected Value |
-|-------|--------|----------------|
-| `User` | `role` | `ORGANIZER` |
-| `User` | `email` | entered email |
-| `OrganizerProfile` | `userId` | new user ID |
-| `OrganizerProfile` | `status` | `PENDING` (awaiting admin approval) |
-| `OrganizerInvite` | `token` | used invite token |
-| `OrganizerInvite` | `acceptedAt` | current timestamp |
-| `Wallet` | `userId` | new organizer ID |
+| Table              | Column       | Expected Value                      |
+| --------------------| --------------| -------------------------------------|
+| `User`             | `role`       | `ORGANIZER`                         |
+| `User`             | `email`      | entered email                       |
+| `OrganizerProfile` | `userId`     | new user ID                         |
+| `OrganizerProfile` | `status`     | `PENDING` (awaiting admin approval) |
+| `OrganizerInvite`  | `token`      | used invite token                   |
+| `OrganizerInvite`  | `acceptedAt` | current timestamp                   |
+| `Wallet`           | `userId`     | new organizer ID                    |
 
 ---
 
@@ -423,7 +423,7 @@ All flows an organizer can perform. For each flow: steps to test, expected resul
 1. Go to `/dashboard` (payments/payout section)
 
 **Expected**
-- List of trip payouts with escrow and settled amounts
+- List of trip payouts with SafePay and settled amounts
 
 **DB Verification**
 | Table | Column | Expected Value |

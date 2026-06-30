@@ -36,7 +36,7 @@ A senior architect-level tech spec for building a scalable, maintainable group t
               │                │              │
        ┌──────▼─────┐  ┌──────▼─────┐ ┌─────▼──────┐
        │  Razorpay  │  │ Cloudinary │ │   Redis    │
-       │  (Escrow)  │  │  (Images)  │ │  (Cache)   │
+       │  (SafePay)  │  │  (Images)  │ │  (Cache)   │
        └────────────┘  └────────────┘ └────────────┘
 ```
 
@@ -77,7 +77,7 @@ A senior architect-level tech spec for building a scalable, maintainable group t
 | **Facade** | `BookingService` — hides orchestration of 5 subsystems behind `createBooking()` | `services/booking.service.ts` | Caller doesn't need to know about TripRepo, PaymentService, NotificationService, TripRequestRepo, Logger |
 | **Facade** | `UploadService` — hides Cloudinary SDK complexity behind `generateSignature()` | `services/upload.service.ts` | FE calls one endpoint, gets back everything needed for direct Cloudinary upload |
 | **Adapter** | Axios `apiClient` — adapts raw HTTP into typed, intercepted API calls | `lib/api-client.ts` | Wraps Axios with auth token injection, refresh logic, error transformation to `AppApiError` |
-| **Adapter** | Razorpay SDK — adapts raw Razorpay REST API into typed escrow methods | `config/razorpay.ts`, `services/payment.service.ts` | SDK handles HMAC signing, error mapping; our code calls `createEscrowOrder()` |
+| **Adapter** | Razorpay SDK — adapts raw Razorpay REST API into typed SafePay methods | `config/razorpay.ts`, `services/payment.service.ts` | SDK handles HMAC signing, error mapping; our code calls `createSafePayOrder()` |
 | **Decorator** | Prisma Client Extensions `$extends()` — decorates base client with soft-delete | `lib/prisma.ts` | Transparently adds `isDeleted: false` to all reads, intercepts delete → soft-delete |
 | **Decorator** | `asyncHandler()` wraps controller methods with try-catch | `utils/async-handler.ts` | Adds error-catching behavior to any async Express handler without modifying it |
 | **Proxy** | Rate limiting middleware — sits in front of real handler, gates access | `middleware/rate-limit.middleware.ts` | Controls access to the real resource; returns 429 if limit exceeded |
@@ -651,7 +651,7 @@ export async function generateMetadata({
   const trip = await getTripBySlug(slug)
   return {
     title: `${trip.title} - ₹${trip.pricePerPerson} | TripCompare`,
-    description: `${trip.destination.name} group trip, ${trip.startDate}–${trip.endDate}. Book safely with escrow.`,
+    description: `${trip.destination.name} group trip, ${trip.startDate}–${trip.endDate}. Book safely with SafePay.`,
     openGraph: {
       images: [trip.photos[0]],
     },
@@ -827,7 +827,7 @@ export function ErrorState({ message = 'Failed to load', onRetry }: DataStatePro
 | cors | 2.x | CORS handling |
 | express-rate-limit | 7.x | Rate limiting |
 | multer | 1.x | File uploads |
-| node-cron | 3.x | Scheduled jobs (escrow release, reminders) |
+| node-cron | 3.x | Scheduled jobs (SafePay release, reminders) |
 | ioredis | 5.x | Redis client (TCP — rate limiting, cache, Socket.IO adapter) |
 | crypto | built-in | SHA-256 hashing for refresh tokens + webhook signatures |
 | cloudinary | 2.x | Signed upload URL generation (images never route through Express) |
@@ -1057,8 +1057,8 @@ export class BookingService {
     // 5. Calculate price (in whole rupees)
     const amount = this.calculateAmount(trip, dto)
 
-    // 6. Create Razorpay order (escrow)
-    const razorpayOrder = await this.paymentService.createEscrowOrder(amount)
+    // 6. Create Razorpay order (SafePay)
+    const razorpayOrder = await this.paymentService.createSafePayOrder(amount)
 
     // 7. Create booking record (PENDING_PAYMENT — does NOT increment currentBookings)
     const booking = await this.bookingRepo.create({
@@ -1680,7 +1680,7 @@ router.get('/admin/stats', auth, requireRole('ADMIN'), adminController.getStats)
 
 ---
 
-## 8. Payments — Razorpay Escrow
+## 8. Payments — Razorpay SafePay
 
 ### Payment Flow
 
@@ -1688,7 +1688,7 @@ router.get('/admin/stats', auth, requireRole('ADMIN'), adminController.getStats)
 1. User clicks "Book Now"
    → FE sends POST /api/v1/bookings
 
-2. BE creates Razorpay Order (Route/Escrow mode)
+2. BE creates Razorpay Order (Route/SafePay mode)
    → Returns orderId to FE
 
 3. FE opens Razorpay checkout modal
@@ -1697,7 +1697,7 @@ router.get('/admin/stats', auth, requireRole('ADMIN'), adminController.getStats)
 4. Razorpay sends webhook to POST /api/v1/webhooks/razorpay
    → BE verifies signature
    → Updates booking status to CONFIRMED
-   → Money is HELD in escrow (not yet transferred to organizer)
+   → Money is HELD via SafePay (not yet transferred to organizer)
 
 5. Trip happens
 
@@ -1708,7 +1708,7 @@ router.get('/admin/stats', auth, requireRole('ADMIN'), adminController.getStats)
 
 CANCELLATION:
    → Before trip: Full/partial refund via Razorpay Refund API
-   → Escrow amount returned to user
+   → SafePay amount returned to user
 ```
 
 ### Webhook Handler (Idempotent)
@@ -2276,16 +2276,16 @@ jobs:
 
 ### Naming Conventions
 
-| Item | Convention | Example |
-|------|-----------|---------|
-| Files | kebab-case | `trip-card.tsx`, `booking.service.ts` |
-| Components | PascalCase | `TripCard`, `BookingForm` |
-| Functions | camelCase | `createBooking`, `handlePayment` |
-| Constants | SCREAMING_SNAKE | `MAX_GROUP_SIZE`, `ESCROW_HOLD_DAYS` |
-| Types/Interfaces | PascalCase | `TripSummary`, `CreateBookingDto` |
-| DB tables | PascalCase (Prisma) | `OrganizerProfile`, `WebhookEvent` |
-| API routes | kebab-case | `/api/v1/my-trips`, `/api/v1/organizer/bookings` |
-| Env vars | SCREAMING_SNAKE | `DATABASE_URL`, `JWT_SECRET` |
+| Item             | Convention          | Example                                          |
+| ------------------| ---------------------| --------------------------------------------------|
+| Files            | kebab-case          | `trip-card.tsx`, `booking.service.ts`            |
+| Components       | PascalCase          | `TripCard`, `BookingForm`                        |
+| Functions        | camelCase           | `createBooking`, `handlePayment`                 |
+| Constants        | SCREAMING_SNAKE     | `MAX_GROUP_SIZE`, `ESCROW_HOLD_DAYS`             |
+| Types/Interfaces | PascalCase          | `TripSummary`, `CreateBookingDto`                |
+| DB tables        | PascalCase (Prisma) | `OrganizerProfile`, `WebhookEvent`               |
+| API routes       | kebab-case          | `/api/v1/my-trips`, `/api/v1/organizer/bookings` |
+| Env vars         | SCREAMING_SNAKE     | `DATABASE_URL`, `JWT_SECRET`                     |
 
 ### TypeScript Rules (tsconfig)
 
@@ -2327,7 +2327,7 @@ module.exports = {
 
 | Rule | Format |
 |------|--------|
-| Branch naming | `feat/trip-search`, `fix/booking-escrow`, `chore/update-deps` |
+| Branch naming | `feat/trip-search`, `fix/booking-SafePay`, `chore/update-deps` |
 | Commit messages | Conventional: `feat: add trip comparison page`, `fix: handle duplicate webhook` |
 | PR size | Max ~300 lines changed. Smaller PRs = faster reviews. |
 

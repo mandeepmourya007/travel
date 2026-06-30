@@ -120,10 +120,10 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
       {/* CTA */}
       <TripCtaButton trip={trip} variant="card" />
 
-      {/* Escrow trust badge */}
+      {/* SafePay trust badge */}
       <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
         <Shield className="h-4 w-4 text-primary-500" />
-        Payment held in escrow until trip completion
+        Payment held safely via SafePay until trip completion
       </div>
 
       {/* Cancellation */}

@@ -29,8 +29,8 @@ const mockPaymentService = {
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const mockTripLifecycleService = {
-  completeEndedTrips: vi.fn().mockResolvedValue({ completed: 0, escrowReleased: 0, escrowFailed: 0 }),
-  releaseUnreleasedEscrows: vi.fn().mockResolvedValue({ released: 0, failed: 0 }),
+  completeEndedTrips: vi.fn().mockResolvedValue({ completed: 0, safePayReleased: 0, safePayFailed: 0 }),
+  releaseUnreleasedSafePays: vi.fn().mockResolvedValue({ released: 0, failed: 0 }),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const mockWebhookEventRepo = {
@@ -206,7 +206,7 @@ describe('startCronJobs', () => {
     // 30 min — trip completion fires
     await vi.advanceTimersByTimeAsync(25 * 60 * 1000)
     expect(mockTripLifecycleService.completeEndedTrips).toHaveBeenCalledTimes(1)
-    expect(mockTripLifecycleService.releaseUnreleasedEscrows).toHaveBeenCalledTimes(1)
+    expect(mockTripLifecycleService.releaseUnreleasedSafePays).toHaveBeenCalledTimes(1)
   })
 
   it('should NOT fire webhook event cleanup before 24 hours', async () => {

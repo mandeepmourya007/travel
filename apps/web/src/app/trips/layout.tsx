@@ -5,7 +5,7 @@ import { APP_NAME } from '@/lib/constants'
 export const metadata: Metadata = {
   title: `Explore Group Trips from Pune | ${APP_NAME}`,
   description:
-    'Compare and book curated group trips from Pune. Weekend getaways, treks, beach trips, and adventure tours with verified organizers. Escrow-protected payments.',
+    'Compare and book curated group trips from Pune. Weekend getaways, treks, beach trips, and adventure tours with verified organizers. SafePay-protected payments.',
   alternates: {
     canonical: '/trips',
   },

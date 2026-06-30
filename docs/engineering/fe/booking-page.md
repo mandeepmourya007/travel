@@ -4,7 +4,7 @@
 
 **What:** Full booking page with traveler form, Razorpay payment checkout, and success/failure handling.
 **Who:** Authenticated travelers booking INSTANT-mode trips.
-**Why:** Core revenue flow — converts trip interest into confirmed, paid bookings with escrow protection.
+**Why:** Core revenue flow — converts trip interest into confirmed, paid bookings with SafePay protection.
 
 ## 2. Data Flow
 

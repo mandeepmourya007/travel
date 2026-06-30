@@ -13,7 +13,7 @@ A complete MVP blueprint for a group travel aggregator platform (web app), targe
 | Trip listing & search | Core product — users need to find trips |
 | Trip comparison | Key differentiator vs Instagram |
 | Trip detail page | SEO landing page + conversion page |
-| Booking with Razorpay escrow | Prevents leakage, builds trust |
+| Booking with Razorpay SafePay | Prevents leakage, builds trust |
 | User auth (signup/login) | Required for booking |
 | Organizer auth & dashboard | Organizers need to list and manage trips |
 | Review system | Trust moat — only post-trip, verified reviews |
@@ -62,7 +62,7 @@ BOOKING (Instant Mode — trip.bookingMode = INSTANT):
     → Booking PENDING_PAYMENT (30min expiry window)
     → Payment captured (webhook) → Booking CONFIRMED
     → Receive confirmation (email + in-app notification)
-    → Money held in escrow
+    → Money held via SafePay
 
 BOOKING (Request Mode — trip.bookingMode = REQUEST_BASED):
   Trip Detail → Click "Request to Join" → Enter message + traveler count
@@ -74,7 +74,7 @@ BOOKING (Request Mode — trip.bookingMode = REQUEST_BASED):
 
 POST-TRIP:
   Trip completes → Leave Review (overall + organization + value + safety + accuracy)
-    → Escrow released to organizer
+    → SafePay released to organizer
 
 CANCELLATION:
   My Bookings → Cancel Booking → Enter reason
@@ -104,13 +104,13 @@ REQUEST HANDLING (Request-Based trips only):
 
 DURING TRIP LIFECYCLE:
   View bookings → Chat with travelers (anti-leakage filtered)
-    → Trip happens → Admin/auto triggers escrow release
+    → Trip happens → Admin/auto triggers SafePay release
     → Payment transferred (minus platform commission)
     → View reviews + ratings
 
 TRIP STATUS TRANSITIONS:
   DRAFT → ACTIVE → FULL (auto when currentBookings = maxGroupSize)
-    → COMPLETED (after end date) → Escrow released
+    → COMPLETED (after end date) → SafePay released
   ACTIVE → CANCELLED (organizer cancels → all travelers refunded)
 ```
 
@@ -128,7 +128,7 @@ MONITORING:
     → Platform stats (bookings, revenue, active trips)
 
 ESCROW MANAGEMENT:
-  Post-trip → Trigger escrow release to organizer
+  Post-trip → Trigger SafePay release to organizer
     → OrganizerPayout record created (Phase 2)
 ```
 
@@ -164,7 +164,7 @@ ESCROW MANAGEMENT:
 │                                                   │
 ├─────────────────────────────────────────────────┤
 │  WHY BOOK WITH US                                 │
-│  ✅ Compare trips    ✅ Escrow payments            │
+│  ✅ Compare trips    ✅ SafePay payments            │
 │  ✅ Verified reviews ✅ Cancellation protection    │
 │                                                   │
 ├─────────────────────────────────────────────────┤
@@ -282,7 +282,7 @@ ESCROW MANAGEMENT:
 │    - Dinner          │  │ (status badge if    │  │
 │  Day 2: Water sports │  │  already requested) │  │
 │    - Parasailing     │  │                     │  │
-│    - Dudhsagar falls │  │ ✅ Escrow protected  │  │
+│    - Dudhsagar falls │  │ ✅ SafePay protected  │  │
 │  Day 3: Goa→Pune     │  │ ✅ Free cancel 48h   │  │
 │                      │  │ ✅ Verified organizer│  │
 │                      │  │ [Chat with Organizer]│ │
@@ -356,7 +356,7 @@ ESCROW MANAGEMENT:
 │  ──────────────────────────────────               │
 │  Total:               ₹4,649                      │
 │                                                   │
-│  ✅ Your money is held safely in escrow            │
+│  ✅ Your money is held safely via SafePay            │
 │  ✅ Released to organizer after trip completion     │
 │  ✅ Full refund if organizer cancels               │
 │                                                   │
@@ -381,7 +381,7 @@ ESCROW MANAGEMENT:
 │  Goa Beach Getaway | Dec 6-8                      │
 │  1 traveler | ₹4,649 paid                         │
 │                                                   │
-│  Payment Status: Held in Escrow ✅                 │
+│  Payment Status: Held in SafePay ✅                 │
 │                                                   │
 │  WHAT'S NEXT:                                     │
 │  1. Organizer will confirm within 24 hours        │
@@ -651,7 +651,7 @@ LOGIN:
 | **Database** | PostgreSQL (via Supabase or Neon) | Relational data, scalable, free tier |
 | **ORM** | Prisma | Type-safe, great DX |
 | **Auth** | JWT (access + refresh) + bcrypt + Google OAuth | Lightweight, no vendor lock-in, httpOnly cookies |
-| **Payments** | Razorpay (Escrow mode) | Indian payments, escrow built-in |
+| **Payments** | Razorpay (SafePay mode) | Indian payments, SafePay built-in |
 | **File Storage** | Cloudinary | Trip photos, user avatars, CDN built-in |
 | **Chat** | Socket.IO | Real-time in-app messaging with anti-leakage filters |
 | **Hosting** | Vercel (FE) + Railway/Render (BE) | Free tiers, independent scaling |
@@ -736,7 +736,7 @@ BOOKINGS
 ├── trip_protection (boolean)
 ├── razorpay_order_id
 ├── razorpay_payment_id
-├── escrow_status (held | released | refunded)
+├── safepay_status (held | released | refunded)
 ├── booking_status (pending_payment | confirmed | cancelled | completed | refunded | expired)
 ├── expires_at (nullable — PENDING_PAYMENT expires after 30min)
 ├── [mixin fields]
@@ -789,7 +789,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 | Service | Purpose | Cost |
 |---------|---------|------|
-| **Razorpay** | Payments + Escrow | 2% per transaction |
+| **Razorpay** | Payments + SafePay | 2% per transaction |
 | **Google OAuth** | Social login | Free |
 | **Cloudinary** | Image hosting + optimization | Free tier (25K transforms/mo) |
 | **Resend or Nodemailer** | Transactional emails (booking confirmation) | Free tier |
@@ -826,7 +826,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 |---------|---------------|
 | Masked contact info | Organizer phone/Instagram never shown publicly |
 | Chat content filters | Regex detection for phone numbers, UPI IDs, @instagram handles |
-| Escrow payments | Razorpay Route/Escrow — money held until trip completion |
+| SafePay payments | Razorpay Route/SafePay — money held until trip completion |
 | Booking-only reviews | Review button only appears for completed bookings |
 | Price match promise | Manual for now — user reports, admin verifies |
 
@@ -839,7 +839,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 1-2**   | Project setup, auth, DB schema, basic UI shell             | ✅ Done                                                                        |
 | **Week 3-4**   | Trip CRUD (organizer), trip listing/search (traveler)      | ✅ Done                                                                        |
 | **Week 5-6**   | Trip detail page, comparison feature, SEO setup            | ✅ Done                                                                        |
-| **Week 7-8**   | Razorpay integration, booking flow, escrow                 | ✅ Done                                                                        |
+| **Week 7-8**   | Razorpay integration, booking flow, SafePay                 | ✅ Done                                                                        |
 | **Week 9-10**  | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done                                                                        |
 | **Week 11-12** | Admin panel, chat system, review system, deploy            | ✅ Done (chat ✅, reviews ✅, SEO ✅, lifecycle ✅, admin ✅, constants refactor ✅) |
 
@@ -1080,7 +1080,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Booking page (`/trips/[slug]/book`) with 5 render states (loading, error, fullyBooked, deadlinePassed, notAccepting, success, form)
 - [x] `TravelerForm` — React Hook Form + Zod, field array, numTravelers selector, early bird price, sessionStorage persistence on refresh
 - [x] `PriceSummary` — sidebar card with price breakdown, early bird indicator, trust badges, cancellation policy
-- [x] `BookingSuccess` — confirmation screen with booking ref, escrow badge, next steps
+- [x] `BookingSuccess` — confirmation screen with booking ref, SafePay badge, next steps
 - [x] `BookingPageSkeleton` — shimmer loading state
 - [x] `useCreateBooking` hook — POST /bookings mutation with error toast
 - [x] `useVerifyPayment` hook — POST /bookings/:id/verify-payment, invalidates bookingKeys + tripKeys
@@ -1109,7 +1109,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] **ACTIVE → FULL** — `trip.repository.ts:markFullIfAtCapacity()` atomic SQL, called after seat increment in `confirmBooking()`
 - [x] **FULL → ACTIVE revert** — `trip.repository.ts:revertFullIfUnderCapacity()` atomic SQL, called after cancellation
 - [x] **ACTIVE/FULL → COMPLETED** — `trip-lifecycle.service.ts:completeEndedTrips()` cron (every 30min, batch 50)
-- [x] **Escrow release** — `trip-lifecycle.service.ts:releaseUnreleasedEscrows()` cron, `on_hold_until` = endDate + 90 days
+- [x] **SafePay release** — `trip-lifecycle.service.ts:releaseUnreleasedSafePays()` cron, `on_hold_until` = endDate + 90 days
 - [x] **Razorpay transfer hold release** — SDK `transfers.edit` with raw HTTP fallback, lazy-fetch for missing transfer IDs
 - [x] **Fire-and-forget webhook** — `handlePaymentCaptured` marks CAPTURED immediately, fetches transfer ID non-blocking
 - [x] **Zero `any` types** — `types/razorpay.types.ts` with proper Razorpay entity types
@@ -1117,7 +1117,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 #### ✅ Razorpay Integration
 - [x] **Razorpay checkout** — Create order, render checkout modal, handle success/failure/dismiss
 - [x] **Payment verification** — HMAC-SHA256 signature verification (FE callback + webhook backup)
-- [x] **Escrow/Route** — Transfer array built for real linked accounts, skipped for dev mock accounts
+- [x] **SafePay/Route** — Transfer array built for real linked accounts, skipped for dev mock accounts
 - [x] **Webhook handler** — Raw body parsing, placed before JSON parser, idempotent via WebhookEvent
 - [x] **Test keys** — Working with `rzp_test_*` keys, Card + Netbanking verified
 

@@ -1,5 +1,9 @@
 -- Migration: Add partial unique index on PaymentTransaction for ESCROW_RELEASE rows
 --
+-- NOTE: ESCROW_RELEASE is the DB enum value for what the product calls "SafePay payout"
+-- (funds released to the organizer after trip completion). The string 'ESCROW_RELEASE'
+-- is stored in existing rows and cannot be renamed without a data migration.
+--
 -- Purpose: Prevent duplicate ESCROW_RELEASE rows per booking even under concurrent
 -- cron executions (multiple API instances). This is the hard DB backstop; the
 -- Redis distributed lock in cron-jobs.ts is the first line of defence, and the

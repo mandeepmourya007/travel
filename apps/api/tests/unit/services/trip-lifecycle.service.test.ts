@@ -21,7 +21,7 @@ const mockPaymentTxRepo = {
   findCapturedTransfersForTrip: vi.fn(),
   findByBookingId: vi.fn(),
   findReleasedBookingIdsForTrip: vi.fn().mockResolvedValue(new Set()),
-  findUnreleasedEscrows: vi.fn(),
+  findUnreleasedSafePays: vi.fn(),
   create: vi.fn(),
   updateStatus: vi.fn(),
 }
@@ -109,8 +109,8 @@ describe('TripLifecycleService', () => {
       const result = await service.completeEndedTrips()
 
       expect(result.completed).toBe(0)
-      expect(result.escrowReleased).toBe(0)
-      expect(result.escrowFailed).toBe(0)
+      expect(result.safePayReleased).toBe(0)
+      expect(result.safePayFailed).toBe(0)
       expect(mockTripRepo.withTransaction).not.toHaveBeenCalled()
     })
 
@@ -135,7 +135,7 @@ describe('TripLifecycleService', () => {
       expect(result.completed).toBe(1)
     })
 
-    it('should not rollback trip completion when escrow release fails', async () => {
+    it('should not rollback trip completion when SafePay release fails', async () => {
       mockTripRepo.findTripsToComplete.mockResolvedValue([createMockTrip()])
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([createMockCapturedPayment()])
       mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
@@ -143,17 +143,17 @@ describe('TripLifecycleService', () => {
 
       const result = await service.completeEndedTrips()
 
-      // Trip was completed even though escrow failed
+      // Trip was completed even though SafePay failed
       expect(result.completed).toBe(1)
-      expect(result.escrowFailed).toBe(1)
+      expect(result.safePayFailed).toBe(1)
       expect(mockTripRepo.withTransaction).toHaveBeenCalled()
     })
   })
 
   // ═══════════════════════════════════════════════════
-  // releaseEscrowForTrip
+  // releaseSafePayForTrip
   // ═══════════════════════════════════════════════════
-  describe('releaseEscrowForTrip', () => {
+  describe('releaseSafePayForTrip', () => {
     it('should release escrow and record ESCROW_RELEASE transaction', async () => {
       const payment = createMockCapturedPayment()
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
@@ -161,7 +161,7 @@ describe('TripLifecycleService', () => {
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
-      const result = await service.releaseEscrowForTrip('trip-1')
+      const result = await service.releaseSafePayForTrip('trip-1')
 
       expect(result.released).toBe(1)
       expect(result.failed).toBe(0)
@@ -182,7 +182,7 @@ describe('TripLifecycleService', () => {
       // booking-1 already released — skip it
       mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set(['booking-1']))
 
-      const result = await service.releaseEscrowForTrip('trip-1')
+      const result = await service.releaseSafePayForTrip('trip-1')
 
       expect(result.skipped).toBe(1)
       expect(result.released).toBe(0)
@@ -199,7 +199,7 @@ describe('TripLifecycleService', () => {
         .mockResolvedValueOnce(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
-      const result = await service.releaseEscrowForTrip('trip-1')
+      const result = await service.releaseSafePayForTrip('trip-1')
 
       expect(result.released).toBe(1)
       expect(result.failed).toBe(1)
@@ -208,7 +208,7 @@ describe('TripLifecycleService', () => {
     it('should return no-op when no captured transfers found', async () => {
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([])
 
-      const result = await service.releaseEscrowForTrip('trip-1')
+      const result = await service.releaseSafePayForTrip('trip-1')
 
       expect(result).toEqual({ released: 0, failed: 0, skipped: 0 })
       expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
@@ -222,7 +222,7 @@ describe('TripLifecycleService', () => {
         logger as any,
       )
 
-      const result = await serviceNoPayment.releaseEscrowForTrip('trip-1')
+      const result = await serviceNoPayment.releaseSafePayForTrip('trip-1')
 
       expect(result).toEqual({ released: 0, failed: 0, skipped: 0 })
     })
@@ -235,7 +235,7 @@ describe('TripLifecycleService', () => {
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
-      const result = await service.releaseEscrowForTrip('trip-1')
+      const result = await service.releaseSafePayForTrip('trip-1')
 
       expect(result.released).toBe(1)
       expect(mockPaymentService.fetchTransferId).toHaveBeenCalledWith('pay_abc123')
@@ -257,7 +257,7 @@ describe('TripLifecycleService', () => {
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
-      await service.releaseEscrowForTrip('trip-1')
+      await service.releaseSafePayForTrip('trip-1')
 
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         amount: 8500, // 10000 * (1 - 15/100) = 8500
@@ -266,16 +266,16 @@ describe('TripLifecycleService', () => {
   })
 
   // ═══════════════════════════════════════════════════
-  // releaseUnreleasedEscrows (crash recovery)
+  // releaseUnreleasedSafePays (crash recovery)
   // ═══════════════════════════════════════════════════
-  describe('releaseUnreleasedEscrows', () => {
-    it('should pick up previously-failed escrow releases', async () => {
+  describe('releaseUnreleasedSafePays', () => {
+    it('should pick up previously-failed SafePay releases', async () => {
       const unreleased = createMockCapturedPayment({ booking: { ...createMockCapturedPayment().booking, tripId: 'trip-1' } })
-      mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([unreleased])
+      mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased])
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
       mockPaymentTxRepo.create.mockResolvedValue({})
 
-      const result = await service.releaseUnreleasedEscrows()
+      const result = await service.releaseUnreleasedSafePays()
 
       expect(result.released).toBe(1)
       expect(result.failed).toBe(0)
@@ -286,10 +286,10 @@ describe('TripLifecycleService', () => {
       }))
     })
 
-    it('should return no-op when no unreleased escrows exist', async () => {
-      mockPaymentTxRepo.findUnreleasedEscrows.mockResolvedValue([])
+    it('should return no-op when no unreleased SafePays exist', async () => {
+      mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([])
 
-      const result = await service.releaseUnreleasedEscrows()
+      const result = await service.releaseUnreleasedSafePays()
 
       expect(result).toEqual({ released: 0, failed: 0 })
     })
@@ -302,7 +302,7 @@ describe('TripLifecycleService', () => {
         logger as any,
       )
 
-      const result = await serviceNoPayment.releaseUnreleasedEscrows()
+      const result = await serviceNoPayment.releaseUnreleasedSafePays()
 
       expect(result).toEqual({ released: 0, failed: 0 })
     })
@@ -314,7 +314,7 @@ describe('TripLifecycleService', () => {
   // arrives as a Prisma.Decimal. The service calls Number() to convert it.
   // ═══════════════════════════════════════════════════════
 
-  describe('releaseEscrowForTrip — Decimal commissionRate', () => {
+  describe('releaseSafePayForTrip — Decimal commissionRate', () => {
     beforeEach(() => {
       mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
       mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
@@ -336,7 +336,7 @@ describe('TripLifecycleService', () => {
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
 
-      await service.releaseEscrowForTrip('trip-1')
+      await service.releaseSafePayForTrip('trip-1')
 
       // 10000 * (1 - 20/100) = 8000
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
@@ -356,7 +356,7 @@ describe('TripLifecycleService', () => {
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
 
-      await service.releaseEscrowForTrip('trip-1')
+      await service.releaseSafePayForTrip('trip-1')
 
       // null → 10% default → 10000 * (1 - 0.10) = 9000
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
@@ -376,7 +376,7 @@ describe('TripLifecycleService', () => {
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
 
-      await service.releaseEscrowForTrip('trip-1')
+      await service.releaseSafePayForTrip('trip-1')
 
       // 9999 * (1 - 0.125) = 9999 * 0.875 = 8749.125 → Math.round → 8749
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(

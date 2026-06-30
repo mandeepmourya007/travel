@@ -15,7 +15,7 @@ Full repository audit of TripCompare, run as three parallel evidence-based revie
 | # | Finding | Status |
 |---|---------|--------|
 | 1 | **The refund path did not exist** — cancellations notified "Refund: ₹X" but never moved money | ✅ Fixed |
-| 2 | **Escrow released to organizers for CANCELLED bookings** — no bookingStatus filter | ✅ Fixed |
+| 2 | **SafePay released to organizers for CANCELLED bookings** — no bookingStatus filter | ✅ Fixed |
 | 3 | **Webhook HMAC verified against empty string** when `RAZORPAY_WEBHOOK_SECRET` unset | ✅ Fixed |
 | 4 | **`confirmBooking` resurrected expired/cancelled bookings**, swallowed seat-confirmation failure | ✅ Fixed |
 | 5 | **Pre-hydration full-screen overlay** hid all SSR content until React hydrated | ✅ Fixed |

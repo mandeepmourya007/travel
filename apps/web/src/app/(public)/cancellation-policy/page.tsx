@@ -19,11 +19,11 @@ import {
 
 export const metadata: Metadata = {
   title: `Cancellation & Refund Policy | ${APP_NAME}`,
-  description: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how escrow refunds work.`,
+  description: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how SafePay refunds work.`,
   alternates: { canonical: '/cancellation-policy' },
   openGraph: {
     title: `Cancellation & Refund Policy | ${APP_NAME}`,
-    description: `Clear refund rules for travelers and organizers on ${APP_NAME}. Escrow-protected refunds processed via Razorpay.`,
+    description: `Clear refund rules for travelers and organizers on ${APP_NAME}. SafePay-protected refunds processed via Razorpay.`,
     type: 'website',
     url: '/cancellation-policy',
   },
@@ -55,13 +55,13 @@ export default function CancellationPolicyPage() {
           </h1>
           <p className="mt-3 text-sm text-neutral-400">Last updated: {POLICY_DATES.cancellation}</p>
           <p className="mt-4 text-base text-neutral-600 leading-relaxed">
-            All payments on {APP_NAME} are held in escrow via Razorpay, which means your money is protected until the trip is completed. This policy explains exactly when and how refunds are issued.
+            All payments on {APP_NAME} are held safely via SafePay, which means your money is protected until the trip is completed. This policy explains exactly when and how refunds are issued.
           </p>
         </div>
 
-        {/* Escrow callout */}
+        {/* SafePay callout */}
         <div className="mb-10 rounded-2xl border border-success-50 bg-success-50 p-5">
-          <h2 className="text-sm font-semibold text-neutral-800 mb-1">Escrow Protection</h2>
+          <h2 className="text-sm font-semibold text-neutral-800 mb-1">SafePay Protection</h2>
           <p className="text-sm text-success-500">
             Your payment is never released to the organizer until the trip is completed. {organizerCancellationText.escrowCallout}
           </p>

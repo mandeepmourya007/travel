@@ -73,7 +73,7 @@ A platform-agnostic design system for web (Tailwind CSS) and mobile (React Nativ
 
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `success-500` | `#10B981` | Confirmed, verified, escrow held |
+| `success-500` | `#10B981` | Confirmed, verified, SafePay held |
 | `success-50` | `#ECFDF5` | Success background |
 | `warning-500` | `#F59E0B` | Pending, limited seats |
 | `warning-50` | `#FFFBEB` | Warning background |

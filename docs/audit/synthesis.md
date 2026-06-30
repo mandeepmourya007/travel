@@ -55,7 +55,7 @@ Also: `docs/mvp/mvp-plan.md` is stale — Destination Pages are listed "Not Star
 ## (e) Suggested order of attack
 
 **Now (Week 3) — reliability insurance + remaining perf:**
-- Cron distributed lock + escrow unique index
+- Cron distributed lock + SafePay unique index
 - Trip-list `select` discipline
 - Booking-endpoint rate-limit tier
 - Missing DB indexes for remaining queries (unpaginated findManys)

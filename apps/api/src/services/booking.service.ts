@@ -20,7 +20,7 @@ import { env } from '../config/env'
 import { withLock } from '../utils/redis-lock'
 
 // Matches a real Razorpay linked account ID: "acc_" + 14+ alphanumeric chars.
-// Used to gate escrow transfers — test/sandbox IDs won't match and transfers are skipped.
+// Used to gate SafePay transfers — test/sandbox IDs won't match and transfers are skipped.
 
 /** Maps Prisma's nested assignedSeat → flat API shape */
 function mapAssignedSeat(
@@ -371,7 +371,7 @@ export class BookingService {
    * 3. Under-lock re-check — concurrent arrival that slipped past step 1 returns existing booking
    * 4. Validations — trip status, capacity, deadline, booking mode, transfer points, seat count
    * 5. Calculate price — base + early-bird discount + transfer-point extra charges
-   * 6. Build escrow transfers — only in production with a verified Razorpay linked account
+   * 6. Build SafePay transfers — only in production with a verified Razorpay linked account
    * 7. Create Razorpay order with order-level transfers
    * 8. Create Booking(PENDING_PAYMENT) + PaymentTransaction(INITIATED)
    * 9. Atomically hold seats (if seatIds provided) — expire booking on hold failure
@@ -500,7 +500,7 @@ export class BookingService {
       // 6. Create Razorpay order — full amount collected into platform account.
       // Organizer payouts are handled manually via the admin dashboard.
       //
-      // ROUTE_HOOK: To enable automatic escrow splits via Razorpay Route, pass
+      // ROUTE_HOOK: To enable automatic SafePay splits via Razorpay Route, pass
       // a `transfers` array to paymentSvc.createOrder() here. Example transfer:
       //   [{
       //     account: trip.organizer.razorpayAccountId,   // acc_XXXXXXXXXXXXXXXX

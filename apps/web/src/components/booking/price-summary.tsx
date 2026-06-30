@@ -14,7 +14,7 @@ interface PriceSummaryProps {
 }
 
 const TRUST_BADGES = [
-  'Your money is held safely in escrow',
+  'Your money is held safely via SafePay',
   'Released to organizer after trip completion',
   'Full refund if organizer cancels',
 ] as const

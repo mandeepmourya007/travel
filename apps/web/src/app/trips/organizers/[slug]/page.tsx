@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
   const { organizer } = data
   const title = `${organizer.businessName} — Verified Trip Organizer | ${APP_NAME}`
   const raw = organizer.description
-    || `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with escrow protection.`
+    || `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with SafePay protection.`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw

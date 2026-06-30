@@ -14,14 +14,14 @@ import type { Destination } from '@shared/types/destination.types'
 export const metadata: Metadata = {
   title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
   description:
-    'Discover and compare curated group trips from verified organizers in Pune. Escrow-protected payments, real reviews, and hassle-free travel.',
+    'Discover and compare curated group trips from verified organizers in Pune. SafePay-protected payments, real reviews, and hassle-free travel.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
     description:
-      'Discover and compare curated group trips from verified organizers in Pune. Escrow-protected payments, real reviews, and hassle-free travel.',
+      'Discover and compare curated group trips from verified organizers in Pune. SafePay-protected payments, real reviews, and hassle-free travel.',
     type: 'website',
     url: '/',
     siteName: APP_NAME,

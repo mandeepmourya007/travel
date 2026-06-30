@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd, buildOrganizationJsonLd } from '@/lib/structured
 
 export const metadata: Metadata = {
   title: `About ${APP_NAME} — India's Group Travel Aggregator`,
-  description: `${APP_NAME} is India's first group travel aggregator. Compare trips from verified organizers, book with escrow-protected payments, and travel worry-free from Pune and beyond.`,
+  description: `${APP_NAME} is India's first group travel aggregator. Compare trips from verified organizers, book with SafePay-protected payments, and travel worry-free from Pune and beyond.`,
   alternates: {
     canonical: '/about',
   },
@@ -62,20 +62,20 @@ export default function AboutPage() {
           <ul className="list-disc pl-6 space-y-2">
             <li>
               <strong>For Travelers:</strong> Browse and compare group trips across 14+ destinations. Read real reviews,
-              check organizer ratings, and book with escrow-protected payments — your money is held safely until the trip
+              check organizer ratings, and book with SafePay-protected payments — your money is held safely until the trip
               is completed.
             </li>
             <li>
               <strong>For Organizers:</strong> List your trips, manage bookings, communicate with travelers, and receive
-              payments through our secure escrow system. Build your reputation with verified reviews.
+              payments via SafePay. Build your reputation with verified reviews.
             </li>
           </ul>
 
           <h2 className="font-display text-xl font-bold text-neutral-800 mt-10">
-            Why Escrow Protection Matters
+            Why SafePay Protection Matters
           </h2>
           <p>
-            When you book on {APP_NAME}, your payment is held in escrow — not released to the organizer until the trip
+            When you book on {APP_NAME}, your payment is held safely via SafePay — not released to the organizer until the trip
             is successfully completed. This means if a trip is cancelled or doesn&apos;t deliver what was promised,
             your money is protected. No more blind trust with Instagram tour operators.
           </p>
