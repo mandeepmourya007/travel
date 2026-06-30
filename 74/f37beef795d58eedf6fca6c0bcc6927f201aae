@@ -14,6 +14,7 @@ apps/api/tests/unit/repositories/trip.repository.test.ts
   s_cd50094fe7a350::t_3d331b27353925 359
   s_cd50094fe7a350::t_c2090dbce72e35 361-363
   s_cd50094fe7a350::t_1f8a87cc1b44d7 364-439
+  s_532832bf9fbb2b::t_a00b9b75ab9954 440
 apps/api/tests/unit/services/trending/trending-score.service.test.ts
   s_cd50094fe7a350::t_e781e87d8e507e 1-101
 docs/qa-organizer-flows.md
@@ -143,6 +144,14 @@ apps/web/src/components/trips/trip-card.tsx
     }
   },
   "sessions": {
+    "s_532832bf9fbb2b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "cd00db65-158a-4bca-8993-d0eab9221f0a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
     "s_cd50094fe7a350": {
       "agent_id": {
         "tool": "claude",
