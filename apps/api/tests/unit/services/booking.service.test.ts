@@ -860,14 +860,16 @@ describe('BookingService', () => {
       expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
     })
 
-    it('should throw ConflictError when user already has CONFIRMED booking', async () => {
+    it('should not block new booking when user already has a CONFIRMED booking (re-booking for friends)', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({
         bookingStatus: 'CONFIRMED',
       })
+      mockTripRepo.findByIdForBooking.mockResolvedValue(null)
 
+      // Should skip the CONFIRMED booking and proceed to trip validation
       await expect(
         service.createBooking('user-1', validInput),
-      ).rejects.toThrow('already have a confirmed booking')
+      ).rejects.toThrow('Trip') // NotFoundError — proves the CONFIRMED check no longer blocks
     })
 
     it('should throw NotFoundError when trip does not exist', async () => {
@@ -1202,18 +1204,19 @@ describe('BookingService', () => {
       expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
     })
 
-    it('should throw ALREADY_BOOKED when under-lock re-check finds a CONFIRMED booking (late concurrent confirmation)', async () => {
-      // Fast-path: sees null (booking existed as PENDING_PAYMENT, just confirmed by another request)
-      // Under-lock re-check: sees CONFIRMED
+    it('should not block new booking when under-lock re-check finds a CONFIRMED booking (user booking for friends)', async () => {
+      // Fast-path: sees null; under-lock: sees CONFIRMED (separate booking was confirmed concurrently)
       mockBookingRepo.findActiveByUserAndTrip
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({ bookingStatus: 'CONFIRMED' })
+      mockTripRepo.findByIdForBooking.mockResolvedValue(null)
 
+      // Should proceed past the CONFIRMED booking to trip validation
       await expect(
         service.createBooking('user-1', validInput),
-      ).rejects.toMatchObject({ message: expect.stringContaining('confirmed booking'), subCode: 'ALREADY_BOOKED' })
+      ).rejects.toThrow('Trip') // NotFoundError — proves CONFIRMED didn't block
 
-      expect(mockPaymentService.createOrder).not.toHaveBeenCalled()
+      expect(mockPaymentService.createOrder).not.toHaveBeenCalled() // didn't reach payment
     })
 
     it('should expire PENDING_PAYMENT booking with no expiresAt found under lock then create a fresh order', async () => {

@@ -77,14 +77,10 @@ export class BookingService {
    *
    * @returns CreateBookingResponse — PENDING_PAYMENT with expiresAt → return to client
    * @returns null                  — PENDING_PAYMENT without expiresAt → caller must expire + retry
-   * @throws  ConflictError         — CONFIRMED → client already has an active booking
    */
   private buildIdempotentResponse(
     existing: NonNullable<Awaited<ReturnType<BookingRepository['findActiveByUserAndTrip']>>>,
   ): CreateBookingResponse | null {
-    if (existing.bookingStatus === BOOKING_STATUS.CONFIRMED) {
-      throw new ConflictError('You already have a confirmed booking for this trip', 'ALREADY_BOOKED')
-    }
     if (!existing.expiresAt) {
       return null // PENDING_PAYMENT with no expiresAt — caller: expire + create fresh order
     }
@@ -397,8 +393,10 @@ export class BookingService {
     const paymentSvc = this.requirePaymentService()
 
     // 1. Fast-path idempotency check (no lock needed — read-only, skips lock overhead)
+    //    Only applies to PENDING_PAYMENT bookings — a CONFIRMED booking means the user
+    //    bought one slot; they are allowed to create additional bookings for friends.
     const earlyExisting = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
-    if (earlyExisting) {
+    if (earlyExisting && earlyExisting.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT) {
       const idempotent = this.buildIdempotentResponse(earlyExisting)
       if (idempotent) return idempotent
       // null → PENDING_PAYMENT with no expiresAt; cron can never reap it, so expire + proceed
@@ -417,9 +415,11 @@ export class BookingService {
     let bookingResponse: CreateBookingResponse | null = null
 
     const lockAcquired = await withLock(lockKey, BOOKING_LOCK_TTL_MS, async () => {
-      // Re-check under lock — catches concurrent arrivals that both passed the fast-path
+      // Re-check under lock — catches concurrent arrivals that both passed the fast-path.
+      // Same guard: only PENDING_PAYMENT gets idempotency treatment; CONFIRMED is allowed
+      // to co-exist with a new booking (user booking for friends).
       const existing = await this.bookingRepo.findActiveByUserAndTrip(userId, input.tripId)
-      if (existing) {
+      if (existing && existing.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT) {
         const idempotent = this.buildIdempotentResponse(existing)
         if (idempotent) { bookingResponse = idempotent; return }
         // null → PENDING_PAYMENT with no expiresAt; expire + proceed
