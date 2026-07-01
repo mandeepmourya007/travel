@@ -85,7 +85,13 @@ export class TripService {
     if (!profile) throw new ForbiddenError('Organizer profile not found')
 
     const trips = await this.tripRepo.findByOrganizerId(profile.id, status)
-    return trips.map((trip) => mapTripToSummary(trip))
+    const tripIds = trips.map((t) => t.id)
+    const pendingPaymentCounts = await this.bookingRepo.countPendingPaymentByTripIds(tripIds)
+
+    return trips.map((trip) => ({
+      ...mapTripToSummary(trip),
+      pendingPaymentCount: pendingPaymentCounts[trip.id] ?? 0,
+    }))
   }
 
   async getOrganizerPublicProfile(

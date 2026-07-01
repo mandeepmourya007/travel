@@ -3,7 +3,7 @@ import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 import type { DestinationTripFilters } from '@shared/types/destination.types'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
-import { TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
+import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, SITEMAP_MAX_TRIPS } from '../utils/constants'
 
@@ -73,7 +73,55 @@ export const TRIP_SELECT_SUMMARY = {
   _count: {
     select: {
       reviews: { where: { isDeleted: false } },
-      bookings: { where: { bookingStatus: 'PENDING_PAYMENT', isDeleted: false } },
+      // confirmedGroupCount: booking records in CONFIRMED/COMPLETED state (row count, not seat count)
+      bookings: { where: { bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] }, isDeleted: false } },
+    },
+  },
+} as const
+
+/**
+ * Extends TRIP_SELECT_SUMMARY with organizer-only counts.
+ * Used only in findByOrganizerId / findByOrganizerIdPaginated to avoid adding
+ * a TripRequest JOIN to the public search query.
+ */
+export const ORGANIZER_TRIP_SELECT_SUMMARY = {
+  id: true,
+  title: true,
+  slug: true,
+  tripType: true,
+  bookingMode: true,
+  pricePerPerson: true,
+  earlyBirdPrice: true,
+  earlyBirdDeadline: true,
+  startDate: true,
+  endDate: true,
+  maxGroupSize: true,
+  currentBookings: true,
+  status: true,
+  acceptingBookings: true,
+  photos: true,
+  seatSelectionEnabled: true,
+  trendingScore: true,
+  createdAt: true,
+  destination: {
+    select: { id: true, name: true, slug: true },
+  },
+  organizer: {
+    select: {
+      id: true,
+      slug: true,
+      businessName: true,
+      rating: true,
+      totalReviews: true,
+      verificationStatus: true,
+    },
+  },
+  _count: {
+    select: {
+      reviews: { where: { isDeleted: false } },
+      bookings: { where: { bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] }, isDeleted: false } },
+      // pendingRequestCount: trip requests still in the organizer's queue
+      tripRequests: { where: { status: { in: [TRIP_REQUEST_STATUS.PENDING, TRIP_REQUEST_STATUS.APPROVED] }, isDeleted: false } },
     },
   },
 } as const
@@ -149,7 +197,7 @@ export class TripRepository {
         isDeleted: false,
         ...(status && { status: status as Prisma.EnumTripStatusFilter }),
       },
-      select: TRIP_SELECT_SUMMARY,
+      select: ORGANIZER_TRIP_SELECT_SUMMARY,
       orderBy: { createdAt: 'desc' },
       take: 200,
     })
@@ -168,7 +216,7 @@ export class TripRepository {
     const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
         where,
-        select: TRIP_SELECT_SUMMARY,
+        select: ORGANIZER_TRIP_SELECT_SUMMARY,
         orderBy: { createdAt: 'desc' },
         skip: pagination.offset,
         take: pagination.limit,

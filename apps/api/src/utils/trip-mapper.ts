@@ -23,6 +23,7 @@ export interface TripForSummary {
   startDate: Date
   endDate: Date
   maxGroupSize: number
+  /** Seat count: sum of numTravelers across CONFIRMED bookings. Updated atomically on payment capture. */
   currentBookings: number
   status: string
   acceptingBookings: boolean
@@ -39,7 +40,7 @@ export interface TripForSummary {
     totalReviews: number
     verificationStatus: string
   } | null
-  _count?: { reviews: number; bookings?: number }
+  _count?: { reviews: number; bookings?: number; tripRequests?: number }
 }
 
 export function mapTripToSummary(trip: TripForSummary) {
@@ -60,8 +61,12 @@ export function mapTripToSummary(trip: TripForSummary) {
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxGroupSize: trip.maxGroupSize,
+    /** Seat count (sum of numTravelers) — may lag if atomicIncrementBookings was skipped. */
     currentBookings: trip.currentBookings,
-    pendingBookingsCount: trip._count?.bookings ?? 0,
+    /** Booking record count from the Booking table (CONFIRMED+COMPLETED rows, not seat count). */
+    confirmedGroupCount: trip._count?.bookings ?? 0,
+    /** Trip request rows still in the organizer queue (PENDING or APPROVED, not yet converted). */
+    pendingRequestCount: trip._count?.tripRequests ?? 0,
     status: trip.status,
     acceptingBookings: trip.acceptingBookings,
     photos: trip.photos,

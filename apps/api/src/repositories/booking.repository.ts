@@ -161,6 +161,24 @@ export class BookingRepository {
   }
 
   /**
+   * Returns a map of tripId → PENDING_PAYMENT booking count for the given trip IDs.
+   * Used by TripService.getMyTrips() to show in-flight payments on the organizer dashboard.
+   */
+  async countPendingPaymentByTripIds(tripIds: string[]): Promise<Record<string, number>> {
+    if (tripIds.length === 0) return {}
+    const rows = await this.prisma.booking.groupBy({
+      by: ['tripId'],
+      _count: { id: true },
+      where: {
+        tripId: { in: tripIds },
+        bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
+        isDeleted: false,
+      },
+    })
+    return Object.fromEntries(rows.map((r) => [r.tripId, r._count.id]))
+  }
+
+  /**
    * Finds paginated bookings for a specific traveler with tab-based filtering.
    *
    * WHERE: userId (REQUIRED — IDOR prevention AR-2), isDeleted=false
