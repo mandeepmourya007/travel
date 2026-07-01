@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import { CONVERSATION_TYPE, CONVERSATION_STATUS } from '@shared/types/chat.types'
 import type { ConversationListFilters, ConversationType, ConversationStatus } from '@shared/types/chat.types'
+import { CHAT_SENDER_ROLE } from '@shared/constants'
+import type { ChatSenderRole } from '@shared/constants'
 
 const CHAT_USER_SELECT = {
   id: true,
@@ -205,8 +207,8 @@ export class ConversationRepository {
    * Increment unread count for the other participant.
    * role = who SENT the message (increment the OTHER person's counter).
    */
-  async incrementUnread(id: string, senderRole: 'traveler' | 'organizer' | 'admin') {
-    if (senderRole === 'traveler') {
+  async incrementUnread(id: string, senderRole: ChatSenderRole) {
+    if (senderRole === CHAT_SENDER_ROLE.TRAVELER) {
       return this.prisma.conversation.update({
         where: { id },
         data: { unreadCountOrganizer: { increment: 1 } },
@@ -221,8 +223,8 @@ export class ConversationRepository {
   /**
    * Reset unread count for a user when they read messages.
    */
-  async resetUnread(id: string, readerRole: 'traveler' | 'organizer' | 'admin') {
-    if (readerRole === 'traveler' || readerRole === 'admin') {
+  async resetUnread(id: string, readerRole: ChatSenderRole) {
+    if (readerRole === CHAT_SENDER_ROLE.TRAVELER || readerRole === CHAT_SENDER_ROLE.ADMIN) {
       return this.prisma.conversation.update({
         where: { id },
         data: { unreadCountTraveler: 0 },

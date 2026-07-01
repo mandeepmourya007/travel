@@ -3,7 +3,7 @@ import { Prisma, type BookingStatus, type Gender, type PaymentType, type Payment
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
-import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants'
+import { BOOKING_STATUS, TRIP_REQUEST_STATUS, PAYMENT_PROVIDER } from '@shared/constants'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 const ASSIGNED_SEAT_SELECT = {
@@ -470,7 +470,7 @@ export class BookingRepository {
           bookingId: booking.id,
           type: paymentTxData.type,
           amount: paymentTxData.amount,
-          provider: paymentTxData.provider ?? 'razorpay',
+          provider: paymentTxData.provider ?? PAYMENT_PROVIDER.RAZORPAY,
           gatewayOrderId: paymentTxData.gatewayOrderId,
           razorpayOrderId: paymentTxData.razorpayOrderId ?? paymentTxData.gatewayOrderId,
           status: paymentTxData.status,

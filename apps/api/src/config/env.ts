@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PAYMENT_PROVIDERS, PAYMENT_PROVIDER } from '@shared/constants'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -35,7 +36,7 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   // ── Payment Gateway Selection ──────────────────────
-  PAYMENT_GATEWAY: z.enum(['razorpay', 'cashfree']).default('razorpay'),
+  PAYMENT_GATEWAY: z.enum(PAYMENT_PROVIDERS).default(PAYMENT_PROVIDER.RAZORPAY),
   // ── Cashfree (full integration — not just test) ────
   CASHFREE_APP_ID: z.string().optional(),
   CASHFREE_SECRET_KEY: z.string().optional(),
@@ -74,7 +75,7 @@ const envSchema = z.object({
       })
     }
     // Cashfree: all credentials + webhook secret required when it is the active gateway
-    if (data.PAYMENT_GATEWAY === 'cashfree') {
+    if (data.PAYMENT_GATEWAY === PAYMENT_PROVIDER.CASHFREE) {
       if (!data.CASHFREE_APP_ID || !data.CASHFREE_SECRET_KEY) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

@@ -4,6 +4,7 @@ import { BookingService } from '../services/booking.service'
 import { logger } from '../utils/logger'
 import { NORMALIZED_EVENT_TYPE, WEBHOOK_LOG_TAG } from '../utils/constants'
 import type { PaymentProvider } from '../types/payment.types'
+import { PAYMENT_PROVIDER } from '@shared/constants'
 
 /**
  * Handles incoming webhook events from payment providers (Razorpay and Cashfree).
@@ -21,12 +22,12 @@ export class WebhookController {
 
   /** POST /api/v1/webhooks/razorpay — raw body, verified inside RazorpayGateway */
   handleRazorpay = async (req: Request, res: Response) => {
-    return this.handleWebhookRequest(req, res, 'razorpay')
+    return this.handleWebhookRequest(req, res, PAYMENT_PROVIDER.RAZORPAY)
   }
 
   /** POST /api/v1/webhooks/cashfree — raw body, verified inside CashfreeGateway */
   handleCashfree = async (req: Request, res: Response) => {
-    return this.handleWebhookRequest(req, res, 'cashfree')
+    return this.handleWebhookRequest(req, res, PAYMENT_PROVIDER.CASHFREE)
   }
 
   private handleWebhookRequest = async (req: Request, res: Response, provider: PaymentProvider) => {

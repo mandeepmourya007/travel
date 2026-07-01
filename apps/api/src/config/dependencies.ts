@@ -45,6 +45,7 @@ import { MockPaymentGateway } from '../providers/payment/mock-payment.gateway'
 import type { IPaymentGateway } from '../providers/payment/payment-gateway.interface'
 import type { PaymentProvider } from '../types/payment.types'
 import { cashfreeConfig, isCashfreeConfigured } from './cashfree'
+import { PAYMENT_PROVIDER } from '@shared/constants'
 import { BookingController } from '../controllers/booking.controller'
 import { WebhookController } from '../controllers/webhook.controller'
 import { createBookingRoutes } from '../routes/booking.routes'
@@ -145,7 +146,7 @@ const gatewayRegistry = new Map<PaymentProvider, IPaymentGateway>()
 
 if (razorpayClient) {
   gatewayRegistry.set(
-    'razorpay',
+    PAYMENT_PROVIDER.RAZORPAY,
     new RazorpayGateway(
       razorpayClient,
       env.RAZORPAY_KEY_SECRET || '',
@@ -157,7 +158,7 @@ if (razorpayClient) {
 }
 
 if (isCashfreeConfigured() && cashfreeConfig) {
-  gatewayRegistry.set('cashfree', new CashfreeGateway(cashfreeConfig, logger))
+  gatewayRegistry.set(PAYMENT_PROVIDER.CASHFREE, new CashfreeGateway(cashfreeConfig, logger))
 }
 
 const activeProvider: PaymentProvider = env.PAYMENT_GATEWAY

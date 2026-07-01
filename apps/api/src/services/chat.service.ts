@@ -5,6 +5,8 @@ import {
   CONVERSATION_STATUS,
   MESSAGE_TYPE,
 } from '@shared/types/chat.types'
+import { CHAT_SENDER_ROLE } from '@shared/constants'
+import type { ChatSenderRole } from '@shared/constants'
 import type {
   ConversationListFilters,
   MessageListFilters,
@@ -405,10 +407,10 @@ export class ChatService {
   private getSenderRole(
     conversation: { travelerId: string; organizerProfile?: { user: { id: string } } | null; adminId?: string | null },
     userId: string,
-  ): 'traveler' | 'organizer' | 'admin' {
-    if (conversation.organizerProfile?.user.id === userId) return 'organizer'
-    if (conversation.adminId === userId) return 'admin'
-    return 'traveler'
+  ): ChatSenderRole {
+    if (conversation.organizerProfile?.user.id === userId) return CHAT_SENDER_ROLE.ORGANIZER
+    if (conversation.adminId === userId) return CHAT_SENDER_ROLE.ADMIN
+    return CHAT_SENDER_ROLE.TRAVELER
   }
 
   /**
