@@ -150,8 +150,14 @@ export interface OrganizerTripListItem {
   startDate: string
   endDate: string
   pricePerPerson: number
+  /** Seat count: sum of numTravelers across CONFIRMED bookings (denormalized Trip column). */
   currentBookings: number
-  pendingBookingsCount: number
+  /** Booking record count from live Booking table (CONFIRMED+COMPLETED rows, not seat count). */
+  confirmedGroupCount: number
+  /** Trip requests still in organizer queue (PENDING or APPROVED). REQUEST_BASED trips only. */
+  pendingRequestCount: number
+  /** PENDING_PAYMENT bookings: payments in-flight (30-min TTL). INSTANT trips only. */
+  pendingPaymentCount: number
   maxGroupSize: number
   bookingMode: BookingMode
   destination: { name: string }
