@@ -1,0 +1,24 @@
+apps/api/tests/unit/utils/trip-mapper.test.ts
+  s_ae7fa8f18782c6::t_6f6aec4dec2f2a 38-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "d52eabc00430cdb97ce9e609a7927e8664b125fd",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
