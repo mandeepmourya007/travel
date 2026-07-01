@@ -1,0 +1,76 @@
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_b288e5961aca67::t_a5576386b5a4aa 801-803,805-814,816-826
+  s_b288e5961aca67::t_3d8e3f9463eebc 226-230
+  s_b288e5961aca67::t_9b535c8731691a 245,248-252
+  s_b288e5961aca67::t_66c08460848b04 185-187
+  s_b288e5961aca67::t_309467b034d8c3 269-270
+  s_b288e5961aca67::t_4f8e6987691ff8 181-183,195-196
+  s_b288e5961aca67::t_b7599a8370b8b4 184
+apps/api/tests/unit/services/payment-cutover.test.ts
+  s_b288e5961aca67::t_ae3e1d595655ac 158-166
+  s_b288e5961aca67::t_1187e7b317483d 1-157,167-168
+apps/api/tests/unit/services/payment.service.test.ts
+  s_b288e5961aca67::t_57462598496ac4 144,152
+  s_b288e5961aca67::t_92d4737b9f0031 130
+  s_b288e5961aca67::t_9db5743ea847ca 3-18,21-23,28-29,54,56,58,60-65,70,72-74,85-87,95-98,100-109,117-118,123,126-128,132-133,137,140-141,148,150,160,163-164,168-169,172-173,175,177,182,184-192,195-198,202-203,205-208,211,216,219-225,228,230-232,242-245,248,250-261,265-266,268,271,286-287,291-292,296,300,303,310-311,315,324,328-329,333,335,350,354-355,362,364-365,371-373,375-376,378,388,391,393-394,400,402-403,410,412-413,425,429-430,436,438-439,449,451,454-457,467,469-470,472-480,493,497,501-505,510,515,520,522-526,532-537,541-545,550,557-559,561,566,568-570,572,574,577-578,580
+apps/api/tests/unit/services/booking.service.test.ts
+  s_b288e5961aca67::t_2d7139b7b8179d 978-982
+  s_b288e5961aca67::t_b3a98ad7767e91 1978
+  s_b288e5961aca67::t_b0d4a2b116da19 1293
+  s_b288e5961aca67::t_e25f387d8d5381 839-843,857
+  s_b288e5961aca67::t_56f27568df57fc 494
+  s_b288e5961aca67::t_2bbbc1e3b51b66 2045
+  s_b288e5961aca67::t_00f8aa6d9625dc 1388
+  s_b288e5961aca67::t_6ee02601b4ad41 860
+  s_b288e5961aca67::t_d3159737392523 2025
+  s_b288e5961aca67::t_7d91e34677bc33 1451
+  s_b288e5961aca67::t_3c68744819138d 1419
+  s_b288e5961aca67::t_bb00b3f6bb08a6 1780
+  s_b288e5961aca67::t_5a14535673e69b 475
+  s_b288e5961aca67::t_e1bb03738880ff 2035
+  s_b288e5961aca67::t_ead388565eac1e 1937
+  s_b288e5961aca67::t_7f0bf5dddc6e8d 16-26
+  s_b288e5961aca67::t_cae7b9a72abc51 1760
+  s_b288e5961aca67::t_744d0dfa1be44d 1740
+  s_b288e5961aca67::t_3b78d593ae73ce 505
+  s_b288e5961aca67::t_2436b54f4c099a 994
+  s_b288e5961aca67::t_d1724a19891146 937-938,944-966,971-972
+  s_b288e5961aca67::t_5f332f0b64d1cc 522
+  s_b288e5961aca67::t_26699f775936a5 1327,1339-1340
+  s_b288e5961aca67::t_dde956a5dd6582 2037
+  s_b288e5961aca67::t_4d1353b5fbb51b 1065
+  s_b288e5961aca67::t_2db70310247190 761,780
+  s_b288e5961aca67::t_cb7e59f9cd2fa1 66-67,77-78
+  s_b288e5961aca67::t_190cb923ae331e 1510
+  s_b288e5961aca67::t_2a1628841b1582 1812
+  s_b288e5961aca67::t_3decc4e0c0e462 1351
+  s_b288e5961aca67::t_79d0e6b65e2859 1545,1556
+apps/api/tests/unit/providers/razorpay.gateway.test.ts
+  s_b288e5961aca67::t_75c6168a77cdae 1-343
+apps/api/tests/unit/services/trip-request-create.test.ts
+  s_b288e5961aca67::t_417eb7524fc8ec 169-174
+  s_b288e5961aca67::t_3e7687e6ebf64f 505-508
+apps/api/tests/unit/providers/cashfree.gateway.test.ts
+  s_b288e5961aca67::t_78813c90f7ef70 1-340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "697dd2789972f9d32bd6253a8ce6056deb221873",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
