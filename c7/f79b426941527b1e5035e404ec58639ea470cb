@@ -1,0 +1,53 @@
+apps/api/src/services/chat.service.ts
+  s_51c211a39fc4ac::t_a3e38e5d83d50a 8-9
+  s_51c211a39fc4ac::t_9546d3e36e17e0 410-413
+apps/api/src/config/dependencies.ts
+  s_51c211a39fc4ac::t_6686169ce54afe 48
+  s_51c211a39fc4ac::t_6dfd74c83d99b2 149
+  s_51c211a39fc4ac::t_a0845f44001444 161
+apps/api/src/config/env.ts
+  s_51c211a39fc4ac::t_0e03b644d05e67 78
+  s_51c211a39fc4ac::t_e5e55b27111ce2 2
+  s_51c211a39fc4ac::t_3e9eac2d72d81e 39
+apps/api/src/services/booking.service.ts
+  s_51c211a39fc4ac::t_82e3c14660d2c0 591
+  s_51c211a39fc4ac::t_5f6706ab8f0b52 460,520,537
+  s_51c211a39fc4ac::t_5ec3425a9ea9a6 704,833,889,923
+  s_51c211a39fc4ac::t_98c2c8c26c7278 596
+  s_51c211a39fc4ac::t_56f9cf58dca119 17-18
+  s_51c211a39fc4ac::t_ab83f1f3a35cd7 96-97
+  s_51c211a39fc4ac::t_be658c127f1e56 89
+  s_51c211a39fc4ac::t_3c455cd4acbe07 297
+apps/api/src/repositories/conversation.repository.ts
+  s_51c211a39fc4ac::t_7677f595c5088a 226-227
+  s_51c211a39fc4ac::t_d73ed06f73a23c 210-211
+  s_51c211a39fc4ac::t_29ffecb3c952db 5-6
+apps/api/src/repositories/booking.repository.ts
+  s_51c211a39fc4ac::t_2520f1e5dd55d7 6
+  s_51c211a39fc4ac::t_d8de37ba518fdd 473
+apps/api/src/controllers/webhook.controller.ts
+  s_51c211a39fc4ac::t_16e833c6408b25 30
+  s_51c211a39fc4ac::t_1233a932863ed4 25
+  s_51c211a39fc4ac::t_565d2fbb3b6121 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "c7f79b426941527b1e5035e404ec58639ea470cb",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_51c211a39fc4ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23db251f-e796-401f-b435-e13f8ad6dff5",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
