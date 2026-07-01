@@ -58,5 +58,7 @@ export interface RazorpayWebhookEventBody {
 export interface StoredWebhookEvent {
   id: string
   eventType: string
+  /** Provider-neutral event type injected by WebhookController before dispatch */
+  normalizedType?: string
   payload: RazorpayWebhookEventBody
 }
