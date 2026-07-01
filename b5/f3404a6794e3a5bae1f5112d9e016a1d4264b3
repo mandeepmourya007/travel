@@ -1,0 +1,27 @@
+packages/shared/src/types/payment.types.ts
+  s_ae7fa8f18782c6::t_9c38d8148b8baf 117
+  s_ae7fa8f18782c6::t_d00b00befeaffb 118
+packages/shared/src/validators/trip.schema.ts
+  s_ae7fa8f18782c6::t_537942141c8862 138-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "b5f3404a6794e3a5bae1f5112d9e016a1d4264b3",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
