@@ -6,6 +6,7 @@ import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, SITEMAP_MAX_TRIPS } from '../utils/constants'
+import { tokenizeQuery } from '../utils/search'
 
 export const TRIP_INCLUDE_SUMMARY = {
   destination: {
@@ -341,16 +342,22 @@ export class TripRepository {
   }
 
   private buildWhere(filters: TripFilters): Prisma.TripWhereInput {
-    // Free-text query: OR-match across title, description, and destination name.
-    // Kept as ILIKE (contains/insensitive) for MVP; Postgres FTS tsvector is the
-    // planned next step — it won't require changing this filter interface.
-    const textFilter: Prisma.TripWhereInput | undefined = filters.q
+    // Multi-word OR search: split q into tokens, match any token in any of the
+    // four indexed text fields. "weekend amritsar" returns trips where either
+    // word appears anywhere — title, description, destination name, or trip type.
+    //
+    // Phase 2 migration path: swap this ILIKE fan-out for a Postgres
+    // tsvector/ts_rank raw query inside a new `searchRaw()` method on this class.
+    // The service layer (TripService.searchTrips) and API contract are unchanged.
+    const tokens = filters.q ? tokenizeQuery(filters.q) : []
+    const textFilter: Prisma.TripWhereInput | undefined = tokens.length > 0
       ? {
-          OR: [
-            { title: { contains: filters.q, mode: 'insensitive' as const } },
-            { description: { contains: filters.q, mode: 'insensitive' as const } },
-            { destination: { name: { contains: filters.q, mode: 'insensitive' as const } } },
-          ],
+          OR: tokens.flatMap((token) => [
+            { title: { contains: token, mode: 'insensitive' as const } },
+            { description: { contains: token, mode: 'insensitive' as const } },
+            { destination: { name: { contains: token, mode: 'insensitive' as const } } },
+            { tripType: { contains: token, mode: 'insensitive' as const } },
+          ]),
         }
       : undefined
 
