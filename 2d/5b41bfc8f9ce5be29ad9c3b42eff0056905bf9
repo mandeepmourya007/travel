@@ -1,0 +1,56 @@
+apps/web/src/app/payment-complete/page.tsx
+  s_51c211a39fc4ac::t_c68e4db8a3341f 41
+  s_51c211a39fc4ac::t_a79f9bd21532da 9
+apps/web/src/components/trips/trip-cta-button.tsx
+  s_51c211a39fc4ac::t_4af0f8ca9c2c63 34
+  s_51c211a39fc4ac::t_bfd9735e0ef42f 54
+  s_51c211a39fc4ac::t_abe22f9c4e4cd4 19
+apps/web/src/hooks/use-google-auth.ts
+  s_51c211a39fc4ac::t_95798c42c95021 39
+  s_51c211a39fc4ac::t_7032c49732bcf4 5
+apps/web/src/hooks/use-verify-payment.ts
+  s_51c211a39fc4ac::t_fcab642dc4a0c3 15
+  s_51c211a39fc4ac::t_74d535ff1c3f25 5
+apps/web/src/components/shared/auth-guard.tsx
+  s_51c211a39fc4ac::t_fbbfd12a5f92e4 7,11
+apps/web/src/hooks/use-profile.ts
+  s_51c211a39fc4ac::t_582131390dfd37 7
+  s_51c211a39fc4ac::t_1607ca6e99996f 40,44
+apps/web/src/store/auth.store.ts
+  s_51c211a39fc4ac::t_6fbaf00a23007a 3,9
+apps/web/src/components/layout/header.tsx
+  s_51c211a39fc4ac::t_62ba28966d51c3 48-49
+  s_51c211a39fc4ac::t_1d4969d019ac71 41-44
+  s_51c211a39fc4ac::t_42dd95e617fb3f 28
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_51c211a39fc4ac::t_22398280da9756 20
+  s_51c211a39fc4ac::t_b5993c6bc2cad4 173
+  s_51c211a39fc4ac::t_004b3a791bf1d6 213
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_51c211a39fc4ac::t_c4c4cb233422d8 22
+  s_51c211a39fc4ac::t_8a139331d6357b 93
+  s_51c211a39fc4ac::t_dfe6b0663ca5f0 255
+  s_51c211a39fc4ac::t_766c1d907819af 38
+  s_51c211a39fc4ac::t_681cd6c046feb6 46-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "2d5b41bfc8f9ce5be29ad9c3b42eff0056905bf9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_51c211a39fc4ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23db251f-e796-401f-b435-e13f8ad6dff5",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
