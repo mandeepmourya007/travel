@@ -1,0 +1,40 @@
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_b288e5961aca67::t_d8166f3d796e42 47
+  s_b288e5961aca67::t_505eca6c7d9d3e 1-46,48-64,70-357
+  s_b288e5961aca67::t_e9b062fc78cda7 65-69
+apps/api/src/types/razorpay.types.ts
+  s_b288e5961aca67::t_6550f3386c8212 61-62
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_b288e5961aca67::t_a906947ae1f1f6 81-82
+  s_b288e5961aca67::t_3af68d2a6ac18d 1-80,83-408
+apps/api/src/providers/payment/payment-gateway.interface.ts
+  s_b288e5961aca67::t_ac3331609acaee 1-12,28-134
+  s_b288e5961aca67::t_902f32310472e0 13-27
+apps/api/src/providers/payment/mock-payment.gateway.ts
+  s_b288e5961aca67::t_87eb7560031dd7 1-2,5-104
+  s_b288e5961aca67::t_df44923402b608 3-4
+apps/api/src/types/payment.types.ts
+  s_b288e5961aca67::t_706f58f01e674a 1-57,63-131
+  s_b288e5961aca67::t_472ac4a66cd5fe 58-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "3b779ddec4c47046470ab1976923807743ae5d68",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
