@@ -1,0 +1,48 @@
+apps/api/src/types/payment.types.ts
+  s_51c211a39fc4ac::t_1b8f743bf7374b 6-7,9-10
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_51c211a39fc4ac::t_ad867008d0e93e 31
+  s_51c211a39fc4ac::t_59c237e74d2905 95
+  s_51c211a39fc4ac::t_d2f5d52f3a4052 134
+  s_51c211a39fc4ac::t_9e0dbdd7beb049 17-18
+  s_51c211a39fc4ac::t_17915bd78783ae 199
+apps/api/src/utils/constants.ts
+  s_51c211a39fc4ac::t_9dbf3932dca634 94-96
+apps/api/src/providers/payment/payment.constants.ts
+  s_51c211a39fc4ac::t_c2970a220ab054 1-31
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_51c211a39fc4ac::t_45f310ffb064e7 61
+  s_51c211a39fc4ac::t_2f0c7d1f098014 15
+  s_51c211a39fc4ac::t_64e9c47aef2abc 38
+  s_51c211a39fc4ac::t_f9f0f754253c6e 130,137
+  s_51c211a39fc4ac::t_86b787785c8e8d 16
+  s_51c211a39fc4ac::t_efd20360304adb 172
+  s_51c211a39fc4ac::t_c6a55071d7ae37 149
+  s_51c211a39fc4ac::t_0d90b6bc3f6cf7 106
+apps/api/src/providers/payment/mock-payment.gateway.ts
+  s_51c211a39fc4ac::t_aa8f3ab91ea99c 27
+  s_51c211a39fc4ac::t_73e9c831e6d435 41
+  s_51c211a39fc4ac::t_e5b9500e6a2f0f 51
+  s_51c211a39fc4ac::t_b977be245d673a 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "7163659d55b59095d5fba789e369a35097d8d2b5",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_51c211a39fc4ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "23db251f-e796-401f-b435-e13f8ad6dff5",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
