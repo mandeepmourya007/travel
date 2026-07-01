@@ -12,6 +12,8 @@ import type {
 } from './payment-gateway.interface'
 import type { CashfreeConfig } from '../../config/cashfree'
 import { startTimer } from '../../utils/perf-timer'
+import { PAYMENT_PROVIDER, DEFAULT_CUSTOMER_NAME } from '@shared/constants'
+import { NORMALIZED_PAYMENT_STATUS, CASHFREE_PAYMENT_STATUS } from './payment.constants'
 
 /** Cashfree order-status string → normalized vocabulary */
 const CF_ORDER_STATUS_MAP: Record<string, string> = {
@@ -33,7 +35,7 @@ const CF_ORDER_STATUS_MAP: Record<string, string> = {
  * API version: 2023-08-01  Base URL set by CASHFREE_ENV (sandbox / production)
  */
 export class CashfreeGateway implements IPaymentGateway {
-  readonly provider = 'cashfree' as const
+  readonly provider = PAYMENT_PROVIDER.CASHFREE
 
   constructor(
     private config: CashfreeConfig,
@@ -56,7 +58,7 @@ export class CashfreeGateway implements IPaymentGateway {
       order_note: JSON.stringify(notes),
       customer_details: {
         customer_id: customer?.id ?? receipt,
-        customer_name: customer?.name ?? 'Traveler',
+        customer_name: customer?.name ?? DEFAULT_CUSTOMER_NAME,
         customer_email: customer?.email ?? 'noreply@tripcompare.in',
         customer_phone: customer?.phone ?? '9999999999',
       },
@@ -101,7 +103,7 @@ export class CashfreeGateway implements IPaymentGateway {
         orderId: receipt,  // Use our own receipt as orderId (Cashfree stores cf_order_id separately)
         status: CF_ORDER_STATUS_MAP[status] ?? 'created',
         clientPayload: {
-          provider: 'cashfree',
+          provider: PAYMENT_PROVIDER.CASHFREE,
           orderId: receipt,
           paymentSessionId,
         },
@@ -125,14 +127,14 @@ export class CashfreeGateway implements IPaymentGateway {
       const status = (response['payment_status'] as string ?? 'SUCCESS').toLowerCase()
       return {
         paymentId,
-        status: status === 'success' ? 'captured' : status,
+        status: status === CASHFREE_PAYMENT_STATUS.SUCCESS.toLowerCase() ? NORMALIZED_PAYMENT_STATUS.CAPTURED : status,
         raw: response,
       }
     } catch (error) {
       this.logger.warn({ paymentId, error }, 'Cashfree capturePayment status-fetch failed — treating as captured (auto-capture)')
       // Auto-capture means the payment is captured by Cashfree before we're called.
       // A fetch failure is non-fatal; payment.captured webhook is the safety net.
-      return { paymentId, status: 'captured', raw: null }
+      return { paymentId, status: NORMALIZED_PAYMENT_STATUS.CAPTURED, raw: null }
     }
   }
 
@@ -144,7 +146,7 @@ export class CashfreeGateway implements IPaymentGateway {
     try {
       const response = await this.fetch('GET', `/orders/${input.orderId}`, null)
       const status = response['order_status'] as string | undefined
-      return status === 'PAID'
+      return status === CASHFREE_PAYMENT_STATUS.PAID
     } catch (error) {
       this.logger.error({ orderId: input.orderId, error }, 'Cashfree verifyClientCallback: order-status fetch failed')
       return false
@@ -167,7 +169,7 @@ export class CashfreeGateway implements IPaymentGateway {
       const payments = await this.fetch('GET', `/orders/${orderId}/payments`, null)
       const items = Array.isArray(payments) ? payments : []
       const successful = items.find((p: Record<string, unknown>) =>
-        p['payment_status'] === 'SUCCESS' || p['payment_status'] === 'AUTHORIZED',
+        p['payment_status'] === CASHFREE_PAYMENT_STATUS.SUCCESS || p['payment_status'] === CASHFREE_PAYMENT_STATUS.AUTHORIZED,
       )
       return successful ? String(successful['cf_payment_id'] ?? '') || null : null
     } catch (error) {

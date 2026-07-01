@@ -3,8 +3,11 @@
  * Gateways map their proprietary shapes into these; PaymentService operates only on these.
  */
 
+import { PAYMENT_PROVIDERS } from '@shared/constants'
+
 // ─── Provider Identifier ──────────────────────────────
-export type PaymentProvider = 'razorpay' | 'cashfree'
+// Single source of truth: PAYMENT_PROVIDERS array in packages/shared/src/constants/payment.ts
+export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number]
 
 // ─── Normalized Event Types ───────────────────────────
 export const NORMALIZED_EVENT_TYPE = {

@@ -2,6 +2,8 @@ import crypto from 'crypto'
 import type { Logger } from 'pino'
 import { CURRENCY } from '../../utils/constants'
 import { NORMALIZED_EVENT_TYPE } from '../../types/payment.types'
+import { PAYMENT_PROVIDER } from '@shared/constants'
+import { NORMALIZED_PAYMENT_STATUS } from './payment.constants'
 import type {
   IPaymentGateway,
   CreateOrderParams,
@@ -22,7 +24,7 @@ import type {
  * ⚠️ Only used when NODE_ENV !== 'production' and no real gateway is configured.
  */
 export class MockPaymentGateway implements IPaymentGateway {
-  readonly provider = 'razorpay' as const
+  readonly provider = PAYMENT_PROVIDER.RAZORPAY
 
   constructor(private logger: Logger) {}
 
@@ -36,7 +38,7 @@ export class MockPaymentGateway implements IPaymentGateway {
       orderId,
       status: 'created',
       clientPayload: {
-        provider: 'razorpay',
+        provider: PAYMENT_PROVIDER.RAZORPAY,
         orderId,
         razorpayKeyId: 'rzp_mock_dev_key',
       },
@@ -46,7 +48,7 @@ export class MockPaymentGateway implements IPaymentGateway {
 
   async capturePayment(paymentId: string, _amountPaise: number): Promise<NormalizedPayment> {
     this.logger.warn({ paymentId }, '[MOCK] Payment captured')
-    return { paymentId, status: 'captured', raw: {} }
+    return { paymentId, status: NORMALIZED_PAYMENT_STATUS.CAPTURED, raw: {} }
   }
 
   verifyClientCallback(_input: ClientCallbackInput): boolean {

@@ -91,19 +91,9 @@ export function paginate(filters: { page?: number; limit?: number }) {
 }
 
 // ─── Payment Transaction ─────────────────────────────
-export const PAYMENT_TX_TYPE = {
-  PAYMENT: 'PAYMENT',
-  REFUND: 'REFUND',
-  ESCROW_RELEASE: 'ESCROW_RELEASE',
-} as const
-
-export const PAYMENT_TX_STATUS = {
-  INITIATED: 'INITIATED',
-  AUTHORIZED: 'AUTHORIZED',
-  CAPTURED: 'CAPTURED',
-  FAILED: 'FAILED',
-  REFUNDED: 'REFUNDED',
-} as const
+// Single source of truth: packages/shared/src/constants/payment.ts
+// Alias re-exports preserve all existing call-site imports without any changes.
+export { PAYMENT_TYPE as PAYMENT_TX_TYPE, PAYMENT_STATUS as PAYMENT_TX_STATUS } from '@shared/constants'
 
 // ─── Razorpay Webhook Event Types ────────────────────
 export const RAZORPAY_WEBHOOK_EVENT = {

@@ -14,6 +14,8 @@ import type {
   ClientCallbackInput,
 } from './payment-gateway.interface'
 import { startTimer } from '../../utils/perf-timer'
+import { PAYMENT_PROVIDER } from '@shared/constants'
+import { RAZORPAY_PAYMENT_STATUS } from './payment.constants'
 
 /**
  * Adapter: wraps the Razorpay SDK into the provider-neutral IPaymentGateway contract.
@@ -26,7 +28,7 @@ import { startTimer } from '../../utils/perf-timer'
  * Does NOT touch the DB. All persistence lives in PaymentService (the orchestrator).
  */
 export class RazorpayGateway implements IPaymentGateway {
-  readonly provider = 'razorpay' as const
+  readonly provider = PAYMENT_PROVIDER.RAZORPAY
 
   constructor(
     private razorpay: Razorpay,
@@ -90,7 +92,7 @@ export class RazorpayGateway implements IPaymentGateway {
         orderId: order.id,
         status: (order as unknown as { status: string }).status ?? 'created',
         clientPayload: {
-          provider: 'razorpay',
+          provider: PAYMENT_PROVIDER.RAZORPAY,
           orderId: order.id,
           razorpayKeyId: this.keyId,
         },
@@ -129,7 +131,7 @@ export class RazorpayGateway implements IPaymentGateway {
       try {
         const payment = await this.razorpay.payments.fetch(paymentId)
         const p = payment as unknown as { status: string }
-        if (p.status === 'captured') {
+        if (p.status === RAZORPAY_PAYMENT_STATUS.CAPTURED) {
           this.logger.warn({ paymentId }, 'Capture threw but payment shows captured — treating as success')
           return this.normalizePayment(payment)
         }
@@ -194,7 +196,7 @@ export class RazorpayGateway implements IPaymentGateway {
       }).fetchPayments(orderId)
 
       const paid = payments?.items?.find(
-        (p) => p.status === 'captured' || p.status === 'authorized',
+        (p) => p.status === RAZORPAY_PAYMENT_STATUS.CAPTURED || p.status === RAZORPAY_PAYMENT_STATUS.AUTHORIZED,
       )
       return paid?.id ?? null
     } catch (error) {
