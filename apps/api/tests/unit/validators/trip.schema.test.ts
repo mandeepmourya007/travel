@@ -135,8 +135,8 @@ describe('tripFiltersSchema', () => {
       expect(result.success).toBe(false)
     })
 
-    it('rejects q longer than 100 chars', () => {
-      const result = tripFiltersSchema.safeParse({ q: 'a'.repeat(101) })
+    it('rejects q longer than 200 chars', () => {
+      const result = tripFiltersSchema.safeParse({ q: 'a'.repeat(201) })
       expect(result.success).toBe(false)
     })
   })

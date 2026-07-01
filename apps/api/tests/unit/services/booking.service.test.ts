@@ -1022,6 +1022,7 @@ describe('BookingService', () => {
     const mockBookingWithPayment = {
       id: 'booking-1',
       userId: 'user-1',
+      bookingRef: 'TRP-2025-0001',
       bookingStatus: 'PENDING_PAYMENT',
       numTravelers: 2,
       totalAmount: 8000,
@@ -1059,6 +1060,7 @@ describe('BookingService', () => {
       const result = await service.confirmBooking('booking-1')
 
       expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(result.bookingRef).toBe('TRP-2025-0001')
       // atomicConfirmGate transitions PENDING_PAYMENT→CONFIRMED in the DB
       expect(mockBookingRepo.atomicConfirmGate).toHaveBeenCalledWith('booking-1')
       expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2)
