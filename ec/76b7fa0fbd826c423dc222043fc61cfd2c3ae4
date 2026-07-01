@@ -1,0 +1,35 @@
+apps/api/src/utils/trip-mapper.ts
+  s_ae7fa8f18782c6::t_41ef95d2de9553 26,64,66-68
+  s_ae7fa8f18782c6::t_3ccc8f0dfa5169 69
+  s_ae7fa8f18782c6::t_058cba97f9116f 43
+apps/api/src/repositories/booking.repository.ts
+  s_ae7fa8f18782c6::t_8a17a0124aafee 164-180
+  s_ae7fa8f18782c6::t_21e8fd95535fc5 163
+apps/api/src/services/trip.service.ts
+  s_ae7fa8f18782c6::t_ad36fe5db52023 88-94
+apps/api/src/repositories/trip.repository.ts
+  s_ae7fa8f18782c6::t_3b0f6a7aeb8145 6
+  s_ae7fa8f18782c6::t_1775a1a6ce64de 76-124
+  s_ae7fa8f18782c6::t_a3c7e57fafa3c3 200,219
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "ec76b7fa0fbd826c423dc222043fc61cfd2c3ae4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
