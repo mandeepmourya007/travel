@@ -102,11 +102,19 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
     }
   }, [mobileOpen])
 
+  // Sync the filter input when q is changed externally (e.g. header search navigation).
+  // Loop prevention is handled by the debounce skip check below.
+  useEffect(() => {
+    setLocalSearch(currentFilters.q || '')
+  }, [currentFilters.q])
+
   useEffect(() => {
     if (isSearchInitialMount.current) {
       isSearchInitialMount.current = false
       return
     }
+    // Skip if the URL already has this value (avoids redundant push after external sync)
+    if (debouncedSearch.trim() === (searchParamsRef.current.get('q') ?? '')) return
     markPending()
     const params = new URLSearchParams(searchParamsRef.current.toString())
     debouncedSearch.trim() ? params.set('q', debouncedSearch.trim()) : params.delete('q')
@@ -158,7 +166,7 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
             type="text"
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="Trip name, destination…"
+            placeholder="e.g. weekend amritsar, adventure trek…"
             className="input pl-9 pr-8 text-sm"
           />
           {localSearch && (
