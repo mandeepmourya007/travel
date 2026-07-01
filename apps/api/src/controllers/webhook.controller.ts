@@ -2,13 +2,14 @@ import type { Request, Response } from 'express'
 import { PaymentService } from '../services/payment.service'
 import { BookingService } from '../services/booking.service'
 import { logger } from '../utils/logger'
-import { RAZORPAY_WEBHOOK_EVENT, WEBHOOK_LOG_TAG } from '../utils/constants'
+import { NORMALIZED_EVENT_TYPE, WEBHOOK_LOG_TAG } from '../utils/constants'
+import type { PaymentProvider } from '../types/payment.types'
 
 /**
- * Handles incoming webhook events from payment providers.
+ * Handles incoming webhook events from payment providers (Razorpay and Cashfree).
  *
  * Key design: Responds 200 IMMEDIATELY, then processes async via setImmediate().
- * This prevents Razorpay's 5-second timeout from causing retries (C4 fix).
+ * This prevents provider timeout (5s Razorpay / 30s Cashfree) from causing retries.
  *
  * Pattern: Chain of Responsibility → Strategy (event routing in PaymentService)
  */
@@ -18,77 +19,75 @@ export class WebhookController {
     private bookingService: BookingService,
   ) {}
 
-  /** POST /api/v1/webhooks/razorpay — raw body, verified by middleware */
+  /** POST /api/v1/webhooks/razorpay — raw body, verified inside RazorpayGateway */
   handleRazorpay = async (req: Request, res: Response) => {
-    // Capture request-scoped logger before setImmediate — ALS context does NOT
-    // survive setImmediate boundaries reliably. Fallback to base logger for
-    // webhook routes where pino-http may not have run (raw body pipeline).
+    return this.handleWebhookRequest(req, res, 'razorpay')
+  }
+
+  /** POST /api/v1/webhooks/cashfree — raw body, verified inside CashfreeGateway */
+  handleCashfree = async (req: Request, res: Response) => {
+    return this.handleWebhookRequest(req, res, 'cashfree')
+  }
+
+  private handleWebhookRequest = async (req: Request, res: Response, provider: PaymentProvider) => {
     const log = req.log ?? logger
 
-    // Respond 200 immediately to avoid Razorpay timeout
+    // Respond 200 immediately to avoid provider timeout
     res.status(200).json({ received: true })
 
     try {
       const rawBody = req.body as Buffer
       const headers = req.headers as Record<string, string | string[] | undefined>
 
-      // Record the webhook event (idempotency check inside)
-      const webhookEventId = await this.paymentService.handleWebhook(rawBody, headers)
+      // Verify signature + record event (idempotency check inside)
+      const result = await this.paymentService.handleWebhook(rawBody, headers, provider)
 
-      if (!webhookEventId) {
-        log.info('Duplicate webhook event, skipping processing')
+      if (!result || !result.webhookEventId) {
+        log.info({ provider }, 'Duplicate webhook event, skipping processing')
         return
       }
+
+      const { webhookEventId, normalized } = result
 
       // Process asynchronously after 200 response
       setImmediate(async () => {
         try {
-          const body = JSON.parse(rawBody.toString())
           await this.paymentService.processWebhookEvent({
             id: webhookEventId,
-            eventType: body.event,
-            payload: body,
+            eventType: normalized.rawEventName,
+            normalizedType: normalized.type,
+            payload: normalized.payload,
           })
 
-          // If payment.authorized or order.paid → attempt booking confirmation
-          if ([RAZORPAY_WEBHOOK_EVENT.PAYMENT_AUTHORIZED, RAZORPAY_WEBHOOK_EVENT.ORDER_PAID].includes(body.event)) {
-            const paymentEntity = body.payload?.payment?.entity
-            // For order.paid Razorpay includes both payment.entity and order.entity.
-            // Use payment.entity.order_id first; fall back to order.entity.id in case
-            // payment entity is absent (defensive — Razorpay currently always includes it).
-            const orderId = paymentEntity?.order_id ?? body.payload?.order?.entity?.id
+          // If authorized or paid → attempt booking confirmation
+          if (
+            normalized.type === NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED ||
+            normalized.type === NORMALIZED_EVENT_TYPE.ORDER_PAID
+          ) {
+            const orderId = normalized.orderId
             if (orderId) {
-              // Declare outside try-catch so it's available in the catch for structured logging
               let bookingId: string | null = null
               try {
                 bookingId = await this.paymentService.resolveBookingIdFromOrder(orderId)
                 if (bookingId) {
-                  // confirmBooking is idempotent — safe to call from both FE and webhook
                   await this.bookingService.confirmBooking(bookingId)
-                  log.info({ orderId, bookingId }, 'Booking confirmed via webhook')
+                  log.info({ orderId, bookingId, provider }, 'Booking confirmed via webhook')
                 }
               } catch (confirmError) {
-                // The webhook event is already COMPLETED (processWebhookEvent succeeded above).
-                // A confirmation failure here means the booking may be stuck in PENDING_PAYMENT.
-                // Recovery paths:
-                //   • ValidationError("Payment not authorized yet") → next payment.authorized webhook will confirm
-                //   • Other errors → expiry cron polls Razorpay and confirms or expires the booking
-                // ACTION REQUIRED if booking remains PENDING_PAYMENT after expiry window:
-                //   grep logs for tag=BOOKING_CONFIRM_FAILED and this orderId/bookingId.
                 log.error(
-                  { confirmError, orderId, bookingId, event: body.event, tag: WEBHOOK_LOG_TAG.BOOKING_CONFIRM_FAILED },
-                  'Booking confirmation failed after webhook processed — booking may be stuck in PENDING_PAYMENT; check expiry cron and payment.authorized webhook',
+                  { confirmError, orderId, bookingId, event: normalized.rawEventName, provider, tag: WEBHOOK_LOG_TAG.BOOKING_CONFIRM_FAILED },
+                  'Booking confirmation failed after webhook processed — booking may be stuck in PENDING_PAYMENT; check expiry cron',
                 )
               }
             }
           }
         } catch (error) {
-          log.error({ webhookEventId, error }, 'Async webhook processing failed')
+          log.error({ webhookEventId, provider, error }, 'Async webhook processing failed')
         }
       })
     } catch (error) {
       // Log but don't throw — 200 already sent
-      log.error({ error }, 'Webhook handling error (200 already sent)')
+      log.error({ provider, error }, 'Webhook handling error (200 already sent)')
     }
   }
 }
