@@ -35,6 +35,35 @@ function makeTrip(overrides: Partial<TripForSummary> = {}): TripForSummary {
   }
 }
 
+describe('mapTripToSummary — confirmedGroupCount', () => {
+  it('defaults to 0 when _count is absent', () => {
+    const { confirmedGroupCount } = mapTripToSummary(makeTrip({ _count: undefined }))
+    expect(confirmedGroupCount).toBe(0)
+  })
+
+  it('defaults to 0 when _count.bookings is absent', () => {
+    const { confirmedGroupCount } = mapTripToSummary(makeTrip({ _count: { reviews: 5 } }))
+    expect(confirmedGroupCount).toBe(0)
+  })
+
+  it('maps _count.bookings to confirmedGroupCount', () => {
+    const { confirmedGroupCount } = mapTripToSummary(makeTrip({ _count: { reviews: 5, bookings: 3 } }))
+    expect(confirmedGroupCount).toBe(3)
+  })
+})
+
+describe('mapTripToSummary — pendingRequestCount', () => {
+  it('defaults to 0 when _count.tripRequests is absent', () => {
+    const { pendingRequestCount } = mapTripToSummary(makeTrip({ _count: { reviews: 0 } }))
+    expect(pendingRequestCount).toBe(0)
+  })
+
+  it('maps _count.tripRequests to pendingRequestCount', () => {
+    const { pendingRequestCount } = mapTripToSummary(makeTrip({ _count: { reviews: 0, tripRequests: 4 } }))
+    expect(pendingRequestCount).toBe(4)
+  })
+})
+
 describe('mapTripToSummary — isTrending', () => {
   it('is false when trendingScore is null', () => {
     const { isTrending } = mapTripToSummary(makeTrip({ trendingScore: null }))
