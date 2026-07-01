@@ -1,0 +1,30 @@
+apps/api/tests/unit/services/booking.service.test.ts
+  s_ae7fa8f18782c6::t_9548c8bcd12d9a 1025
+  s_ae7fa8f18782c6::t_2492bfff3157af 1063
+apps/api/tests/unit/validators/trip.schema.test.ts
+  s_ae7fa8f18782c6::t_a8715074891fd3 138-139
+apps/api/tests/unit/utils/search.test.ts
+  s_ae7fa8f18782c6::t_2cc30b74f56bbb 33-52
+  s_ae7fa8f18782c6::t_a00403d9a7b241 1-32,53-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "bd5edd1702168f0d24c85366e3c02136a9cdace6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
