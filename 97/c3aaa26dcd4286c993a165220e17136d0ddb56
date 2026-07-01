@@ -1,0 +1,24 @@
+apps/web/src/test/factories/booking.factory.ts
+  s_04eacb94369cfe::t_5ab1a48712f04a 73,75,78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "97c3aaa26dcd4286c993a165220e17136d0ddb56",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_04eacb94369cfe": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7529bf52-e248-40af-bff7-9d55e2281434",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
