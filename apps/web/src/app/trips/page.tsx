@@ -53,7 +53,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   const searchLabel = q || destination
   const heading = searchLabel
     ? `Search results for "${searchLabel}"`
-    : 'Explore All Group Trips from Pune'
+    : 'Explore All Group Trips'
 
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },

@@ -56,6 +56,8 @@ export function makeCreateBookingResponse(
   return {
     bookingId: `booking-${counter}`,
     bookingRef: `TRP-2025-${String(counter).padStart(4, '0')}`,
+    provider: 'razorpay' as const,
+    gatewayOrderId: `order_test_${counter}`,
     razorpayOrderId: `order_test_${counter}`,
     razorpayKeyId: 'rzp_test_key123',
     amountInRupees: 5000,

@@ -78,7 +78,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
           key: result.razorpayKeyId,
           amount: result.amountInRupees * 100,
           currency: 'INR',
-          order_id: result.razorpayOrderId,
+          order_id: result.razorpayOrderId ?? '',
           name: APP_NAME,
           description: `Booking for ${trip.title}`,
           prefill: { name: user.name, email: user.email },
@@ -86,9 +86,10 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
             try {
               await verifyPayment.mutateAsync({
                 bookingId: result.bookingId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
+                orderId: response.razorpay_order_id,
+                paymentId: response.razorpay_payment_id,
+                signature: response.razorpay_signature,
+                provider: 'razorpay',
                 tripSlug: trip.slug,
                 tripId: trip.id,
               })

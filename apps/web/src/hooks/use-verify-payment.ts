@@ -5,9 +5,13 @@ import type { VerifyPaymentResponse } from '@shared/types/payment.types'
 
 interface VerifyPaymentInput {
   bookingId: string
-  razorpayOrderId: string
-  razorpayPaymentId: string
-  razorpaySignature: string
+  /** Provider-neutral order ID */
+  orderId: string
+  /** Payment ID — required for Razorpay; undefined for Cashfree (server verifies via order status) */
+  paymentId?: string
+  /** HMAC signature — required for Razorpay; not used for Cashfree */
+  signature?: string
+  provider?: 'razorpay' | 'cashfree'
   /** Used only for targeted cache invalidation — not sent to the API */
   tripSlug?: string
   /** Used only for targeted cache invalidation — not sent to the API */
@@ -15,18 +19,22 @@ interface VerifyPaymentInput {
 }
 
 /**
- * Verifies Razorpay payment signature with backend and confirms booking.
+ * Verifies payment signature/status with backend and confirms booking.
  *
  * POST /bookings/:id/verify-payment → VerifyPaymentResponse
- * Invalidates: bookings, the booked trip's detail + trip lists (seat counts
- * changed), and that trip's seat map — not the whole trips domain.
- * Error handling: callers show the error UI (they have the booking ref).
+ * Razorpay: sends orderId + paymentId + signature (HMAC verified server-side).
+ * Cashfree: sends orderId + provider='cashfree' (server does order-status fetch, no HMAC).
  */
 export function useVerifyPayment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ bookingId, tripSlug: _tripSlug, tripId: _tripId, ...body }: VerifyPaymentInput) => {
+    mutationFn: async ({
+      bookingId,
+      tripSlug: _tripSlug,
+      tripId: _tripId,
+      ...body
+    }: VerifyPaymentInput) => {
       const res = await apiClient.post<{ success: true; data: VerifyPaymentResponse }>(
         `/bookings/${bookingId}/verify-payment`,
         body,

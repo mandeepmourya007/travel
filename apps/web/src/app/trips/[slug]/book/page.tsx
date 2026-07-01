@@ -19,6 +19,7 @@ import { vehicleKeys } from '@/lib/query-keys'
 import { useVerifyPayment } from '@/hooks/use-verify-payment'
 import { useAuthStore } from '@/store/auth.store'
 import { loadRazorpayScript } from '@/lib/razorpay'
+import { loadCashfreeScript } from '@/lib/cashfree'
 // [TravelerDetail] import { TravelerForm, type TravelerFormValues } from '@/components/booking/traveler-form'
 import { TravelerForm } from '@/components/booking/traveler-form'
 import { PriceSummary } from '@/components/booking/price-summary'
@@ -161,73 +162,91 @@ export default function BookingPage({
         seatIds: selectedSeatIds.length > 0 ? selectedSeatIds : undefined,
       })
 
-      if (!result.razorpayKeyId) {
-        toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
-        setIsProcessing(false)
-        return
-      }
-
       // Seats are now held — surface the payment deadline to the user (P1-1)
       setHoldExpiresAt(result.expiresAt)
 
       // Inner try: booking already created at this point. Any failure here
-      // (CDN blocked, Razorpay init error) must surface the booking ref so
+      // (CDN blocked, gateway init error) must surface the booking ref so
       // the user isn't left wondering whether money was taken.
       try {
-        const RazorpayClass = await loadRazorpayScript()
+        if (result.provider === 'cashfree') {
+          if (!result.paymentSessionId) {
+            toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
+            setIsProcessing(false)
+            return
+          }
+          // Stash bookingId so /payment-complete can call verify-payment after redirect
+          sessionStorage.setItem('cashfree_pending_booking_id', result.bookingId)
 
-        new RazorpayClass({
-          key: result.razorpayKeyId,
-          amount: result.amountInRupees * 100,
-          currency: 'INR',
-          order_id: result.razorpayOrderId,
-          name: APP_NAME,
-          description: `Booking for ${trip.title}`,
-          prefill: { name: user.name, email: user.email },
+          const cashfree = await loadCashfreeScript()
+          // Redirects the current tab to Cashfree hosted checkout.
+          // Cashfree substitutes {order_id} in return_url (set on the backend).
+          cashfree.checkout({ paymentSessionId: result.paymentSessionId, redirectTarget: '_self' })
+          // Execution continues until the redirect kicks in — keep isProcessing=true
+        } else {
+          // ── Razorpay modal flow ──────────────────────────────
+          if (!result.razorpayKeyId) {
+            toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
+            setIsProcessing(false)
+            return
+          }
 
-          handler: async (response) => {
-            try {
-              await verifyPayment.mutateAsync({
-                bookingId: result.bookingId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                tripSlug: trip.slug,
-                tripId: trip.id,
-              })
-              setBookingResult({
-                bookingRef: result.bookingRef,
-                tripTitle: trip.title,
-                tripDates: { start: trip.startDate, end: trip.endDate },
-                numTravelers,
-                amountPaid: result.amountInRupees,
-              })
-              // [TravelerDetail] if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
-              setHoldExpiresAt(null)
-              setPhase('success')
-            } catch {
-              // Money may already be debited — give the user their booking ref
-              // and refund reassurance instead of a bare "contact support"
-              toast({
-                variant: 'error',
-                title: 'Payment verification failed',
-                description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
-                duration: 15000,
-              })
-            } finally {
-              setIsProcessing(false)
-            }
-          },
+          const RazorpayClass = await loadRazorpayScript()
 
-          modal: {
-            ondismiss: () => {
-              toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
-              setIsProcessing(false)
+          new RazorpayClass({
+            key: result.razorpayKeyId,
+            amount: result.amountInRupees * 100,
+            currency: 'INR',
+            order_id: result.razorpayOrderId ?? '',
+            name: APP_NAME,
+            description: `Booking for ${trip.title}`,
+            prefill: { name: user.name, email: user.email },
+
+            handler: async (response) => {
+              try {
+                await verifyPayment.mutateAsync({
+                  bookingId: result.bookingId,
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  provider: 'razorpay',
+                  tripSlug: trip.slug,
+                  tripId: trip.id,
+                })
+                setBookingResult({
+                  bookingRef: result.bookingRef,
+                  tripTitle: trip.title,
+                  tripDates: { start: trip.startDate, end: trip.endDate },
+                  numTravelers,
+                  amountPaid: result.amountInRupees,
+                })
+                // [TravelerDetail] if (requestId) sessionStorage.removeItem(`request-travelers-${requestId}`)
+                setHoldExpiresAt(null)
+                setPhase('success')
+              } catch {
+                // Money may already be debited — give the user their booking ref
+                // and refund reassurance instead of a bare "contact support"
+                toast({
+                  variant: 'error',
+                  title: 'Payment verification failed',
+                  description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
+                  duration: 15000,
+                })
+              } finally {
+                setIsProcessing(false)
+              }
             },
-          },
-        }).open()
+
+            modal: {
+              ondismiss: () => {
+                toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
+                setIsProcessing(false)
+              },
+            },
+          }).open()
+        }
       } catch {
-        // Script load failure or Razorpay init error — booking is already created,
+        // Script load failure or gateway init error — booking is already created,
         // so surface the ref so the user can contact support if needed.
         toast({
           variant: 'error',

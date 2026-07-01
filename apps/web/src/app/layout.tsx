@@ -29,9 +29,9 @@ export const metadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description:
-    'Discover and book curated group trips. SafePay-protected payments, verified organizers, and hassle-free group travel from Pune.',
+    'Discover and book curated group trips. SafePay-protected payments, verified organizers, and hassle-free group travel.',
   keywords: [
-    'group trips', 'group travel', 'weekend trips from Pune', 'adventure trips India',
+    'group trips', 'group travel', 'weekend trips', 'adventure trips India',
     'trekking trips', 'beach trips Goa', 'Ladakh bike trip', 'SafePay payment travel',
     'verified trip organizers', 'compare group trips',
   ],
