@@ -125,6 +125,10 @@ export const WEBHOOK_LOG_TAG = {
   BOOKING_CONFIRM_FAILED: 'BOOKING_CONFIRM_FAILED',
 } as const
 
+// ─── Normalized (Provider-Neutral) Webhook Event Types ───
+// Re-exported from types/payment.types — constants.ts is the central import point
+export { NORMALIZED_EVENT_TYPE } from '../types/payment.types'
+
 // ─── Invite Token Types ───────────────────────────────
 export const INVITE_TOKEN_TYPE = {
   ORGANIZER_INVITE: 'ORGANIZER_INVITE',

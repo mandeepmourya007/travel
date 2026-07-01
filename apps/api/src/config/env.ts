@@ -34,6 +34,13 @@ const envSchema = z.object({
   // Comma-separated list of additional allowed origins (e.g. custom domain alongside Render URL)
   ALLOWED_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
+  // ── Payment Gateway Selection ──────────────────────
+  PAYMENT_GATEWAY: z.enum(['razorpay', 'cashfree']).default('razorpay'),
+  // ── Cashfree (full integration — not just test) ────
+  CASHFREE_APP_ID: z.string().optional(),
+  CASHFREE_SECRET_KEY: z.string().optional(),
+  CASHFREE_WEBHOOK_SECRET: z.string().optional(),
+  CASHFREE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
   // ── Sentry (optional — no-op when absent) ─────────
   SENTRY_DSN: z.string().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
@@ -65,6 +72,21 @@ const envSchema = z.object({
         code: z.ZodIssueCode.custom,
         message: 'RAZORPAY_WEBHOOK_SECRET is required in production when RAZORPAY_KEY_ID is set',
       })
+    }
+    // Cashfree: all credentials + webhook secret required when it is the active gateway
+    if (data.PAYMENT_GATEWAY === 'cashfree') {
+      if (!data.CASHFREE_APP_ID || !data.CASHFREE_SECRET_KEY) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'CASHFREE_APP_ID and CASHFREE_SECRET_KEY are required in production when PAYMENT_GATEWAY=cashfree',
+        })
+      }
+      if (!data.CASHFREE_WEBHOOK_SECRET) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'CASHFREE_WEBHOOK_SECRET is required in production when PAYMENT_GATEWAY=cashfree',
+        })
+      }
     }
     // P3-1: Redis required in prod — without it rate-limiting is per-process and caching is disabled
     if (!data.REDIS_URL) {

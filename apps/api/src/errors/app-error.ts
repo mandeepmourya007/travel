@@ -55,9 +55,9 @@ export class ConflictError extends AppError {
 export class PaymentError extends AppError {
   constructor(
     message: string,
-    public razorpayError?: unknown,
+    public gatewayError?: unknown,
   ) {
-    super(message, 502, 'PAYMENT_FAILED', true, razorpayError)
+    super(message, 502, 'PAYMENT_FAILED', true, gatewayError)
   }
 }
 
