@@ -85,7 +85,16 @@ export const cancelBookingSchema = z.object({
 // ─── Payment Verification ──────────────────────────
 
 export const verifyPaymentSchema = z.object({
-  razorpayOrderId: z.string().min(1, 'Order ID is required'),
-  razorpayPaymentId: z.string().min(1, 'Payment ID is required'),
-  razorpaySignature: z.string().min(1, 'Signature is required'),
-})
+  provider: z.enum(['razorpay', 'cashfree']).optional(),
+  // Provider-neutral
+  orderId: z.string().min(1).optional(),
+  paymentId: z.string().min(1).optional(),
+  signature: z.string().min(1).optional(),
+  // Razorpay legacy (kept for backwards compat)
+  razorpayOrderId: z.string().min(1).optional(),
+  razorpayPaymentId: z.string().min(1).optional(),
+  razorpaySignature: z.string().min(1).optional(),
+}).refine(
+  (d) => d.orderId || d.razorpayOrderId,
+  { message: 'orderId is required', path: ['orderId'] },
+)

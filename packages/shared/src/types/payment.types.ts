@@ -1,11 +1,18 @@
 export interface CreateBookingResponse {
   bookingId: string
   bookingRef: string
-  razorpayOrderId: string
-  razorpayKeyId: string
   amountInRupees: number
   currency: string
   expiresAt: string
+  /** Which payment gateway created this order — determines checkout flow on FE */
+  provider: 'razorpay' | 'cashfree'
+  /** Provider-neutral order identifier */
+  gatewayOrderId: string
+  // ── Razorpay-specific (present when provider='razorpay') ─────────
+  razorpayOrderId?: string
+  razorpayKeyId?: string
+  // ── Cashfree-specific (present when provider='cashfree') ─────────
+  paymentSessionId?: string
 }
 
 // ─── Payment History Types ───────────────────────────
@@ -88,9 +95,17 @@ export interface AdminPaymentSummary {
 }
 
 export interface VerifyPaymentDto {
-  razorpayOrderId: string
-  razorpayPaymentId: string
-  razorpaySignature: string
+  /** Provider-neutral order ID — required when razorpayOrderId is absent */
+  orderId?: string
+  /** Payment ID — required for Razorpay; optional/undefined for Cashfree */
+  paymentId?: string
+  /** HMAC signature — required for Razorpay; not used for Cashfree */
+  signature?: string
+  provider?: 'razorpay' | 'cashfree'
+  // ── Legacy fields — kept for backward compat during transition ──────────
+  razorpayOrderId?: string
+  razorpayPaymentId?: string
+  razorpaySignature?: string
 }
 
 export interface VerifyPaymentResponse {
