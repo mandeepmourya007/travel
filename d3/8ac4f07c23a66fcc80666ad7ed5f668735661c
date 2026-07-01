@@ -1,0 +1,39 @@
+docker-compose.yml
+  s_b288e5961aca67::t_a05a1a9bd34499 129
+  s_b288e5961aca67::t_95862752d12b7e 70
+.env.example
+  s_351a01443e1284::t_5438d9eec53c76 89,96-97,102
+  s_b288e5961aca67::t_7588bc0ee1fd00 100-101
+  s_b288e5961aca67::t_2714f99402920b 86-88,90-95,98-99
+apps/api/package.json
+  s_351a01443e1284::t_6f4d6eb34a2eaf 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "d38ac4f07c23a66fcc80666ad7ed5f668735661c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_351a01443e1284": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f6cd5c6a-06ea-46a5-bd31-8cc12794c243",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
