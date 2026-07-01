@@ -420,10 +420,14 @@ export class BookingRepository {
       // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
     },
     paymentTxData: {
-      razorpayOrderId: string
       amount: number
       type: PaymentType
       status: PaymentStatus
+      provider?: string
+      // Provider-neutral (new)
+      gatewayOrderId?: string
+      // Legacy Razorpay (kept during expand phase)
+      razorpayOrderId?: string
     },
   ) {
     const bookingRef = this.generateBookingRef()
@@ -448,7 +452,9 @@ export class BookingRepository {
           bookingId: booking.id,
           type: paymentTxData.type,
           amount: paymentTxData.amount,
-          razorpayOrderId: paymentTxData.razorpayOrderId,
+          provider: paymentTxData.provider ?? 'razorpay',
+          gatewayOrderId: paymentTxData.gatewayOrderId,
+          razorpayOrderId: paymentTxData.razorpayOrderId ?? paymentTxData.gatewayOrderId,
           status: paymentTxData.status,
         },
       })

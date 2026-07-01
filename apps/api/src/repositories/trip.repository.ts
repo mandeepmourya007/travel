@@ -423,6 +423,7 @@ export class TripRepository {
             totalReviews: true,
             verificationStatus: true,
             razorpayAccountId: true,
+            cashfreeVendorId: true,
             commissionRate: true,
           },
         },

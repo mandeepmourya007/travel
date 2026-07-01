@@ -27,15 +27,20 @@ export class PaymentTransactionRepository {
 
   /**
    * Creates a new payment transaction record.
-   *
-   * Used by: BookingService.createBooking() — records the initial INITIATED transaction
-   * Used by: PaymentService.handlePaymentFailed() — records a FAILED transaction
+   * Accepts both legacy razorpay* fields (expand phase) and provider-neutral gateway* fields.
    */
   async create(data: {
     bookingId: string
     type: PaymentType
     amount: number
     currency?: string
+    provider?: string
+    // Provider-neutral (new)
+    gatewayOrderId?: string
+    gatewayPaymentId?: string
+    gatewayRefundId?: string
+    gatewayTransferId?: string
+    // Legacy Razorpay (retained during expand phase)
     razorpayOrderId?: string
     razorpayPaymentId?: string
     razorpayRefundId?: string
@@ -68,24 +73,53 @@ export class PaymentTransactionRepository {
    *
    * Edge case: Returns null if order ID not found (orphan webhook)
    */
-  async findByRazorpayOrderId(orderId: string) {
+  /**
+   * Finds a payment transaction by gateway order ID (provider-neutral).
+   *
+   * WHERE: gatewayOrderId (indexed)
+   * Filters: prefers gatewayOrderId, falls back to razorpayOrderId for legacy rows
+   * Used by: Webhook handler — resolves internal booking from gateway order
+   *
+   * Edge case: Returns null if order ID not found (orphan webhook)
+   */
+  async findByGatewayOrderId(orderId: string) {
     return this.prisma.paymentTransaction.findFirst({
-      where: { razorpayOrderId: orderId },
+      where: {
+        OR: [
+          { gatewayOrderId: orderId },
+          { razorpayOrderId: orderId }, // legacy rows not yet backfilled
+        ],
+      },
     })
   }
 
+  /** @deprecated Use findByGatewayOrderId — kept for backward compat during expand phase */
+  async findByRazorpayOrderId(orderId: string) {
+    return this.findByGatewayOrderId(orderId)
+  }
+
   /**
-   * Finds a payment transaction by Razorpay payment ID.
+   * Finds a payment transaction by gateway payment ID (provider-neutral).
    *
-   * WHERE: razorpayPaymentId (indexed)
+   * WHERE: gatewayPaymentId (indexed)
    * Used by: Webhook handler — refund.processed lookup
    *
    * Edge case: Returns null if payment ID not found
    */
-  async findByRazorpayPaymentId(paymentId: string) {
+  async findByGatewayPaymentId(paymentId: string) {
     return this.prisma.paymentTransaction.findFirst({
-      where: { razorpayPaymentId: paymentId },
+      where: {
+        OR: [
+          { gatewayPaymentId: paymentId },
+          { razorpayPaymentId: paymentId }, // legacy rows
+        ],
+      },
     })
+  }
+
+  /** @deprecated Use findByGatewayPaymentId — kept for backward compat during expand phase */
+  async findByRazorpayPaymentId(paymentId: string) {
+    return this.findByGatewayPaymentId(paymentId)
   }
 
   /**
@@ -93,32 +127,64 @@ export class PaymentTransactionRepository {
    *
    * Used by: Every payment state transition (INITIATED→AUTHORIZED→CAPTURED, FAILED, REFUNDED)
    */
+  /**
+   * Updates payment transaction status with optional metadata.
+   *
+   * Used by: Every payment state transition (INITIATED→AUTHORIZED→CAPTURED, FAILED, REFUNDED)
+   *
+   * Accepts both provider-neutral gateway* fields and legacy razorpay* fields.
+   * During the expand phase both are mirrored; after contract migration razorpay* will be removed.
+   */
   async updateStatus(
     id: string,
     status: PaymentStatus,
     extras?: {
       failureReason?: string
       metadata?: Prisma.InputJsonValue
+      // Provider-neutral (new)
+      gatewayPaymentId?: string
+      gatewayRefundId?: string
+      gatewayTransferId?: string
+      // Legacy Razorpay (retained during expand phase)
       razorpayPaymentId?: string
       razorpayRefundId?: string
       razorpayTransferId?: string
     },
   ) {
+    // Mirror gateway* ↔ razorpay* during expand phase so both columns stay in sync
+    const { gatewayPaymentId, gatewayRefundId, gatewayTransferId, ...rest } = extras ?? {}
+    const data: Record<string, unknown> = { status, ...rest }
+    if (gatewayPaymentId !== undefined) {
+      data.gatewayPaymentId = gatewayPaymentId
+      data.razorpayPaymentId = gatewayPaymentId
+    }
+    if (gatewayRefundId !== undefined) {
+      data.gatewayRefundId = gatewayRefundId
+      data.razorpayRefundId = gatewayRefundId
+    }
+    if (gatewayTransferId !== undefined) {
+      data.gatewayTransferId = gatewayTransferId
+      data.razorpayTransferId = gatewayTransferId
+    }
     return this.prisma.paymentTransaction.update({
       where: { id },
-      data: { status, ...extras },
+      data,
     })
   }
 
   /**
-   * Sets the Razorpay payment ID after authorization.
+   * Sets the gateway payment ID after authorization.
    *
-   * Used by: PaymentService.handlePaymentAuthorized()
+   * Used by: PaymentService.handlePaymentAuthorized() / handlePaymentCaptured() / handleOrderPaid()
+   * Mirrors to razorpayPaymentId during the expand phase.
    */
-  async updatePaymentId(id: string, razorpayPaymentId: string) {
+  async updatePaymentId(id: string, paymentId: string) {
     return this.prisma.paymentTransaction.update({
       where: { id },
-      data: { razorpayPaymentId },
+      data: {
+        gatewayPaymentId: paymentId,
+        razorpayPaymentId: paymentId, // mirror during expand phase
+      },
     })
   }
 

@@ -37,9 +37,14 @@ import { createTripRoutes } from '../routes/trip.routes'
 import { createUploadRoutes } from '../routes/upload.routes'
 import { BookingService } from '../services/booking.service'
 import { PaymentService } from '../services/payment.service'
-import { MockPaymentService } from '../services/mock-payment.service'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
+import { RazorpayGateway } from '../providers/payment/razorpay.gateway'
+import { CashfreeGateway } from '../providers/payment/cashfree.gateway'
+import { MockPaymentGateway } from '../providers/payment/mock-payment.gateway'
+import type { IPaymentGateway } from '../providers/payment/payment-gateway.interface'
+import type { PaymentProvider } from '../types/payment.types'
+import { cashfreeConfig, isCashfreeConfigured } from './cashfree'
 import { BookingController } from '../controllers/booking.controller'
 import { WebhookController } from '../controllers/webhook.controller'
 import { createBookingRoutes } from '../routes/booking.routes'
@@ -131,20 +136,46 @@ const getIo = () => ioInstance
 // ── Services ─────────────────────────────────────────
 const destinationService = new DestinationService(destinationRepo, tripRepo, logger, cacheService)
 const uploadService = new UploadService()
-const paymentService = razorpayClient
-  ? new PaymentService(
+// ── Payment gateway registry (Strategy + Factory pattern) ────
+// Build a registry of all configured gateways. The active gateway is selected
+// by env.PAYMENT_GATEWAY (default: 'razorpay').
+// The registry also allows routing refunds/escrow-releases/webhooks to the
+// gateway that originally created a transaction — critical for cutover correctness.
+const gatewayRegistry = new Map<PaymentProvider, IPaymentGateway>()
+
+if (razorpayClient) {
+  gatewayRegistry.set(
+    'razorpay',
+    new RazorpayGateway(
       razorpayClient,
-      paymentTxRepo,
-      webhookEventRepo,
       env.RAZORPAY_KEY_SECRET || '',
+      env.RAZORPAY_WEBHOOK_SECRET || '',
+      env.RAZORPAY_KEY_ID || '',
       logger,
-    )
-  : env.NODE_ENV !== 'production'
+    ),
+  )
+}
+
+if (isCashfreeConfigured() && cashfreeConfig) {
+  gatewayRegistry.set('cashfree', new CashfreeGateway(cashfreeConfig, logger))
+}
+
+const activeProvider: PaymentProvider = env.PAYMENT_GATEWAY
+const activeGateway = gatewayRegistry.get(activeProvider)
+  ?? (env.NODE_ENV !== 'production'
     ? (() => {
-        logger.warn('Using MockPaymentService — Razorpay not configured. Payments will be simulated.')
-        return new MockPaymentService(paymentTxRepo, webhookEventRepo, logger)
+        logger.warn(`No gateway configured for provider="${activeProvider}" — using MockPaymentGateway. Payments will be simulated.`)
+        return new MockPaymentGateway(logger)
       })()
-    : (() => { throw new Error('RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are required in production') })()
+    : (() => { throw new Error(`PAYMENT_GATEWAY=${activeProvider} selected but not configured. Check RAZORPAY_KEY_ID/CASHFREE_APP_ID env vars.`) })())
+
+const paymentService = new PaymentService(
+  activeGateway,
+  gatewayRegistry,
+  paymentTxRepo,
+  webhookEventRepo,
+  logger,
+)
 
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
@@ -264,12 +295,13 @@ export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategor
 export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
 export const webhookRoutes = (() => {
   if (!webhookController) return null
-  const secret = env.RAZORPAY_WEBHOOK_SECRET || ''
-  if (!secret) {
-    logger.warn('RAZORPAY_WEBHOOK_SECRET is not set — webhook routes will NOT be mounted. Set it to accept Razorpay callbacks.')
+  const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''
+  const cashfreeSecret = env.CASHFREE_WEBHOOK_SECRET || ''
+  if (!razorpaySecret && !cashfreeSecret) {
+    logger.warn('No webhook secrets configured (RAZORPAY_WEBHOOK_SECRET / CASHFREE_WEBHOOK_SECRET) — webhook routes will NOT be mounted.')
     return null
   }
-  return createWebhookRoutes(webhookController, secret)
+  return createWebhookRoutes(webhookController, razorpaySecret, cashfreeSecret)
 })()
 
 // ── Sitemap Service ──────────────────────────────────
