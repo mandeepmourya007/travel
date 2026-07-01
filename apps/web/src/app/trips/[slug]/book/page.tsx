@@ -17,6 +17,7 @@ import { getErrorMessage } from '@/lib/api-client'
 import { getBookingConflictKind } from '@/lib/booking-errors'
 import { vehicleKeys } from '@/lib/query-keys'
 import { useVerifyPayment } from '@/hooks/use-verify-payment'
+import { PAYMENT_PROVIDER } from '@shared/constants'
 import { useAuthStore } from '@/store/auth.store'
 import { loadRazorpayScript } from '@/lib/razorpay'
 import { loadCashfreeScript } from '@/lib/cashfree'
@@ -169,7 +170,7 @@ export default function BookingPage({
       // (CDN blocked, gateway init error) must surface the booking ref so
       // the user isn't left wondering whether money was taken.
       try {
-        if (result.provider === 'cashfree') {
+        if (result.provider === PAYMENT_PROVIDER.CASHFREE) {
           if (!result.paymentSessionId) {
             toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
             setIsProcessing(false)
@@ -209,7 +210,7 @@ export default function BookingPage({
                   orderId: response.razorpay_order_id,
                   paymentId: response.razorpay_payment_id,
                   signature: response.razorpay_signature,
-                  provider: 'razorpay',
+                  provider: PAYMENT_PROVIDER.RAZORPAY,
                   tripSlug: trip.slug,
                   tripId: trip.id,
                 })

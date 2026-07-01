@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/store/auth.store'
 import type { AuthResponse } from '@shared/types/auth.types'
+import type { UserRole } from '@shared/constants'
 
 type GoogleAuthResponse = AuthResponse & { isNewUser: boolean }
 
@@ -35,7 +36,7 @@ export function useGoogleAuth(opts?: UseGoogleAuthOptions) {
           id: data.user.id,
           name: data.user.name,
           email: data.user.email,
-          role: data.user.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN',
+          role: data.user.role as UserRole,
           avatarUrl: data.user.avatarUrl,
         },
         data.tokens.accessToken,

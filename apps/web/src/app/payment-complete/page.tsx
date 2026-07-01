@@ -6,6 +6,7 @@ import { CheckCircle, XCircle, Loader2, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { apiClient } from '@/lib/api-client'
 import type { VerifyPaymentResponse } from '@shared/types/payment.types'
+import { PAYMENT_PROVIDER } from '@shared/constants'
 
 type PageState = 'verifying' | 'success' | 'failed' | 'missing-params'
 
@@ -37,7 +38,7 @@ export default function PaymentCompletePage() {
     apiClient
       .post<{ success: true; data: VerifyPaymentResponse }>(
         `/bookings/${bookingId}/verify-payment`,
-        { orderId, provider: 'cashfree' },
+        { orderId, provider: PAYMENT_PROVIDER.CASHFREE },
       )
       .then((res) => {
         const status = res.data.data.bookingStatus

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { bookingKeys, tripKeys, vehicleKeys } from '@/lib/query-keys'
 import type { VerifyPaymentResponse } from '@shared/types/payment.types'
+import type { PaymentProviderConst } from '@shared/constants'
 
 interface VerifyPaymentInput {
   bookingId: string
@@ -11,7 +12,7 @@ interface VerifyPaymentInput {
   paymentId?: string
   /** HMAC signature — required for Razorpay; not used for Cashfree */
   signature?: string
-  provider?: 'razorpay' | 'cashfree'
+  provider?: PaymentProviderConst
   /** Used only for targeted cache invalidation — not sent to the API */
   tripSlug?: string
   /** Used only for targeted cache invalidation — not sent to the API */

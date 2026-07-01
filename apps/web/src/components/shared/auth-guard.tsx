@@ -4,10 +4,11 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import { Spinner } from '@/components/shared/spinner'
+import type { UserRole } from '@shared/constants'
 
 interface AuthGuardProps {
   children: React.ReactNode
-  allowedRoles?: ('TRAVELER' | 'ORGANIZER' | 'ADMIN')[]
+  allowedRoles?: UserRole[]
 }
 
 export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {

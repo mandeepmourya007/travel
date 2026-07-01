@@ -16,6 +16,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import type { TripDetail } from '@shared/types/trip.types'
+import { USER_ROLE, BOOKING_STATUS } from '@shared/constants'
 
 interface TripCtaButtonProps {
   trip: TripDetail
@@ -30,7 +31,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
   const { data: tripStatus } = useMyTripBookingStatus(trip.id)
   const currentUser = useAuthStore((s) => s.user)
 
-  const isOrganizer = currentUser?.role === 'ORGANIZER'
+  const isOrganizer = currentUser?.role === USER_ROLE.ORGANIZER
 
   const isCard = variant === 'card'
 
@@ -50,7 +51,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
 
   return (
     <>
-      {tripStatus?.bookingStatus === 'CONFIRMED' ? (
+      {tripStatus?.bookingStatus === BOOKING_STATUS.CONFIRMED ? (
         isOrganizer ? (
           <button type="button" onClick={handleOrganizerClick} className={primaryCls}>
             Book Again

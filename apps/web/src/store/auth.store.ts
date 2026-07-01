@@ -1,11 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { UserRole } from '@shared/constants'
 
 interface AuthUser {
   id: string
   name: string
   email?: string
-  role: 'TRAVELER' | 'ORGANIZER' | 'ADMIN'
+  role: UserRole
   avatarUrl?: string
 }
 

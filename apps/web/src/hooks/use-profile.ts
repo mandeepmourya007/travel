@@ -4,6 +4,7 @@ import { STALE_TIME_STATIC } from '@/lib/constants'
 import { useAuthStore } from '@/store/auth.store'
 import { profileKeys } from '@/lib/query-keys'
 import type { UserProfileResponse, UpdateUserProfileDto, UpdateOrganizerProfileDto, ConnectBankAccountDto, ConnectBankAccountResponse } from '@shared/types/user.types'
+import type { UserRole } from '@shared/constants'
 
 /**
  * Fetches the authenticated user's full profile (including organizer data).
@@ -36,11 +37,11 @@ export function useUpdateProfile() {
       // When the role changes, the backend returns a new access token with the updated role claim
       if (data.accessToken && currentUser) {
         setAuth(
-          { ...currentUser, name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' },
+          { ...currentUser, name: data.name, role: data.role as UserRole },
           data.accessToken,
         )
       } else {
-        updateUser({ name: data.name, role: data.role as 'TRAVELER' | 'ORGANIZER' | 'ADMIN' })
+        updateUser({ name: data.name, role: data.role as UserRole })
       }
     },
   })

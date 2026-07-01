@@ -19,6 +19,7 @@ import { getErrorMessage } from '@/lib/api-client'
 import { loadRazorpayScript } from '@/lib/razorpay'
 import { bookingKeys } from '@/lib/query-keys'
 import { APP_NAME } from '@/lib/constants'
+import { PAYMENT_PROVIDER, BOOKING_STATUS } from '@shared/constants'
 
 interface MyBookingCardProps {
   booking: MyBookingListItem
@@ -34,7 +35,7 @@ function getCountdown(startDate: string): string | null {
 }
 
 function canCancel(booking: MyBookingListItem): boolean {
-  if (!['CONFIRMED', 'PENDING_PAYMENT'].includes(booking.bookingStatus)) return false
+  if (booking.bookingStatus !== BOOKING_STATUS.CONFIRMED && booking.bookingStatus !== BOOKING_STATUS.PENDING_PAYMENT) return false
   return new Date(booking.trip.startDate).getTime() > Date.now()
 }
 
@@ -42,10 +43,10 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
   const { trip } = booking
   const countdown = getCountdown(trip.startDate)
   const showCancel = canCancel(booking)
-  const showLeaveReview = booking.bookingStatus === 'COMPLETED' && !booking.hasReview
-  const showEditReview = booking.bookingStatus === 'COMPLETED' && booking.hasReview
-  const showSyncPayment = booking.bookingStatus === 'PENDING_PAYMENT'
-  const showPayNow = booking.bookingStatus === 'PENDING_PAYMENT'
+  const showLeaveReview = booking.bookingStatus === BOOKING_STATUS.COMPLETED && !booking.hasReview
+  const showEditReview = booking.bookingStatus === BOOKING_STATUS.COMPLETED && booking.hasReview
+  const showSyncPayment = booking.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT
+  const showPayNow = booking.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT
 
   const [isPaying, setIsPaying] = useState(false)
   const syncPayment = useSyncPayment()
@@ -89,7 +90,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
                 orderId: response.razorpay_order_id,
                 paymentId: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
-                provider: 'razorpay',
+                provider: PAYMENT_PROVIDER.RAZORPAY,
                 tripSlug: trip.slug,
                 tripId: trip.id,
               })
@@ -251,7 +252,7 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
         )}
 
         {/* Expired nudge */}
-        {booking.bookingStatus === 'EXPIRED' && (
+        {booking.bookingStatus === BOOKING_STATUS.EXPIRED && (
           <p className="text-sm text-neutral-500">
             Your payment window expired. Visit the trip page to book again.
           </p>

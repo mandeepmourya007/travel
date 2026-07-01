@@ -25,6 +25,7 @@ import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import type { UserRole } from '@shared/types/user.types'
+import { USER_ROLE } from '@shared/constants'
 
 interface NavLink {
   href: string
@@ -37,15 +38,15 @@ interface NavLink {
 }
 
 const NAV_LINKS: NavLink[] = [
-  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: ['ORGANIZER', 'ADMIN'] },
-  { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: ['ORGANIZER', 'ADMIN'] },
-  { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: ['ORGANIZER', 'ADMIN'] },
-  { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: ['ORGANIZER', 'ADMIN'] },
+  { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['ORGANIZER'], variant: 'primary' },
-  { href: '/admin', label: 'Admin', icon: Shield, roles: ['ADMIN'], variant: 'primary' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [USER_ROLE.ORGANIZER], variant: 'primary' },
+  { href: '/admin', label: 'Admin', icon: Shield, roles: [USER_ROLE.ADMIN], variant: 'primary' },
 ]
 
 function isLinkVisible(link: NavLink, role: string | undefined, isAuthenticated: boolean): boolean {
