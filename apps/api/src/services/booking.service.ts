@@ -13,7 +13,7 @@ import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
 import { calculateRefundPercent } from '@shared/utils/refund'
 import { env } from '../config/env'
@@ -84,11 +84,16 @@ export class BookingService {
     if (!existing.expiresAt) {
       return null // PENDING_PAYMENT with no expiresAt — caller: expire + create fresh order
     }
+    const existingTx = existing.paymentTransactions[0]
+    const provider = (existingTx?.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+    const gatewayOrderId = existingTx?.gatewayOrderId ?? existingTx?.razorpayOrderId ?? ''
     return {
       bookingId: existing.id,
       bookingRef: existing.bookingRef,
-      razorpayOrderId: existing.paymentTransactions[0]?.razorpayOrderId || '',
-      razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
+      provider,
+      gatewayOrderId,
+      razorpayOrderId: provider === 'razorpay' ? gatewayOrderId : undefined,
+      razorpayKeyId: provider === 'razorpay' ? (env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY) : undefined,
       amountInRupees: existing.totalAmount,
       currency: CURRENCY,
       expiresAt: existing.expiresAt.toISOString(),
@@ -283,23 +288,25 @@ export class BookingService {
   private async initiateBookingRefund(bookingId: string, refundAmount: number, reason: string): Promise<void> {
     const txList = await this.paymentTxRepo.findByBookingId(bookingId)
     const capturedTx = txList.find(
-      (tx) => tx.type === PAYMENT_TX_TYPE.PAYMENT && tx.status === PAYMENT_TX_STATUS.CAPTURED && tx.razorpayPaymentId,
+      (tx) => tx.type === PAYMENT_TX_TYPE.PAYMENT && tx.status === PAYMENT_TX_STATUS.CAPTURED
+        && (tx.gatewayPaymentId ?? tx.razorpayPaymentId),
     )
 
-    if (!capturedTx?.razorpayPaymentId) {
-      this.logger.warn({ bookingId }, 'No captured payment tx found — skipping Razorpay refund')
+    const capturedPaymentId = capturedTx?.gatewayPaymentId ?? capturedTx?.razorpayPaymentId
+    const capturedProvider = (capturedTx?.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+
+    if (!capturedPaymentId) {
+      this.logger.warn({ bookingId }, 'No captured payment tx with payment ID found — skipping gateway refund')
       return
     }
 
-    // Double-refund guard: if a REFUND tx already exists and either has a Razorpay refund ID
-    // (Razorpay already processed it) or is REFUNDED, do not issue another API call.
-    // This covers the crash-recovery scenario: server crashed after Razorpay returned the
-    // refund ID but before our DB recorded it — the refund.processed webhook will still fire
-    // and close the INITIATED tx, so no retry is needed.
+    // Double-refund guard: if a REFUND tx already exists and either has a gateway refund ID
+    // (already processed) or is REFUNDED, do not issue another API call.
     const existingRefundTx = txList.find((tx) => tx.type === PAYMENT_TX_TYPE.REFUND)
     if (existingRefundTx) {
-      if (existingRefundTx.status === PAYMENT_TX_STATUS.REFUNDED || existingRefundTx.razorpayRefundId) {
-        this.logger.info({ bookingId, refundTxId: existingRefundTx.id }, 'Refund already processed — skipping duplicate Razorpay call')
+      const hasRefundId = !!(existingRefundTx.gatewayRefundId ?? existingRefundTx.razorpayRefundId)
+      if (existingRefundTx.status === PAYMENT_TX_STATUS.REFUNDED || hasRefundId) {
+        this.logger.info({ bookingId, refundTxId: existingRefundTx.id }, 'Refund already processed — skipping duplicate gateway call')
         return
       }
 
@@ -318,18 +325,17 @@ export class BookingService {
         )
       }
 
-      this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Retrying Razorpay refund for existing INITIATED tx')
-      // Record the attempt in metadata for ops visibility before calling Razorpay
+      this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Retrying gateway refund for existing INITIATED tx')
       try {
         await this.paymentTxRepo.recordRetryAttempt(existingRefundTx.id, existingRefundTx.metadata)
       } catch (err) {
         this.logger.warn({ err, bookingId, refundTxId: existingRefundTx.id }, 'Failed to record refund retry attempt in metadata')
       }
       try {
-        await this.paymentService.initiateRefund(capturedTx.razorpayPaymentId, storedAmount * 100, { bookingId, reason: storedReason })
-        this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Refund initiated with Razorpay (retry)')
+        await this.paymentService.initiateRefund(capturedPaymentId, storedAmount * 100, { bookingId, reason: storedReason }, capturedProvider)
+        this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Refund initiated with gateway (retry)')
       } catch (err) {
-        this.logger.error({ err, bookingId, refundTxId: existingRefundTx.id }, 'Razorpay refund retry failed — REFUND tx remains INITIATED')
+        this.logger.error({ err, bookingId, refundTxId: existingRefundTx.id }, 'Gateway refund retry failed — REFUND tx remains INITIATED')
       }
       return
     }
@@ -345,14 +351,15 @@ export class BookingService {
 
     try {
       await this.paymentService.initiateRefund(
-        capturedTx.razorpayPaymentId,
+        capturedPaymentId,
         refundAmount * 100,
         { bookingId, reason },
+        capturedProvider,
       )
-      this.logger.info({ bookingId, refundTxId: refundTx.id, amount: refundAmount }, 'Refund initiated with Razorpay')
+      this.logger.info({ bookingId, refundTxId: refundTx.id, amount: refundAmount }, 'Refund initiated with gateway')
     } catch (err) {
-      // REFUND tx with INITIATED status remains — ops/admin can retry; Razorpay async may still process it
-      this.logger.error({ err, bookingId, refundTxId: refundTx.id }, 'Razorpay refund initiation failed — REFUND tx remains INITIATED for retry')
+      // REFUND tx with INITIATED status remains — ops/admin can retry; gateway async may still process it
+      this.logger.error({ err, bookingId, refundTxId: refundTx.id }, 'Gateway refund initiation failed — REFUND tx remains INITIATED for retry')
     }
   }
 
@@ -446,7 +453,10 @@ export class BookingService {
       if (trip.organizer?.userId === userId) {
         throw new ValidationError('You cannot book your own trip')
       }
-      if (!trip.organizer?.razorpayAccountId) {
+      // Vendor gate: for Cashfree, organizer must have a cashfreeVendorId (split required).
+      // Razorpay Route is disabled — no vendor account needed for Razorpay bookings.
+      const gatewayProvider = env.PAYMENT_GATEWAY
+      if (gatewayProvider === 'cashfree' && !trip.organizer?.cashfreeVendorId) {
         throw new ValidationError('Organizer has not set up payment — booking unavailable')
       }
       // travelers is optional (collected later in some flows), but when provided
@@ -497,25 +507,36 @@ export class BookingService {
         }
       }
 
-      // 6. Create Razorpay order — full amount collected into platform account.
-      // Organizer payouts are handled manually via the admin dashboard.
-      //
-      // ROUTE_HOOK: To enable automatic SafePay splits via Razorpay Route, pass
-      // a `transfers` array to paymentSvc.createOrder() here. Example transfer:
-      //   [{
-      //     account: trip.organizer.razorpayAccountId,   // acc_XXXXXXXXXXXXXXXX
-      //     amount: Math.round(amountInPaise * (1 - commissionRate / 100)),
-      //     currency: CURRENCY,
-      //     on_hold: 1,
-      //     on_hold_until: Math.floor(new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60),
-      //     notes: { tripId: input.tripId },
-      //   }]
-      // Requires: Razorpay Route activated + organizer has a verified linked account.
-      const order = await paymentSvc.createOrder(
-        amountInPaise,
-        `booking-${Date.now()}`,
-        { tripId: input.tripId, userId },
+      // 6. Create payment order. Cashfree Easy Split wires vendor payout at order creation.
+      // Razorpay Route is not enabled — full payment collected into platform account.
+      const commissionRate = Number(trip.organizer?.commissionRate ?? PLATFORM_COMMISSION_PERCENT)
+      const vendorAmountPaise = Math.round(amountInPaise * (1 - commissionRate / 100))
+      const holdUntilEpochSec = Math.floor(
+        new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
       )
+      // Cashfree Easy Split only works with KYC-verified vendors (production only).
+      // In sandbox, vendor verification never completes, so splits are skipped.
+      const isCashfreeProd = gatewayProvider === 'cashfree' && env.CASHFREE_ENV === 'production'
+      const cashfreeVendorId = isCashfreeProd ? trip.organizer?.cashfreeVendorId : null
+
+      const order = await paymentSvc.createOrder({
+        amountPaise: amountInPaise,
+        receipt: `booking-${Date.now()}`,
+        notes: { tripId: input.tripId, userId },
+        split: cashfreeVendorId
+          ? { vendorAccountId: cashfreeVendorId, vendorAmountPaise, holdUntilEpochSec, notes: { tripId: input.tripId } }
+          : null,
+        customer: {
+          id: userId,
+          name: input.travelers?.[0]?.name,
+          phone: input.travelers?.[0]?.phone,
+        },
+        // Cashfree needs a return_url so the SDK knows where to redirect after payment.
+        // {order_id} is a Cashfree-substituted placeholder — it becomes the actual order ID.
+        ...(gatewayProvider === 'cashfree' ? {
+          returnUrl: `${env.CLIENT_URL}/payment-complete?order_id={order_id}`,
+        } : {}),
+      })
 
       // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
       // where booking exists but has no PaymentTransaction, making webhook lookup fail.
@@ -533,7 +554,9 @@ export class BookingService {
         },
         // Service owns these business decisions — type=PAYMENT, status=INITIATED
         {
-          razorpayOrderId: order.id,
+          provider: order.clientPayload.provider,
+          gatewayOrderId: order.orderId,
+          razorpayOrderId: order.orderId, // mirror during expand phase
           amount: totalAmount,
           type: PAYMENT_TX_TYPE.PAYMENT,
           status: PAYMENT_TX_STATUS.INITIATED,
@@ -553,15 +576,25 @@ export class BookingService {
       }
 
       this.logger.info(
-        { bookingId: booking.id, orderId: order.id, amount: totalAmount, seatCount: input.seatIds?.length ?? 0, durationMs: timer.elapsed() },
-        'Booking created with Razorpay order',
+        { bookingId: booking.id, orderId: order.orderId, provider: order.clientPayload.provider, amount: totalAmount, seatCount: input.seatIds?.length ?? 0, durationMs: timer.elapsed() },
+        'Booking created with payment order',
       )
 
+      const clientPayload = order.clientPayload
       bookingResponse = {
         bookingId: booking.id,
         bookingRef: booking.bookingRef,
-        razorpayOrderId: order.id,
-        razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
+        provider: clientPayload.provider,
+        gatewayOrderId: order.orderId,
+        // Razorpay-specific fields (present when provider='razorpay')
+        ...(clientPayload.provider === 'razorpay' ? {
+          razorpayOrderId: order.orderId,
+          razorpayKeyId: clientPayload.razorpayKeyId,
+        } : {}),
+        // Cashfree-specific fields (present when provider='cashfree')
+        ...(clientPayload.provider === 'cashfree' ? {
+          paymentSessionId: clientPayload.paymentSessionId,
+        } : {}),
         amountInRupees: totalAmount,
         currency: CURRENCY,
         expiresAt: expiresAt.toISOString(),
@@ -662,11 +695,13 @@ export class BookingService {
       throw new ConflictError('Not enough seats available — trip may be full', BOOKING_ERROR_CODE.CAPACITY_FULL)
     }
 
-    // Guard: razorpayPaymentId must be set before we can capture.
+    // Guard: gatewayPaymentId must be set before we can capture.
     // If the booking was confirmed via webhook before payment.authorized fired (e.g. out-of-order
     // delivery of order.paid), the paymentId is not yet in the DB. Revert the gate so the
     // payment.authorized webhook can complete the confirmation when it arrives.
-    if (!paymentTx.razorpayPaymentId) {
+    const txPaymentId = paymentTx.gatewayPaymentId ?? paymentTx.razorpayPaymentId
+    const txProvider = (paymentTx.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+    if (!txPaymentId) {
       const [decrResult, gateResult] = await Promise.allSettled([
         this.tripRepo.atomicDecrementBookings(booking.trip.id, booking.numTravelers),
         this.bookingRepo.revertConfirmGate(bookingId),
@@ -679,8 +714,9 @@ export class BookingService {
     }
 
     // Capture payment (exact amount from DB — prevents amount tampering)
+    // Cashfree: auto-captured, capturePayment is a no-op status fetch
     try {
-      await this.paymentService.capturePayment(paymentTx.razorpayPaymentId, paymentTx.amount * 100, CURRENCY)
+      await this.paymentService.capturePayment(txPaymentId, paymentTx.amount * 100, CURRENCY, txProvider)
     } catch (error) {
       // Rollback seats and revert the gate so webhook retries can re-attempt
       this.logger.error({ bookingId, error }, 'Payment capture failed — rolling back seat increment and confirmation gate')
@@ -791,28 +827,39 @@ export class BookingService {
       }
     }
 
-    // Verify HMAC-SHA256 signature
-    const isValid = this.paymentService.verifySignature(
-      dto.razorpayOrderId,
-      dto.razorpayPaymentId,
-      dto.razorpaySignature,
-    )
+    // Verify payment callback — Razorpay: HMAC signature; Cashfree: server-side status check
+    const paymentTx = booking.paymentTransactions[0]
+    const txProvider = (paymentTx?.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+    // Normalize DTO to provider-neutral shape (handle legacy razorpay* fields)
+    const orderId = dto.orderId ?? dto.razorpayOrderId ?? ''
+    const paymentId = dto.paymentId ?? dto.razorpayPaymentId
+    const signature = dto.signature ?? dto.razorpaySignature
+
+    const isValid = await this.paymentService.verifyClientCallback({
+      orderId,
+      paymentId,
+      signature,
+      provider: (dto.provider ?? txProvider),
+    })
     if (!isValid) {
-      throw new AuthError('Invalid payment signature — possible tampering')
+      throw new AuthError('Payment verification failed — invalid signature or payment not confirmed')
     }
 
-    // Persist razorpayPaymentId so confirmBooking() can capture it
-    const paymentTx = booking.paymentTransactions[0]
+    // Persist gatewayPaymentId so confirmBooking() can capture it
     if (paymentTx) {
       // Guard against payment replay: the client-supplied orderId must match the one
-      // stored for this booking. Without this check, a valid Razorpay signature from
+      // stored for this booking. Without this check, a valid signature from
       // booking A could be reused to confirm booking B that has the same amount.
-      if (paymentTx.razorpayOrderId && paymentTx.razorpayOrderId !== dto.razorpayOrderId) {
+      const storedOrderId = paymentTx.gatewayOrderId ?? paymentTx.razorpayOrderId
+      if (storedOrderId && storedOrderId !== orderId) {
         throw new AuthError('Payment order ID does not match this booking — possible replay attack')
       }
-      await this.paymentTxRepo.updatePaymentId(paymentTx.id, dto.razorpayPaymentId)
-      // Update in-memory so the pre-loaded booking reflects the DB change
-      paymentTx.razorpayPaymentId = dto.razorpayPaymentId
+      if (paymentId) {
+        await this.paymentTxRepo.updatePaymentId(paymentTx.id, paymentId)
+        // Update in-memory so confirmBooking() can read the payment ID without re-fetching
+        ;(paymentTx as Record<string, unknown>).gatewayPaymentId = paymentId
+        ;(paymentTx as Record<string, unknown>).razorpayPaymentId = paymentId
+      }
     }
 
     // Confirm booking (capture + seats) — pass pre-loaded booking to avoid re-fetching
@@ -837,14 +884,16 @@ export class BookingService {
     }
 
     const paymentTx = booking.paymentTransactions[0]
-    if (!paymentTx?.razorpayOrderId) {
-      throw new ValidationError('No Razorpay order found for this booking')
+    const txOrderId = paymentTx?.gatewayOrderId ?? paymentTx?.razorpayOrderId
+    const txProvider = (paymentTx?.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+    if (!txOrderId) {
+      throw new ValidationError('No payment order found for this booking')
     }
 
-    const orderStatus = await this.paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
+    const orderStatus = await this.paymentService.checkOrderStatus(txOrderId, txProvider)
 
     if (orderStatus !== 'paid') {
-      throw new ValidationError(`Payment not completed yet — Razorpay order status is "${orderStatus}". Please complete payment or try again.`)
+      throw new ValidationError(`Payment not completed yet — order status is "${orderStatus}". Please complete payment or try again.`)
     }
 
     await this.recoverPaidBooking(bookingId, booking)
@@ -868,17 +917,21 @@ export class BookingService {
     const paymentTx = booking.paymentTransactions[0]
     if (!paymentTx) return
 
-    if (!paymentTx.razorpayPaymentId && paymentTx.razorpayOrderId) {
-      const paymentId = await this.paymentService.fetchPaymentIdForOrder(paymentTx.razorpayOrderId)
+    const recoveryPaymentId = paymentTx.gatewayPaymentId ?? paymentTx.razorpayPaymentId
+    const recoveryOrderId = paymentTx.gatewayOrderId ?? paymentTx.razorpayOrderId
+    const recoveryProvider = (paymentTx.provider as 'razorpay' | 'cashfree' | undefined) ?? 'razorpay'
+    if (!recoveryPaymentId && recoveryOrderId) {
+      const paymentId = await this.paymentService.fetchPaymentIdForOrder(recoveryOrderId, recoveryProvider)
       if (paymentId) {
         await this.paymentTxRepo.updatePaymentId(paymentTx.id, paymentId)
-        paymentTx.razorpayPaymentId = paymentId
-        this.logger.info({ bookingId, paymentId }, 'Stored missing razorpayPaymentId during recovery')
+        ;(paymentTx as Record<string, unknown>).gatewayPaymentId = paymentId
+        ;(paymentTx as Record<string, unknown>).razorpayPaymentId = paymentId
+        this.logger.info({ bookingId, paymentId }, 'Stored missing gatewayPaymentId during recovery')
       } else {
-        // Razorpay API couldn't return the payment ID yet — don't call confirmBooking with a null
+        // Gateway API couldn't return the payment ID yet — don't call confirmBooking with a null
         // paymentId or it will roll back the atomic gate and leave the booking in a confused state.
-        this.logger.error({ bookingId }, 'Could not resolve razorpayPaymentId from Razorpay — recovery aborted')
-        throw new ValidationError('Payment ID not found on Razorpay yet — please try again in a moment')
+        this.logger.error({ bookingId }, 'Could not resolve gatewayPaymentId from provider — recovery aborted')
+        throw new ValidationError('Payment ID not found on gateway yet — please try again in a moment')
       }
     }
 

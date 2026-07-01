@@ -1,252 +1,226 @@
-import crypto from 'crypto'
-import type Razorpay from 'razorpay'
 import { Logger } from 'pino'
 import { startTimer } from '../utils/perf-timer'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import { PaymentError, ValidationError } from '../errors/app-error'
-import { CURRENCY, PAYMENT_TX_STATUS, WEBHOOK_SOURCE, WEBHOOK_STATUS, REFERENCE_MODEL, RAZORPAY_WEBHOOK_EVENT } from '../utils/constants'
-import type { RazorpayWebhookPayload, StoredWebhookEvent } from '../types/razorpay.types'
+import {
+  CURRENCY,
+  PAYMENT_TX_STATUS,
+  WEBHOOK_SOURCE,
+  WEBHOOK_STATUS,
+  REFERENCE_MODEL,
+} from '../utils/constants'
+import { NORMALIZED_EVENT_TYPE } from '../types/payment.types'
+import type { NormalizedWebhookEvent, PaymentProvider } from '../types/payment.types'
+import type { IPaymentGateway, CreateOrderParams } from '../providers/payment/payment-gateway.interface'
+import type { StoredWebhookEvent } from '../types/razorpay.types'
 
+/**
+ * Provider-neutral payment orchestrator (Facade pattern).
+ *
+ * Responsibilities:
+ * - DB persistence via paymentTxRepo + webhookEventRepo
+ * - Idempotency guards (@@unique([source, externalEventId]) on WebhookEvent)
+ * - Status-transition guards (never downgrade a terminal/advanced status)
+ * - Routing webhook/refund/escrow calls to the correct gateway (by tx.provider)
+ *
+ * Does NOT contain any provider-specific API code.
+ * All gateway I/O is delegated to IPaymentGateway implementations.
+ */
 export class PaymentService {
   constructor(
-    private razorpay: Razorpay,
+    /** Active gateway (new orders always use this) */
+    private activeGateway: IPaymentGateway,
+    /**
+     * Registry of all configured gateways keyed by provider.
+     * Used to route refunds / escrow releases / webhooks for in-flight transactions
+     * created under a previous gateway after a PAYMENT_GATEWAY config cutover.
+     */
+    private gateways: Map<PaymentProvider, IPaymentGateway>,
     private paymentTxRepo: PaymentTransactionRepository,
     private webhookEventRepo: WebhookEventRepository,
-    private keySecret: string,
     private logger: Logger,
   ) {}
 
-  // ─── Razorpay API Wrappers ────────────────────────────
+  // ─── Gateway I/O Delegation ─────────────────────────
 
   /**
-   * Creates a Razorpay order. Full amount is collected into the platform account.
-   * Amount must be in PAISE (₹5000 = 500000 paise).
+   * Creates a payment order via the active gateway.
+   * Amount in paise. Returns a NormalizedOrder (includes provider + clientPayload).
    *
-   * ROUTE_HOOK: To add automatic SafePay splits via Razorpay Route, add a
-   * `transfers` param and spread it into the order payload. See the ROUTE_HOOK
-   * comment in booking.service.ts for the full transfer object shape.
-   *
-   * @throws PaymentError — Razorpay API failure
+   * @throws PaymentError — gateway API failure
    * @throws ValidationError — zero/negative amount
    */
-  async createOrder(
-    amount: number,
-    receipt: string,
-    notes: Record<string, unknown>,
-  ) {
+  async createOrder(params: CreateOrderParams) {
     const timer = startTimer()
-    if (amount <= 0) {
-      throw new ValidationError('Order amount must be greater than zero')
-    }
-
+    const { amountPaise, receipt } = params
     try {
-      const order = await this.razorpay.orders.create({
-        amount,
-        currency: CURRENCY,
-        receipt,
-        payment_capture: 0,
-        notes,
-      } as Parameters<typeof this.razorpay.orders.create>[0])
-      this.logger.info({ orderId: order.id, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order created')
+      const order = await this.activeGateway.createOrder(params)
+      this.logger.info(
+        { orderId: order.orderId, provider: this.activeGateway.provider, durationMs: timer.elapsed() },
+        'Payment order created',
+      )
       return order
     } catch (error) {
-      this.logger.error({ error, amount, receipt, durationMs: timer.elapsed() }, 'Razorpay order creation failed')
-      throw new PaymentError('Failed to create Razorpay order', error)
+      if (error instanceof PaymentError || error instanceof ValidationError) throw error
+      this.logger.error({ error, amountPaise, receipt, durationMs: timer.elapsed() }, 'Order creation failed')
+      throw new PaymentError('Failed to create payment order', error)
     }
   }
 
   /**
    * Captures a previously authorized payment.
-   * Amount MUST exactly match the authorized amount.
+   * Routes to the gateway identified by the payment's provider.
    *
-   * Idempotent under all transient failures:
-   *   - "already been captured" error → fetch and return existing capture
-   *   - Network timeout / unknown error → verify actual Razorpay status before throwing.
-   *     If the payment shows as 'captured', the capture succeeded and we return it.
-   *     This prevents confirmBooking from reverting the gate on a successful capture that
-   *     happened to time out from our perspective.
-   *
-   * @throws PaymentError — only when capture genuinely failed (Razorpay status ≠ captured)
+   * @throws PaymentError — only when capture genuinely failed
    */
-  async capturePayment(paymentId: string, amount: number, currency = CURRENCY) {
-    try {
-      return await this.razorpay.payments.capture(paymentId, amount, currency)
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message?.includes('already been captured')) {
-        this.logger.info({ paymentId }, 'Payment already captured — fetching existing')
-        return await this.razorpay.payments.fetch(paymentId)
-      }
-
-      // For transient errors (timeout, network) the capture may have gone through on Razorpay's
-      // side. Verify the actual status before declaring failure to avoid incorrectly reverting
-      // a successful capture.
-      try {
-        const payment = await this.razorpay.payments.fetch(paymentId)
-        if (payment?.status === 'captured') {
-          this.logger.warn({ paymentId }, 'Capture threw but payment shows as captured — treating as success')
-          return payment
-        }
-      } catch (fetchErr) {
-        this.logger.error({ paymentId, fetchErr }, 'Could not verify payment status after capture error')
-      }
-
-      this.logger.error({ error, paymentId, amount }, 'Payment capture failed')
-      throw new PaymentError('Failed to capture payment', error)
-    }
+  async capturePayment(paymentId: string, amountPaise: number, currency = CURRENCY, provider?: PaymentProvider) {
+    const gateway = this.resolveGateway(provider)
+    return gateway.capturePayment(paymentId, amountPaise, currency)
   }
 
   /**
-   * Verifies Razorpay payment signature using HMAC-SHA256.
-   * Formula: HMAC_SHA256(orderId + "|" + paymentId, key_secret)
+   * Verifies the client-side payment callback after checkout.
+   * Razorpay: HMAC-SHA256(orderId|paymentId, keySecret).
+   * Cashfree: server-side order-status fetch (no client HMAC).
    */
-  verifySignature(orderId: string, paymentId: string, signature: string): boolean {
-    const expectedSig = crypto
-      .createHmac('sha256', this.keySecret)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex')
-
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(expectedSig, 'hex'),
-        Buffer.from(signature, 'hex'),
-      )
-    } catch {
-      return false
-    }
+  async verifyClientCallback(input: {
+    orderId: string
+    paymentId?: string
+    signature?: string
+    provider?: PaymentProvider
+  }): Promise<boolean> {
+    const gateway = this.resolveGateway(input.provider)
+    return gateway.verifyClientCallback(input)
   }
 
   /**
-   * Polls Razorpay API for order status — safety net for stuck payments (H3 fix).
-   * Used by cron job before expiring bookings and admin dashboard.
+   * Polls gateway API for order status.
+   * Returns normalized status: 'paid' on success.
    *
-   * @returns Order status string: 'created' | 'attempted' | 'paid'
    * @throws PaymentError — API failure
    */
-  async checkOrderStatus(orderId: string): Promise<string> {
-    try {
-      const order = await this.razorpay.orders.fetch(orderId)
-      return (order as unknown as { status: string }).status
-    } catch (error) {
-      this.logger.error({ error, orderId }, 'Order status check failed')
-      throw new PaymentError('Failed to check order status', error)
-    }
+  async checkOrderStatus(orderId: string, provider?: PaymentProvider): Promise<string> {
+    const gateway = this.resolveGateway(provider)
+    return gateway.checkOrderStatus(orderId)
   }
 
   /**
-   * Initiates a refund with Route transfer reversal (H2 fix).
-   * `reverse_all: 1` ensures organizer transfer is also reversed.
-   *
-   * @throws PaymentError — Razorpay API failure
+   * Fetches the first authorized/captured payment ID for an order.
    */
-  async initiateRefund(paymentId: string, amount: number, notes?: Record<string, unknown>) {
-    try {
-      return await this.razorpay.payments.refund(paymentId, {
-        amount,
-        reverse_all: 1,
-        notes,
-      } as Parameters<typeof this.razorpay.payments.refund>[1])
-    } catch (error) {
-      this.logger.error({ error, paymentId, amount }, 'Refund initiation failed')
-      throw new PaymentError('Failed to initiate refund', error)
-    }
-  }
-
-  // Returns the first authorized/captured paymentId for an order, or null if the Razorpay API is unavailable.
-  async fetchPaymentIdForOrder(orderId: string): Promise<string | null> {
-    try {
-      // SDK types don't expose orders.fetchPayments — cast through unknown
-      const payments = await (this.razorpay.orders as unknown as {
-        fetchPayments: (id: string) => Promise<{ items?: Array<{ id: string; status: string }> }>
-      }).fetchPayments(orderId)
-      const paid = payments?.items?.find(
-        (p) => p.status === 'captured' || p.status === 'authorized',
-      )
-      return paid?.id ?? null
-    } catch (error) {
-      this.logger.warn({ orderId, error }, 'Failed to fetch payments for order')
-      return null
-    }
+  async fetchPaymentIdForOrder(orderId: string, provider?: PaymentProvider): Promise<string | null> {
+    const gateway = this.resolveGateway(provider)
+    return gateway.fetchPaymentIdForOrder(orderId)
   }
 
   /**
-   * Resolves a bookingId from a Razorpay order ID by looking up the PaymentTransaction.
-   * Used by webhook controller to trigger booking confirmation after payment events.
+   * Resolves a bookingId from a gateway order ID via PaymentTransaction lookup.
+   * Used by webhook controller to trigger booking confirmation.
    *
    * @returns bookingId or null if no matching transaction found
    */
   async resolveBookingIdFromOrder(orderId: string): Promise<string | null> {
-    const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(orderId)
+    const paymentTx = await this.paymentTxRepo.findByGatewayOrderId(orderId)
     return paymentTx?.bookingId || null
   }
 
-  // ─── Webhook Handling ─────────────────────────────────
+  /**
+   * Initiates a refund. Routes to the gateway that created the transaction.
+   *
+   * @throws PaymentError — gateway API failure
+   */
+  async initiateRefund(paymentId: string, amountPaise: number, notes?: Record<string, unknown>, provider?: PaymentProvider) {
+    const gateway = this.resolveGateway(provider)
+    return gateway.initiateRefund(paymentId, amountPaise, notes)
+  }
 
   /**
-   * Records an incoming webhook event for async processing.
-   * Uses `x-razorpay-event-id` header for idempotency (C1 fix).
+   * Fetches the transfer/split identifier for a captured payment.
+   * Used to persist gatewayTransferId for later escrow release.
+   */
+  async fetchTransferId(paymentId: string, provider?: PaymentProvider): Promise<string | null> {
+    const gateway = this.resolveGateway(provider)
+    return gateway.fetchTransferId(paymentId)
+  }
+
+  /**
+   * Releases the escrow hold on a transfer so funds settle to the organizer.
+   *
+   * @throws PaymentError — gateway API failure
+   */
+  async releaseTransferHold(transferId: string, provider?: PaymentProvider, ctx?: { orderId?: string; vendorAccountId?: string }): Promise<void> {
+    const gateway = this.resolveGateway(provider)
+    return gateway.releaseTransferHold(transferId, ctx)
+  }
+
+  // ─── Webhook Handling ──────────────────────────────────
+
+  /**
+   * Verifies and records an incoming webhook event for async processing.
+   * Verification and parsing are delegated to the gateway (per-provider HMAC scheme).
+   * Idempotency: @@unique([source, externalEventId]) on WebhookEvent.
    *
    * @returns webhookEventId for async processing, or null if duplicate
-   * @throws ValidationError — missing event ID header
    */
   async handleWebhook(
     rawBody: Buffer,
     headers: Record<string, string | string[] | undefined>,
-  ): Promise<string | null> {
+    provider?: PaymentProvider,
+  ): Promise<{ webhookEventId: string | null; normalized: NormalizedWebhookEvent } | null> {
     const timer = startTimer()
-    const eventId = headers['x-razorpay-event-id'] as string
-    if (!eventId) {
-      throw new ValidationError('Missing x-razorpay-event-id header')
+    const gateway = this.resolveGateway(provider)
+
+    // Verify signature + parse in one call (throws AuthError on bad sig)
+    const normalized = gateway.verifyAndParseWebhook(rawBody, headers)
+
+    if (!normalized.externalEventId) {
+      throw new ValidationError('Webhook missing deduplication key')
     }
 
-    const body = JSON.parse(rawBody.toString())
-    const signature = headers['x-razorpay-signature'] as string
-
-    // Resolve internal reference from order → booking lookup
-    const paymentEntity = body.payload?.payment?.entity || body.payload?.order?.entity
-    const orderId = paymentEntity?.order_id || paymentEntity?.id
-    const paymentTx = orderId
-      ? await this.paymentTxRepo.findByRazorpayOrderId(orderId)
+    // Resolve booking from order for reference linking
+    const paymentTx = normalized.orderId
+      ? await this.paymentTxRepo.findByGatewayOrderId(normalized.orderId)
       : null
 
-    // Idempotency: attempt upsert on (source, externalEventId) unique key.
-    // Using upsert instead of find-then-create eliminates the TOCTOU race:
-    // concurrent duplicate deliveries both hit the DB at the same time; one
-    // inserts, the other matches the unique key and updates (increments attempts).
-    // No more P2002 bubble-up or generic-catch silence.
     try {
       const webhookEvent = await this.webhookEventRepo.upsertBySourceAndEventId({
-        source: WEBHOOK_SOURCE.RAZORPAY,
-        externalEventId: eventId,
-        eventType: body.event,
-        externalId: paymentEntity?.id || null,
+        source: gateway.provider.toUpperCase() as typeof WEBHOOK_SOURCE[keyof typeof WEBHOOK_SOURCE],
+        externalEventId: normalized.externalEventId,
+        eventType: normalized.rawEventName,
+        externalId: normalized.paymentId ?? normalized.orderId ?? null,
         referenceModel: paymentTx ? REFERENCE_MODEL.BOOKING : null,
         referenceId: paymentTx?.bookingId || null,
-        headers: {
-          'x-razorpay-signature': signature,
-          'x-razorpay-event-id': eventId,
-        },
-        payload: body,
-        mode: body.account_id?.startsWith('rzp_test') ? 'test' : 'live',
+        headers: Object.fromEntries(
+          Object.entries(headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : (v ?? '')] as [string, string]),
+        ) as Record<string, string>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        payload: normalized.payload as any,
+        mode: normalized.mode,
         status: WEBHOOK_STATUS.RECEIVED,
       })
 
       if (webhookEvent.attempts > 1) {
-        this.logger.info({ eventId, attempts: webhookEvent.attempts }, 'Duplicate webhook, skipping processing')
-        return null
+        this.logger.info(
+          { externalEventId: normalized.externalEventId, attempts: webhookEvent.attempts },
+          'Duplicate webhook, skipping processing',
+        )
+        return { webhookEventId: null, normalized }
       }
 
-      this.logger.info({ webhookEventId: webhookEvent.id, durationMs: timer.elapsed() }, 'Webhook event recorded')
-      return webhookEvent.id
+      this.logger.info(
+        { webhookEventId: webhookEvent.id, provider: gateway.provider, durationMs: timer.elapsed() },
+        'Webhook event recorded',
+      )
+      return { webhookEventId: webhookEvent.id, normalized }
     } catch (err) {
-      this.logger.error({ eventId, err }, 'Failed to record webhook event')
+      this.logger.error({ externalEventId: normalized.externalEventId, err }, 'Failed to record webhook event')
       throw err
     }
   }
 
   /**
-   * Processes a recorded webhook event asynchronously (C4 fix).
-   * Called via setImmediate() AFTER 200 response to Razorpay.
+   * Processes a recorded webhook event asynchronously.
+   * Called via setImmediate() AFTER 200 response is sent.
    *
    * Status transitions: RECEIVED → PROCESSING → COMPLETED | FAILED | SKIPPED
    */
@@ -254,28 +228,33 @@ export class PaymentService {
     try {
       await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.PROCESSING, undefined)
 
-      // DB stores full event body — inner .payload is the actual webhook payload
-      const payload: RazorpayWebhookPayload = webhookEvent.payload?.payload ?? (webhookEvent.payload as RazorpayWebhookPayload)
+      // Re-parse normalized event from the stored payload
+      const normalized = webhookEvent.payload as unknown as NormalizedWebhookEvent
+      // If the stored payload is a raw gateway body rather than a NormalizedWebhookEvent,
+      // we need the type field. It was stored as rawEventName-derived type in handleWebhook.
+      const eventType = (webhookEvent as unknown as { normalizedType?: string }).normalizedType
+        ?? normalized?.type
+        ?? NORMALIZED_EVENT_TYPE.UNKNOWN
 
-      switch (webhookEvent.eventType) {
-        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_AUTHORIZED:
-          await this.handlePaymentAuthorized(payload)
+      switch (eventType) {
+        case NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED:
+          await this.handlePaymentAuthorized(normalized)
           break
-        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_CAPTURED:
-          await this.handlePaymentCaptured(payload)
+        case NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED:
+          await this.handlePaymentCaptured(normalized)
           break
-        case RAZORPAY_WEBHOOK_EVENT.ORDER_PAID:
-          await this.handleOrderPaid(payload)
+        case NORMALIZED_EVENT_TYPE.ORDER_PAID:
+          await this.handleOrderPaid(normalized)
           break
-        case RAZORPAY_WEBHOOK_EVENT.PAYMENT_FAILED:
-          await this.handlePaymentFailed(payload)
+        case NORMALIZED_EVENT_TYPE.PAYMENT_FAILED:
+          await this.handlePaymentFailed(normalized)
           break
-        case RAZORPAY_WEBHOOK_EVENT.REFUND_PROCESSED:
-          await this.handleRefundProcessed(payload)
+        case NORMALIZED_EVENT_TYPE.REFUND_PROCESSED:
+          await this.handleRefundProcessed(normalized)
           break
         default:
           await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.SKIPPED, {
-            failureReason: `Unhandled event type: ${webhookEvent.eventType}`,
+            failureReason: `Unhandled event type: ${eventType}`,
           })
           return
       }
@@ -291,160 +270,119 @@ export class PaymentService {
     }
   }
 
-  // ─── Webhook Event Handlers ───────────────────────────
+  // ─── Webhook Event Handlers ────────────────────────────
 
   /**
-   * Handles payment.authorized webhook.
-   * Updates PaymentTransaction to AUTHORIZED and sets razorpayPaymentId.
+   * Handles PAYMENT_AUTHORIZED event.
+   * Updates PaymentTransaction to AUTHORIZED and sets gatewayPaymentId.
    *
-   * Guards against out-of-order delivery — a late payment.authorized event must not
-   * downgrade an already-CAPTURED transaction back to AUTHORIZED, which would corrupt
-   * the payment ledger and cause the cron's "already paid" check to misfire.
+   * Guards against out-of-order delivery — never downgrade CAPTURED/REFUNDED.
    */
-  async handlePaymentAuthorized(payload: RazorpayWebhookPayload) {
-    const payment = payload.payment?.entity
-    if (!payment) return
+  async handlePaymentAuthorized(event: NormalizedWebhookEvent) {
+    if (!event.orderId) return
 
-    const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
+    const paymentTx = await this.paymentTxRepo.findByGatewayOrderId(event.orderId)
     if (!paymentTx) {
-      this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for authorized payment')
+      this.logger.warn({ orderId: event.orderId }, 'No payment transaction found for authorized payment')
       return
     }
 
-    // Only advance status — never downgrade (CAPTURED must stay CAPTURED)
     if (paymentTx.status === PAYMENT_TX_STATUS.CAPTURED || paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
       this.logger.info(
         { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
-        'payment.authorized received but tx is already at a terminal/advanced status — skipping update',
+        'PAYMENT_AUTHORIZED received but tx is already at a terminal/advanced status — skipping',
       )
       return
     }
 
-    await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
+    if (event.paymentId) {
+      await this.paymentTxRepo.updatePaymentId(paymentTx.id, event.paymentId)
+    }
     await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.AUTHORIZED)
   }
 
   /**
-   * Handles payment.captured webhook.
-   * Updates PaymentTransaction to CAPTURED immediately, then fetches transfer ID
-   * asynchronously (fire-and-forget) to avoid blocking webhook response time.
-   * If the async fetch fails, the lifecycle cron's lazy-fetch picks it up later.
+   * Handles PAYMENT_CAPTURED event.
+   * Updates to CAPTURED, fires async transfer-ID fetch (fire-and-forget).
+   *
+   * Guards: never overwrite REFUNDED → CAPTURED (ledger corruption).
    */
-  async handlePaymentCaptured(payload: RazorpayWebhookPayload) {
-    const payment = payload.payment?.entity
-    if (!payment) return
+  async handlePaymentCaptured(event: NormalizedWebhookEvent) {
+    if (!event.orderId) return
 
-    const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
+    const paymentTx = await this.paymentTxRepo.findByGatewayOrderId(event.orderId)
     if (!paymentTx) {
-      this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for captured payment')
+      this.logger.warn({ orderId: event.orderId }, 'No payment transaction found for captured payment')
       return
     }
 
-    // Guard against out-of-order delivery — a late payment.captured must not
-    // overwrite a REFUNDED transaction back to CAPTURED, which would corrupt the ledger.
     if (paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
-      this.logger.info(
-        { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
-        'payment.captured received but tx is already REFUNDED — skipping update',
-      )
+      this.logger.info({ paymentTxId: paymentTx.id }, 'PAYMENT_CAPTURED but tx already REFUNDED — skipping')
       return
     }
 
-    await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
+    if (event.paymentId) {
+      await this.paymentTxRepo.updatePaymentId(paymentTx.id, event.paymentId)
+    }
     await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
 
-    // Fire-and-forget: fetch transfer ID async — don't block webhook response
-    this.storeTransferIdAsync(paymentTx.id, payment.id)
+    // Fire-and-forget transfer ID fetch — don't block webhook response
+    if (event.paymentId) {
+      this.storeTransferIdAsync(paymentTx.id, event.paymentId, paymentTx.provider as PaymentProvider)
+    }
   }
 
   /**
-   * Async helper: fetches transfer ID from Razorpay and persists it.
-   * Non-blocking — errors are logged, not thrown. Lifecycle cron is the safety net.
+   * Handles ORDER_PAID event — the most reliable "payment complete" signal.
+   * Guards: never overwrite REFUNDED → CAPTURED.
    */
-  private storeTransferIdAsync(paymentTxId: string, razorpayPaymentId: string): void {
-    this.fetchTransferId(razorpayPaymentId)
-      .then((transferId) => {
-        if (transferId) {
-          return this.paymentTxRepo.updateStatus(paymentTxId, PAYMENT_TX_STATUS.CAPTURED, { razorpayTransferId: transferId })
-        }
-        this.logger.info({ paymentTxId, razorpayPaymentId }, 'No transfer found — lifecycle cron will lazy-fetch')
-      })
-      .catch((error) => {
-        this.logger.warn({ paymentTxId, razorpayPaymentId, error }, 'Async transfer ID fetch failed — lifecycle cron will retry')
-      })
-  }
+  async handleOrderPaid(event: NormalizedWebhookEvent) {
+    if (!event.orderId) return
 
-  /**
-   * Handles order.paid webhook — the most reliable "payment complete" signal (C3 fix).
-   * Fires exactly once when order transitions to 'paid'.
-   *
-   * Guards against out-of-order delivery — a late order.paid must not overwrite a
-   * REFUNDED transaction back to CAPTURED, which would corrupt the payment ledger and
-   * make the booking appear unrefunded to reconciliation crons and revenue reports.
-   */
-  async handleOrderPaid(payload: RazorpayWebhookPayload) {
-    const order = payload.order?.entity
-    const payment = payload.payment?.entity
-    if (!order) return
-
-    const orderId = order.id
-    const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(orderId)
+    const paymentTx = await this.paymentTxRepo.findByGatewayOrderId(event.orderId)
     if (!paymentTx) {
-      this.logger.warn({ orderId }, 'No payment transaction found for paid order')
+      this.logger.warn({ orderId: event.orderId }, 'No payment transaction found for paid order')
       return
     }
 
-    // Guard: never overwrite a REFUNDED transaction back to CAPTURED — ledger corruption.
     if (paymentTx.status === PAYMENT_TX_STATUS.REFUNDED) {
-      this.logger.info(
-        { paymentTxId: paymentTx.id },
-        'order.paid received but tx is already REFUNDED — skipping update',
-      )
+      this.logger.info({ paymentTxId: paymentTx.id }, 'ORDER_PAID but tx already REFUNDED — skipping')
       return
     }
 
-    if (payment?.id) {
-      await this.paymentTxRepo.updatePaymentId(paymentTx.id, payment.id)
+    if (event.paymentId) {
+      await this.paymentTxRepo.updatePaymentId(paymentTx.id, event.paymentId)
     }
     await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
   }
 
   /**
-   * Handles payment.failed webhook (C2 fix).
-   * Logs the failure as PaymentTransaction(FAILED) but does NOT expire the booking.
-   * UPI TPAPs allow retry within the same session.
+   * Handles PAYMENT_FAILED event.
+   * Logs failure but does NOT expire booking (UPI allows retry within same session).
    *
-   * Guards against out-of-order delivery — a stale payment.failed must not overwrite
-   * an already-CAPTURED or REFUNDED transaction. Scenario: user fails a first UPI
-   * attempt, retries successfully (booking confirmed, payment CAPTURED), then the
-   * delayed payment.failed event arrives. Without this guard it overwrites CAPTURED
-   * → FAILED, making the orphaned-booking sweep revert the confirmed booking and
-   * triggering duplicate confirmation emails.
+   * Guards: never overwrite CAPTURED/REFUNDED → FAILED (stale event after successful retry).
    */
-  async handlePaymentFailed(payload: RazorpayWebhookPayload) {
-    const payment = payload.payment?.entity
-    if (!payment) return
+  async handlePaymentFailed(event: NormalizedWebhookEvent) {
+    if (!event.orderId) return
 
-    const paymentTx = await this.paymentTxRepo.findByRazorpayOrderId(payment.order_id)
+    const paymentTx = await this.paymentTxRepo.findByGatewayOrderId(event.orderId)
     if (!paymentTx) {
-      this.logger.warn({ orderId: payment.order_id }, 'No payment transaction found for failed payment')
+      this.logger.warn({ orderId: event.orderId }, 'No payment transaction found for failed payment')
       return
     }
 
-    // Only advance status — never overwrite a terminal/advanced status with FAILED.
     if (
       paymentTx.status === PAYMENT_TX_STATUS.CAPTURED ||
       paymentTx.status === PAYMENT_TX_STATUS.REFUNDED
     ) {
       this.logger.info(
         { paymentTxId: paymentTx.id, currentStatus: paymentTx.status },
-        'payment.failed received but tx is already at a terminal status — skipping update',
+        'PAYMENT_FAILED but tx already at terminal status — skipping',
       )
       return
     }
 
-    const failureReason = payment.error_description || payment.error_code || 'Payment failed'
-
+    const failureReason = event.failureReason ?? 'Payment failed'
     await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.FAILED, { failureReason })
     this.logger.info(
       { paymentTxId: paymentTx.id, bookingId: paymentTx.bookingId, failureReason },
@@ -452,161 +390,78 @@ export class PaymentService {
     )
   }
 
-  // ─── SafePay Release ───────────────────────────────────
-
   /**
-   * Releases a held transfer so funds settle to the organizer's linked account.
-   * Calls Razorpay PATCH /v1/transfers/:id with on_hold: false.
-   * Idempotent — if already released, Razorpay returns success.
+   * Handles REFUND_PROCESSED event.
+   * Marks both the PAYMENT tx (ledger accuracy) and the REFUND tx (audit trail) as REFUNDED.
    *
-   * @throws PaymentError — Razorpay API failure
+   * Idempotent on duplicate delivery — PAYMENT tx already REFUNDED → skip write but close REFUND tx.
    */
-  async releaseTransferHold(transferId: string): Promise<void> {
-    const timer = startTimer()
-    try {
-      // razorpay SDK v2.9.6: transfers.edit(transferId, data)
-      // Razorpay SDK doesn't type transfers.edit — cast through unknown
-      const rzp = this.razorpay as unknown as { transfers: { edit: (id: string, data: { on_hold: boolean }) => Promise<void> } }
-      await rzp.transfers.edit(transferId, { on_hold: false })
-      this.logger.info({ transferId, durationMs: timer.elapsed() }, 'SafePay transfer hold released')
-    } catch (error: unknown) {
-      // Fallback: if SDK method doesn't exist, try raw API call
-      if (error instanceof Error && error.message?.includes('is not a function')) {
-        this.logger.warn({ transferId }, 'razorpay.transfers.edit not available, using raw API')
-        await this.releaseTransferHoldRaw(transferId)
-        return
-      }
-      this.logger.error({ error, transferId }, 'Failed to release transfer hold')
-      throw new PaymentError('Failed to release SafePay transfer', error)
-    }
-  }
+  async handleRefundProcessed(event: NormalizedWebhookEvent) {
+    if (!event.paymentId) return
 
-  /**
-   * Fetches transfer ID for a captured payment from Razorpay.
-   * Order-level transfers are auto-created by Razorpay when payment is captured.
-   *
-   * Razorpay SDK returns transfers in different shapes depending on version:
-   *   - v2.9.x: `payment.items[0].id` (when using expand[])
-   *   - alternate: `payment.transfers.items[0].id`
-   *
-   * Logs the raw response keys on first miss for production debugging.
-   *
-   * @returns transferId or null if no transfers found
-   */
-  async fetchTransferId(razorpayPaymentId: string): Promise<string | null> {
-    try {
-      // Razorpay SDK ExpandDetails enum is incomplete — doesn't include 'transfers'
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const response = await this.razorpay.payments.fetch(
-        razorpayPaymentId,
-        { 'expand[]': 'transfers' } as unknown as Parameters<typeof this.razorpay.payments.fetch>[1],
-      )
-
-      // SDK response type doesn't include transfer fields — extract as record
-      const typed = response as unknown as Record<string, unknown>
-      const items = this.extractTransferItems(typed)
-
-      if (items.length > 0 && typeof items[0].id === 'string') {
-        return items[0].id
-      }
-
-      // Diagnostic: log top-level keys so we can fix parsing if Razorpay changes shape
-      this.logger.info(
-        { razorpayPaymentId, responseKeys: Object.keys(typed) },
-        'No transfer items found in payment response',
-      )
-      return null
-    } catch (error) {
-      this.logger.warn({ razorpayPaymentId, error }, 'Failed to fetch transfer ID — will retry during SafePay release')
-      return null
-    }
-  }
-
-  /**
-   * Extracts transfer items array from various Razorpay response shapes.
-   * Defensive — returns empty array if structure is unrecognized.
-   */
-  private extractTransferItems(response: Record<string, unknown>): Array<{ id: string }> {
-    // Shape 1: direct items array (expand[] response)
-    if (Array.isArray(response.items)) {
-      return response.items as Array<{ id: string }>
-    }
-    // Shape 2: nested transfers.items
-    const transfers = response.transfers as Record<string, unknown> | undefined
-    if (transfers && Array.isArray(transfers.items)) {
-      return transfers.items as Array<{ id: string }>
-    }
-    return []
-  }
-
-  /**
-   * Raw HTTP fallback for releasing transfer hold when SDK method is unavailable.
-   */
-  private async releaseTransferHoldRaw(transferId: string): Promise<void> {
-    const auth = Buffer.from(`${(this.razorpay as unknown as { key_id?: string }).key_id || ''}:${this.keySecret}`).toString('base64')
-    const response = await fetch(`https://api.razorpay.com/v1/transfers/${transferId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({ on_hold: false }),
-    })
-    if (!response.ok) {
-      const body = await response.text()
-      throw new PaymentError(`Razorpay transfer release failed: ${response.status} ${body}`)
-    }
-    this.logger.info({ transferId }, 'SafePay transfer hold released (raw API)')
-  }
-
-  /**
-   * Handles refund.processed webhook.
-   * Marks both the PAYMENT tx (for ledger accuracy) and the REFUND tx (for audit trail)
-   * as REFUNDED when refund.processed fires.
-   *
-   * The REFUND tx (created in BookingService.initiateBookingRefund) has no razorpayPaymentId,
-   * so it cannot be found via findByRazorpayPaymentId. We look it up separately by bookingId
-   * to close the INITIATED → REFUNDED lifecycle correctly.
-   *
-   * Idempotent on duplicate delivery: if the PAYMENT tx is already REFUNDED we skip the
-   * write but still attempt to close the REFUND tx in case that half was missed.
-   */
-  async handleRefundProcessed(payload: RazorpayWebhookPayload) {
-    const refund = payload.refund?.entity
-    const payment = payload.payment?.entity
-    if (!refund || !payment) return
-
-    const paymentTx = await this.paymentTxRepo.findByRazorpayPaymentId(payment.id)
+    const paymentTx = await this.paymentTxRepo.findByGatewayPaymentId(event.paymentId)
     if (!paymentTx) {
-      this.logger.warn({ paymentId: payment.id }, 'No payment transaction found for refund')
+      this.logger.warn({ paymentId: event.paymentId }, 'No payment transaction found for refund')
       return
     }
 
-    // Guard: idempotent on duplicate delivery. PAYMENT tx already REFUNDED means the
-    // first delivery completed successfully — skip the write but fall through to close
-    // the REFUND tx in case it was the part that was missed.
     if (paymentTx.status !== PAYMENT_TX_STATUS.REFUNDED) {
       await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.REFUNDED, {
-        razorpayRefundId: refund.id,
+        gatewayRefundId: event.refundId ?? undefined,
       })
     } else {
       this.logger.info(
         { paymentTxId: paymentTx.id },
-        'refund.processed: PAYMENT tx is already REFUNDED — skipping (duplicate delivery)',
+        'REFUND_PROCESSED: PAYMENT tx already REFUNDED — skipping (duplicate delivery)',
       )
     }
 
-    // Mark the REFUND tx as REFUNDED (audit trail: this refund request is fulfilled)
+    // Close the REFUND tx row (created in BookingService.initiateBookingRefund)
     const refundTx = await this.paymentTxRepo.findInitiatedRefundByBookingId(paymentTx.bookingId)
     if (refundTx) {
       await this.paymentTxRepo.updateStatus(refundTx.id, PAYMENT_TX_STATUS.REFUNDED, {
-        razorpayRefundId: refund.id,
+        gatewayRefundId: event.refundId ?? undefined,
       })
     } else {
       this.logger.warn(
-        { bookingId: paymentTx.bookingId, razorpayRefundId: refund.id },
-        'refund.processed: no INITIATED REFUND tx found for booking — refund was likely triggered externally',
+        { bookingId: paymentTx.bookingId, gatewayRefundId: event.refundId },
+        'REFUND_PROCESSED: no INITIATED REFUND tx found — refund was likely triggered externally',
       )
     }
+  }
+
+  // ─── Private helpers ─────────────────────────────────
+
+  /**
+   * Async helper: fetches transfer ID from gateway and persists it.
+   * Non-blocking — errors are logged, not thrown. Lifecycle cron is the safety net.
+   */
+  private storeTransferIdAsync(paymentTxId: string, paymentId: string, provider: PaymentProvider): void {
+    this.fetchTransferId(paymentId, provider)
+      .then((transferId) => {
+        if (transferId) {
+          return this.paymentTxRepo.updateStatus(paymentTxId, PAYMENT_TX_STATUS.CAPTURED, {
+            gatewayTransferId: transferId,
+          })
+        }
+        this.logger.info({ paymentTxId, paymentId }, 'No transfer found — lifecycle cron will lazy-fetch')
+      })
+      .catch((error) => {
+        this.logger.warn({ paymentTxId, paymentId, error }, 'Async transfer ID fetch failed — lifecycle cron will retry')
+      })
+  }
+
+  /**
+   * Resolves the correct gateway for a given provider.
+   * Falls back to the active gateway when no provider is specified (new transactions).
+   */
+  private resolveGateway(provider?: PaymentProvider): IPaymentGateway {
+    if (!provider) return this.activeGateway
+    const gateway = this.gateways.get(provider)
+    if (!gateway) {
+      this.logger.warn({ provider }, `No gateway registered for provider=${provider}, falling back to active gateway`)
+      return this.activeGateway
+    }
+    return gateway
   }
 }
