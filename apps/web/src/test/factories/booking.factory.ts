@@ -70,10 +70,12 @@ export function makeCreateBookingResponse(
 export function makeVerifyPaymentResponse(
   overrides: Partial<VerifyPaymentResponse> = {},
 ): VerifyPaymentResponse {
+  counter++
   return {
-    bookingId: `booking-${counter || 1}`,
+    bookingId: `booking-${counter}`,
     bookingStatus: 'CONFIRMED',
     paymentStatus: 'CAPTURED',
+    bookingRef: `TRP-2025-${String(counter).padStart(4, '0')}`,
     ...overrides,
   }
 }
