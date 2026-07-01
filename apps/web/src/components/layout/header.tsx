@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Search,
   Menu,
@@ -72,6 +72,14 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Populate search input on mount — Header remounts on cross-layout navigation
+  // (AppShell is per-layout, not in root layout), so useState('') would otherwise
+  // lose the query when navigating e.g. home → /trips?q=goa.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) setSearchQuery(q)
+  }, [])
+
   function closeMobileMenu() {
     setMobileMenuOpen(false)
   }
@@ -79,8 +87,7 @@ export function Header() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     if (searchQuery.trim()) {
-      router.push(`/trips?destination=${encodeURIComponent(searchQuery.trim())}`)
-      setSearchQuery('')
+      router.push(`/trips?q=${encodeURIComponent(searchQuery.trim())}`)
       closeMobileMenu()
     }
   }

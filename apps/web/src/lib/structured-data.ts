@@ -99,7 +99,7 @@ export function buildWebsiteJsonLd(siteUrl: string, appName: string) {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: `${siteUrl}/trips?destination={search_term}`,
+        urlTemplate: `${siteUrl}/trips?q={search_term}`,
       },
       'query-input': 'required name=search_term',
     },
