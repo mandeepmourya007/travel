@@ -222,6 +222,7 @@ model OrganizerProfile {
   bankAccountLinked   Boolean            @default(false)
   commissionRate      Decimal            @default(10.0) @db.Decimal(5, 2)
   razorpayAccountId   String?
+  cashfreeVendorId    String?   // Cashfree Easy Split vendor ID (equivalent of razorpayAccountId)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -519,6 +520,13 @@ model PaymentTransaction {
   type                PaymentType
   amount              Int
   currency            String        @default("INR")
+  // ── Provider-neutral columns (expand phase — razorpay* kept for backward compat) ──
+  provider            String        @default("razorpay") // 'razorpay' | 'cashfree'
+  gatewayOrderId      String?       // provider-neutral alias for razorpayOrderId
+  gatewayPaymentId    String?       // provider-neutral alias for razorpayPaymentId
+  gatewayRefundId     String?       // provider-neutral alias for razorpayRefundId
+  gatewayTransferId   String?       // provider-neutral alias for razorpayTransferId
+  // ── Legacy Razorpay columns (retained until contract migration after full deploy) ──
   razorpayOrderId     String?
   razorpayPaymentId   String?
   razorpayRefundId    String?
@@ -531,6 +539,9 @@ model PaymentTransaction {
   updatedAt DateTime @updatedAt
 
   @@index([bookingId])
+  @@index([provider])
+  @@index([gatewayOrderId])
+  @@index([gatewayPaymentId])
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
   @@index([status])
