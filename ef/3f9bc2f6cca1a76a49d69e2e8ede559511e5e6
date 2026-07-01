@@ -1,0 +1,31 @@
+apps/api/src/services/booking.service.ts
+  s_ae7fa8f18782c6::t_a7517bb2b912ef 877
+  s_ae7fa8f18782c6::t_c7137173413058 831
+  s_ae7fa8f18782c6::t_6c89592492d61a 660
+  s_ae7fa8f18782c6::t_17937d92864fba 801
+  s_ae7fa8f18782c6::t_0bd34ab63c305f 911
+  s_ae7fa8f18782c6::t_283286bf3ef9a1 888
+  s_ae7fa8f18782c6::t_f04eff7b301175 686
+  s_ae7fa8f18782c6::t_68996ef4d6aebe 647
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "ef3f9bc2f6cca1a76a49d69e2e8ede559511e5e6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
