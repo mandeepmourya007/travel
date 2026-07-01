@@ -135,8 +135,8 @@ export const updateTripSchema = z
 export const tripFiltersSchema = z.object({
   destinationId: idSchema.optional(),
   destination: z.string().optional(),
-  /** Free-text search — OR-matches title, description, destination name */
-  q: z.string().trim().min(1).max(100).optional(),
+  /** Free-text search — splits into tokens, OR-matches title, description, destination name, trip type */
+  q: z.string().trim().min(1).max(200).optional(),
   tripType: z.string().optional(),
   bookingMode: z.enum(['INSTANT', 'REQUEST_BASED']).optional(),
   minPrice: z.coerce.number().optional(),

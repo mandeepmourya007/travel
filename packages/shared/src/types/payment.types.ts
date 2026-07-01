@@ -114,4 +114,5 @@ export interface VerifyPaymentResponse {
   bookingId: string
   bookingStatus: string
   paymentStatus: string
+  bookingRef: string
 }
