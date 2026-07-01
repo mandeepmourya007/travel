@@ -644,7 +644,7 @@ export class BookingService {
   async confirmBooking(
     bookingId: string,
     preloadedBooking?: Awaited<ReturnType<BookingRepository['findWithPaymentDetails']>>,
-  ): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+  ): Promise<VerifyPaymentResponse> {
     const timer = startTimer()
     this.requirePaymentService()
 
@@ -657,6 +657,7 @@ export class BookingService {
         bookingId: booking.id,
         bookingStatus: BOOKING_STATUS.CONFIRMED,
         paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+        bookingRef: booking.bookingRef,
       }
     }
 
@@ -682,6 +683,7 @@ export class BookingService {
           bookingId,
           bookingStatus: BOOKING_STATUS.CONFIRMED,
           paymentStatus: fresh.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+          bookingRef: fresh.bookingRef,
         }
       }
       throw new ConflictError('Booking confirmation is already in progress', BOOKING_ERROR_CODE.CONFIRM_RACE)
@@ -796,6 +798,7 @@ export class BookingService {
       bookingId: booking.id,
       bookingStatus: BOOKING_STATUS.CONFIRMED,
       paymentStatus: PAYMENT_TX_STATUS.CAPTURED,
+      bookingRef: booking.bookingRef,
     }
   }
 
@@ -825,6 +828,7 @@ export class BookingService {
         bookingId: booking.id,
         bookingStatus: BOOKING_STATUS.CONFIRMED,
         paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+        bookingRef: booking.bookingRef,
       }
     }
 
@@ -870,7 +874,7 @@ export class BookingService {
   async syncPaymentStatus(
     bookingId: string,
     userId: string,
-  ): Promise<{ bookingId: string; bookingStatus: string; paymentStatus: string }> {
+  ): Promise<VerifyPaymentResponse> {
     const booking = await this.bookingRepo.findWithPaymentDetails(bookingId)
     if (!booking) throw new NotFoundError('Booking')
     if (booking.userId !== userId) throw new ForbiddenError('You can only sync your own bookings')
@@ -881,6 +885,7 @@ export class BookingService {
         bookingId: booking.id,
         bookingStatus: BOOKING_STATUS.CONFIRMED,
         paymentStatus: booking.paymentTransactions[0]?.status || PAYMENT_TX_STATUS.CAPTURED,
+        bookingRef: booking.bookingRef,
       }
     }
 
@@ -903,6 +908,7 @@ export class BookingService {
       bookingId: booking.id,
       bookingStatus: BOOKING_STATUS.CONFIRMED,
       paymentStatus: PAYMENT_TX_STATUS.CAPTURED,
+      bookingRef: booking.bookingRef,
     }
   }
 
