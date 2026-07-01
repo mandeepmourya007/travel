@@ -1,0 +1,46 @@
+apps/web/src/app/payment-complete/page.tsx
+  s_b288e5961aca67::t_d84458ac8d2c5d 109
+  s_b288e5961aca67::t_1f7880e98ea905 46,58
+  s_b288e5961aca67::t_c728f4a4752b11 1-45,47-57,59-108,110-137
+apps/web/src/test/factories/booking.factory.ts
+  s_b288e5961aca67::t_1e1d677b1d9e1b 59-60
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_b288e5961aca67::t_213e3964e1a637 200
+  s_b288e5961aca67::t_da42178fd9280f 22
+  s_b288e5961aca67::t_020f972a02d91a 169,172-199,201-244,246-247,249
+apps/web/src/lib/cashfree.ts
+  s_b288e5961aca67::t_af001d369986f0 36-40,42
+  s_b288e5961aca67::t_edd99d06980649 1-35,41,43-75
+apps/web/src/hooks/use-verify-payment.ts
+  s_b288e5961aca67::t_ec9077907ed01d 8-14,22,25-26,32-37
+apps/web/src/app/trips/page.tsx
+  h_b3232c20134322 56
+apps/web/src/app/layout.tsx
+  h_b3232c20134322 32,34
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_b288e5961aca67::t_380899524f48b9 81
+  s_b288e5961aca67::t_2e102e45ba3c89 89-92
+apps/web/src/app/page.tsx
+  h_b3232c20134322 17,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "f29cd2fd64f54e4d43fb959753f20c533cc175ba",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
