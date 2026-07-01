@@ -1,0 +1,28 @@
+apps/web/src/components/layout/header.tsx
+  s_ae7fa8f18782c6::t_5de1fc74c10a48 75-82
+  s_ae7fa8f18782c6::t_eef9768c3847a9 5
+  s_ae7fa8f18782c6::t_115537139c103b 90
+apps/web/src/lib/structured-data.ts
+  s_ae7fa8f18782c6::t_4be39ded822ea1 102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "5ab63d78899a47f49cd081508a002409df08b114",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae7fa8f18782c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6f738ea8-d2d1-4c27-b8f9-07543a4976d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
