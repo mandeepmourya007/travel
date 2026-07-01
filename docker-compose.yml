@@ -67,14 +67,13 @@ services:
     ports:
       - '4001:4000'
     env_file:
-      - path: .env.docker
+      - path: apps/api/.env
         required: false
     environment:
       NODE_ENV: development
       PORT: 4000
       DATABASE_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
       DIRECT_URL: postgresql://travel_user:travel_pass@postgres:5432/travel_dev?schema=public
-      JWT_SECRET: docker-dev-jwt-secret-min-32-chars-long
       REDIS_URL: redis://:dev-redis-pass@redis:6379
       CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
       LOG_LEVEL: debug
@@ -127,7 +126,7 @@ services:
     ports:
       - '${WEB_PORT:-3000}:${WEB_PORT:-3000}'
     env_file:
-      - path: .env.docker
+      - path: apps/api/.env
         required: false
     environment:
       PORT: ${WEB_PORT:-3000}
