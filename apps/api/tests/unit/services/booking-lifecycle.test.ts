@@ -178,7 +178,13 @@ let bookingService: BookingService
 let lifecycleService: TripLifecycleService
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  // resetAllMocks resets both call counts AND mock implementations — prevents
+  // implementations set in one test from leaking into later tests.
+  vi.resetAllMocks()
+
+  // withLock is mocked via vi.mock() above, so resetAllMocks() clears its implementation.
+  // Restore the default: execute fn() immediately and return true (lock acquired).
+  vi.mocked(withLock).mockImplementation(async (_key, _ttl, fn) => { await fn(); return true })
 
   // Default: cancel succeeds for a CONFIRMED booking
   mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'CONFIRMED' })
@@ -186,6 +192,8 @@ beforeEach(() => {
   mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
   // revertConfirmGate must return a Promise so .catch() works in service
   mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
+  mockTripRepo.markFullIfAtCapacity.mockResolvedValue(0)
+  mockTripRepo.revertFullIfUnderCapacity.mockResolvedValue(0)
 
   bookingService = new BookingService(
     mockBookingRepo as any,
@@ -215,7 +223,11 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
   it('should create Razorpay order with correct amount in paise, receipt format, and notes', async () => {
     mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
     mockTripRepo.findByIdForBooking.mockResolvedValue(BASE_TRIP)
-    mockPaymentService.createOrder.mockResolvedValue({ id: 'order_new', amount: 1000000 })
+    mockPaymentService.createOrder.mockResolvedValue({
+      orderId: 'order_new',
+      status: 'created',
+      clientPayload: { provider: 'razorpay', orderId: 'order_new', razorpayKeyId: 'rzp_test_key' },
+    })
     mockBookingRepo.createWithPaymentTx.mockResolvedValue({
       id: 'booking-new', bookingRef: 'TRP-2025-XYZ1', totalAmount: 10000,
       expiresAt: new Date(NOW + 30 * 60 * 1000),
@@ -230,14 +242,14 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
       ],
     })
 
-    const [amountPaise, receipt, notes] = mockPaymentService.createOrder.mock.calls[0] as [number, string, Record<string, unknown>]
+    const [params] = mockPaymentService.createOrder.mock.calls[0] as [{ amountPaise: number; receipt: string; notes: Record<string, unknown> }]
 
     // 2 travelers × ₹5000 = ₹10000 → 1,000,000 paise
-    expect(amountPaise).toBe(1_000_000)
-    // receipt is used for Razorpay idempotency — format is "booking-<timestamp>"
-    expect(receipt).toMatch(/^booking-\d+$/)
-    // notes are stored on the Razorpay order for support/reconciliation
-    expect(notes).toMatchObject({ tripId: 'trip-1', userId: 'user-1' })
+    expect(params.amountPaise).toBe(1_000_000)
+    // receipt is used for idempotency — format is "booking-<timestamp>"
+    expect(params.receipt).toMatch(/^booking-\d+$/)
+    // notes are stored on the order for support/reconciliation
+    expect(params.notes).toMatchObject({ tripId: 'trip-1', userId: 'user-1' })
   })
 
   it('should confirm booking, capture payment, increment seats, and check FULL', async () => {
@@ -254,8 +266,8 @@ describe('Flow 1: Create Booking → Payment → Confirm → FULL', () => {
     expect(mockBookingRepo.atomicConfirmGate).toHaveBeenCalledWith('booking-1')
     // 2. Seats incremented atomically
     expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2)
-    // 3. Payment captured with exact DB amount in paise
-    expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 1000000, 'INR')
+    // 3. Payment captured with exact DB amount in paise, routed via the correct provider
+    expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 1000000, 'INR', 'razorpay')
     // 4. FULL check always fires (atomic SQL — no TOCTOU)
     expect(mockTripRepo.markFullIfAtCapacity).toHaveBeenCalledWith('trip-1')
     expect(result.bookingStatus).toBe('CONFIRMED')
@@ -786,20 +798,32 @@ describe('Flow 4: Crash Recovery — Unreleased SafePay Sweep', () => {
 // FLOW 5: Edge Cases & Concurrency
 // ══════════════════════════════════════════════════════
 describe('Flow 5: Edge Cases & Concurrency', () => {
-  it('should prevent double-booking — existing CONFIRMED booking blocks new create', async () => {
+  it('should allow creating a second booking when user already has a CONFIRMED booking (user may book for friends)', async () => {
+    // CONFIRMED status no longer blocks new booking creation — users are allowed to make
+    // additional bookings (e.g. for friends). PENDING_PAYMENT is still blocked (idempotency).
     mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue({ bookingStatus: 'CONFIRMED' })
+    mockTripRepo.findByIdForBooking.mockResolvedValue(BASE_TRIP)
+    mockPaymentService.createOrder.mockResolvedValue({
+      orderId: 'order_friend',
+      status: 'created',
+      clientPayload: { provider: 'razorpay', orderId: 'order_friend', razorpayKeyId: 'rzp_test_key' },
+    })
+    mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+      id: 'booking-friend', bookingRef: 'TRP-2025-FRIEND1', totalAmount: 10000,
+      expiresAt: new Date(NOW + 30 * 60 * 1000),
+    })
 
-    await expect(
-      bookingService.createBooking('user-1', {
-        tripId: 'trip-1', numTravelers: 2,
-        travelers: [
-          { name: 'A', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
-          { name: 'B', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
-        ],
-      }),
-    ).rejects.toThrow('already have a confirmed booking')
+    const result = await bookingService.createBooking('user-1', {
+      tripId: 'trip-1', numTravelers: 2,
+      travelers: [
+        { name: 'A', phone: '9999999999', age: 25, gender: 'FEMALE' as const, isPrimary: true },
+        { name: 'B', phone: '8888888888', age: 28, gender: 'MALE' as const, isPrimary: false },
+      ],
+    })
 
-    expect(mockTripRepo.findByIdForBooking).not.toHaveBeenCalled()
+    // New booking is created normally — trip lookup proceeds
+    expect(mockTripRepo.findByIdForBooking).toHaveBeenCalledWith('trip-1')
+    expect(result.bookingId).toBe('booking-friend')
   })
 
   it('should return existing order for PENDING_PAYMENT re-request (idempotent)', async () => {

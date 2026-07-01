@@ -13,6 +13,17 @@ vi.mock('../../../src/utils/redis-lock', () => ({
   }),
 }))
 
+const mockEnv = {
+  PAYMENT_GATEWAY: 'razorpay' as 'razorpay' | 'cashfree',
+  CASHFREE_ENV: 'sandbox' as 'sandbox' | 'production',
+  CLIENT_URL: 'http://localhost:3000',
+  NODE_ENV: 'test',
+}
+
+vi.mock('../../../src/config/env', () => ({
+  get env() { return mockEnv },
+}))
+
 // ── Mock Repositories ─────────────────────────────────
 const mockBookingRepo = {
   findByUserId: vi.fn(),
@@ -52,6 +63,8 @@ const mockTripRequestRepo = {
 const mockPaymentTxRepo = {
   create: vi.fn(),
   findByBookingId: vi.fn(),
+  findByGatewayOrderId: vi.fn(),
+  findByGatewayPaymentId: vi.fn(),
   findByRazorpayOrderId: vi.fn(),
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
@@ -61,7 +74,8 @@ const mockPaymentTxRepo = {
 
 const mockPaymentService = {
   createOrder: vi.fn(),
-  verifySignature: vi.fn(),
+  verifySignature: vi.fn(),      // keep for backward compat — not called by new code
+  verifyClientCallback: vi.fn(),
   capturePayment: vi.fn(),
   checkOrderStatus: vi.fn(),
   initiateRefund: vi.fn(),
@@ -458,7 +472,7 @@ describe('BookingService', () => {
       const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE >=48h → 100%, totalAmount=9000
       mockBookingRepo.findById.mockResolvedValue(booking)
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
-        { id: 'ptx-cap-1', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc123' },
+        { id: 'ptx-cap-1', type: 'PAYMENT', status: 'CAPTURED', gatewayPaymentId: 'pay_abc123', razorpayPaymentId: 'pay_abc123' },
       ])
       mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-1' })
       mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_x', status: 'processed' })
@@ -477,6 +491,7 @@ describe('BookingService', () => {
         'pay_abc123',
         900000, // 9000 rupees × 100
         expect.objectContaining({ bookingId: 'booking-1' }),
+        'razorpay',
       )
     })
 
@@ -487,7 +502,7 @@ describe('BookingService', () => {
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
-        { id: 'ptx-cap-2', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_def456' },
+        { id: 'ptx-cap-2', type: 'PAYMENT', status: 'CAPTURED', gatewayPaymentId: 'pay_def456', razorpayPaymentId: 'pay_def456' },
       ])
       mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-2' })
       mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_y', status: 'processed' })
@@ -504,6 +519,7 @@ describe('BookingService', () => {
         'pay_def456',
         400000, // 4000 rupees × 100
         expect.any(Object),
+        'razorpay',
       )
     })
 
@@ -742,6 +758,7 @@ describe('BookingService', () => {
         'pay_abc',
         900000, // stored amount 9000 × 100 paise
         expect.objectContaining({ bookingId: 'booking-1' }),
+        'razorpay',
       )
     })
 
@@ -760,6 +777,7 @@ describe('BookingService', () => {
         'pay_abc',
         900000,
         expect.objectContaining({ reason: 'Stored reason' }),
+        'razorpay',
       )
     })
   })
@@ -818,7 +836,11 @@ describe('BookingService', () => {
     it('should create booking and Razorpay order for INSTANT trip', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_abc', amount: 800000 })
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_abc',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_abc', razorpayKeyId: 'rzp_test_key' },
+      })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-new',
         bookingRef: 'TRP-2025-0001',
@@ -832,12 +854,10 @@ describe('BookingService', () => {
       expect(result.razorpayOrderId).toBe('order_abc')
       expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
         expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2 }),
-        { razorpayOrderId: 'order_abc', amount: 8000, type: 'PAYMENT', status: 'INITIATED' },
+        expect.objectContaining({ provider: 'razorpay', gatewayOrderId: 'order_abc', amount: 8000, type: 'PAYMENT', status: 'INITIATED' }),
       )
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        expect.any(Number),
-        expect.any(String),
-        expect.any(Object),
+        expect.objectContaining({ amountPaise: expect.any(Number), receipt: expect.any(String), notes: expect.any(Object) }),
       )
     })
 
@@ -914,22 +934,52 @@ describe('BookingService', () => {
       ).rejects.toThrow('seats')
     })
 
-    it('should throw ValidationError when organizer has no razorpayAccountId', async () => {
+    it('should succeed for Razorpay booking even when organizer has no razorpayAccountId', async () => {
+      mockEnv.PAYMENT_GATEWAY = 'razorpay'
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue({
         ...mockTrip,
         organizer: { ...mockTrip.organizer, razorpayAccountId: null },
       })
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_rzp',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_rzp', razorpayKeyId: 'rzp_test_key' },
+      })
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+        id: 'booking-new',
+        bookingRef: 'TRP-2025-0001',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+
+      const result = await service.createBooking('user-1', validInput)
+      expect(result.bookingId).toBe('booking-new')
+    })
+
+    it('should throw ValidationError when Cashfree gateway but organizer has no cashfreeVendorId', async () => {
+      mockEnv.PAYMENT_GATEWAY = 'cashfree'
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        organizer: { ...mockTrip.organizer, cashfreeVendorId: null },
+      })
 
       await expect(
         service.createBooking('user-1', validInput),
       ).rejects.toThrow('payment')
+
+      mockEnv.PAYMENT_GATEWAY = 'razorpay'
     })
 
     it('should use early bird price when deadline has not passed', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_eb', amount: 800000 })
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_eb',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_eb', razorpayKeyId: 'rzp_test_key' },
+      })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-eb',
         bookingRef: 'TRP-2025-0002',
@@ -941,7 +991,7 @@ describe('BookingService', () => {
 
       // Early bird: 4000 * 2 = 8000 rupees = 800000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        800000, expect.any(String), expect.any(Object),
+        expect.objectContaining({ amountPaise: 800000 }),
       )
     })
 
@@ -1012,7 +1062,7 @@ describe('BookingService', () => {
       // atomicConfirmGate transitions PENDING_PAYMENT→CONFIRMED in the DB
       expect(mockBookingRepo.atomicConfirmGate).toHaveBeenCalledWith('booking-1')
       expect(mockTripRepo.atomicIncrementBookings).toHaveBeenCalledWith('trip-1', 2)
-      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 800000, 'INR')
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 800000, 'INR', 'razorpay')
       expect(mockTripRepo.markFullIfAtCapacity).toHaveBeenCalledWith('trip-1')
     })
 
@@ -1240,7 +1290,7 @@ describe('BookingService', () => {
         .mockResolvedValueOnce(staleBooking)
       mockBookingRepo.updateStatus.mockResolvedValue({})
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fresh', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_fresh', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_fresh', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-fresh', bookingRef: 'TRP-2025-FRESH',
         totalAmount: 10000, expiresAt: new Date(Date.now() + 30 * 60 * 1000),
@@ -1274,7 +1324,7 @@ describe('BookingService', () => {
           status: 'AUTHORIZED',
         }],
       })
-      mockPaymentService.verifySignature.mockReturnValue(true)
+      mockPaymentService.verifyClientCallback.mockResolvedValue(true)
       mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
       mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
       mockBookingRepo.updateStatus.mockResolvedValue({})
@@ -1286,8 +1336,8 @@ describe('BookingService', () => {
       })
 
       expect(result.bookingStatus).toBe('CONFIRMED')
-      expect(mockPaymentService.verifySignature).toHaveBeenCalledWith(
-        'order_abc', 'pay_abc', 'valid-sig',
+      expect(mockPaymentService.verifyClientCallback).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: 'order_abc', paymentId: 'pay_abc', signature: 'valid-sig' }),
       )
     })
 
@@ -1298,7 +1348,7 @@ describe('BookingService', () => {
         bookingStatus: 'PENDING_PAYMENT',
         paymentTransactions: [{ razorpayOrderId: 'order_abc' }],
       })
-      mockPaymentService.verifySignature.mockReturnValue(false)
+      mockPaymentService.verifyClientCallback.mockResolvedValue(false)
 
       await expect(
         service.verifyAndConfirmPayment('booking-1', 'user-1', {
@@ -1335,7 +1385,7 @@ describe('BookingService', () => {
           status: 'INITIATED',
         }],
       })
-      mockPaymentService.verifySignature.mockReturnValue(true) // sig is genuinely valid — for order_A
+      mockPaymentService.verifyClientCallback.mockResolvedValue(true) // sig is genuinely valid — for order_A
 
       await expect(
         service.verifyAndConfirmPayment('booking-b', 'user-1', {
@@ -1366,7 +1416,7 @@ describe('BookingService', () => {
           status: 'INITIATED',
         }],
       })
-      mockPaymentService.verifySignature.mockReturnValue(true)
+      mockPaymentService.verifyClientCallback.mockResolvedValue(true)
       mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
       mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
       mockBookingRepo.updateStatus.mockResolvedValue({})
@@ -1398,7 +1448,7 @@ describe('BookingService', () => {
         }),
       ).rejects.toThrow()
 
-      expect(mockPaymentService.verifySignature).not.toHaveBeenCalled()
+      expect(mockPaymentService.verifyClientCallback).not.toHaveBeenCalled()
     })
 
     it('should return success if booking already CONFIRMED', async () => {
@@ -1457,7 +1507,7 @@ describe('BookingService', () => {
     function setupMocks() {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_tp', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_tp', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_tp', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({ id: 'booking-tp', bookingRef: 'TRP-TP-0001', totalAmount: 10000, expiresAt: new Date() })
     }
 
@@ -1492,9 +1542,7 @@ describe('BookingService', () => {
 
       // base 5000 + pickup 500 + drop 200 = 5700 per person × 2 = 11400 rupees = 1140000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        1140000,
-        expect.any(String),
-        expect.any(Object),
+        expect.objectContaining({ amountPaise: 1140000 }),
       )
     })
 
@@ -1505,9 +1553,7 @@ describe('BookingService', () => {
 
       // base 5000 + pickup 0 = 5000 per person × 2 = 10000 rupees = 1000000 paise
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
-        1000000,
-        expect.any(String),
-        expect.any(Object),
+        expect.objectContaining({ amountPaise: 1000000 }),
       )
     })
   })
@@ -1691,7 +1737,7 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_seat', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_seat', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_seat', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-seat',
         bookingRef: 'TRP-2025-SEAT',
@@ -1711,7 +1757,7 @@ describe('BookingService', () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
       mockVehicleService.checkSeatsAvailable.mockResolvedValue(true)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_fail', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_fail', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_fail', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-fail',
         bookingRef: 'TRP-2025-FAIL',
@@ -1731,7 +1777,7 @@ describe('BookingService', () => {
     it('should skip seat operations when seatIds is not provided', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_noseat', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_noseat', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_noseat', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-noseat',
         bookingRef: 'TRP-2025-NOSEAT',
@@ -1763,7 +1809,7 @@ describe('BookingService', () => {
 
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
-      mockPaymentService.createOrder.mockResolvedValue({ id: 'order_null', amount: 1000000 })
+      mockPaymentService.createOrder.mockResolvedValue({ orderId: 'order_null', status: 'created', clientPayload: { provider: 'razorpay', orderId: 'order_null', razorpayKeyId: 'rzp_test_key' } })
       mockBookingRepo.createWithPaymentTx.mockResolvedValue({
         id: 'booking-null',
         bookingRef: 'TRP-2025-NULL',
@@ -1888,7 +1934,7 @@ describe('syncPaymentStatus', () => {
     const result = await service.syncPaymentStatus('booking-1', 'user-1')
 
     expect(result.bookingStatus).toBe('CONFIRMED')
-    expect(mockPaymentService.checkOrderStatus).toHaveBeenCalledWith('order_abc')
+    expect(mockPaymentService.checkOrderStatus).toHaveBeenCalledWith('order_abc', 'razorpay')
   })
 
     it('should return CONFIRMED idempotently when booking is already confirmed', async () => {
@@ -1929,7 +1975,7 @@ describe('syncPaymentStatus', () => {
         paymentTransactions: [],
       })
 
-      await expect(service.syncPaymentStatus('booking-1', 'user-1')).rejects.toThrow('No Razorpay order')
+      await expect(service.syncPaymentStatus('booking-1', 'user-1')).rejects.toThrow('No payment order found')
     })
   })
 
@@ -1976,7 +2022,7 @@ describe('syncPaymentStatus', () => {
       await service.recoverPaidBooking('booking-1', bookingWithPaymentId as any)
 
       expect(mockPaymentService.fetchPaymentIdForOrder).not.toHaveBeenCalled()
-      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 500000, 'INR')
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_abc', 500000, 'INR', 'razorpay')
     })
 
     it('should fetch, store, and use paymentId when it is missing from DB', async () => {
@@ -1986,9 +2032,9 @@ describe('syncPaymentStatus', () => {
 
       await service.recoverPaidBooking('booking-1', makeMissingPaymentId() as any)
 
-      expect(mockPaymentService.fetchPaymentIdForOrder).toHaveBeenCalledWith('order_abc')
+      expect(mockPaymentService.fetchPaymentIdForOrder).toHaveBeenCalledWith('order_abc', 'razorpay')
       expect(mockPaymentTxRepo.updatePaymentId).toHaveBeenCalledWith('ptx-1', 'pay_recovered')
-      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_recovered', 500000, 'INR')
+      expect(mockPaymentService.capturePayment).toHaveBeenCalledWith('pay_recovered', 500000, 'INR', 'razorpay')
     })
 
     it('should throw ValidationError when fetchPaymentIdForOrder returns null', async () => {
@@ -1996,7 +2042,7 @@ describe('syncPaymentStatus', () => {
 
       await expect(
         service.recoverPaidBooking('booking-1', makeMissingPaymentId() as any),
-      ).rejects.toThrow('Payment ID not found on Razorpay yet')
+      ).rejects.toThrow('Payment ID not found on gateway yet')
 
       expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
     })

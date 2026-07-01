@@ -166,6 +166,12 @@ beforeEach(() => {
   vi.clearAllMocks()
   // Default: no stale request exists (tests that need re-apply override this)
   mockTripRequestRepo.findExpiredOrRejectedForUser.mockResolvedValue(null)
+  // Default: no approved request found (confirmBooking looks up by userId+tripId)
+  mockTripRequestRepo.findApprovedForUser.mockResolvedValue(null)
+  // Defaults for confirmBooking guard mocks
+  mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
+  mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
+  mockTripRepo.markFullIfAtCapacity.mockResolvedValue(0)
   tripService = new TripService(
     mockTripRepo as any,
     mockDestinationRepo as any,
@@ -496,6 +502,10 @@ describe('BookingService.confirmBooking — markConverted', () => {
     mockPaymentService.capturePayment.mockResolvedValue({ id: 'pay_123' })
     mockBookingRepo.updateStatus.mockResolvedValue(undefined)
     mockTripRequestRepo.markConverted.mockResolvedValue(undefined)
+    // Service looks up the approved request by userId+tripId (not booking.tripRequest directly —
+    // the back-relation is null at confirmation time due to the FK set by markConverted itself)
+    mockTripRequestRepo.findApprovedForUser.mockResolvedValue({ id: 'req-1', status: 'APPROVED' })
+    mockTripRepo.markFullIfAtCapacity.mockResolvedValue(0)
 
     await bookingService.confirmBooking('booking-1')
 

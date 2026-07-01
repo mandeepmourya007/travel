@@ -1,18 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import crypto from 'crypto'
 import { PaymentService } from '../../../src/services/payment.service'
-import { PaymentError } from '../../../src/errors/app-error'
+import { PaymentError, AuthError } from '../../../src/errors/app-error'
+import { NORMALIZED_EVENT_TYPE } from '../../../src/types/payment.types'
+import type { NormalizedWebhookEvent, NormalizedOrder, NormalizedPayment } from '../../../src/types/payment.types'
 
-// ── Mock Dependencies ──────────────────────────────
-const mockRazorpay = {
-  orders: { create: vi.fn(), fetch: vi.fn(), fetchPayments: vi.fn() },
-  payments: { capture: vi.fn(), fetch: vi.fn(), refund: vi.fn() },
+// ── Mock Gateway (IPaymentGateway) ──────────────────────
+const mockGateway = {
+  provider: 'razorpay' as const,
+  createOrder: vi.fn(),
+  capturePayment: vi.fn(),
+  verifyClientCallback: vi.fn(),
+  checkOrderStatus: vi.fn(),
+  fetchPaymentIdForOrder: vi.fn(),
+  initiateRefund: vi.fn(),
+  fetchTransferId: vi.fn(),
+  releaseTransferHold: vi.fn(),
+  verifyAndParseWebhook: vi.fn(),
 }
 
+const gatewayRegistry = new Map([['razorpay' as const, mockGateway]])
+
+// ── Mock Repositories ──────────────────────────────────
 const mockPaymentTxRepo = {
   create: vi.fn(),
   findByBookingId: vi.fn(),
   findInitiatedRefundByBookingId: vi.fn(),
+  findByGatewayOrderId: vi.fn(),
+  findByGatewayPaymentId: vi.fn(),
   findByRazorpayOrderId: vi.fn(),
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
@@ -37,35 +51,27 @@ const mockLogger = {
   child: vi.fn().mockReturnThis(),
 }
 
-// ── Test Constants ──────────────────────────────────
-const WEBHOOK_SECRET = 'test-webhook-secret'
-const KEY_SECRET = 'test-key-secret'
+// ── Test Data Factories ─────────────────────────────────
 
-// ── Test Data Factories ─────────────────────────────
-
-function createMockOrder(overrides: Record<string, unknown> = {}) {
+function createNormalizedOrder(overrides: Partial<NormalizedOrder> = {}): NormalizedOrder {
   return {
-    id: 'order_test123',
-    entity: 'order',
-    amount: 500000,
-    amount_paid: 0,
-    amount_due: 500000,
-    currency: 'INR',
-    receipt: 'booking-1',
+    orderId: 'order_test123',
     status: 'created',
+    clientPayload: {
+      provider: 'razorpay',
+      orderId: 'order_test123',
+      razorpayKeyId: 'rzp_test_key',
+    },
+    raw: {},
     ...overrides,
   }
 }
 
-function createMockPayment(overrides: Record<string, unknown> = {}) {
+function createNormalizedPayment(overrides: Partial<NormalizedPayment> = {}): NormalizedPayment {
   return {
-    id: 'pay_test456',
-    entity: 'payment',
-    amount: 500000,
-    currency: 'INR',
-    status: 'authorized',
-    order_id: 'order_test123',
-    method: 'upi',
+    paymentId: 'pay_test456',
+    status: 'captured',
+    raw: {},
     ...overrides,
   }
 }
@@ -76,7 +82,9 @@ function createMockPaymentTx(overrides: Record<string, unknown> = {}) {
     bookingId: 'booking-1',
     type: 'PAYMENT',
     amount: 5000,
-    currency: 'INR',
+    provider: 'razorpay',
+    gatewayOrderId: 'order_test123',
+    gatewayPaymentId: null,
     razorpayOrderId: 'order_test123',
     razorpayPaymentId: null,
     status: 'INITIATED',
@@ -84,30 +92,21 @@ function createMockPaymentTx(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function createWebhookPayload(event: string, paymentOverrides: Record<string, unknown> = {}) {
+function createNormalizedEvent(
+  type: NormalizedWebhookEvent['type'],
+  overrides: Partial<NormalizedWebhookEvent> = {},
+): NormalizedWebhookEvent {
   return {
-    entity: 'event',
-    account_id: 'acc_test',
-    event,
-    contains: ['payment'],
-    payload: {
-      payment: {
-        entity: createMockPayment(paymentOverrides),
-      },
-    },
-  }
-}
-
-function createOrderPaidPayload(overrides: Record<string, unknown> = {}) {
-  return {
-    entity: 'event',
-    account_id: 'acc_test',
-    event: 'order.paid',
-    contains: ['payment', 'order'],
-    payload: {
-      payment: { entity: createMockPayment() },
-      order: { entity: createMockOrder({ status: 'paid', ...overrides }) },
-    },
+    type,
+    externalEventId: 'evt_test123',
+    orderId: 'order_test123',
+    paymentId: 'pay_test456',
+    refundId: null,
+    failureReason: null,
+    mode: 'test',
+    rawEventName: type,
+    payload: {},
+    ...overrides,
   }
 }
 
@@ -115,258 +114,161 @@ let service: PaymentService
 
 beforeEach(() => {
   vi.clearAllMocks()
-  service = new PaymentService(
-    mockRazorpay as any,
-    mockPaymentTxRepo as any,
-    mockWebhookEventRepo as any,
-    KEY_SECRET,
-    mockLogger as any,
-  )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  service = new PaymentService(mockGateway as any, gatewayRegistry as any, mockPaymentTxRepo as any, mockWebhookEventRepo as any, mockLogger as any)
 })
 
 describe('PaymentService', () => {
   // ═══════════════════════════════════════════════════
-  // createOrder
+  // createOrder — delegates to active gateway
   // ═══════════════════════════════════════════════════
   describe('createOrder', () => {
-    it('should create a Razorpay order with manual capture', async () => {
-      const mockOrder = createMockOrder()
-      mockRazorpay.orders.create.mockResolvedValue(mockOrder)
+    it('should delegate to gateway.createOrder and return NormalizedOrder', async () => {
+      const normalized = createNormalizedOrder()
+      mockGateway.createOrder.mockResolvedValue(normalized)
 
-      const result = await service.createOrder(500000, 'booking-1', { tripId: 'trip-1' })
+      const result = await service.createOrder({ amountPaise: 500000, receipt: 'booking-1', notes: { tripId: 'trip-1' } })
 
-      expect(mockRazorpay.orders.create).toHaveBeenCalledWith({
-        amount: 500000,
-        currency: 'INR',
+      expect(mockGateway.createOrder).toHaveBeenCalledWith({
+        amountPaise: 500000,
         receipt: 'booking-1',
-        payment_capture: 0,
         notes: { tripId: 'trip-1' },
       })
-      expect(result).toEqual(mockOrder)
+      expect(result.orderId).toBe('order_test123')
     })
 
-    it('should throw PaymentError when Razorpay API fails', async () => {
-      mockRazorpay.orders.create.mockRejectedValue(new Error('Razorpay down'))
+    it('should re-throw PaymentError from gateway unchanged', async () => {
+      mockGateway.createOrder.mockRejectedValue(new PaymentError('Failed to create Razorpay order'))
 
       await expect(
-        service.createOrder(500000, 'booking-1', {}),
+        service.createOrder({ amountPaise: 500000, receipt: 'booking-1', notes: {} }),
       ).rejects.toThrow('Failed to create Razorpay order')
     })
 
-    it('should preserve the underlying Razorpay error as cause for Sentry triage', async () => {
+    it('should wrap unknown errors from gateway in PaymentError', async () => {
       const underlying = new Error('connect ETIMEDOUT api.razorpay.com:443')
-      mockRazorpay.orders.create.mockRejectedValue(underlying)
+      mockGateway.createOrder.mockRejectedValue(underlying)
 
-      const err = await service
-        .createOrder(500000, 'booking-1', {})
-        .catch((e) => e)
+      const err = await service.createOrder({ amountPaise: 500000, receipt: 'booking-1', notes: {} }).catch((e) => e)
 
       expect(err).toBeInstanceOf(PaymentError)
-      // Native `cause` is what Sentry walks to surface the real failure reason
       expect(err.cause).toBe(underlying)
-      // Back-compat property still populated
-      expect(err.razorpayError).toBe(underlying)
-    })
-
-    it('should throw ValidationError when amount is zero', async () => {
-      await expect(
-        service.createOrder(0, 'booking-1', {}),
-      ).rejects.toThrow()
     })
   })
 
   // ═══════════════════════════════════════════════════
-  // capturePayment
+  // capturePayment — routes to gateway by provider
   // ═══════════════════════════════════════════════════
   describe('capturePayment', () => {
-    it('should capture payment with exact authorized amount', async () => {
-      const capturedPayment = createMockPayment({ status: 'captured' })
-      mockRazorpay.payments.capture.mockResolvedValue(capturedPayment)
+    it('should delegate to gateway.capturePayment', async () => {
+      mockGateway.capturePayment.mockResolvedValue(createNormalizedPayment())
 
       const result = await service.capturePayment('pay_test456', 500000, 'INR')
 
-      expect(mockRazorpay.payments.capture).toHaveBeenCalledWith('pay_test456', 500000, 'INR')
-      expect(result).toEqual(capturedPayment)
+      expect(mockGateway.capturePayment).toHaveBeenCalledWith('pay_test456', 500000, 'INR')
+      expect(result.paymentId).toBe('pay_test456')
     })
 
-    it('should return existing capture when payment already captured (idempotent)', async () => {
-      const alreadyCaptured = createMockPayment({ status: 'captured' })
-      const razorpayError = new Error('This payment has already been captured')
-      Object.assign(razorpayError, { statusCode: 400, error: { code: 'BAD_REQUEST_ERROR' } })
-      mockRazorpay.payments.capture.mockRejectedValue(razorpayError)
-      mockRazorpay.payments.fetch.mockResolvedValue(alreadyCaptured)
+    it('should route to the registry gateway when provider is specified', async () => {
+      mockGateway.capturePayment.mockResolvedValue(createNormalizedPayment())
 
-      const result = await service.capturePayment('pay_test456', 500000, 'INR')
+      await service.capturePayment('pay_test456', 500000, 'INR', 'razorpay')
 
-      expect(result).toEqual(alreadyCaptured)
-    })
-
-    it('should throw PaymentError when capture fails and fetch confirms non-captured status', async () => {
-      mockRazorpay.payments.capture.mockRejectedValue(new Error('Capture failed'))
-      // Fetch confirms payment is NOT captured — service should throw
-      mockRazorpay.payments.fetch.mockResolvedValue({ status: 'failed' })
-
-      await expect(
-        service.capturePayment('pay_test456', 500000, 'INR'),
-      ).rejects.toThrow('Failed to capture payment')
+      expect(mockGateway.capturePayment).toHaveBeenCalled()
     })
   })
 
   // ═══════════════════════════════════════════════════
-  // verifySignature
+  // verifyClientCallback
   // ═══════════════════════════════════════════════════
-  describe('verifySignature', () => {
-    it('should return true for valid HMAC-SHA256 signature', () => {
-      const orderId = 'order_test123'
-      const paymentId = 'pay_test456'
-      const expectedSig = crypto
-        .createHmac('sha256', KEY_SECRET)
-        .update(`${orderId}|${paymentId}`)
-        .digest('hex')
+  describe('verifyClientCallback', () => {
+    it('should return true for a valid callback via the gateway', async () => {
+      mockGateway.verifyClientCallback.mockReturnValue(true)
 
-      const result = service.verifySignature(orderId, paymentId, expectedSig)
+      const result = await service.verifyClientCallback({
+        orderId: 'order_test123',
+        paymentId: 'pay_test456',
+        signature: 'valid_sig',
+      })
 
       expect(result).toBe(true)
+      expect(mockGateway.verifyClientCallback).toHaveBeenCalledWith({
+        orderId: 'order_test123',
+        paymentId: 'pay_test456',
+        signature: 'valid_sig',
+      })
     })
 
-    it('should return false for invalid signature', () => {
-      const result = service.verifySignature('order_test123', 'pay_test456', 'invalid-sig')
+    it('should return false for an invalid callback', async () => {
+      mockGateway.verifyClientCallback.mockReturnValue(false)
+
+      const result = await service.verifyClientCallback({
+        orderId: 'order_test123',
+        paymentId: 'pay_test456',
+        signature: 'bad_sig',
+      })
 
       expect(result).toBe(false)
     })
-
-    it('should return false for tampered orderId', () => {
-      const expectedSig = crypto
-        .createHmac('sha256', KEY_SECRET)
-        .update('order_test123|pay_test456')
-        .digest('hex')
-
-      const result = service.verifySignature('order_tampered', 'pay_test456', expectedSig)
-
-      expect(result).toBe(false)
-    })
   })
 
   // ═══════════════════════════════════════════════════
-  // checkOrderStatus
-  // ═══════════════════════════════════════════════════
-  describe('checkOrderStatus', () => {
-    it('should return order status when order exists', async () => {
-      mockRazorpay.orders.fetch.mockResolvedValue(createMockOrder({ status: 'paid' }))
-
-      const result = await service.checkOrderStatus('order_test123')
-
-      expect(result).toBe('paid')
-      expect(mockRazorpay.orders.fetch).toHaveBeenCalledWith('order_test123')
-    })
-
-    it('should return created status for pending order', async () => {
-      mockRazorpay.orders.fetch.mockResolvedValue(createMockOrder({ status: 'created' }))
-
-      const result = await service.checkOrderStatus('order_test123')
-
-      expect(result).toBe('created')
-    })
-
-    it('should throw PaymentError when order not found', async () => {
-      mockRazorpay.orders.fetch.mockRejectedValue(new Error('Order not found'))
-
-      await expect(
-        service.checkOrderStatus('order_nonexistent'),
-      ).rejects.toThrow('Failed to check order status')
-    })
-  })
-
-  // ═══════════════════════════════════════════════════
-  // initiateRefund
-  // ═══════════════════════════════════════════════════
-  describe('initiateRefund', () => {
-    it('should create refund with reverse_all for Route transfer reversal', async () => {
-      const mockRefund = { id: 'rfnd_test789', amount: 500000, status: 'processed' }
-      mockRazorpay.payments.refund.mockResolvedValue(mockRefund)
-
-      const result = await service.initiateRefund('pay_test456', 500000, { bookingId: 'booking-1' })
-
-      expect(mockRazorpay.payments.refund).toHaveBeenCalledWith('pay_test456', {
-        amount: 500000,
-        reverse_all: 1,
-        notes: { bookingId: 'booking-1' },
-      })
-      expect(result).toEqual(mockRefund)
-    })
-
-    it('should support partial refund amount', async () => {
-      const mockRefund = { id: 'rfnd_test789', amount: 250000, status: 'processed' }
-      mockRazorpay.payments.refund.mockResolvedValue(mockRefund)
-
-      const result = await service.initiateRefund('pay_test456', 250000)
-
-      expect(mockRazorpay.payments.refund).toHaveBeenCalledWith('pay_test456', {
-        amount: 250000,
-        reverse_all: 1,
-        notes: undefined,
-      })
-      expect(result.amount).toBe(250000)
-    })
-
-    it('should throw PaymentError when refund fails', async () => {
-      mockRazorpay.payments.refund.mockRejectedValue(new Error('Refund failed'))
-
-      await expect(
-        service.initiateRefund('pay_test456', 500000),
-      ).rejects.toThrow('Failed to initiate refund')
-    })
-  })
-
-  // ═══════════════════════════════════════════════════
-  // handleWebhook
+  // handleWebhook — verify + record + return normalized
   // ═══════════════════════════════════════════════════
   describe('handleWebhook', () => {
-    const validPayload = createWebhookPayload('payment.authorized')
-    const rawBody = Buffer.from(JSON.stringify(validPayload))
-    const signature = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex')
-    const headers = {
-      'x-razorpay-signature': signature,
-      'x-razorpay-event-id': 'evt_test123',
-    }
+    const rawBody = Buffer.from('{}')
+    const headers = { 'x-razorpay-signature': 'sig', 'x-razorpay-event-id': 'evt_test123' }
 
-    it('should record webhook event and return its ID for async processing', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(createMockPaymentTx())
-      // upsert: first delivery → attempts=1 (new row)
+    it('should record webhook event and return webhookEventId + normalized', async () => {
+      const normalized = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      mockGateway.verifyAndParseWebhook.mockReturnValue(normalized)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(createMockPaymentTx())
       mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-1', attempts: 1 })
 
-      const result = await service.handleWebhook(rawBody, headers)
+      const result = await service.handleWebhook(rawBody, headers, 'razorpay')
 
-      expect(result).toBe('whe-1')
+      expect(result).not.toBeNull()
+      expect(result!.webhookEventId).toBe('whe-1')
+      expect(result!.normalized).toMatchObject({ type: NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED })
       expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalledWith(
         expect.objectContaining({
           source: 'RAZORPAY',
           externalEventId: 'evt_test123',
-          eventType: 'payment.authorized',
           status: 'RECEIVED',
         }),
       )
     })
 
-    it('should skip duplicate event and increment attempts', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
-      // upsert: duplicate delivery → attempts>1 (existing row updated)
+    it('should return { webhookEventId: null, normalized } for duplicate events (attempts > 1)', async () => {
+      const normalized = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      mockGateway.verifyAndParseWebhook.mockReturnValue(normalized)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
       mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-existing', attempts: 2 })
 
-      const result = await service.handleWebhook(rawBody, headers)
+      const result = await service.handleWebhook(rawBody, headers, 'razorpay')
 
-      expect(result).toBeNull()
-      // The old find-then-create pattern used incrementAttempts separately — now handled inside upsert
-      expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalled()
-      expect(mockWebhookEventRepo.create).not.toHaveBeenCalled()
+      expect(result).not.toBeNull()
+      expect(result!.webhookEventId).toBeNull()
+    })
+
+    it('should throw AuthError when gateway.verifyAndParseWebhook throws AuthError', async () => {
+      mockGateway.verifyAndParseWebhook.mockImplementation(() => {
+        throw new AuthError('Invalid signature')
+      })
+
+      await expect(
+        service.handleWebhook(rawBody, headers, 'razorpay'),
+      ).rejects.toThrow('Invalid signature')
     })
 
     it('should resolve internal reference from order → booking lookup', async () => {
+      const normalized = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      mockGateway.verifyAndParseWebhook.mockReturnValue(normalized)
       const paymentTx = createMockPaymentTx({ bookingId: 'booking-99' })
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockWebhookEventRepo.upsertBySourceAndEventId.mockResolvedValue({ id: 'whe-1', attempts: 1 })
 
-      await service.handleWebhook(rawBody, headers)
+      await service.handleWebhook(rawBody, headers, 'razorpay')
 
       expect(mockWebhookEventRepo.upsertBySourceAndEventId).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -375,48 +277,42 @@ describe('PaymentService', () => {
         }),
       )
     })
-
-    it('should handle missing x-razorpay-event-id header gracefully', async () => {
-      const headersWithoutEventId = { 'x-razorpay-signature': signature }
-
-      await expect(
-        service.handleWebhook(rawBody, headersWithoutEventId),
-      ).rejects.toThrow()
-    })
   })
 
   // ═══════════════════════════════════════════════════
   // processWebhookEvent
   // ═══════════════════════════════════════════════════
   describe('processWebhookEvent', () => {
-    it('should process payment.authorized event and update status to COMPLETED', async () => {
+    it('should process PAYMENT_AUTHORIZED event and update status to COMPLETED', async () => {
+      const normalized = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
       const webhookEvent = {
         id: 'whe-1',
         eventType: 'payment.authorized',
-        payload: createWebhookPayload('payment.authorized'),
+        payload: normalized,
+        normalizedType: NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED,
         status: 'RECEIVED',
       }
       mockWebhookEventRepo.updateStatus.mockResolvedValue({})
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(createMockPaymentTx())
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(createMockPaymentTx())
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
 
-      // We need to provide the event data to process
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await service.processWebhookEvent(webhookEvent as any)
 
-      expect(mockWebhookEventRepo.updateStatus).toHaveBeenCalledWith(
-        'whe-1', 'PROCESSING', undefined,
-      )
+      expect(mockWebhookEventRepo.updateStatus).toHaveBeenCalledWith('whe-1', 'PROCESSING', undefined)
     })
 
     it('should mark event as SKIPPED for unknown event types', async () => {
       const webhookEvent = {
         id: 'whe-1',
         eventType: 'unknown.event',
-        payload: { event: 'unknown.event', payload: {} },
+        payload: { type: 'UNKNOWN', orderId: null, paymentId: null },
+        normalizedType: NORMALIZED_EVENT_TYPE.UNKNOWN,
         status: 'RECEIVED',
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await service.processWebhookEvent(webhookEvent as any)
 
       expect(mockWebhookEventRepo.updateStatus).toHaveBeenCalledWith(
@@ -425,15 +321,18 @@ describe('PaymentService', () => {
     })
 
     it('should mark event as FAILED when processing throws error', async () => {
+      const normalized = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
       const webhookEvent = {
         id: 'whe-1',
         eventType: 'payment.authorized',
-        payload: createWebhookPayload('payment.authorized'),
+        payload: normalized,
+        normalizedType: NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED,
         status: 'RECEIVED',
       }
       mockWebhookEventRepo.updateStatus.mockResolvedValue({})
-      mockPaymentTxRepo.findByRazorpayOrderId.mockRejectedValue(new Error('DB error'))
+      mockPaymentTxRepo.findByGatewayOrderId.mockRejectedValue(new Error('DB error'))
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await service.processWebhookEvent(webhookEvent as any)
 
       expect(mockWebhookEventRepo.updateStatus).toHaveBeenCalledWith(
@@ -448,43 +347,35 @@ describe('PaymentService', () => {
   describe('handlePaymentAuthorized', () => {
     it('should update payment transaction to AUTHORIZED', async () => {
       const paymentTx = createMockPaymentTx()
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
 
-      const payload = createWebhookPayload('payment.authorized').payload
-
-      await service.handlePaymentAuthorized(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      await service.handlePaymentAuthorized(event)
 
       expect(mockPaymentTxRepo.updatePaymentId).toHaveBeenCalledWith('ptx-1', 'pay_test456')
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'AUTHORIZED')
     })
 
     it('should skip if payment transaction not found (orphan webhook)', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
-      const payload = createWebhookPayload('payment.authorized').payload
-
-      await service.handlePaymentAuthorized(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      await service.handlePaymentAuthorized(event)
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
-    it('should handle payment that is already captured in entity status (M3 fix)', async () => {
-      const paymentTx = createMockPaymentTx()
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
-      mockPaymentTxRepo.updateStatus.mockResolvedValue({})
-      mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
+    it('should skip when tx is already CAPTURED (out-of-order delivery guard)', async () => {
+      const paymentTx = createMockPaymentTx({ status: 'CAPTURED' })
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
 
-      const payload = {
-        payment: { entity: createMockPayment({ status: 'captured' }) },
-      }
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_AUTHORIZED)
+      await service.handlePaymentAuthorized(event)
 
-      await service.handlePaymentAuthorized(payload)
-
-      // Should still update — let confirmBooking handle the idempotency
-      expect(mockPaymentTxRepo.updatePaymentId).toHaveBeenCalled()
+      expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
   })
 
@@ -494,36 +385,32 @@ describe('PaymentService', () => {
   describe('handlePaymentCaptured', () => {
     it('should update payment transaction to CAPTURED', async () => {
       const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED' })
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
+      mockGateway.fetchTransferId.mockResolvedValue(null) // fire-and-forget stub
 
-      const payload = createWebhookPayload('payment.captured', { status: 'captured' }).payload
-
-      await service.handlePaymentCaptured(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED)
+      await service.handlePaymentCaptured(event)
 
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED')
     })
 
     it('should skip if payment transaction not found', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
-      const payload = createWebhookPayload('payment.captured', { status: 'captured' }).payload
-
-      await service.handlePaymentCaptured(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED)
+      await service.handlePaymentCaptured(event)
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
 
     it('should skip update when transaction is already REFUNDED (out-of-order webhook)', async () => {
-      // Razorpay can deliver payment.captured after refund.processed in rare cases.
-      // Guard prevents overwriting REFUNDED → CAPTURED which would corrupt the ledger.
       const paymentTx = createMockPaymentTx({ status: 'REFUNDED' })
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
 
-      const payload = createWebhookPayload('payment.captured', { status: 'captured' }).payload
-
-      await service.handlePaymentCaptured(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED)
+      await service.handlePaymentCaptured(event)
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
@@ -535,23 +422,21 @@ describe('PaymentService', () => {
   describe('handleOrderPaid', () => {
     it('should update payment transaction to CAPTURED for paid order', async () => {
       const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED' })
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
 
-      const payload = createOrderPaidPayload().payload
-
-      await service.handleOrderPaid(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.ORDER_PAID)
+      await service.handleOrderPaid(event)
 
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED')
     })
 
     it('should skip if payment transaction not found', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
-      const payload = createOrderPaidPayload().payload
-
-      await service.handleOrderPaid(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.ORDER_PAID)
+      await service.handleOrderPaid(event)
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
@@ -561,18 +446,15 @@ describe('PaymentService', () => {
   // handlePaymentFailed (C2 fix — DON'T expire booking)
   // ═══════════════════════════════════════════════════
   describe('handlePaymentFailed', () => {
-    it('should log failure but NOT update booking status (UPI retry possible)', async () => {
+    it('should log failure but NOT expire booking (UPI retry possible)', async () => {
       const paymentTx = createMockPaymentTx()
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
 
-      const payload = createWebhookPayload('payment.failed', {
-        status: 'failed',
-        error_code: 'BAD_REQUEST_ERROR',
-        error_description: 'Payment failed',
-      }).payload
-
-      await service.handlePaymentFailed(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_FAILED, {
+        failureReason: 'Payment failed',
+      })
+      await service.handlePaymentFailed(event)
 
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
         'ptx-1', 'FAILED',
@@ -582,11 +464,20 @@ describe('PaymentService', () => {
     })
 
     it('should skip if payment transaction not found', async () => {
-      mockPaymentTxRepo.findByRazorpayOrderId.mockResolvedValue(null)
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
-      const payload = createWebhookPayload('payment.failed', { status: 'failed' }).payload
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_FAILED)
+      await service.handlePaymentFailed(event)
 
-      await service.handlePaymentFailed(payload)
+      expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
+    })
+
+    it('should skip when tx is already CAPTURED (successful retry after failed event)', async () => {
+      const paymentTx = createMockPaymentTx({ status: 'CAPTURED' })
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
+
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_FAILED)
+      await service.handlePaymentFailed(event)
 
       expect(mockPaymentTxRepo.updateStatus).not.toHaveBeenCalled()
     })
@@ -599,147 +490,96 @@ describe('PaymentService', () => {
     it('should mark PAYMENT tx and REFUND tx as REFUNDED', async () => {
       const paymentTx = createMockPaymentTx({
         status: 'CAPTURED',
-        razorpayPaymentId: 'pay_test456',
+        gatewayPaymentId: 'pay_test456',
         bookingId: 'booking-1',
       })
       const refundTx = { id: 'ptx-refund-1', bookingId: 'booking-1', type: 'REFUND', status: 'INITIATED' }
-      mockPaymentTxRepo.findByRazorpayPaymentId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findByGatewayPaymentId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(refundTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
 
-      const payload = {
-        refund: {
-          entity: {
-            id: 'rfnd_test789',
-            payment_id: 'pay_test456',
-            amount: 500000,
-            status: 'processed',
-          },
-        },
-        payment: { entity: createMockPayment({ status: 'refunded' }) },
-      }
-
-      await service.handleRefundProcessed(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
+        paymentId: 'pay_test456',
+        refundId: 'rfnd_test789',
+      })
+      await service.handleRefundProcessed(event)
 
       // PAYMENT tx marked REFUNDED (ledger record)
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
         'ptx-1', 'REFUNDED',
-        expect.objectContaining({ razorpayRefundId: 'rfnd_test789' }),
+        expect.objectContaining({ gatewayRefundId: 'rfnd_test789' }),
       )
       // REFUND tx also marked REFUNDED (audit trail)
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
         'ptx-refund-1', 'REFUNDED',
-        expect.objectContaining({ razorpayRefundId: 'rfnd_test789' }),
+        expect.objectContaining({ gatewayRefundId: 'rfnd_test789' }),
       )
     })
 
     it('should log warning if payment transaction not found', async () => {
-      mockPaymentTxRepo.findByRazorpayPaymentId.mockResolvedValue(null)
+      mockPaymentTxRepo.findByGatewayPaymentId.mockResolvedValue(null)
 
-      const payload = {
-        refund: { entity: { id: 'rfnd_test789', payment_id: 'pay_unknown' } },
-        payment: { entity: createMockPayment() },
-      }
-
-      await service.handleRefundProcessed(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
+        paymentId: 'pay_unknown',
+        refundId: 'rfnd_test789',
+      })
+      await service.handleRefundProcessed(event)
 
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
     it('should still mark PAYMENT tx REFUNDED when no INITIATED REFUND tx found (external refund)', async () => {
-      const paymentTx = createMockPaymentTx({ status: 'CAPTURED', razorpayPaymentId: 'pay_test456', bookingId: 'booking-1' })
-      mockPaymentTxRepo.findByRazorpayPaymentId.mockResolvedValue(paymentTx)
-      // No INITIATED REFUND tx — refund was triggered externally (e.g. Razorpay dashboard)
+      const paymentTx = createMockPaymentTx({
+        status: 'CAPTURED',
+        gatewayPaymentId: 'pay_test456',
+        bookingId: 'booking-1',
+      })
+      mockPaymentTxRepo.findByGatewayPaymentId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(null)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
 
-      const payload = {
-        refund: { entity: { id: 'rfnd_ext', payment_id: 'pay_test456', amount: 500000, status: 'processed' } },
-        payment: { entity: createMockPayment({ status: 'refunded' }) },
-      }
-
-      await service.handleRefundProcessed(payload)
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
+        paymentId: 'pay_test456',
+        refundId: 'rfnd_ext',
+      })
+      await service.handleRefundProcessed(event)
 
       // PAYMENT tx still marked REFUNDED for ledger accuracy
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
         'ptx-1', 'REFUNDED',
-        expect.objectContaining({ razorpayRefundId: 'rfnd_ext' }),
+        expect.objectContaining({ gatewayRefundId: 'rfnd_ext' }),
       )
       // Only one updateStatus call — no REFUND tx to update
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledTimes(1)
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
-    it('should return early without throwing when refund entity is missing from payload', async () => {
-      const payload = { refund: undefined, payment: { entity: createMockPayment() } }
+    it('should return early when paymentId is missing from event', async () => {
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, { paymentId: null })
+      await service.handleRefundProcessed(event)
 
-      await service.handleRefundProcessed(payload as any)
-
-      expect(mockPaymentTxRepo.findByRazorpayPaymentId).not.toHaveBeenCalled()
-    })
-
-    it('should return early without throwing when payment entity is missing from payload', async () => {
-      const payload = { refund: { entity: { id: 'rfnd_test789', payment_id: 'pay_test456' } }, payment: undefined }
-
-      await service.handleRefundProcessed(payload as any)
-
-      expect(mockPaymentTxRepo.findByRazorpayPaymentId).not.toHaveBeenCalled()
+      expect(mockPaymentTxRepo.findByGatewayPaymentId).not.toHaveBeenCalled()
     })
   })
 
   // ═══════════════════════════════════════════════════
-  // fetchPaymentIdForOrder
+  // resolveBookingIdFromOrder
   // ═══════════════════════════════════════════════════
-  describe('fetchPaymentIdForOrder', () => {
-    it('should return the captured payment ID when one exists', async () => {
-      mockRazorpay.orders.fetchPayments.mockResolvedValue({
-        items: [
-          { id: 'pay_failed', status: 'failed' },
-          { id: 'pay_captured', status: 'captured' },
-        ],
-      })
+  describe('resolveBookingIdFromOrder', () => {
+    it('should return bookingId from matching payment transaction', async () => {
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(createMockPaymentTx({ bookingId: 'booking-42' }))
 
-      const result = await service.fetchPaymentIdForOrder('order_abc')
+      const result = await service.resolveBookingIdFromOrder('order_test123')
 
-      expect(result).toBe('pay_captured')
-      expect(mockRazorpay.orders.fetchPayments).toHaveBeenCalledWith('order_abc')
+      expect(result).toBe('booking-42')
     })
 
-    it('should return the authorized payment ID when no captured payment exists', async () => {
-      mockRazorpay.orders.fetchPayments.mockResolvedValue({
-        items: [{ id: 'pay_authorized', status: 'authorized' }],
-      })
+    it('should return null when no transaction found', async () => {
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
-      const result = await service.fetchPaymentIdForOrder('order_abc')
-
-      expect(result).toBe('pay_authorized')
-    })
-
-    it('should return null when no authorized or captured payment exists', async () => {
-      mockRazorpay.orders.fetchPayments.mockResolvedValue({
-        items: [{ id: 'pay_failed', status: 'failed' }],
-      })
-
-      const result = await service.fetchPaymentIdForOrder('order_abc')
+      const result = await service.resolveBookingIdFromOrder('order_unknown')
 
       expect(result).toBeNull()
-    })
-
-    it('should return null when items array is empty', async () => {
-      mockRazorpay.orders.fetchPayments.mockResolvedValue({ items: [] })
-
-      const result = await service.fetchPaymentIdForOrder('order_abc')
-
-      expect(result).toBeNull()
-    })
-
-    it('should return null and log a warning when the Razorpay API throws', async () => {
-      mockRazorpay.orders.fetchPayments.mockRejectedValue(new Error('API unavailable'))
-
-      const result = await service.fetchPaymentIdForOrder('order_abc')
-
-      expect(result).toBeNull()
-      expect(mockLogger.warn).toHaveBeenCalled()
     })
   })
 })
