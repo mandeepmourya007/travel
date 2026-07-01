@@ -10,3 +10,4 @@ export const SIGNUP_ROLES = ['TRAVELER', 'ORGANIZER'] as const
 export type SignupRole = (typeof SIGNUP_ROLES)[number]
 
 export const DEFAULT_USER_NAME = 'User'
+export const DEFAULT_CUSTOMER_NAME = 'Traveler'

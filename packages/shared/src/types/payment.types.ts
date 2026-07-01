@@ -1,3 +1,5 @@
+import type { PaymentProviderConst, PaymentTypeConst, PaymentStatusConst } from '../constants/payment'
+
 export interface CreateBookingResponse {
   bookingId: string
   bookingRef: string
@@ -5,7 +7,7 @@ export interface CreateBookingResponse {
   currency: string
   expiresAt: string
   /** Which payment gateway created this order — determines checkout flow on FE */
-  provider: 'razorpay' | 'cashfree'
+  provider: PaymentProviderConst
   /** Provider-neutral order identifier */
   gatewayOrderId: string
   // ── Razorpay-specific (present when provider='razorpay') ─────────
@@ -21,8 +23,8 @@ export interface CreateBookingResponse {
 export interface PaymentHistoryItem {
   id: string
   // ESCROW_RELEASE = SafePay payout — funds released to organizer after trip completion. Kept as DB enum value.
-  type: 'PAYMENT' | 'REFUND' | 'ESCROW_RELEASE'
-  status: 'INITIATED' | 'AUTHORIZED' | 'CAPTURED' | 'REFUNDED' | 'FAILED'
+  type: PaymentTypeConst
+  status: PaymentStatusConst
   amount: number
   currency: string
   razorpayPaymentId: string | null
@@ -50,8 +52,8 @@ export interface PaymentHistoryItem {
 /** Filters for GET /payments/my and GET /payments/trip/:tripId */
 export interface PaymentHistoryFilters {
   // ESCROW_RELEASE = SafePay payout. See PaymentHistoryItem for details.
-  type?: 'PAYMENT' | 'REFUND' | 'ESCROW_RELEASE'
-  status?: 'INITIATED' | 'AUTHORIZED' | 'CAPTURED' | 'REFUNDED' | 'FAILED'
+  type?: PaymentTypeConst
+  status?: PaymentStatusConst
   fromDate?: string
   toDate?: string
   page?: number
@@ -101,7 +103,7 @@ export interface VerifyPaymentDto {
   paymentId?: string
   /** HMAC signature — required for Razorpay; not used for Cashfree */
   signature?: string
-  provider?: 'razorpay' | 'cashfree'
+  provider?: PaymentProviderConst
   // ── Legacy fields — kept for backward compat during transition ──────────
   razorpayOrderId?: string
   razorpayPaymentId?: string

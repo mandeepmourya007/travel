@@ -1,15 +1,16 @@
 import { z } from 'zod'
 import { idSchema } from './common.schema'
+// PAYMENT_TYPES / PAYMENT_STATUSES live in constants/payment — imported here to feed z.enum
+// ESCROW_RELEASE is stored in the DB and cannot be renamed without a data migration.
+import { PAYMENT_TYPES, PAYMENT_STATUSES } from '../constants/payment'
 
 // ─── Payment History Filters ──────────────────────────
 
-// ESCROW_RELEASE = SafePay payout (funds released to organizer after trip completion).
-// The string 'ESCROW_RELEASE' is stored in the DB and cannot be renamed without a data migration.
-export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE'] as const
-export const PAYMENT_STATUSES = ['INITIATED', 'AUTHORIZED', 'CAPTURED', 'REFUNDED', 'FAILED'] as const
-
 const paymentTypeEnum = z.enum(PAYMENT_TYPES)
 const paymentStatusEnum = z.enum(PAYMENT_STATUSES)
+
+// Re-export so callers that previously imported these from this module still compile
+export { PAYMENT_TYPES, PAYMENT_STATUSES } from '../constants/payment'
 
 const dateRangeRefine = (data: { fromDate?: string; toDate?: string }) => {
   if (data.fromDate && data.toDate) {
