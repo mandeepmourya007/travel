@@ -117,7 +117,7 @@ export function TripListCard({ trip, onPublish, onDelete, onToggleBookings }: Tr
             <Link href={`/dashboard/trips/${trip.id}/users?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
               <Users className="h-4 w-4 shrink-0" /> Participants{' '}
               <span className="font-mono text-xs text-neutral-500">
-                ({trip.currentBookings}{trip.pendingBookingsCount > 0 ? `+${trip.pendingBookingsCount}` : ''})
+                ({trip.confirmedGroupCount}{(trip.pendingRequestCount + trip.pendingPaymentCount) > 0 ? `+${trip.pendingRequestCount + trip.pendingPaymentCount}` : ''})
               </span>
             </Link>
             <Link href={`/dashboard/trips/${trip.id}/payments?trip=${slugify(trip.title)}`} prefetch={false} className="btn-outline inline-flex items-center justify-center gap-1.5 py-1.5 px-3 text-sm">
