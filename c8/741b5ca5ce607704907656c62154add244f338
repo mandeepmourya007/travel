@@ -1,0 +1,26 @@
+apps/api/src/routes/webhook.routes.ts
+  s_b288e5961aca67::t_9534b28e07db87 9-10,12-17,23-24,28-44
+apps/api/src/controllers/webhook.controller.ts
+  s_b288e5961aca67::t_6fd425858eb9a8 5-6,9,12,22,24-32,35,42-43,45-46,50-51,57-59,62-67,74,78-79,85,90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.8",
+  "base_commit_sha": "c8741b5ca5ce607704907656c62154add244f338",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
