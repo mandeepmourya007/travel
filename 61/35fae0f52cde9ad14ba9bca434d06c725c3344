@@ -1,0 +1,26 @@
+apps/api/src/services/auth.service.ts
+  s_b288e5961aca67::t_e776e21e19d138 298-300
+apps/api/src/repositories/user.repository.ts
+  s_b288e5961aca67::t_a4e332c5cc4e79 92-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "6135fae0f52cde9ad14ba9bca434d06c725c3344",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
