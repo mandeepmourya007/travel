@@ -1,0 +1,28 @@
+docker-compose.prod.yml
+  s_04eacb94369cfe::t_cf6ab18b465426 90-92
+README.md
+  h_b3232c20134322 151-169
+docker-compose.yml
+  s_04eacb94369cfe::t_941b1646fdaa96 69-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "b9ec0076aae6caf4f4717220563a85568f466c37",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_04eacb94369cfe": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7529bf52-e248-40af-bff7-9d55e2281434",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
