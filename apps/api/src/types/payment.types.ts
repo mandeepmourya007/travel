@@ -132,3 +132,41 @@ export interface ClientCallbackInput {
   paymentId?: string
   signature?: string
 }
+
+// ─── Payout Account Onboarding ───────────────────────
+
+/**
+ * Provider-neutral params for gateway.createPayoutAccount().
+ * Razorpay: creates a Route linked account (POST /v2/accounts).
+ * Cashfree: creates an Easy Split vendor (POST /easy-split/vendors).
+ */
+export interface CreatePayoutAccountParams {
+  /** Organizer profile ID — used to derive a deterministic vendor_id (Cashfree) or as a reference */
+  referenceId: string
+  businessName: string
+  contactName: string
+  email: string
+  phone: string | null
+  /** Required for Cashfree vendor KYC; ignored by Razorpay */
+  pan?: string
+  /** Required for Cashfree vendor KYC; ignored by Razorpay */
+  accountType?: 'INDIVIDUAL' | 'BUSINESS'
+  bank: {
+    accountNumber: string
+    ifsc: string
+    beneficiaryName: string
+  }
+}
+
+/**
+ * Provider-neutral response from gateway.createPayoutAccount().
+ * Callers persist accountId keyed by provider — no provider-specific field names leak out.
+ */
+export interface NormalizedPayoutAccount {
+  /** razorpayAccountId (Razorpay) or cashfreeVendorId (Cashfree) */
+  accountId: string
+  provider: PaymentProvider
+  /** Raw provider status string — informational only */
+  status?: string
+  raw?: unknown
+}

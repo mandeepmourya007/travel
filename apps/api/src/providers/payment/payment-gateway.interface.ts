@@ -23,6 +23,8 @@ export type {
   ClientCallbackInput,
   SplitParams,
   NormalizedEventType,
+  CreatePayoutAccountParams,
+  NormalizedPayoutAccount,
 } from '../../types/payment.types'
 
 import type {
@@ -32,6 +34,8 @@ import type {
   NormalizedWebhookEvent,
   PaymentProvider,
   ClientCallbackInput,
+  CreatePayoutAccountParams,
+  NormalizedPayoutAccount,
 } from '../../types/payment.types'
 
 export interface IPaymentGateway {
@@ -116,6 +120,16 @@ export interface IPaymentGateway {
     transferId: string,
     ctx?: { orderId?: string; vendorAccountId?: string },
   ): Promise<void>
+
+  /**
+   * Creates the organizer's payout account with the provider.
+   * Razorpay: Route linked account (POST /v2/accounts).
+   * Cashfree: Easy Split vendor (POST /easy-split/vendors).
+   *
+   * Returned accountId is stored as razorpayAccountId or cashfreeVendorId depending on provider.
+   * @throws PaymentError — provider API failure
+   */
+  createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount>
 
   /**
    * Verifies the webhook signature using the provider's own scheme, then parses
