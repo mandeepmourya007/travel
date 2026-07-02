@@ -7,6 +7,8 @@ export interface CashfreeConfig {
   webhookSecret: string
   baseUrl: string
   apiVersion: string
+  /** 'sandbox' | 'production' — used by gateways to gate real-money operations */
+  environment: 'sandbox' | 'production'
 }
 
 const CASHFREE_BASE_URLS = {
@@ -30,6 +32,7 @@ function createCashfreeConfig(): CashfreeConfig | null {
     webhookSecret: env.CASHFREE_WEBHOOK_SECRET ?? 'unset',
     baseUrl: CASHFREE_BASE_URLS[CASHFREE_ENV],
     apiVersion: CASHFREE_API_VERSION,
+    environment: CASHFREE_ENV,
   }
 }
 

@@ -217,6 +217,7 @@ export const authService = new AuthService(
   docReviewRepo,
   organizerInviteRepo,
   smtpConfigured ? emailProvider : null,
+  activeGateway,
 )
 
 // ── Notification Channel Providers ──────────────────

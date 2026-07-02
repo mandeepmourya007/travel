@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { VERIFICATION_STATUS } from '@shared/constants/verification-status'
 import type { VerificationStatus } from '@shared/constants/verification-status'
 import type { ExtendedPrismaClient } from '../lib/prisma'
+import type { PaymentProvider } from '../types/payment.types'
 
 const PUBLIC_PROFILE_SELECT = {
   id: true,
@@ -155,13 +156,15 @@ export class OrganizerProfileRepository {
   }
 
   /**
-   * Atomic conditional update — only sets bank fields when bankAccountLinked is still false.
+   * Atomic conditional update — persists the provider-specific account ID when not yet set.
+   * CAS on the provider's own column so a gateway switch doesn't block linking the new account.
    * Returns { count: 0 } if another request already linked the account (race-safe).
    */
-  async updateWhereBankNotLinked(id: string, data: { razorpayAccountId: string; bankAccountLinked: true }) {
+  async linkPayoutAccount(id: string, provider: PaymentProvider, accountId: string) {
+    const col = provider === 'cashfree' ? 'cashfreeVendorId' : 'razorpayAccountId'
     return this.prisma.organizerProfile.updateMany({
-      where: { id, bankAccountLinked: false },
-      data,
+      where: { id, [col]: null },
+      data: { [col]: accountId, bankAccountLinked: true },
     })
   }
 

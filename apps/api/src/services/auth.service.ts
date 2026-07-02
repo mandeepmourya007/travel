@@ -22,6 +22,8 @@ import { USER_ROLE } from '@shared/constants'
 import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
 import type { IEmailProvider } from '../providers/email-provider.interface'
+import type { IPaymentGateway } from '../providers/payment/payment-gateway.interface'
+import { PAYOUT_ERROR } from '../providers/payment/payment.constants'
 import { organizerInviteTemplate } from '../templates'
 
 /** Prisma unique constraint violation code */
@@ -49,6 +51,7 @@ export class AuthService {
     private docReviewRepo?: DocumentReviewRepository | null,
     private organizerInviteRepo?: OrganizerInviteRepository | null,
     private emailProvider?: IEmailProvider | null,
+    private gateway?: IPaymentGateway | null,
   ) {}
 
   private googleOAuthClient?: import('google-auth-library').OAuth2Client
@@ -400,116 +403,66 @@ export class AuthService {
   }
 
   /**
-   * Connects organizer's bank account via Razorpay Route linked account API.
-   * Creates a Razorpay linked account, stores the account ID, and marks bankAccountLinked.
-   * In dev mode without Razorpay configured, simulates with a mock account ID.
-   * @throws {NotFoundError} OrganizerProfile not found
-   * @throws {ConflictError} Bank account already linked
-   * @throws {PaymentError} Razorpay API failure
+   * Links the organizer's bank account via the active payment gateway.
+   * Delegates to gateway.createPayoutAccount() — provider-specific logic lives there.
+   *
+   * Re-link guard: blocks only if the current gateway's provider column is already set,
+   * so switching gateways allows linking a new payout account without being blocked.
+   *
+   * @throws {NotFoundError} OrganizerProfile or User not found
+   * @throws {ConflictError} Payout account already linked for the active gateway
+   * @throws {PaymentError} Gateway API failure
    */
   async connectBankAccount(
     userId: string,
     dto: ConnectBankAccountDto,
   ): Promise<ConnectBankAccountResponse> {
+    if (!this.gateway) throw new PaymentError(PAYOUT_ERROR.GATEWAY_NOT_CONFIGURED)
+
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
 
-    if (profile.bankAccountLinked && profile.razorpayAccountId) {
-      throw new ConflictError('Bank account is already linked')
+    // Provider-aware re-link guard — check the active gateway's own column
+    const provider = this.gateway.provider
+    const alreadyLinked = provider === 'cashfree'
+      ? !!profile.cashfreeVendorId
+      : !!profile.razorpayAccountId
+    if (alreadyLinked) {
+      throw new ConflictError(PAYOUT_ERROR.ALREADY_LINKED)
     }
 
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
 
-    const razorpayAccountId = await this.createRazorpayLinkedAccount(profile, user, dto)
-
-    // Atomic conditional update — prevents race condition when two requests pass the check above
-    const { count } = await this.organizerProfileRepo.updateWhereBankNotLinked(profile.id, {
-      razorpayAccountId,
-      bankAccountLinked: true,
+    const acct = await this.gateway.createPayoutAccount({
+      referenceId: profile.id,
+      businessName: profile.businessName,
+      contactName: dto.accountHolderName,
+      email: user.email ?? `organizer-${profile.id}@placeholder.local`,
+      phone: user.phone,
+      pan: dto.pan,
+      accountType: dto.accountType,
+      bank: {
+        accountNumber: dto.accountNumber,
+        ifsc: dto.ifscCode,
+        beneficiaryName: dto.beneficiaryName,
+      },
     })
+
+    // Atomic CAS — prevents race condition when two requests pass the check above
+    const { count } = await this.organizerProfileRepo.linkPayoutAccount(profile.id, acct.provider, acct.accountId)
     if (count === 0) {
       this.logger.warn(
-        { userId, profileId: profile.id, orphanedRazorpayAccountId: razorpayAccountId },
-        'CAS failed after Razorpay account creation — orphaned linked account',
+        { userId, profileId: profile.id, orphanedAccountId: acct.accountId, provider: acct.provider },
+        'CAS failed after payout account creation — orphaned account',
       )
-      throw new ConflictError('Bank account is already linked')
+      throw new ConflictError(PAYOUT_ERROR.ALREADY_LINKED)
     }
 
     const masked = dto.accountNumber.slice(-4).padStart(dto.accountNumber.length, '*')
-    this.logger.info({ userId, profileId: profile.id }, 'Bank account linked via Razorpay Route')
+    this.logger.info({ userId, profileId: profile.id, provider }, 'Payout account linked')
 
     return { bankAccountLinked: true, maskedAccountNumber: masked }
-  }
-
-  /**
-   * Creates a Razorpay Route linked account for the organizer.
-   * Falls back to a mock account ID when Razorpay is not configured (dev mode).
-   */
-  private async createRazorpayLinkedAccount(
-    profile: { id: string; businessName: string },
-    user: { email: string | null; phone: string | null },
-    dto: ConnectBankAccountDto,
-  ): Promise<string> {
-    const keyId = env.RAZORPAY_KEY_ID
-    const keySecret = env.RAZORPAY_KEY_SECRET
-
-    if (!keyId || !keySecret || env.NODE_ENV !== 'production') {
-      this.logger.warn('Razorpay not configured or non-production — using mock linked account ID')
-      return `acc_mock_${Date.now()}`
-    }
-
-    const body = {
-      email: user.email ?? `organizer-${profile.id}@placeholder.local`,
-      phone: user.phone ? { primary: user.phone } : undefined,
-      type: 'route',
-      legal_business_name: profile.businessName,
-      business_type: 'individual',
-      contact_name: dto.accountHolderName,
-      profile: {
-        category: 'tours_and_travel',
-        subcategory: 'travel_agency',
-        addresses: {
-          registered: {
-            street1: 'N/A',
-            street2: 'N/A',
-            city: 'N/A',
-            state: 'N/A',
-            postal_code: '000000',
-            country: 'IN',
-          },
-        },
-      },
-      legal_info: {},
-      bank_account: {
-        ifsc_code: dto.ifscCode,
-        beneficiary_name: dto.beneficiaryName,
-        account_type: 'current',
-        account_number: dto.accountNumber,
-      },
-    }
-
-    const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64')
-
-    const response = await fetch('https://api.razorpay.com/v2/accounts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify(body),
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.text()
-      const sanitized = errorBody.replace(/"account_number"\s*:\s*"[^"]+"/g, '"account_number":"[REDACTED]"')
-      this.logger.error({ statusCode: response.status, body: sanitized }, 'Razorpay linked account creation failed')
-      throw new PaymentError(`Failed to create Razorpay linked account: ${response.status}`)
-    }
-
-    const data = await response.json() as { id: string }
-    this.logger.info({ razorpayAccountId: data.id }, 'Razorpay linked account created')
-    return data.id
   }
 
   /**
