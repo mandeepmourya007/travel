@@ -1,0 +1,52 @@
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_b288e5961aca67::t_88fd821c5a8e34 15-16
+  s_b288e5961aca67::t_469083ba4800d5 378-379
+  s_b288e5961aca67::t_a5cac326238f3a 20-21
+  s_b288e5961aca67::t_a578c4cf7cb7b7 371-377,380-426
+  s_b288e5961aca67::t_75112948f0eded 427-428
+apps/api/src/providers/payment/mock-payment.gateway.ts
+  s_b288e5961aca67::t_8dc72282750c65 14-15
+  s_b288e5961aca67::t_9b79414d06cb6d 84-87
+  s_b288e5961aca67::t_6bf67bdd14948e 88-89
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_b288e5961aca67::t_ff78560fa72363 361-362,364-365
+  s_b288e5961aca67::t_2e6bcde473a1c2 18-24,29
+  s_b288e5961aca67::t_0004fa17f79ee5 333-340,342-343,349-350,353-354,356-357,369-372,391-392
+  s_b288e5961aca67::t_cf108b2262d22f 363
+  s_04eacb94369cfe::t_55408054a3a49c 417-450,453
+  s_b288e5961aca67::t_529f7829a7877b 351,358-359,366-368
+  s_b288e5961aca67::t_16bd519171c73d 348,355,373,375-379,382-385,387-390
+  s_b288e5961aca67::t_0d144ddb3c9aac 25-27
+  s_b288e5961aca67::t_819eafce343563 28
+  s_b288e5961aca67::t_f3205f5c43b2d0 341,344-347,352,360,374,380-381,386
+  s_b288e5961aca67::t_feed4416bcc350 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "58a47ef75dd9aac95e15b3d1fb959b0534f99b7a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_04eacb94369cfe": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7529bf52-e248-40af-bff7-9d55e2281434",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
