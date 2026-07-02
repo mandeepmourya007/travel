@@ -12,10 +12,13 @@ import type {
   NormalizedPayment,
   NormalizedWebhookEvent,
   ClientCallbackInput,
+  CreatePayoutAccountParams,
+  NormalizedPayoutAccount,
 } from './payment-gateway.interface'
 import { startTimer } from '../../utils/perf-timer'
 import { PAYMENT_PROVIDER } from '@shared/constants'
-import { RAZORPAY_PAYMENT_STATUS } from './payment.constants'
+import { env } from '../../config/env'
+import { RAZORPAY_PAYMENT_STATUS, RZP_MOCK_ACCOUNT_PREFIX } from './payment.constants'
 
 /**
  * Adapter: wraps the Razorpay SDK into the provider-neutral IPaymentGateway contract.
@@ -363,6 +366,64 @@ export class RazorpayGateway implements IPaymentGateway {
       rawEventName: eventName,
       payload: body,
     }
+  }
+
+  /**
+   * Creates a Razorpay Route linked account for the organizer.
+   * In non-production environments or when keys are missing, returns a mock account ID.
+   *
+   * @throws PaymentError — Razorpay API failure
+   */
+  async createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount> {
+    if (!this.keyId || !this.keySecret || env.NODE_ENV !== 'production') {
+      const accountId = `${RZP_MOCK_ACCOUNT_PREFIX}${params.referenceId.slice(0, 8)}`
+      this.logger.warn({ accountId }, '[Razorpay] Non-production — returning mock payout account')
+      return { accountId, provider: PAYMENT_PROVIDER.RAZORPAY, status: 'mock' }
+    }
+
+    const body = {
+      email: params.email ?? `organizer-${params.referenceId}@placeholder.local`,
+      phone: params.phone ? { primary: params.phone } : undefined,
+      type: 'route',
+      legal_business_name: params.businessName,
+      business_type: 'individual',
+      contact_name: params.contactName,
+      profile: {
+        category: 'tours_and_travel',
+        subcategory: 'travel_agency',
+        addresses: {
+          registered: {
+            street1: 'N/A', street2: 'N/A', city: 'N/A',
+            state: 'N/A', postal_code: '000000', country: 'IN',
+          },
+        },
+      },
+      legal_info: {},
+      bank_account: {
+        ifsc_code: params.bank.ifsc,
+        beneficiary_name: params.bank.beneficiaryName,
+        account_type: 'current',
+        account_number: params.bank.accountNumber,
+      },
+    }
+
+    const auth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64')
+    const response = await fetch('https://api.razorpay.com/v2/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      const sanitized = errorText.replace(/"account_number"\s*:\s*"[^"]+"/g, '"account_number":"[REDACTED]"')
+      this.logger.error({ statusCode: response.status, body: sanitized }, 'Razorpay linked account creation failed')
+      throw new PaymentError(`Failed to create payout account: ${response.status}`)
+    }
+
+    const data = await response.json() as { id: string }
+    this.logger.info({ accountId: data.id }, 'Razorpay linked account created')
+    return { accountId: data.id, provider: PAYMENT_PROVIDER.RAZORPAY, status: 'active', raw: data }
   }
 
   // ─── Private helpers ───────────────────────────────────

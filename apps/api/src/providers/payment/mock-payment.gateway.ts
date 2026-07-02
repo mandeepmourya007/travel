@@ -11,6 +11,8 @@ import type {
   NormalizedPayment,
   NormalizedWebhookEvent,
   ClientCallbackInput,
+  CreatePayoutAccountParams,
+  NormalizedPayoutAccount,
 } from './payment-gateway.interface'
 
 /**
@@ -77,6 +79,12 @@ export class MockPaymentGateway implements IPaymentGateway {
 
   async releaseTransferHold(transferId: string): Promise<void> {
     this.logger.warn({ transferId }, '[MOCK] releaseTransferHold — no-op')
+  }
+
+  async createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount> {
+    const accountId = `mock_payout_${params.referenceId.slice(0, 8)}`
+    this.logger.warn({ accountId }, '[MOCK] createPayoutAccount — NOT a real payout account')
+    return { accountId, provider: this.provider, status: 'mock' }
   }
 
   verifyAndParseWebhook(

@@ -9,11 +9,24 @@ import type {
   NormalizedPayment,
   NormalizedWebhookEvent,
   ClientCallbackInput,
+  CreatePayoutAccountParams,
+  NormalizedPayoutAccount,
 } from './payment-gateway.interface'
 import type { CashfreeConfig } from '../../config/cashfree'
 import { startTimer } from '../../utils/perf-timer'
 import { PAYMENT_PROVIDER, DEFAULT_CUSTOMER_NAME } from '@shared/constants'
-import { NORMALIZED_PAYMENT_STATUS, CASHFREE_PAYMENT_STATUS } from './payment.constants'
+import {
+  NORMALIZED_PAYMENT_STATUS,
+  CASHFREE_PAYMENT_STATUS,
+  CF_VENDOR_ID_PREFIX,
+  CF_VENDOR_ID_REF_LENGTH,
+  CF_FALLBACK_PHONE,
+  CF_ERROR_CODE,
+  CF_VENDORS_PATH,
+  CF_VENDOR_STATUS_ACTIVE,
+  CF_SCHEDULE_OPTION_INSTANT,
+  CF_BUSINESS_TYPE,
+} from './payment.constants'
 
 /** Cashfree order-status string → normalized vocabulary */
 const CF_ORDER_STATUS_MAP: Record<string, string> = {
@@ -317,6 +330,66 @@ export class CashfreeGateway implements IPaymentGateway {
 
   // ─── Private helpers ───────────────────────────────────
 
+  /**
+   * Creates a Cashfree Easy Split vendor for the organizer.
+   *
+   * Vendor ID is derived deterministically from the organizer profile ID so that
+   * a second call for the same organizer is idempotent (Cashfree rejects duplicate vendorIds).
+   *
+   * verifyAccount is enabled only in production because sandbox bank accounts are
+   * only verifiable with the designated test bank (026291800001191 / YESB0000262).
+   * @throws PaymentError — Cashfree API failure (includes validation errors if pan/accountType are absent)
+   */
+  async createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount> {
+    if (!params.pan || !params.accountType) {
+      throw new PaymentError('pan and accountType are required for Cashfree vendor registration')
+    }
+
+    const vendorId = `${CF_VENDOR_ID_PREFIX}${params.referenceId.slice(0, CF_VENDOR_ID_REF_LENGTH).replace(/-/g, '_')}`
+
+    const body = {
+      vendor_id: vendorId,
+      status: CF_VENDOR_STATUS_ACTIVE,
+      name: params.businessName || params.contactName,
+      email: params.email,
+      phone: params.phone ?? CF_FALLBACK_PHONE,
+      // In sandbox, skip instant bank verification — test banks require matching holder name "JANE DOE".
+      // In production, always verify so mis-entered accounts are caught immediately.
+      verify_account: this.config.environment === 'production',
+      dashboard_access: false,
+      schedule_option: CF_SCHEDULE_OPTION_INSTANT,
+      kyc_details: {
+        account_type: params.accountType,
+        business_type: CF_BUSINESS_TYPE,
+        pan: params.pan,
+      },
+      bank: {
+        account_number: params.bank.accountNumber,
+        account_holder: params.bank.beneficiaryName,
+        ifsc: params.bank.ifsc,
+      },
+    }
+
+    try {
+      const data = await this.fetch('POST', CF_VENDORS_PATH, body)
+      const status = (data['status'] as string | undefined) ?? 'CREATED'
+      this.logger.info({ vendorId, status }, 'Cashfree Easy Split vendor created')
+      return { accountId: vendorId, provider: PAYMENT_PROVIDER.CASHFREE, status, raw: data }
+    } catch (error) {
+      if (error instanceof PaymentError) {
+        const responseBody = error.gatewayError as Record<string, unknown> | undefined
+        const code = responseBody?.['code'] as string | undefined
+        // Deterministic vendorId means a concurrent request may have already registered the same vendor.
+        // Cashfree rejects duplicates — treat "vendor already exists" as idempotent success.
+        if (code === CF_ERROR_CODE.VENDOR_ALREADY_EXISTS || error.message.toLowerCase().includes('already exists')) {
+          this.logger.info({ vendorId }, 'Cashfree vendor already registered — treating as idempotent success')
+          return { accountId: vendorId, provider: PAYMENT_PROVIDER.CASHFREE, status: CF_VENDOR_STATUS_ACTIVE }
+        }
+      }
+      throw error
+    }
+  }
+
   private normalizeEventType(eventType: string): NormalizedWebhookEvent['type'] {
     switch (eventType) {
       case 'PAYMENT_SUCCESS_WEBHOOK': return NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED
@@ -341,19 +414,42 @@ export class CashfreeGateway implements IPaymentGateway {
       'x-api-version': this.config.apiVersion,
     }
 
-    const response = await globalThis.fetch(url, {
-      method,
-      headers,
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    })
+    // Retry logic for transient network errors (DNS, timeout, etc.)
+    const maxRetries = 3
+    const baseDelay = 1000 // 1 second
 
-    const data = await response.json() as Record<string, unknown>
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await globalThis.fetch(url, {
+          method,
+          headers,
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        })
 
-    if (!response.ok) {
-      const msg = (data['message'] as string | undefined) ?? `Cashfree API error ${response.status}`
-      throw new PaymentError(msg, data)
+        const data = await response.json() as Record<string, unknown>
+
+        if (!response.ok) {
+          const msg = (data['message'] as string | undefined) ?? `Cashfree API error ${response.status}`
+          throw new PaymentError(msg, data)
+        }
+
+        return data
+      } catch (error) {
+        const isTransientError =
+          error instanceof TypeError && error.message.includes('fetch failed') ||
+          error instanceof Error && error.message.includes('EAI_AGAIN') ||
+          error instanceof Error && error.message.includes('ETIMEDOUT')
+
+        if (!isTransientError || attempt === maxRetries) {
+          throw error
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt - 1)
+        this.logger.warn({ attempt, delay, url }, 'Cashfree API request failed, retrying...')
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
     }
 
-    return data
+    throw new PaymentError('Cashfree API request failed after retries')
   }
 }
