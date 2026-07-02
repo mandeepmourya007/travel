@@ -17,6 +17,14 @@ import { CashfreeGateway } from '../../../src/providers/payment/cashfree.gateway
 import { AuthError, PaymentError } from '../../../src/errors/app-error'
 import { NORMALIZED_EVENT_TYPE } from '../../../src/types/payment.types'
 import type { CashfreeConfig } from '../../../src/config/cashfree'
+import {
+  CF_VENDOR_ID_PREFIX,
+  CF_ERROR_CODE,
+  CF_VENDORS_PATH,
+  CF_VENDOR_STATUS_ACTIVE,
+  CF_SCHEDULE_OPTION_INSTANT,
+  CF_BUSINESS_TYPE,
+} from '../../../src/providers/payment/payment.constants'
 
 vi.mock('../../../src/config/env', () => ({
   env: {
@@ -36,6 +44,7 @@ const testConfig: CashfreeConfig = {
   webhookSecret: CF_WEBHOOK_SECRET,
   baseUrl: 'https://sandbox.cashfree.com/pg',
   apiVersion: '2023-08-01',
+  environment: 'sandbox',
 }
 
 const mockLogger = {
@@ -336,5 +345,116 @@ describe('initiateRefund', () => {
     expect(fetchCall[0]).toContain('/orders/order_cf_for_refund/refunds')
     const requestBody = JSON.parse(fetchCall[1].body)
     expect(requestBody.refund_amount).toBe(500)  // 50000 paise → 500 rupees
+  })
+})
+
+// ═══════════════════════════════════════════════════
+// createPayoutAccount — Easy Split vendor creation
+// ═══════════════════════════════════════════════════
+describe('createPayoutAccount', () => {
+  const params = {
+    referenceId: 'orgp-1234-abcd-efgh-ijkl',
+    businessName: 'Rahul Travels',
+    contactName: 'Rahul Sharma',
+    email: 'rahul@example.com',
+    phone: '9876543210',
+    pan: 'ABCDE1234F',
+    accountType: 'INDIVIDUAL' as const,
+    bank: { accountNumber: '12345678901234', ifsc: 'SBIN0001234', beneficiaryName: 'Rahul Sharma' },
+  }
+
+  const expectedVendorId = `${CF_VENDOR_ID_PREFIX}${params.referenceId.slice(0, 20).replace(/-/g, '_')}`
+
+  it('builds a deterministic vendorId from referenceId', async () => {
+    mockFetchResponse({ vendorId: expectedVendorId, status: CF_VENDOR_STATUS_ACTIVE })
+
+    const result = await gateway.createPayoutAccount(params)
+
+    expect(result.accountId).toBe(expectedVendorId)
+    expect(result.provider).toBe('cashfree')
+  })
+
+  it('posts to CF_VENDORS_PATH with correct body shape', async () => {
+    mockFetchResponse({ vendorId: expectedVendorId, status: CF_VENDOR_STATUS_ACTIVE })
+
+    await gateway.createPayoutAccount(params)
+
+    const [url, opts] = (globalThis.fetch as any).mock.calls[0]
+    expect(url).toContain(CF_VENDORS_PATH)
+    const body = JSON.parse(opts.body as string)
+    expect(body.vendor_id).toBe(expectedVendorId)
+    expect(body.status).toBe(CF_VENDOR_STATUS_ACTIVE)
+    expect(body.email).toBe(params.email)
+    expect(body.kyc_details.account_type).toBe('INDIVIDUAL')
+    expect(body.kyc_details.business_type).toBe(CF_BUSINESS_TYPE)
+    expect(body.kyc_details.pan).toBe('ABCDE1234F')
+    expect(body.schedule_option).toBe(CF_SCHEDULE_OPTION_INSTANT)
+    expect(body.bank.account_number).toBe(params.bank.accountNumber)
+    expect(body.bank.ifsc).toBe(params.bank.ifsc)
+    expect(body.bank.account_holder).toBe(params.bank.beneficiaryName)
+  })
+
+  it('sets verify_account=false in sandbox environment', async () => {
+    mockFetchResponse({ vendorId: expectedVendorId, status: CF_VENDOR_STATUS_ACTIVE })
+
+    await gateway.createPayoutAccount(params)
+
+    const body = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body)
+    expect(body.verify_account).toBe(false)
+  })
+
+  it('sets verify_account=true in production environment', async () => {
+    const prodGateway = new CashfreeGateway({ ...testConfig, environment: 'production' }, mockLogger as any)
+    mockFetchResponse({ vendorId: expectedVendorId, status: CF_VENDOR_STATUS_ACTIVE })
+
+    await prodGateway.createPayoutAccount(params)
+
+    const body = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body)
+    expect(body.verify_account).toBe(true)
+  })
+
+  it('uses CF_FALLBACK_PHONE when organizer has no phone', async () => {
+    mockFetchResponse({ vendorId: expectedVendorId, status: CF_VENDOR_STATUS_ACTIVE })
+
+    await gateway.createPayoutAccount({ ...params, phone: null })
+
+    const body = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body)
+    expect(body.phone).toBe('9999999999')
+  })
+
+  it('returns status from Cashfree response', async () => {
+    mockFetchResponse({ vendorId: expectedVendorId, status: 'IN_BENE_CREATION' })
+
+    const result = await gateway.createPayoutAccount(params)
+
+    expect(result.status).toBe('IN_BENE_CREATION')
+  })
+
+  it('treats vendor_already_exists error as idempotent success', async () => {
+    mockFetchResponse({ code: CF_ERROR_CODE.VENDOR_ALREADY_EXISTS, message: 'Vendor already exists' }, false, 409)
+
+    const result = await gateway.createPayoutAccount(params)
+
+    expect(result.accountId).toBe(expectedVendorId)
+    expect(result.provider).toBe('cashfree')
+    expect(result.status).toBe(CF_VENDOR_STATUS_ACTIVE)
+  })
+
+  it('throws PaymentError when pan is absent', async () => {
+    await expect(
+      gateway.createPayoutAccount({ ...params, pan: undefined }),
+    ).rejects.toThrow(PaymentError)
+  })
+
+  it('throws PaymentError when accountType is absent', async () => {
+    await expect(
+      gateway.createPayoutAccount({ ...params, accountType: undefined }),
+    ).rejects.toThrow(PaymentError)
+  })
+
+  it('re-throws PaymentError for other API failures', async () => {
+    mockFetchResponse({ message: 'Invalid bank account details' }, false, 422)
+
+    await expect(gateway.createPayoutAccount(params)).rejects.toThrow(PaymentError)
   })
 })

@@ -14,6 +14,7 @@ import crypto from 'crypto'
 import { RazorpayGateway } from '../../../src/providers/payment/razorpay.gateway'
 import { AuthError, PaymentError } from '../../../src/errors/app-error'
 import { NORMALIZED_EVENT_TYPE } from '../../../src/types/payment.types'
+import { RZP_MOCK_ACCOUNT_PREFIX } from '../../../src/providers/payment/payment.constants'
 
 vi.mock('../../../src/config/env', () => ({
   env: {
@@ -23,6 +24,8 @@ vi.mock('../../../src/config/env', () => ({
     RAZORPAY_WEBHOOK_SECRET: 'test_webhook_secret',
   },
 }))
+
+import { env } from '../../../src/config/env'
 
 const WEBHOOK_SECRET = 'wh_secret_test'
 const KEY_SECRET = 'key_secret_test'
@@ -339,5 +342,81 @@ describe('fetchTransferId', () => {
     const result = await gateway.fetchTransferId('pay_abc')
 
     expect(result).toBeNull()
+  })
+})
+
+// ═══════════════════════════════════════════════════
+// createPayoutAccount — payout onboarding
+// ═══════════════════════════════════════════════════
+describe('createPayoutAccount', () => {
+  const params = {
+    referenceId: 'orgp-1234-abcd-efgh',
+    businessName: 'Rahul Travels',
+    contactName: 'Rahul Sharma',
+    email: 'rahul@example.com',
+    phone: '9876543210',
+    pan: 'ABCDE1234F',
+    accountType: 'INDIVIDUAL' as const,
+    bank: { accountNumber: '12345678901234', ifsc: 'SBIN0001234', beneficiaryName: 'Rahul Sharma' },
+  }
+
+  it('returns a mock account in non-production (NODE_ENV=test)', async () => {
+    const result = await gateway.createPayoutAccount(params)
+
+    expect(result.provider).toBe('razorpay')
+    expect(result.status).toBe('mock')
+    expect(result.accountId).toMatch(new RegExp(`^${RZP_MOCK_ACCOUNT_PREFIX}`))
+    expect(result.accountId).toContain(params.referenceId.slice(0, 8))
+  })
+
+  it('mock account ID is derived deterministically from referenceId', async () => {
+    const result1 = await gateway.createPayoutAccount(params)
+    const result2 = await gateway.createPayoutAccount(params)
+
+    expect(result1.accountId).toBe(result2.accountId)
+  })
+
+  it('calls Razorpay /v2/accounts in production and returns normalized account', async () => {
+    ;(env as Record<string, unknown>)['NODE_ENV'] = 'production'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 'acc_prod_12345', entity: 'account', type: 'route' }),
+    }))
+
+    try {
+      const result = await gateway.createPayoutAccount(params)
+
+      const [url, opts] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]
+      expect(url).toContain('/v2/accounts')
+      expect(opts.method).toBe('POST')
+      const body = JSON.parse(opts.body as string)
+      expect(body.type).toBe('route')
+      expect(body.bank_account.account_number).toBe(params.bank.accountNumber)
+      expect(body.bank_account.ifsc_code).toBe(params.bank.ifsc)
+
+      expect(result.accountId).toBe('acc_prod_12345')
+      expect(result.provider).toBe('razorpay')
+      expect(result.status).toBe('active')
+    } finally {
+      ;(env as Record<string, unknown>)['NODE_ENV'] = 'test'
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('throws PaymentError when Razorpay /v2/accounts returns non-2xx in production', async () => {
+    ;(env as Record<string, unknown>)['NODE_ENV'] = 'production'
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      text: async () => '{"error":"invalid bank account"}',
+    }))
+
+    try {
+      await expect(gateway.createPayoutAccount(params)).rejects.toThrow(PaymentError)
+    } finally {
+      ;(env as Record<string, unknown>)['NODE_ENV'] = 'test'
+      vi.unstubAllGlobals()
+    }
   })
 })

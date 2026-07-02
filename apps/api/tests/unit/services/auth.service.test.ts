@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { AuthService } from '../../../src/services/auth.service'
-import { AuthError, ConflictError, NotFoundError } from '../../../src/errors/app-error'
+import { AuthError, ConflictError, NotFoundError, PaymentError } from '../../../src/errors/app-error'
+import { PAYOUT_ERROR } from '../../../src/providers/payment/payment.constants'
 
 // ── Test doubles ──────────────────────────────────────
 
@@ -54,6 +55,7 @@ function createMockOrganizerProfileRepo() {
     update: vi.fn(),
     incrementTripCount: vi.fn(),
     slugExists: vi.fn().mockResolvedValue(false),
+    linkPayoutAccount: vi.fn().mockResolvedValue({ count: 1 }),
   }
 }
 
@@ -991,6 +993,147 @@ describe('AuthService', () => {
 
       await expect(serviceWithoutDocRepo.getOrganizerDocComments('user-org'))
         .rejects.toThrow('DocumentReviewRepository not configured')
+    })
+  })
+
+  // ── connectBankAccount ─────────────────────────────
+
+  describe('connectBankAccount', () => {
+    const BANK_DTO = {
+      accountHolderName: 'Rahul Sharma',
+      ifscCode: 'SBIN0001234',
+      accountNumber: '12345678901234',
+      beneficiaryName: 'Rahul Sharma',
+      pan: 'ABCDE1234F',
+      accountType: 'INDIVIDUAL' as const,
+    }
+
+    const ORGANIZER_PROFILE = {
+      id: 'orgp-auth-1',
+      userId: 'user-123',
+      businessName: 'Rahul Sharma',
+      bankAccountLinked: false,
+      razorpayAccountId: null as string | null,
+      cashfreeVendorId: null as string | null,
+    }
+
+    const mockGateway = {
+      provider: 'razorpay' as const,
+      createPayoutAccount: vi.fn(),
+    }
+
+    let serviceWithGateway: AuthService
+
+    beforeEach(() => {
+      mockGateway.createPayoutAccount.mockResolvedValue({
+        accountId: 'acc_mock_orgp1',
+        provider: 'razorpay' as const,
+        status: 'mock',
+      })
+      userRepo.findById.mockResolvedValue(testUser)
+      organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
+
+      serviceWithGateway = new AuthService(
+        userRepo as any,
+        refreshTokenRepo as any,
+        organizerProfileRepo as any,
+        walletRepo as any,
+        JWT_SECRET,
+        mockLogger,
+        'test-google-client-id',
+        loginAttemptTracker as any,
+        docReviewRepo as any,
+        undefined,
+        undefined,
+        mockGateway as any,
+      )
+    })
+
+    it('throws PaymentError when gateway is not configured', async () => {
+      await expect(service.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(PAYOUT_ERROR.GATEWAY_NOT_CONFIGURED)
+      await expect(service.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(PaymentError)
+    })
+
+    it('throws NotFoundError when organizer profile not found', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(NotFoundError)
+    })
+
+    it('throws ConflictError when razorpay account already linked', async () => {
+      organizerProfileRepo.findByUserId.mockResolvedValue({
+        ...ORGANIZER_PROFILE,
+        razorpayAccountId: 'acc_existing',
+      })
+
+      await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(ConflictError)
+    })
+
+    it('delegates to gateway.createPayoutAccount and persists via linkPayoutAccount', async () => {
+      const result = await serviceWithGateway.connectBankAccount('user-123', BANK_DTO)
+
+      expect(mockGateway.createPayoutAccount).toHaveBeenCalledWith(expect.objectContaining({
+        referenceId: ORGANIZER_PROFILE.id,
+        businessName: ORGANIZER_PROFILE.businessName,
+        contactName: BANK_DTO.accountHolderName,
+        bank: {
+          accountNumber: BANK_DTO.accountNumber,
+          ifsc: BANK_DTO.ifscCode,
+          beneficiaryName: BANK_DTO.beneficiaryName,
+        },
+      }))
+      expect(organizerProfileRepo.linkPayoutAccount).toHaveBeenCalledWith(
+        ORGANIZER_PROFILE.id,
+        'razorpay',
+        'acc_mock_orgp1',
+      )
+      expect(result.bankAccountLinked).toBe(true)
+      expect(result.maskedAccountNumber).toMatch(/^\*+\d{4}$/)
+    })
+
+    it('throws ConflictError on CAS race (count=0) — another request already linked', async () => {
+      organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 0 })
+
+      await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(PAYOUT_ERROR.ALREADY_LINKED)
+    })
+
+    it('checks cashfreeVendorId (not razorpayAccountId) when active gateway is cashfree', async () => {
+      const cashfreeGateway = { ...mockGateway, provider: 'cashfree' as const }
+      const cashfreeService = new AuthService(
+        userRepo as any, refreshTokenRepo as any, organizerProfileRepo as any, walletRepo as any,
+        JWT_SECRET, mockLogger, 'test-google-client-id', loginAttemptTracker as any,
+        docReviewRepo as any, undefined, undefined, cashfreeGateway as any,
+      )
+      // razorpayAccountId is set, but the active gateway is cashfree — should NOT block
+      organizerProfileRepo.findByUserId.mockResolvedValue({
+        ...ORGANIZER_PROFILE,
+        razorpayAccountId: 'acc_some_razorpay',  // different provider — must not block
+        cashfreeVendorId: null,
+      })
+
+      const result = await cashfreeService.connectBankAccount('user-123', BANK_DTO)
+      expect(result.bankAccountLinked).toBe(true)
+    })
+
+    it('blocks re-link when cashfreeVendorId is already set for cashfree gateway', async () => {
+      const cashfreeGateway = { ...mockGateway, provider: 'cashfree' as const }
+      const cashfreeService = new AuthService(
+        userRepo as any, refreshTokenRepo as any, organizerProfileRepo as any, walletRepo as any,
+        JWT_SECRET, mockLogger, 'test-google-client-id', loginAttemptTracker as any,
+        docReviewRepo as any, undefined, undefined, cashfreeGateway as any,
+      )
+      organizerProfileRepo.findByUserId.mockResolvedValue({
+        ...ORGANIZER_PROFILE,
+        cashfreeVendorId: 'cf_vendor_existing',
+      })
+
+      await expect(cashfreeService.connectBankAccount('user-123', BANK_DTO))
+        .rejects.toThrow(ConflictError)
     })
   })
 })

@@ -59,8 +59,22 @@ function createMockOrganizerProfileRepo() {
     findAllAdmin: vi.fn(),
     findByIdAdmin: vi.fn(),
     countPending: vi.fn(),
-    updateWhereBankNotLinked: vi.fn(),
+    linkPayoutAccount: vi.fn(),
   }
+}
+
+const mockGateway = {
+  provider: 'razorpay' as const,
+  createOrder: vi.fn(),
+  verifyPayment: vi.fn(),
+  initiateRefund: vi.fn(),
+  getRefundStatus: vi.fn(),
+  verifyAndParseWebhook: vi.fn(),
+  createPayoutAccount: vi.fn().mockResolvedValue({
+    accountId: 'acc_mock_orgp1',
+    provider: 'razorpay' as const,
+    status: 'mock',
+  }),
 }
 
 function createMockWalletRepo() {
@@ -124,6 +138,7 @@ const ORGANIZER_PROFILE = {
   verificationStatus: 'PENDING' as const,
   bankAccountLinked: false,
   razorpayAccountId: null as string | null,
+  cashfreeVendorId: null as string | null,
   documents: null as Record<string, string> | null,
   rating: 0,
   totalReviews: 0,
@@ -140,6 +155,8 @@ const BANK_DTO = {
   ifscCode: 'SBIN0001234',
   accountNumber: '12345678901234',
   beneficiaryName: 'Rahul Sharma',
+  pan: 'ABCDE1234F',
+  accountType: 'INDIVIDUAL' as const,
 }
 
 // ═════════════════════════════════════════════════════
@@ -170,6 +187,10 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       mockLogger,
       'test-google-client-id',
       loginAttemptTracker as any,
+      undefined, // docReviewRepo
+      undefined, // organizerInviteRepo
+      undefined, // emailProvider
+      mockGateway as any,
     )
 
     adminService = new AdminService(
@@ -370,7 +391,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
     it('links bank account and returns masked account number', async () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
       userRepo.findById.mockResolvedValue(ORGANIZER_USER)
-      organizerProfileRepo.updateWhereBankNotLinked.mockResolvedValue({ count: 1 })
+      organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 1 })
 
       const result = await authService.connectBankAccount('user-org-1', BANK_DTO)
 
@@ -378,23 +399,27 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       expect(result.maskedAccountNumber).toBe('**********1234')
     })
 
-    it('stores razorpayAccountId and sets bankAccountLinked=true', async () => {
+    it('delegates to gateway and persists via linkPayoutAccount', async () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
       userRepo.findById.mockResolvedValue(ORGANIZER_USER)
-      organizerProfileRepo.updateWhereBankNotLinked.mockResolvedValue({ count: 1 })
+      organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 1 })
 
       await authService.connectBankAccount('user-org-1', BANK_DTO)
 
-      expect(organizerProfileRepo.updateWhereBankNotLinked).toHaveBeenCalledWith('orgp-1', {
-        razorpayAccountId: expect.stringContaining('acc_mock_'),
-        bankAccountLinked: true,
-      })
+      expect(mockGateway.createPayoutAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ referenceId: 'orgp-1' }),
+      )
+      expect(organizerProfileRepo.linkPayoutAccount).toHaveBeenCalledWith(
+        'orgp-1',
+        'razorpay',
+        'acc_mock_orgp1',
+      )
     })
 
     it('masks account number correctly (last 4 visible)', async () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
       userRepo.findById.mockResolvedValue(ORGANIZER_USER)
-      organizerProfileRepo.updateWhereBankNotLinked.mockResolvedValue({ count: 1 })
+      organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 1 })
 
       const result = await authService.connectBankAccount('user-org-1', {
         ...BANK_DTO,
@@ -407,13 +432,13 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
     it('logs the bank linking event', async () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
       userRepo.findById.mockResolvedValue(ORGANIZER_USER)
-      organizerProfileRepo.updateWhereBankNotLinked.mockResolvedValue({ count: 1 })
+      organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 1 })
 
       await authService.connectBankAccount('user-org-1', BANK_DTO)
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user-org-1', profileId: 'orgp-1' }),
-        'Bank account linked via Razorpay Route',
+        expect.objectContaining({ userId: 'user-org-1', profileId: 'orgp-1', provider: 'razorpay' }),
+        'Payout account linked',
       )
     })
   })
@@ -433,7 +458,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       ).rejects.toThrow(ConflictError)
       await expect(
         authService.connectBankAccount('user-org-1', BANK_DTO),
-      ).rejects.toThrow('Bank account is already linked')
+      ).rejects.toThrow('Payout account is already linked')
     })
 
     it('throws NotFoundError if organizer profile does not exist', async () => {
