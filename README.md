@@ -148,6 +148,25 @@ docker logs travel-api --tail 50               # Last 50 API log lines
 docker compose exec api npx prisma studio      # DB Studio inside container
 ```
 
+For the Cashfree sandbox, use these test values:
+
+┌────────────────────────┬─────────────────┐
+│         Field          │      Value      │
+├────────────────────────┼─────────────────┤
+│ Account Type           │ Individual      │
+├────────────────────────┼─────────────────┤
+│ Account Holder Name    │ JOHN DOE        │
+├────────────────────────┼─────────────────┤
+│ PAN Number             │ ABCDE1234F      │
+├────────────────────────┼─────────────────┤
+│ Beneficiary Name       │ JOHN DOE        │
+├────────────────────────┼─────────────────┤
+│ IFSC Code              │ YESB0000262     │
+├────────────────────────┼─────────────────┤
+│ Account Number         │ 026291800001191 │
+├────────────────────────┼─────────────────┤
+│ Confirm Account Number │ 026291800001191 │
+
 ## License
 
 Private — All rights reserved.

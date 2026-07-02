@@ -66,6 +66,9 @@ services:
     restart: unless-stopped
     ports:
       - '4001:4000'
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     env_file:
       - path: apps/api/.env
         required: false
