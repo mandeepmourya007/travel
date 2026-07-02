@@ -295,7 +295,9 @@ export class AuthService {
           rating: user.organizerProfile.rating,
           totalReviews: user.organizerProfile.totalReviews,
           totalTripsCompleted: user.organizerProfile.totalTripsCompleted,
-          bankAccountLinked: user.organizerProfile.bankAccountLinked,
+          bankAccountLinked: this.gateway?.provider === 'cashfree'
+            ? !!user.organizerProfile.cashfreeVendorId
+            : !!user.organizerProfile.razorpayAccountId,
           documents: (user.organizerProfile.documents as Record<string, string> | null) ?? null,
           documentReviews: ((user.organizerProfile as { documentReviews?: DocumentReviewRow[] }).documentReviews ?? []).map((dr) => ({
             ...dr,

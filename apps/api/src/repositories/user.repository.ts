@@ -89,6 +89,8 @@ export class UserRepository {
             totalReviews: true,
             totalTripsCompleted: true,
             bankAccountLinked: true,
+            cashfreeVendorId: true,
+            razorpayAccountId: true,
             documents: true,
             isDeleted: true,
             documentReviews: {
