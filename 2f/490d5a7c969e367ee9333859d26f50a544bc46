@@ -1,0 +1,37 @@
+apps/web/src/app/dashboard/settings/verification/page.tsx
+  s_b288e5961aca67::t_0904392d4fc31f 8
+  s_b288e5961aca67::t_ab118e9d6ae1c7 6
+  s_b288e5961aca67::t_321db2e164f9d7 238-245
+  s_b288e5961aca67::t_6a16f01ca2a38f 246
+apps/web/src/components/dashboard/bank-account-form.tsx
+  s_b288e5961aca67::t_18aed49f81f254 50
+  s_b288e5961aca67::t_e16dab77c3e8d8 1-9,11,13-19,21,23-49,51-72,74,76-138,157-169,188-301
+  s_b288e5961aca67::t_f41abe9e14719d 73,75
+  s_b288e5961aca67::t_26bf75d838790c 10,12,20,22
+  s_b288e5961aca67::t_d064483904c7d5 139-156,170-187
+apps/web/src/app/dashboard/settings/bank/page.tsx
+  s_b288e5961aca67::t_85957097d93764 4-6,39
+apps/web/src/components/dashboard/dashboard-alerts.tsx
+  s_b288e5961aca67::t_9c91e8cc50fb6a 111-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "2f490d5a7c969e367ee9333859d26f50a544bc46",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
