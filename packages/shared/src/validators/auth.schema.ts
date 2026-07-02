@@ -88,11 +88,16 @@ export const updateOrganizerProfileSchema = z.object({
 /** IFSC format: 4 uppercase letters + 0 + 6 alphanumeric chars */
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/
 
+/** Indian PAN format: 5 letters + 4 digits + 1 letter (e.g. ABCDE1234F) */
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/
+
 export const connectBankAccountSchema = z.object({
   accountHolderName: z.string().trim().min(2, 'Account holder name is required').max(120),
   ifscCode: z.string().trim().toUpperCase().regex(IFSC_REGEX, 'Invalid IFSC code (e.g. SBIN0001234)'),
   accountNumber: z.string().trim().min(9, 'Account number too short').max(18, 'Account number too long').regex(/^\d+$/, 'Account number must be numeric'),
   beneficiaryName: z.string().trim().min(2, 'Beneficiary name is required').max(120),
+  pan: z.string().trim().toUpperCase().regex(PAN_REGEX, 'Invalid PAN (e.g. ABCDE1234F)').optional(),
+  accountType: z.enum(['INDIVIDUAL', 'BUSINESS']).optional(),
 })
 
 export const organizerInviteSchema = z.object({

@@ -75,12 +75,16 @@ export interface UpdateOrganizerProfileDto {
   documents?: OrganizerDocuments
 }
 
-/** DTO for POST /auth/profile/organizer/bank — Razorpay Route linked account */
+/** DTO for POST /auth/profile/organizer/bank — links the organizer's payout bank account */
 export interface ConnectBankAccountDto {
   accountHolderName: string
   ifscCode: string
   accountNumber: string
   beneficiaryName: string
+  /** Required when PAYMENT_GATEWAY=cashfree; ignored by Razorpay */
+  pan?: string
+  /** Required when PAYMENT_GATEWAY=cashfree; ignored by Razorpay */
+  accountType?: 'INDIVIDUAL' | 'BUSINESS'
 }
 
 /** Response from POST /auth/profile/organizer/bank */
