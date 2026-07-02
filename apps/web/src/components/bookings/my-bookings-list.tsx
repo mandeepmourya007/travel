@@ -10,11 +10,13 @@ import { useMyPendingRequests } from '@/hooks/use-my-pending-requests'
 import { Tabs } from '@/components/shared/tabs'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
+import { Modal } from '@/components/shared/modal'
 import { MyBookingCard } from './my-booking-card'
 import { PendingPaymentCard } from './pending-payment-card'
 import { CancelBookingModal } from './cancel-booking-modal'
 import { ReviewFormModal } from './review-form-modal'
 import { useMyReviewForBooking } from '@/hooks/use-reviews'
+import { REVIEW_EDIT_WINDOW_DAYS } from '@shared/constants/review'
 
 const TAB_EMPTY_MESSAGES: Record<MyBookingTab, string> = {
   all: "You haven't booked any trips yet.",
@@ -98,6 +100,44 @@ export function MyBookingsList() {
 
   const isEmpty = isPendingTab ? pendingRequests.length === 0 : bookings.length === 0
 
+  const renderReviewModal = () => {
+    if (!reviewTarget) return null
+    const review = reviewTarget.hasReview ? existingReview : null
+    const isExpired = review
+      ? Date.now() - new Date(review.createdAt).getTime() > REVIEW_EDIT_WINDOW_DAYS * 24 * 60 * 60 * 1000
+      : false
+
+    if (isExpired) {
+      return (
+        <Modal
+          open
+          onClose={() => setReviewTarget(null)}
+          title="Edit Review"
+          footer={
+            <button type="button" onClick={() => setReviewTarget(null)} className="btn-primary py-2.5 text-sm">
+              Got it
+            </button>
+          }
+          className="max-w-sm"
+        >
+          <p className="text-sm text-neutral-600">
+            Reviews can only be edited within {REVIEW_EDIT_WINDOW_DAYS} days of creation.
+          </p>
+        </Modal>
+      )
+    }
+
+    return (
+      <ReviewFormModal
+        bookingId={reviewTarget.id}
+        tripId={reviewTarget.trip.id}
+        tripTitle={reviewTarget.trip.title}
+        onClose={() => setReviewTarget(null)}
+        existingReview={review}
+      />
+    )
+  }
+
   return (
     <div>
       {/* Tabs — mobile: scrollable, desktop: fit */}
@@ -177,15 +217,7 @@ export function MyBookingsList() {
           <div className="spinner h-8 w-8" />
         </div>
       )}
-      {reviewTarget && (!reviewTarget.hasReview || !isLoadingReview) && (
-        <ReviewFormModal
-          bookingId={reviewTarget.id}
-          tripId={reviewTarget.trip.id}
-          tripTitle={reviewTarget.trip.title}
-          onClose={() => setReviewTarget(null)}
-          existingReview={reviewTarget.hasReview ? existingReview : null}
-        />
-      )}
+      {reviewTarget && (!reviewTarget.hasReview || !isLoadingReview) && renderReviewModal()}
     </div>
   )
 }
