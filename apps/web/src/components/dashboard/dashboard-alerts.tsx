@@ -108,8 +108,8 @@ export function DashboardAlerts() {
             Bank Account Not Linked
           </p>
           <p className="mt-0.5 text-sm text-primary-700">
-            Connect your bank account via Razorpay to receive payouts. Travelers cannot book
-            your trips until your bank account is linked.
+            Connect your bank account to receive payouts. Travelers cannot book your trips
+            until your bank account is linked.
           </p>
           <Link
             href="/dashboard/settings/bank"

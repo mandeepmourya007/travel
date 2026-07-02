@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Upload, X, Loader2, Eye, ShieldCheck, Clock, ShieldX, RefreshCw, MessageSquare, Send, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Upload, Loader2, Eye, ShieldCheck, Clock, ShieldX, RefreshCw, MessageSquare, Send, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useProfile, useUpdateOrganizerProfile } from '@/hooks/use-profile'
+import { BankAccountForm } from '@/components/dashboard/bank-account-form'
 import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
 import { useOrganizerDocComments, useOrganizerAddDocComment } from '@/hooks/use-doc-review'
 import { ImageLightbox, useLightbox } from '@/components/shared/image-lightbox'
@@ -70,17 +71,6 @@ export default function VerificationDocsPage() {
       toast({ variant: 'error', title: 'Upload failed. Please try again.' })
       setUploadingField(null)
     }
-  }
-
-  const handleRemove = (field: keyof OrganizerDocuments) => {
-    mutation.mutate(
-      { documents: { [field]: '' } },
-      {
-        onSuccess: () => {
-          toast({ variant: 'success', title: 'Document removed' })
-        },
-      },
-    )
   }
 
   const handleReUpload = (field: keyof OrganizerDocuments) => {
@@ -184,14 +174,6 @@ export default function VerificationDocsPage() {
                       <RefreshCw className={cn('h-3.5 w-3.5', isFieldUploading && 'animate-spin')} />
                       Replace
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(field.key)}
-                      className="rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-error-500"
-                      disabled={mutation.isPending}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
                   </div>
                 ) : (
                   <label className="btn-outline flex cursor-pointer items-center gap-2 text-xs">
@@ -252,6 +234,15 @@ export default function VerificationDocsPage() {
         Documents are stored securely and used only for verification by our admin team.
         Aadhaar numbers will not be stored in plain text.
       </p>
+
+      {/* Bank Account — shown below KYC docs on the same page */}
+      <div className="mt-8">
+        <h3 className="font-display text-lg font-semibold text-neutral-900 mb-1">Payout Bank Account</h3>
+        <p className="text-sm text-neutral-500 mb-4">
+          Link your bank account to receive payouts after trip completion.
+        </p>
+        <BankAccountForm bankAccountLinked={profile?.organizerProfile?.bankAccountLinked} />
+      </div>
 
       {/* Lightbox */}
       {isOpen && lightboxProps && <ImageLightbox {...lightboxProps} />}
