@@ -1,0 +1,39 @@
+apps/api/src/repositories/organizer-profile.repository.ts
+  s_b288e5961aca67::t_08dd727c7dfc4d 5
+  s_b288e5961aca67::t_b8c49f4ca6be01 159-160,163-164,166-167
+apps/api/src/services/auth.service.ts
+  s_b288e5961aca67::t_d11d6a0538bc5c 406-414,421,425-430,437-438,440-442,445-449,451-453,456-457,463
+  s_b288e5961aca67::t_912f32a668f9fe 439
+  s_b288e5961aca67::t_e8def76709ea5d 431,459
+  s_b288e5961aca67::t_578b9393dc870d 26
+  s_b288e5961aca67::t_7eda5045c3c0fb 54
+  s_b288e5961aca67::t_ef272770317ce1 25
+  s_b288e5961aca67::t_30d437a266dc01 443-444
+  s_b288e5961aca67::t_5bc11d38fbcf63 420
+apps/api/src/config/cashfree.ts
+  s_b288e5961aca67::t_6481a201c24527 35
+  s_b288e5961aca67::t_023799dfa501e2 10-11
+apps/api/src/config/dependencies.ts
+  s_b288e5961aca67::t_9a0a933a9c6edb 220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "b90b9781a34ba36fdf9285419d0480ea66c589b3",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b288e5961aca67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5d9d8b53-4ff0-4b39-a660-617045f07f89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
