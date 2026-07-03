@@ -29,7 +29,7 @@ function createCashfreeConfig(): CashfreeConfig | null {
   return {
     appId: CASHFREE_APP_ID,
     secretKey: CASHFREE_SECRET_KEY,
-    webhookSecret: env.CASHFREE_WEBHOOK_SECRET ?? 'unset',
+    webhookSecret: env.CASHFREE_WEBHOOK_SECRET ?? CASHFREE_SECRET_KEY,
     baseUrl: CASHFREE_BASE_URLS[CASHFREE_ENV],
     apiVersion: CASHFREE_API_VERSION,
     environment: CASHFREE_ENV,
