@@ -1,0 +1,24 @@
+apps/api/src/config/cashfree.ts
+  s_4010060e855409::t_b1591bee7599b4 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "eebae3babcce803a4134e9beeaf4426c771548ee",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4010060e855409": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "92c98214-2130-4651-9c31-d2f3de305d1e",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
