@@ -596,7 +596,7 @@ export class PaymentTransactionRepository {
   }): Prisma.PaymentTransactionWhereInput {
     const createdAt: Record<string, Date> = {}
     if (filters.fromDate) createdAt.gte = new Date(filters.fromDate)
-    if (filters.toDate) createdAt.lte = new Date(filters.toDate)
+    if (filters.toDate) createdAt.lte = new Date(filters.toDate + 'T23:59:59.999Z')
 
     return {
       ...(filters.type && { type: filters.type as PaymentType }),
