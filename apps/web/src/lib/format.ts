@@ -21,6 +21,18 @@ export function formatDateFull(dateString: string): string {
   })
 }
 
+export function formatDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString('en-IN', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: DEFAULT_TIMEZONE,
+  })
+}
+
 export function formatDateRange(start: string, end: string): string {
   const startDate = new Date(start)
   const endDate = new Date(end)

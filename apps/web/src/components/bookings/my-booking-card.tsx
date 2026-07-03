@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Calendar, Users, Star, Pencil, RefreshCw } from 'lucide-react'
+import { MapPin, Calendar, Users, Star, Pencil, RefreshCw, Hash, Clock } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { StarRating } from '@/components/shared/star-rating'
 import type { MyBookingListItem } from '@shared/types/booking.types'
-import { formatCurrency, formatDateRange, formatDateFull } from '@/lib/format'
+import { formatCurrency, formatDateRange, formatDateFull, formatDateTime } from '@/lib/format'
 import { BookingStatusBadge } from './booking-status-badge'
 import { TravelerDetailsAccordion } from './traveler-details-accordion'
 import { useSyncPayment } from '@/hooks/use-sync-payment'
@@ -197,6 +197,14 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
               Drop: {booking.dropPoint.label}{booking.dropPoint.time ? ` · ${booking.dropPoint.time}` : ''}
             </span>
           )}
+          <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
+            <Hash className="h-3 w-3" />
+            {booking.bookingRef}
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs text-neutral-400">
+            <Clock className="h-3 w-3" />
+            Booked {formatDateTime(booking.createdAt)}
+          </span>
         </div>
 
         {/* Traveler details accordion */}
