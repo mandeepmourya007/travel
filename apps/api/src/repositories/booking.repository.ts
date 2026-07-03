@@ -271,7 +271,7 @@ export class BookingRepository {
 
       await tx.$executeRaw`
         UPDATE "Booking"
-        SET "bookingStatus"      = ${BOOKING_STATUS.CANCELLED},
+        SET "bookingStatus"      = ${BOOKING_STATUS.CANCELLED}::"BookingStatus",
             "cancellationReason" = ${reason},
             "cancelledAt"        = NOW(),
             "cancelledById"      = ${userId},

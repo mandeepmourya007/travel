@@ -295,6 +295,9 @@ export class BookingService {
 
     const capturedPaymentId = capturedTx?.gatewayPaymentId ?? capturedTx?.razorpayPaymentId
     const capturedProvider = (capturedTx?.provider as PaymentProviderConst | undefined) ?? PAYMENT_PROVIDER.RAZORPAY
+    // Cashfree scopes refunds to orders (not payments) — orderId is required in notes.
+    // Razorpay ignores this field, so it's safe to always include it.
+    const capturedOrderId = capturedTx?.gatewayOrderId ?? capturedTx?.razorpayOrderId
 
     if (!capturedPaymentId) {
       this.logger.warn({ bookingId }, 'No captured payment tx with payment ID found — skipping gateway refund')
@@ -311,18 +314,18 @@ export class BookingService {
         return
       }
 
-      // INITIATED with no Razorpay ID: a prior attempt failed before Razorpay processed it — safe to retry.
+      // INITIATED with no gateway refund ID: a prior attempt failed before the gateway processed it — safe to retry.
       // CRITICAL: always use the amount and reason from the existing DB record, never the caller's params.
       // Caller params might differ (e.g., admin re-triggers with adjusted amount or time changes refund %).
-      // Using a different amount here would make Razorpay and our DB diverge — the DB stores
-      // existingRefundTx.amount, so Razorpay must receive that exact value.
+      // Using a different amount here would make the gateway and our DB diverge — the DB stores
+      // existingRefundTx.amount, so the gateway must receive that exact value.
       const storedAmount = existingRefundTx.amount
       const storedReason = (existingRefundTx.metadata as { reason?: string } | null)?.reason ?? reason
 
       if (storedAmount !== refundAmount) {
         this.logger.warn(
           { bookingId, refundTxId: existingRefundTx.id, storedAmount, callerAmount: refundAmount },
-          'Retry: caller refundAmount differs from stored REFUND tx amount — using stored amount to keep DB/Razorpay consistent',
+          'Retry: caller refundAmount differs from stored REFUND tx amount — using stored amount to keep DB/gateway consistent',
         )
       }
 
@@ -333,7 +336,7 @@ export class BookingService {
         this.logger.warn({ err, bookingId, refundTxId: existingRefundTx.id }, 'Failed to record refund retry attempt in metadata')
       }
       try {
-        await this.paymentService.initiateRefund(capturedPaymentId, storedAmount * 100, { bookingId, reason: storedReason }, capturedProvider)
+        await this.paymentService.initiateRefund(capturedPaymentId, storedAmount * 100, { bookingId, reason: storedReason, orderId: capturedOrderId }, capturedProvider)
         this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Refund initiated with gateway (retry)')
       } catch (err) {
         this.logger.error({ err, bookingId, refundTxId: existingRefundTx.id }, 'Gateway refund retry failed — REFUND tx remains INITIATED')
@@ -354,7 +357,8 @@ export class BookingService {
       await this.paymentService.initiateRefund(
         capturedPaymentId,
         refundAmount * 100,
-        { bookingId, reason },
+        // orderId is required by Cashfree (refunds are order-scoped); Razorpay ignores it
+        { bookingId, reason, orderId: capturedOrderId },
         capturedProvider,
       )
       this.logger.info({ bookingId, refundTxId: refundTx.id, amount: refundAmount }, 'Refund initiated with gateway')
