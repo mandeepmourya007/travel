@@ -1,0 +1,29 @@
+apps/api/src/utils/cron-jobs.ts
+  s_6d50955a9f3201::t_9cfd81007f00c3 18
+  s_6d50955a9f3201::t_ad633679236ba4 70-74,76,79-80,93-94
+apps/web/src/hooks/__tests__/use-wallet.test.tsx
+  s_6d50955a9f3201::t_a8b5c780a7d62a 5,7,22-29
+apps/web/src/hooks/use-payments.ts
+  s_6d50955a9f3201::t_f19c68321a9e0a 117,127,138,149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "4020150ca09f449e5f141dd8dd5483bf2b013649",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
