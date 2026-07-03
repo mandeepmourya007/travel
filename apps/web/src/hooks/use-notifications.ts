@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { STALE_TIME_DEFAULT, STALE_TIME_REALTIME, REFETCH_INTERVAL_BACKGROUND } from '@/lib/constants'
 import { notificationKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/store/auth.store'
 import { useNotificationStore } from '@/store/notification.store'
 import type { NotificationListItem, NotificationFilters, NotificationUnreadCountResponse } from '@shared/types/notification.types'
 import type { PaginationMeta } from '@shared/types/api-response.types'
@@ -18,6 +19,7 @@ interface PaginatedNotificationResponse {
  * Syncs the first page to the store for the dropdown.
  */
 export function useNotifications(filters: NotificationFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   const setRecentNotifications = useNotificationStore((s) => s.setRecentNotifications)
 
   const query = useQuery({
@@ -29,6 +31,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
     placeholderData: (prev) => prev,
   })
 
@@ -49,6 +52,7 @@ export function useNotifications(filters: NotificationFilters = {}) {
  * a 5-minute safety-net refetch for socket reconnection gaps only.
  */
 export function useUnreadCount(enabled = true) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   const setUnreadCount = useNotificationStore((s) => s.setUnreadCount)
 
   const query = useQuery({
@@ -57,7 +61,7 @@ export function useUnreadCount(enabled = true) {
       const res = await apiClient.get<{ success: true; data: NotificationUnreadCountResponse }>('/notifications/unread-count')
       return res.data.data.count
     },
-    enabled,
+    enabled: hasToken && enabled,
     staleTime: STALE_TIME_DEFAULT,
     refetchInterval: REFETCH_INTERVAL_BACKGROUND, // fallback only — socket invalidates on new notifications
   })

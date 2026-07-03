@@ -143,6 +143,11 @@ export const RAZORPAY_ORDER_STATUS = {
   PAID: 'paid',
 } as const
 
+// Normalized status strings returned by all gateways' checkOrderStatus()
+export const NORMALIZED_ORDER_STATUS = {
+  PAID: 'paid',
+} as const
+
 // ─── Misc ────────────────────────────────────────────
 export const CURRENCY = 'INR'
 export const RAZORPAY_MOCK_KEY = 'rzp_mock_dev_key'

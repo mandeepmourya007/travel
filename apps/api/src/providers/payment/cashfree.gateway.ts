@@ -129,25 +129,11 @@ export class CashfreeGateway implements IPaymentGateway {
   }
 
   /**
-   * Cashfree auto-captures — no explicit capture call exists.
-   * Fetches order status and returns a NormalizedPayment.
+   * Cashfree auto-captures all payments server-side — no explicit capture API exists.
+   * The PAYMENT_SUCCESS_WEBHOOK_V2 webhook is the authoritative confirmation.
    */
   async capturePayment(paymentId: string): Promise<NormalizedPayment> {
-    try {
-      // paymentId here is the CF payment ID (cf_payment_id) — fetch its status
-      const response = await this.fetch('GET', `/payments/${paymentId}`, null)
-      const status = (response['payment_status'] as string ?? 'SUCCESS').toLowerCase()
-      return {
-        paymentId,
-        status: status === CASHFREE_PAYMENT_STATUS.SUCCESS.toLowerCase() ? NORMALIZED_PAYMENT_STATUS.CAPTURED : status,
-        raw: response,
-      }
-    } catch (error) {
-      this.logger.warn({ paymentId, error }, 'Cashfree capturePayment status-fetch failed — treating as captured (auto-capture)')
-      // Auto-capture means the payment is captured by Cashfree before we're called.
-      // A fetch failure is non-fatal; payment.captured webhook is the safety net.
-      return { paymentId, status: NORMALIZED_PAYMENT_STATUS.CAPTURED, raw: null }
-    }
+    return { paymentId, status: NORMALIZED_PAYMENT_STATUS.CAPTURED, raw: null }
   }
 
   /**

@@ -12,7 +12,7 @@ import type { MyTripBookingStatus } from '@shared/types/booking.types'
  * Only fires when authenticated — unauthenticated users always see the default CTA.
  */
 export function useMyTripBookingStatus(tripId: string) {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const hasToken = !!useAuthStore((s) => s.accessToken)
 
   return useQuery({
     queryKey: bookingKeys.myTripStatus(tripId),
@@ -22,7 +22,7 @@ export function useMyTripBookingStatus(tripId: string) {
       )
       return res.data.data
     },
-    enabled: !!tripId && isAuthenticated,
+    enabled: !!tripId && hasToken,
     staleTime: STALE_TIME_REALTIME,
   })
 }

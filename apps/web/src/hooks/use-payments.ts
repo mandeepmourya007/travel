@@ -71,6 +71,7 @@ export function useMyPaymentSummary() {
  * Query key: paymentKeys.tripPayments(tripId, filters)
  */
 export function useTripPayments(tripId: string, filters: PaymentHistoryFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.tripPayments(tripId, filters),
     queryFn: async () => {
@@ -81,7 +82,7 @@ export function useTripPayments(tripId: string, filters: PaymentHistoryFilters =
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
-    enabled: !!tripId,
+    enabled: !!tripId && hasToken,
     placeholderData: (prev) => prev,
   })
 }
@@ -92,6 +93,7 @@ export function useTripPayments(tripId: string, filters: PaymentHistoryFilters =
  * Query key: paymentKeys.tripSummary(tripId)
  */
 export function useTripPaymentSummary(tripId: string) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.tripSummary(tripId),
     queryFn: async () => {
@@ -102,7 +104,7 @@ export function useTripPaymentSummary(tripId: string) {
       return res.data.data
     },
     staleTime: STALE_TIME_REALTIME,
-    enabled: !!tripId,
+    enabled: !!tripId && hasToken,
   })
 }
 
