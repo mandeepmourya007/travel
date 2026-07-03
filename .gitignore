@@ -54,3 +54,4 @@ logs/
 
 # DB backups (written by deploy-prod.sh — kept in /var/backups/travel/ on server)
 backup_*.sql.gz
+.claude/skills/cashfree-skills/
