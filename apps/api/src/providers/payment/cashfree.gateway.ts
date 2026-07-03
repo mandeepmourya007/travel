@@ -68,7 +68,7 @@ export class CashfreeGateway implements IPaymentGateway {
       order_id: receipt,
       order_amount: orderAmount,
       order_currency: 'INR',
-      order_note: JSON.stringify(notes),
+      order_note: `Trip booking | ${Object.entries(notes).map(([k, v]) => `${k}: ${v}`).join(' | ')}`,
       customer_details: {
         customer_id: customer?.id ?? receipt,
         customer_name: customer?.name ?? DEFAULT_CUSTOMER_NAME,

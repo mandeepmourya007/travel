@@ -7,6 +7,7 @@ import { BookingRepository } from '../repositories/booking.repository'
 import { TripRepository } from '../repositories/trip.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
+import { UserRepository } from '../repositories/user.repository'
 import { PaymentService } from './payment.service'
 import type { NotificationService } from './notification.service'
 import type { VehicleService } from './vehicle.service'
@@ -52,6 +53,7 @@ export class BookingService {
     private notificationService: NotificationService,
     private vehicleService: VehicleService | null = null,
     private cache: CacheService | null = null,
+    private userRepo: UserRepository | null = null,
   ) {}
 
   /** Invalidate trip search + detail caches after booking mutations. */
@@ -524,17 +526,19 @@ export class BookingService {
       const isCashfreeProd = gatewayProvider === PAYMENT_PROVIDER.CASHFREE && env.CASHFREE_ENV === 'production'
       const cashfreeVendorId = isCashfreeProd ? trip.organizer?.cashfreeVendorId : null
 
+      const bookingUser = this.userRepo ? await this.userRepo.findById(userId) : null
       const order = await paymentSvc.createOrder({
         amountPaise: amountInPaise,
         receipt: `booking-${Date.now()}`,
-        notes: { tripId: input.tripId, userId },
+        notes: { tripTitle: trip.title, tripId: input.tripId, userId },
         split: cashfreeVendorId
           ? { vendorAccountId: cashfreeVendorId, vendorAmountPaise, holdUntilEpochSec, notes: { tripId: input.tripId } }
           : null,
         customer: {
           id: userId,
-          name: input.travelers?.[0]?.name,
-          phone: input.travelers?.[0]?.phone,
+          name: input.travelers?.[0]?.name ?? bookingUser?.name ?? undefined,
+          email: bookingUser?.email ?? undefined,
+          phone: input.travelers?.[0]?.phone ?? bookingUser?.phone ?? undefined,
         },
         // Cashfree needs a return_url so the SDK knows where to redirect after payment.
         // {order_id} is a Cashfree-substituted placeholder — it becomes the actual order ID.
