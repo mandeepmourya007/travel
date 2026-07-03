@@ -269,6 +269,14 @@ export class CashfreeGateway implements IPaymentGateway {
       .update(message)
       .digest('base64')
 
+    this.logger.info({
+      timestamp,
+      receivedSig: signature,
+      expectedSig,
+      secretKeyPrefix: this.config.webhookSecret.slice(0, 6),
+      rawBodyLength: rawBody.length,
+    }, 'Cashfree webhook signature debug')
+
     let isValid = false
     try {
       isValid = crypto.timingSafeEqual(
