@@ -62,11 +62,13 @@ export const CF_VENDORS_PATH = '/easy-split/vendors'
 export const CF_VENDOR_STATUS_ACTIVE = 'ACTIVE'
 
 /**
- * Cashfree schedule_option value.
- * 1 = daily settlement (the standard instant-settlement cycle).
+ * Cashfree schedule_option values for vendor settlement cycles.
+ * T1 = T+1 settlement at 11:00 AM (default, used for all organizers).
+ * INSTANT = same-day instant settlement (IDs 8/9 per Cashfree docs).
  * @see https://www.cashfree.com/docs/api-reference/payments/latest/split/vendors/create
  */
-export const CF_SCHEDULE_OPTION_INSTANT = 1
+export const CF_SCHEDULE_OPTION_T1 = 1
+export const CF_SCHEDULE_OPTION_INSTANT = 8
 
 /**
  * Cashfree kyc_details.business_type for this platform.

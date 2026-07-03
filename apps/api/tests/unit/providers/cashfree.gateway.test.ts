@@ -22,7 +22,7 @@ import {
   CF_ERROR_CODE,
   CF_VENDORS_PATH,
   CF_VENDOR_STATUS_ACTIVE,
-  CF_SCHEDULE_OPTION_INSTANT,
+  CF_SCHEDULE_OPTION_T1,
   CF_BUSINESS_TYPE,
 } from '../../../src/providers/payment/payment.constants'
 
@@ -416,7 +416,7 @@ describe('createPayoutAccount', () => {
     expect(body.kyc_details.account_type).toBe('INDIVIDUAL')
     expect(body.kyc_details.business_type).toBe(CF_BUSINESS_TYPE)
     expect(body.kyc_details.pan).toBe('ABCDE1234F')
-    expect(body.schedule_option).toBe(CF_SCHEDULE_OPTION_INSTANT)
+    expect(body.schedule_option).toBe(CF_SCHEDULE_OPTION_T1)
     expect(body.bank.account_number).toBe(params.bank.accountNumber)
     expect(body.bank.ifsc).toBe(params.bank.ifsc)
     expect(body.bank.account_holder).toBe(params.bank.beneficiaryName)

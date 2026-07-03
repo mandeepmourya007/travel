@@ -1061,6 +1061,36 @@ describe('BookingService', () => {
       mockEnv.PAYMENT_GATEWAY = 'razorpay'
     })
 
+    it('should include split in createOrder when Cashfree sandbox and organizer has cashfreeVendorId', async () => {
+      mockEnv.PAYMENT_GATEWAY = 'cashfree'
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_sandbox_123' },
+      })
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_cf_sandbox',
+        status: 'created',
+        clientPayload: { provider: 'cashfree', orderId: 'order_cf_sandbox', paymentSessionId: 'pay_sess_123' },
+      })
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+        id: 'booking-cf',
+        bookingRef: 'TRP-2025-0003',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+
+      await service.createBooking('user-1', validInput)
+
+      const callArg = mockPaymentService.createOrder.mock.calls[0][0]
+      expect(callArg.split).toBeDefined()
+      expect(callArg.split.vendorAccountId).toBe('cf_vendor_sandbox_123')
+      // vendorAmountPaise = 800000 paise * (1 - 10/100) = 720000 paise
+      expect(callArg.split.vendorAmountPaise).toBe(720000)
+
+      mockEnv.PAYMENT_GATEWAY = 'razorpay'
+    })
+
     it('should use early bird price when deadline has not passed', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)

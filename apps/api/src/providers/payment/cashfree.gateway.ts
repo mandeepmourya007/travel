@@ -24,7 +24,7 @@ import {
   CF_ERROR_CODE,
   CF_VENDORS_PATH,
   CF_VENDOR_STATUS_ACTIVE,
-  CF_SCHEDULE_OPTION_INSTANT,
+  CF_SCHEDULE_OPTION_T1,
   CF_BUSINESS_TYPE,
 } from './payment.constants'
 
@@ -338,7 +338,7 @@ export class CashfreeGateway implements IPaymentGateway {
       // In production, always verify so mis-entered accounts are caught immediately.
       verify_account: this.config.environment === 'production',
       dashboard_access: false,
-      schedule_option: CF_SCHEDULE_OPTION_INSTANT,
+      schedule_option: CF_SCHEDULE_OPTION_T1,
       kyc_details: {
         account_type: params.accountType,
         business_type: CF_BUSINESS_TYPE,
