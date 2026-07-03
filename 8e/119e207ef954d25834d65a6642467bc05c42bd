@@ -1,0 +1,24 @@
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_aeef2ffa7947af::t_f29f1820d6a1f3 599
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "8e119e207ef954d25834d65a6642467bc05c42bd",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_aeef2ffa7947af": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a79407ff-0972-4409-b0a0-fe8cedcb6f62",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
