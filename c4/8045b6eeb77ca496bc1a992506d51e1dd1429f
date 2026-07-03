@@ -1,0 +1,39 @@
+apps/web/src/hooks/use-notifications.ts
+  s_6d50955a9f3201::t_e96e9dcaabf849 5
+  s_6d50955a9f3201::t_aec02336dc2db9 22,34
+  s_6d50955a9f3201::t_f86b64a613d02a 55,64
+apps/web/src/hooks/use-payments.ts
+  s_6d50955a9f3201::t_c9ae395b45bb2d 96,107
+  s_6d50955a9f3201::t_7e4ab2afd946b0 74,85
+apps/web/src/hooks/use-my-trip-booking-status.ts
+  s_6d50955a9f3201::t_989341738d71be 15,25
+apps/api/src/utils/constants.ts
+  s_6d50955a9f3201::t_862596b5e3b73a 146-150
+apps/api/src/utils/cron-jobs.ts
+  s_6d50955a9f3201::t_e74d968e6936a6 70
+  s_6d50955a9f3201::t_5a3d67c7d98b7c 77
+  s_6d50955a9f3201::t_f3e3208d7eb204 17
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_6d50955a9f3201::t_f676c4021c375c 132-133,136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c48045b6eeb77ca496bc1a992506d51e1dd1429f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
