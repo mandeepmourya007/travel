@@ -1,0 +1,35 @@
+apps/api/tests/unit/services/payment.service.test.ts
+  s_6d50955a9f3201::t_09cac8a14f4355 661-720
+  s_6d50955a9f3201::t_20622bdf8261ca 386-387,396-418,445-446,454-471
+  s_6d50955a9f3201::t_7e60127045c260 721
+apps/api/vitest.config.ts
+  s_6d50955a9f3201::t_5d8c570012293e 18-22
+  s_6d50955a9f3201::t_ae82a112a78d4d 23
+  s_6d50955a9f3201::t_62e6a0873621ba 17,24-25
+apps/api/tests/unit/services/booking.service.test.ts
+  s_6d50955a9f3201::t_088ed6e70db03f 787,789,792,810-816,825,828,840,854-870
+  s_6d50955a9f3201::t_ec091c2707879a 341,343-344
+  s_6d50955a9f3201::t_aa8f5dcc944389 84
+  s_6d50955a9f3201::t_3aba9f389078d5 871
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "015bdae00191d898d7d7dafc6ec353d240f051f4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
