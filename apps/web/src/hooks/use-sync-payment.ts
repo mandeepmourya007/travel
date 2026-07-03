@@ -4,7 +4,7 @@ import { bookingKeys } from '@/lib/query-keys'
 import type { VerifyPaymentResponse } from '@shared/types/payment.types'
 
 /**
- * Manually polls Razorpay for the order status and confirms the booking if paid.
+ * Polls the gateway (Razorpay or Cashfree) for order status and confirms the booking if paid.
  * Used when payment was deducted but the booking is still "Pending Payment".
  *
  * POST /bookings/:id/sync-payment → VerifyPaymentResponse
