@@ -395,13 +395,26 @@ export class PaymentService {
    * Marks both the PAYMENT tx (ledger accuracy) and the REFUND tx (audit trail) as REFUNDED.
    *
    * Idempotent on duplicate delivery — PAYMENT tx already REFUNDED → skip write but close REFUND tx.
+   *
+   * Lookup strategy:
+   * - Razorpay: event.paymentId is always present → findByGatewayPaymentId
+   * - Cashfree: REFUND_STATUS_WEBHOOK may have paymentId=null (no data.payment block) →
+   *   fall back to findByGatewayOrderId using event.orderId
    */
   async handleRefundProcessed(event: NormalizedWebhookEvent) {
-    if (!event.paymentId) return
+    if (!event.paymentId && !event.orderId) return
 
-    const paymentTx = await this.paymentTxRepo.findByGatewayPaymentId(event.paymentId)
+    let paymentTx = event.paymentId
+      ? await this.paymentTxRepo.findByGatewayPaymentId(event.paymentId)
+      : null
+
+    // Cashfree fallback: refund webhooks may not include data.payment — use orderId instead
+    if (!paymentTx && event.orderId) {
+      paymentTx = await this.paymentTxRepo.findByGatewayOrderId(event.orderId)
+    }
+
     if (!paymentTx) {
-      this.logger.warn({ paymentId: event.paymentId }, 'No payment transaction found for refund')
+      this.logger.warn({ paymentId: event.paymentId, orderId: event.orderId }, 'No payment transaction found for refund')
       return
     }
 

@@ -16,7 +16,7 @@ const CASHFREE_BASE_URLS = {
   production: 'https://api.cashfree.com/pg',
 } as const
 
-const CASHFREE_API_VERSION = '2023-08-01'
+const CASHFREE_API_VERSION = '2025-01-01'
 
 function createCashfreeConfig(): CashfreeConfig | null {
   const { CASHFREE_APP_ID, CASHFREE_SECRET_KEY, CASHFREE_ENV } = env

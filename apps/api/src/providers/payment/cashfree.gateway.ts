@@ -45,7 +45,7 @@ const CF_ORDER_STATUS_MAP: Record<string, string> = {
  * - Webhook scheme: HMAC-SHA256(timestamp + rawBody, secretKey) → base64 → x-webhook-signature
  * - Split: order_splits[] at order creation (Easy Split / Deferred Settlement)
  *
- * API version: 2023-08-01  Base URL set by CASHFREE_ENV (sandbox / production)
+ * API version: 2025-01-01  Base URL set by CASHFREE_ENV (sandbox / production)
  */
 export class CashfreeGateway implements IPaymentGateway {
   readonly provider = PAYMENT_PROVIDER.CASHFREE
@@ -89,8 +89,7 @@ export class CashfreeGateway implements IPaymentGateway {
         {
           vendor_id: split.vendorAccountId,
           amount: vendorAmountRupees,
-          // Deferred settlement: funds settle to vendor after holdUntilEpochSec
-          percentage: null,
+          // Use amount-based split only — do not include percentage (spec: use one or the other)
           tags: split.notes ?? {},
         },
       ]
@@ -192,22 +191,24 @@ export class CashfreeGateway implements IPaymentGateway {
   }
 
   async initiateRefund(
-    paymentId: string,
+    _paymentId: string,
     amountPaise: number,
     notes?: Record<string, unknown>,
   ): Promise<{ refundId: string; raw: unknown }> {
-    // Cashfree refunds are scoped to orders, not payments — we use paymentId as a stub refund ID
-    const refundId = `REFUND_${paymentId}_${Date.now()}`
     const orderId = notes?.['orderId'] as string | undefined
 
     if (!orderId) {
       throw new PaymentError('Cashfree refund requires orderId in notes (pass { orderId: gatewayOrderId })')
     }
 
+    // refund_id is Cashfree's idempotency key — must be deterministic per order so retries
+    // on network timeouts return the existing refund rather than creating a second one.
+    const refundId = `REFUND_${orderId}`
+
     try {
       const response = await this.fetch('POST', `/orders/${orderId}/refunds`, {
-        refund_amount: amountPaise / 100,
         refund_id: refundId,
+        refund_amount: amountPaise / 100,
         refund_note: String(notes?.['reason'] ?? 'Booking refund'),
       })
 
@@ -233,22 +234,11 @@ export class CashfreeGateway implements IPaymentGateway {
     _transferId: string,
     ctx?: { orderId?: string; vendorAccountId?: string },
   ): Promise<void> {
-    // Cashfree Deferred Settlement: mark the order's split as eligible for settlement.
-    // API: POST /orders/:orderId/settlement — marks split eligible after hold period.
-    // ⚠ Exact endpoint confirmed via Cashfree docs — verify before enabling in production.
-    const orderId = ctx?.orderId
-    if (!orderId) {
-      this.logger.warn({ ctx }, 'Cashfree releaseTransferHold: orderId missing in ctx — skipping release')
-      return
-    }
-
-    try {
-      await this.fetch('POST', `/orders/${orderId}/settlement`, { action: 'release' })
-      this.logger.info({ orderId }, 'Cashfree deferred settlement released')
-    } catch (error) {
-      this.logger.error({ error, orderId }, 'Cashfree settlement release failed')
-      throw new PaymentError('Failed to release Cashfree deferred settlement', error)
-    }
+    // Cashfree Easy Split settles vendor shares automatically via the vendor's schedule_option
+    // (T+1 by default) — there is no explicit "release hold" API like Razorpay Route.
+    // SafePay escrow-on-hold is a Razorpay-only feature; Cashfree vendors are paid on their
+    // schedule regardless of trip completion. This method is intentionally a no-op for Cashfree.
+    this.logger.info({ orderId: ctx?.orderId }, 'Cashfree releaseTransferHold: no-op (Easy Split settles via schedule_option)')
   }
 
   /**
@@ -305,14 +295,17 @@ export class CashfreeGateway implements IPaymentGateway {
     const payment = (data['payment'] as Record<string, unknown> | undefined) ?? {}
     const refund = (data['refund'] as Record<string, unknown> | undefined) ?? {}
 
-    const orderId = (order['order_id'] as string | undefined) ?? null
+    const orderId = (order['order_id'] as string | undefined) ?? (refund['order_id'] as string | undefined) ?? null
+    // cf_payment_id lives under data.payment for payment events but under data.refund for refund events
     const cfPaymentId = (payment['cf_payment_id'] as string | number | undefined)
+      ?? (refund['cf_payment_id'] as string | number | undefined)
     const paymentId = cfPaymentId != null ? String(cfPaymentId) : null
     const cfRefundId = (refund['cf_refund_id'] as string | undefined) ?? null
     const failureReason = (payment['payment_message'] as string | undefined) ?? null
 
-    // Synthesize idempotency key from event type + payment/order ID
-    const externalEventId = `cf_${eventType}_${paymentId ?? orderId ?? Date.now()}`
+    // Prefer refundId for refund events so retried webhooks deduplicate correctly.
+    // Falling back to Date.now() would generate a different key per retry, defeating idempotency.
+    const externalEventId = `cf_${eventType}_${cfRefundId ?? paymentId ?? orderId ?? Date.now()}`
     const mode = (order['order_tags'] as Record<string, unknown> | undefined)?.['mode'] === 'TEST' ? 'test' : 'live'
 
     return {
