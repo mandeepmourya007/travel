@@ -1,0 +1,28 @@
+apps/web/src/components/bookings/review-form-modal.tsx
+  s_098902b016a2d4::t_6187d4ee882644 92
+  s_098902b016a2d4::t_bfd6effcfd3a4e 36
+  s_098902b016a2d4::t_a167a48faa49c9 129
+  s_098902b016a2d4::t_7957763dda1870 265,281-283,285,289,292,308-309,311
+  s_098902b016a2d4::t_dda1a880fc5b39 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "1978ecc4b07c04f4d32cf85eaba756edeaf95c3d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_098902b016a2d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8fe9d6ca-89b8-4a90-a64f-a0655244a92c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
