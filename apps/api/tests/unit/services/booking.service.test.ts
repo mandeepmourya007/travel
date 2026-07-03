@@ -81,6 +81,7 @@ const mockPaymentService = {
   initiateRefund: vi.fn(),
   resolveBookingIdFromOrder: vi.fn(),
   fetchPaymentIdForOrder: vi.fn(),
+  resolveProviderFromTx: vi.fn().mockReturnValue('razorpay'),
 }
 
 // ── Test Data Factory ────────────────────────────────
@@ -337,8 +338,10 @@ describe('BookingService', () => {
     beforeEach(() => {
       // Default: gate wins for a CONFIRMED booking
       mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'CONFIRMED' })
-      // initiateBookingRefund reads payment txs — default to no captured tx (skips Razorpay call)
+      // initiateBookingRefund reads payment txs — default to no captured tx (skips gateway call)
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+      // Default provider resolution: Razorpay (most tests use Razorpay txs)
+      mockPaymentService.resolveProviderFromTx.mockReturnValue('razorpay')
     })
 
     it('should cancel with 100% refund for FLEXIBLE >=48h (CONFIRMED)', async () => {
@@ -781,11 +784,12 @@ describe('BookingService', () => {
       )
     })
 
-    // ── Cashfree orderId forwarding ─────────────────────────────────────────
+    // ── Cashfree gateway routing ────────────────────────────────────────────
 
-    it('should pass orderId in notes for Cashfree refund (Cashfree scopes refunds to orders)', async () => {
+    it('should route refund to Cashfree and store provider on REFUND tx', async () => {
       const booking = createMockBooking({ trip: futureTrip })
       mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentService.resolveProviderFromTx.mockReturnValue('cashfree')
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
         {
           id: 'ptx-cf',
@@ -803,6 +807,13 @@ describe('BookingService', () => {
 
       await service.cancelBooking('user-1', 'booking-1', 'Trip cancelled')
 
+      // Provider stored on the REFUND tx so future retries don't need to infer it
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'REFUND',
+        status: 'INITIATED',
+        provider: 'cashfree',
+      }))
+      // Cashfree requires orderId in notes (refunds are order-scoped)
       expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
         'pay_cf_123',
         900000,
@@ -811,9 +822,10 @@ describe('BookingService', () => {
       )
     })
 
-    it('should pass orderId in retry notes for Cashfree when INITIATED tx exists with no refundId', async () => {
+    it('should route retry refund to Cashfree when INITIATED REFUND tx exists with no refundId', async () => {
       const booking = createMockBooking({ trip: futureTrip })
       mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentService.resolveProviderFromTx.mockReturnValue('cashfree')
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
         {
           id: 'ptx-cf-cap',
@@ -825,7 +837,7 @@ describe('BookingService', () => {
           razorpayOrderId: null,
           provider: 'cashfree',
         },
-        { id: 'ptx-cf-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: null, amount: 9000, metadata: { reason: 'Original reason' } },
+        { id: 'ptx-cf-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: null, gatewayRefundId: null, amount: 9000, metadata: { reason: 'Original reason' } },
       ])
       mockPaymentService.initiateRefund.mockResolvedValue({ refundId: 'rfnd_cf_retry', status: 'SUCCESS' })
 
@@ -838,6 +850,24 @@ describe('BookingService', () => {
         expect.objectContaining({ orderId: 'order_cf_xyz' }),
         'cashfree',
       )
+    })
+
+    it('should store provider=razorpay on REFUND tx for Razorpay payments', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        { id: 'ptx-rzp', type: 'PAYMENT', status: 'CAPTURED', gatewayPaymentId: 'pay_abc', razorpayPaymentId: 'pay_abc', provider: 'razorpay' },
+      ])
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-rzp' })
+      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_x', status: 'processed' })
+
+      await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'REFUND',
+        status: 'INITIATED',
+        provider: 'razorpay',
+      }))
     })
   })
 

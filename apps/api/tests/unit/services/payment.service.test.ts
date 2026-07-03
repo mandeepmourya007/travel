@@ -383,8 +383,8 @@ describe('PaymentService', () => {
   // handlePaymentCaptured
   // ═══════════════════════════════════════════════════
   describe('handlePaymentCaptured', () => {
-    it('should update payment transaction to CAPTURED', async () => {
-      const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED' })
+    it('should update payment transaction to CAPTURED with resolved provider', async () => {
+      const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED', provider: 'razorpay' })
       mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
@@ -393,7 +393,29 @@ describe('PaymentService', () => {
       const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED)
       await service.handlePaymentCaptured(event)
 
-      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED')
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED', { provider: 'razorpay' })
+    })
+
+    it('should backfill provider=cashfree when tx.provider is null and orderId starts with booking-', async () => {
+      const paymentTx = createMockPaymentTx({
+        status: 'AUTHORIZED',
+        provider: null,
+        gatewayOrderId: 'booking-1234567890',
+        razorpayOrderId: 'booking-1234567890',
+      })
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.updateStatus.mockResolvedValue({})
+      mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
+      mockGateway.fetchTransferId.mockResolvedValue(null)
+
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED)
+      await service.handlePaymentCaptured(event)
+
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED', { provider: 'cashfree' })
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.objectContaining({ paymentTxId: 'ptx-1', resolvedProvider: 'cashfree' }),
+        'Backfilling missing provider on CAPTURED tx',
+      )
     })
 
     it('should skip if payment transaction not found', async () => {
@@ -420,8 +442,8 @@ describe('PaymentService', () => {
   // handleOrderPaid
   // ═══════════════════════════════════════════════════
   describe('handleOrderPaid', () => {
-    it('should update payment transaction to CAPTURED for paid order', async () => {
-      const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED' })
+    it('should update payment transaction to CAPTURED with resolved provider', async () => {
+      const paymentTx = createMockPaymentTx({ status: 'AUTHORIZED', provider: 'razorpay' })
       mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
       mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
@@ -429,7 +451,24 @@ describe('PaymentService', () => {
       const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.ORDER_PAID)
       await service.handleOrderPaid(event)
 
-      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED')
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED', { provider: 'razorpay' })
+    })
+
+    it('should backfill provider=cashfree when tx.provider is null and order is Cashfree format', async () => {
+      const paymentTx = createMockPaymentTx({
+        status: 'AUTHORIZED',
+        provider: null,
+        gatewayOrderId: 'booking-9876543210',
+        razorpayOrderId: 'booking-9876543210',
+      })
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.updateStatus.mockResolvedValue({})
+      mockPaymentTxRepo.updatePaymentId.mockResolvedValue({})
+
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.ORDER_PAID)
+      await service.handleOrderPaid(event)
+
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith('ptx-1', 'CAPTURED', { provider: 'cashfree' })
     })
 
     it('should skip if payment transaction not found', async () => {
@@ -617,6 +656,67 @@ describe('PaymentService', () => {
       const result = await service.resolveBookingIdFromOrder('order_unknown')
 
       expect(result).toBeNull()
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // resolveProviderFromTx — single source of truth for provider routing
+  // ═══════════════════════════════════════════════════
+  describe('resolveProviderFromTx', () => {
+    it('should return stored provider when it matches a registered gateway', () => {
+      // gatewayRegistry only has 'razorpay'; stored='razorpay' matches
+      const result = service.resolveProviderFromTx({ provider: 'razorpay', gatewayOrderId: 'order_abc' })
+
+      expect(result).toBe('razorpay')
+      expect(mockLogger.warn).not.toHaveBeenCalled()
+    })
+
+    it('should infer cashfree from booking- order ID when provider is null', () => {
+      const result = service.resolveProviderFromTx({ provider: null, gatewayOrderId: 'booking-1234567890' })
+
+      expect(result).toBe('cashfree')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: 'booking-1234567890' }),
+        'provider not set on tx — inferred cashfree from order ID format',
+      )
+    })
+
+    it('should fall back to razorpayOrderId when gatewayOrderId is null', () => {
+      const result = service.resolveProviderFromTx({
+        provider: null,
+        gatewayOrderId: null,
+        razorpayOrderId: 'booking-9999999999',
+      })
+
+      expect(result).toBe('cashfree')
+    })
+
+    it('should default to razorpay when provider is null and orderId starts with order_', () => {
+      const result = service.resolveProviderFromTx({ provider: null, gatewayOrderId: 'order_abc123' })
+
+      expect(result).toBe('razorpay')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: 'order_abc123' }),
+        'provider not set and cannot infer from order ID — defaulting to razorpay',
+      )
+    })
+
+    it('should default to razorpay when provider and orderId are both null', () => {
+      const result = service.resolveProviderFromTx({ provider: null, gatewayOrderId: null, razorpayOrderId: null })
+
+      expect(result).toBe('razorpay')
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: null }),
+        'provider not set and cannot infer from order ID — defaulting to razorpay',
+      )
+    })
+
+    it('should warn and infer from order ID when stored provider is not in registry (gateway removed after cutover)', () => {
+      // 'cashfree' is NOT in gatewayRegistry (only razorpay is) — simulates removed gateway
+      const result = service.resolveProviderFromTx({ provider: 'cashfree', gatewayOrderId: 'booking-111' })
+
+      // Falls through to order ID inference since gateways.has('cashfree') === false
+      expect(result).toBe('cashfree')
     })
   })
 })
