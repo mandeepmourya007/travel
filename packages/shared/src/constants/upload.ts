@@ -1,4 +1,5 @@
 export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024 // 5MB
+export const MAX_UPLOAD_SIZE_MB = MAX_UPLOAD_SIZE_BYTES / (1024 * 1024)
 export const REQUIRED_DOC_COUNT = 3
 
 export const ALLOWED_UPLOAD_FOLDERS = ['trips', 'itinerary-docs', 'vehicles', 'verification-docs'] as const
