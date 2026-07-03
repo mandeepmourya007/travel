@@ -1,0 +1,27 @@
+apps/web/src/app/payment-complete/page.tsx
+  s_ec7a7024912fe5::t_005b939e12d1b0 34,79-81
+  s_ec7a7024912fe5::t_88e6938c1e00bf 3,10,24-29,35-36,41,44-52,60-64,92
+  s_ec7a7024912fe5::t_d00e2926ac1f41 7,9
+  s_ec7a7024912fe5::t_e1b70622ceb164 65-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "be3d364b7234f18011b2538f15eb47a78414cd54",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ec7a7024912fe5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5fd51de-6ca4-4bd6-a827-0fcc29b52638",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
