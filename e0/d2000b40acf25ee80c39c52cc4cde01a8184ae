@@ -1,0 +1,24 @@
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_4010060e855409::t_962c9b50bf9538 272-279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e0d2000b40acf25ee80c39c52cc4cde01a8184ae",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4010060e855409": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "92c98214-2130-4651-9c31-d2f3de305d1e",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
