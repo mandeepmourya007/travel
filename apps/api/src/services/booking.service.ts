@@ -428,6 +428,12 @@ export class BookingService {
     const lockKey = `booking:create:${userId}:${input.tripId}`
     let bookingResponse: CreateBookingResponse | null = null
 
+    // Fetch user outside the lock — read-only, no need to hold the lock for this.
+    const bookingUser = this.userRepo ? await this.userRepo.findById(userId) : null
+    if (!this.userRepo) {
+      this.logger.warn({ userId }, 'userRepo not injected — Cashfree customer details will use fallback values')
+    }
+
     const lockAcquired = await withLock(lockKey, BOOKING_LOCK_TTL_MS, async () => {
       // Re-check under lock — catches concurrent arrivals that both passed the fast-path.
       // Same guard: only PENDING_PAYMENT gets idempotency treatment; CONFIRMED is allowed
@@ -526,7 +532,6 @@ export class BookingService {
       const isCashfreeProd = gatewayProvider === PAYMENT_PROVIDER.CASHFREE && env.CASHFREE_ENV === 'production'
       const cashfreeVendorId = isCashfreeProd ? trip.organizer?.cashfreeVendorId : null
 
-      const bookingUser = this.userRepo ? await this.userRepo.findById(userId) : null
       const order = await paymentSvc.createOrder({
         amountPaise: amountInPaise,
         receipt: `booking-${Date.now()}`,
@@ -867,11 +872,20 @@ export class BookingService {
       if (storedOrderId && storedOrderId !== orderId) {
         throw new AuthError('Payment order ID does not match this booking — possible replay attack')
       }
-      if (paymentId) {
-        await this.paymentTxRepo.updatePaymentId(paymentTx.id, paymentId)
+
+      // Cashfree does not include cf_payment_id in the redirect URL — fetch it from
+      // the gateway API so confirmBooking() has a paymentId to work with.
+      let resolvedPaymentId = paymentId
+      if (!resolvedPaymentId && txProvider === PAYMENT_PROVIDER.CASHFREE) {
+        resolvedPaymentId = (await this.paymentService.fetchPaymentIdForOrder(orderId, PAYMENT_PROVIDER.CASHFREE)) ?? undefined
+        this.logger.debug({ bookingId, orderId, resolvedPaymentId }, 'Cashfree: fetched paymentId for order')
+      }
+
+      if (resolvedPaymentId) {
+        await this.paymentTxRepo.updatePaymentId(paymentTx.id, resolvedPaymentId)
         // Update in-memory so confirmBooking() can read the payment ID without re-fetching
-        ;(paymentTx as Record<string, unknown>).gatewayPaymentId = paymentId
-        ;(paymentTx as Record<string, unknown>).razorpayPaymentId = paymentId
+        ;(paymentTx as Record<string, unknown>).gatewayPaymentId = resolvedPaymentId
+        ;(paymentTx as Record<string, unknown>).razorpayPaymentId = resolvedPaymentId
       }
     }
 
@@ -906,7 +920,14 @@ export class BookingService {
 
     const orderStatus = await this.paymentService.checkOrderStatus(txOrderId, txProvider)
 
-    if (orderStatus !== 'paid') {
+    // 'paid'     → Razorpay captured / Cashfree paid — proceed
+    // 'attempted' → Razorpay authorized but not yet captured (deferred-capture mode; webhook missed).
+    //               recoverPaidBooking will fetch the cf_payment_id / razorpay payment ID and
+    //               call capturePayment, which performs the actual capture for Razorpay.
+    const isRecoverable = orderStatus === 'paid' ||
+      (orderStatus === 'attempted' && txProvider === PAYMENT_PROVIDER.RAZORPAY)
+
+    if (!isRecoverable) {
       throw new ValidationError(`Payment not completed yet — order status is "${orderStatus}". Please complete payment or try again.`)
     }
 
