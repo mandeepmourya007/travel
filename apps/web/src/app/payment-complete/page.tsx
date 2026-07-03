@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, XCircle, Loader2, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
+import { bookingKeys, tripKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/store/auth.store'
 import type { VerifyPaymentResponse } from '@shared/types/payment.types'
 import { PAYMENT_PROVIDER } from '@shared/constants'
 
@@ -18,20 +21,47 @@ const CASHFREE_BOOKING_KEY = 'cashfree_pending_booking_id'
  * Cashfree redirects here after payment with ?order_id=... in the URL.
  * The bookingId is read from sessionStorage (stashed before the redirect in book/page.tsx).
  * Then we call POST /bookings/:id/verify-payment to confirm with the backend.
+ *
+ * We must wait for _hasHydrated before calling verify-payment. Cashfree performs a full-page
+ * redirect, which reloads the app from scratch. The auth store's onRehydrateStorage fires an
+ * async /auth/refresh to recover the access token, but that fetch is not instantaneous.
+ * Calling verify-payment before it completes sends a request with no Authorization header
+ * and receives a 401 — even though the booking may already be confirmed via webhook.
  */
 export default function PaymentCompletePage() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get('order_id')
+  const queryClient = useQueryClient()
+  const hasHydrated = useAuthStore((s) => s._hasHydrated)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   const [state, setState] = useState<PageState>('verifying')
   const [bookingRef, setBookingRef] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const verifyCalledRef = useRef(false)
 
   useEffect(() => {
+    // Wait for the auth store to finish hydrating (refresh token exchange) before
+    // sending the verify-payment request — otherwise the request goes out with no
+    // Authorization header and gets a 401.
+    if (!hasHydrated) return
+
+    // Only call verify-payment once even if hasHydrated flips more than once.
+    if (verifyCalledRef.current) return
+    verifyCalledRef.current = true
+
     const bookingId = sessionStorage.getItem(CASHFREE_BOOKING_KEY)
 
     if (!orderId || !bookingId) {
       setState('missing-params')
+      return
+    }
+
+    if (!isAuthenticated) {
+      // Refresh token was invalid/expired after the Cashfree redirect.
+      // The booking may still be confirmed via webhook — the user must sign in to check.
+      setErrorMsg('Your session expired during the redirect. Please sign in and check My Bookings — your payment may still have been processed.')
+      setState('failed')
       return
     }
 
@@ -46,6 +76,9 @@ export default function PaymentCompletePage() {
           sessionStorage.removeItem(CASHFREE_BOOKING_KEY)
           setBookingRef(res.data.data.bookingRef)
           setState('success')
+          queryClient.invalidateQueries({ queryKey: bookingKeys.all })
+          queryClient.invalidateQueries({ queryKey: tripKeys.lists() })
+          queryClient.invalidateQueries({ queryKey: tripKeys.details() })
         } else {
           setErrorMsg(`Payment not confirmed — booking status: ${status}. If money was deducted, it will be refunded automatically.`)
           setState('failed')
@@ -56,7 +89,7 @@ export default function PaymentCompletePage() {
         setErrorMsg(`${msg}. If money was deducted, it will be refunded automatically. Contact support if needed.`)
         setState('failed')
       })
-  }, [orderId])
+  }, [hasHydrated, isAuthenticated, orderId])
 
   if (state === 'verifying') {
     return (
