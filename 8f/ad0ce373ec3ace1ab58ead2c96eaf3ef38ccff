@@ -1,0 +1,38 @@
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_ec7a7024912fe5::t_e5814caf905aa1 200-205,207
+  s_ec7a7024912fe5::t_31de29fcd55961 206
+  s_ec7a7024912fe5::t_71f2833399d198 6
+  s_ec7a7024912fe5::t_b07f014480e9cb 10
+apps/web/src/lib/format.ts
+  s_ec7a7024912fe5::t_6e5fece72f0af6 24-34
+  s_6d50955a9f3201::t_bc124f304cc5a9 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8fad0ce373ec3ace1ab58ead2c96eaf3ef38ccff",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_ec7a7024912fe5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5fd51de-6ca4-4bd6-a827-0fcc29b52638",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
