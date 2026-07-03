@@ -15,7 +15,6 @@ import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
 import { NORMALIZED_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
-import type { PaymentProvider } from '../types/payment.types'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // ── Intervals (ms) ───────────────────────────────────
@@ -68,9 +67,14 @@ async function expireStaleBookings(
           const paymentTx = booking.paymentTransactions[0]
 
           // Poll the payment gateway before expiring — payment might have succeeded
-          // but the webhook was missed. Route to the correct gateway via provider field.
+          // but the webhook was missed. Use resolveProviderFromTx so legacy rows with
+          // null provider fall back to order-ID inference instead of defaulting to Razorpay.
           const orderId = paymentTx?.gatewayOrderId ?? paymentTx?.razorpayOrderId
-          const provider = paymentTx?.provider as PaymentProvider | undefined
+          const provider = paymentService?.resolveProviderFromTx({
+            provider: paymentTx?.provider,
+            gatewayOrderId: paymentTx?.gatewayOrderId,
+            razorpayOrderId: paymentTx?.razorpayOrderId,
+          })
           if (paymentService && orderId) {
             try {
               const orderStatus = await paymentService.checkOrderStatus(orderId, provider)
