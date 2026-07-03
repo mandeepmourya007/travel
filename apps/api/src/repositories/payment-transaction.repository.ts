@@ -141,6 +141,7 @@ export class PaymentTransactionRepository {
     extras?: {
       failureReason?: string
       metadata?: Prisma.InputJsonValue
+      provider?: string
       // Provider-neutral (new)
       gatewayPaymentId?: string
       gatewayRefundId?: string
@@ -404,6 +405,7 @@ export class PaymentTransactionRepository {
       where: {
         type: PAYMENT_TX_TYPE.PAYMENT,
         status: PAYMENT_TX_STATUS.CAPTURED,
+        provider: 'razorpay',
         // Only release SafePay for bookings that completed — CANCELLED bookings must never receive a transfer
         booking: { tripId, isDeleted: false, bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] } },
       },
@@ -449,6 +451,7 @@ export class PaymentTransactionRepository {
       where: {
         type: PAYMENT_TX_TYPE.PAYMENT,
         status: PAYMENT_TX_STATUS.CAPTURED,
+        provider: 'razorpay',
         // Only crash-recover SafePay for bookings that actually completed
         booking: {
           isDeleted: false,

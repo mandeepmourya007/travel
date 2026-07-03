@@ -288,6 +288,7 @@ export class CashfreeGateway implements IPaymentGateway {
     const paymentId = cfPaymentId != null ? String(cfPaymentId) : null
     const cfRefundId = (refund['cf_refund_id'] as string | undefined) ?? null
     const failureReason = (payment['payment_message'] as string | undefined) ?? null
+    const refundStatus = (refund['refund_status'] as string | undefined) ?? null
 
     // Prefer refundId for refund events so retried webhooks deduplicate correctly.
     // Falling back to Date.now() would generate a different key per retry, defeating idempotency.
@@ -295,7 +296,7 @@ export class CashfreeGateway implements IPaymentGateway {
     const mode = (order['order_tags'] as Record<string, unknown> | undefined)?.['mode'] === 'TEST' ? 'test' : 'live'
 
     return {
-      type: this.normalizeEventType(eventType),
+      type: this.normalizeEventType(eventType, refundStatus),
       externalEventId,
       orderId,
       paymentId,
@@ -369,11 +370,14 @@ export class CashfreeGateway implements IPaymentGateway {
     }
   }
 
-  private normalizeEventType(eventType: string): NormalizedWebhookEvent['type'] {
+  private normalizeEventType(eventType: string, refundStatus?: string | null): NormalizedWebhookEvent['type'] {
     switch (eventType) {
       case 'PAYMENT_SUCCESS_WEBHOOK': return NORMALIZED_EVENT_TYPE.PAYMENT_CAPTURED
       case 'PAYMENT_FAILED_WEBHOOK':  return NORMALIZED_EVENT_TYPE.PAYMENT_FAILED
-      case 'REFUND_STATUS_WEBHOOK':   return NORMALIZED_EVENT_TYPE.REFUND_PROCESSED
+      case 'REFUND_STATUS_WEBHOOK':
+        // Cashfree sends REFUND_STATUS_WEBHOOK for all status transitions (PENDING, ONHOLD, CANCELLED, SUCCESS).
+        // Only mark as REFUND_PROCESSED when the refund has actually completed.
+        return refundStatus === 'SUCCESS' ? NORMALIZED_EVENT_TYPE.REFUND_PROCESSED : NORMALIZED_EVENT_TYPE.UNKNOWN
       // ORDER_PAID is used by PaymentService to trigger booking confirmation
       case 'PAYMENT_SUCCESS_WEBHOOK_V2': return NORMALIZED_EVENT_TYPE.ORDER_PAID
       default:                        return NORMALIZED_EVENT_TYPE.UNKNOWN

@@ -10,6 +10,7 @@ import {
   WEBHOOK_STATUS,
   REFERENCE_MODEL,
 } from '../utils/constants'
+import { PAYMENT_PROVIDER } from '@shared/constants'
 import { NORMALIZED_EVENT_TYPE } from '../types/payment.types'
 import type { NormalizedWebhookEvent, PaymentProvider } from '../types/payment.types'
 import type { IPaymentGateway, CreateOrderParams } from '../providers/payment/payment-gateway.interface'
@@ -324,11 +325,15 @@ export class PaymentService {
     if (event.paymentId) {
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, event.paymentId)
     }
-    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
+    const resolvedProvider = this.resolveProviderFromTx(paymentTx)
+    if (!paymentTx.provider) {
+      this.logger.info({ paymentTxId: paymentTx.id, resolvedProvider }, 'Backfilling missing provider on CAPTURED tx')
+    }
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED, { provider: resolvedProvider })
 
     // Fire-and-forget transfer ID fetch — don't block webhook response
     if (event.paymentId) {
-      this.storeTransferIdAsync(paymentTx.id, event.paymentId, paymentTx.provider as PaymentProvider)
+      this.storeTransferIdAsync(paymentTx.id, event.paymentId, resolvedProvider)
     }
   }
 
@@ -353,7 +358,11 @@ export class PaymentService {
     if (event.paymentId) {
       await this.paymentTxRepo.updatePaymentId(paymentTx.id, event.paymentId)
     }
-    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED)
+    const resolvedProvider = this.resolveProviderFromTx(paymentTx)
+    if (!paymentTx.provider) {
+      this.logger.info({ paymentTxId: paymentTx.id, resolvedProvider }, 'Backfilling missing provider on CAPTURED tx')
+    }
+    await this.paymentTxRepo.updateStatus(paymentTx.id, PAYMENT_TX_STATUS.CAPTURED, { provider: resolvedProvider })
   }
 
   /**
@@ -441,6 +450,42 @@ export class PaymentService {
         'REFUND_PROCESSED: no INITIATED REFUND tx found — refund was likely triggered externally',
       )
     }
+  }
+
+  // ─── Provider Resolution ─────────────────────────────
+
+  /**
+   * Resolves the payment provider for a transaction.
+   * Single source of truth for all provider-routing decisions — used by both
+   * webhook handlers (to backfill missing provider on old rows) and BookingService
+   * (to route refunds correctly regardless of when the transaction was created).
+   *
+   * Resolution order:
+   * 1. Stored `provider` field if it matches a registered gateway.
+   * 2. Order ID format: Cashfree orders use our "booking-{timestamp}" receipt;
+   *    Razorpay orders use the "order_" prefix.
+   * 3. Default: razorpay (with warn log for ops visibility).
+   */
+  resolveProviderFromTx(tx: {
+    provider?: string | null
+    gatewayOrderId?: string | null
+    razorpayOrderId?: string | null
+  }): PaymentProvider {
+    const stored = tx.provider as PaymentProvider | undefined
+    if (stored && this.gateways.has(stored)) return stored
+
+    const orderId = tx.gatewayOrderId ?? tx.razorpayOrderId
+    if (orderId?.startsWith('booking-')) {
+      if (!stored) {
+        this.logger.warn({ orderId }, 'provider not set on tx — inferred cashfree from order ID format')
+      }
+      return PAYMENT_PROVIDER.CASHFREE as PaymentProvider
+    }
+
+    if (!stored) {
+      this.logger.warn({ orderId: orderId ?? null }, 'provider not set and cannot infer from order ID — defaulting to razorpay')
+    }
+    return PAYMENT_PROVIDER.RAZORPAY as PaymentProvider
   }
 
   // ─── Private helpers ─────────────────────────────────

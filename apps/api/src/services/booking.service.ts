@@ -283,28 +283,36 @@ export class BookingService {
   }
 
   /**
-   * Creates a REFUND PaymentTransaction and calls Razorpay initiateRefund.
+   * Creates a REFUND PaymentTransaction and dispatches a refund to the correct gateway.
    * The refund.processed webhook finalises the transaction status to REFUNDED.
    * Logs errors but does not throw — cancellation is already committed; the INITIATED
    * REFUND record is the retry target for ops/admin.
+   *
+   * Provider routing uses PaymentService.resolveProviderFromTx — checks the stored
+   * provider field first, then infers from order ID format for legacy rows.
    */
   private async initiateBookingRefund(bookingId: string, refundAmount: number, reason: string): Promise<void> {
     const txList = await this.paymentTxRepo.findByBookingId(bookingId)
+    // For Cashfree, refunds are order-scoped — gatewayPaymentId is not required.
+    // Accept any captured PAYMENT tx that has either a payment ID (Razorpay) or an order ID (Cashfree).
     const capturedTx = txList.find(
       (tx) => tx.type === PAYMENT_TX_TYPE.PAYMENT && tx.status === PAYMENT_TX_STATUS.CAPTURED
-        && (tx.gatewayPaymentId ?? tx.razorpayPaymentId),
+        && (tx.gatewayPaymentId ?? tx.razorpayPaymentId ?? tx.gatewayOrderId ?? tx.razorpayOrderId),
     )
 
-    const capturedPaymentId = capturedTx?.gatewayPaymentId ?? capturedTx?.razorpayPaymentId
-    const capturedProvider = (capturedTx?.provider as PaymentProviderConst | undefined) ?? PAYMENT_PROVIDER.RAZORPAY
-    // Cashfree scopes refunds to orders (not payments) — orderId is required in notes.
-    // Razorpay ignores this field, so it's safe to always include it.
-    const capturedOrderId = capturedTx?.gatewayOrderId ?? capturedTx?.razorpayOrderId
+    const capturedPaymentId = capturedTx?.gatewayPaymentId ?? capturedTx?.razorpayPaymentId ?? null
 
-    if (!capturedPaymentId) {
-      this.logger.warn({ bookingId }, 'No captured payment tx with payment ID found — skipping gateway refund')
+    if (!capturedTx) {
+      this.logger.warn({ bookingId }, 'No captured payment tx found — skipping gateway refund')
       return
     }
+
+    // After the guard, capturedTx is guaranteed non-null.
+    // Cashfree scopes refunds to orders (not payments) — orderId is required in notes.
+    // Razorpay ignores this field, so it's safe to always include it.
+    const capturedOrderId = capturedTx.gatewayOrderId ?? capturedTx.razorpayOrderId
+    // Delegate provider resolution to PaymentService — single source of truth.
+    const capturedProvider = this.paymentService.resolveProviderFromTx(capturedTx)
 
     // Double-refund guard: if a REFUND tx already exists and either has a gateway refund ID
     // (already processed) or is REFUNDED, do not issue another API call.
@@ -338,7 +346,7 @@ export class BookingService {
         this.logger.warn({ err, bookingId, refundTxId: existingRefundTx.id }, 'Failed to record refund retry attempt in metadata')
       }
       try {
-        await this.paymentService.initiateRefund(capturedPaymentId, storedAmount * 100, { bookingId, reason: storedReason, orderId: capturedOrderId }, capturedProvider)
+        await this.paymentService.initiateRefund(capturedPaymentId ?? '', storedAmount * 100, { bookingId, reason: storedReason, orderId: capturedOrderId }, capturedProvider)
         this.logger.info({ bookingId, refundTxId: existingRefundTx.id, amount: storedAmount }, 'Refund initiated with gateway (retry)')
       } catch (err) {
         this.logger.error({ err, bookingId, refundTxId: existingRefundTx.id }, 'Gateway refund retry failed — REFUND tx remains INITIATED')
@@ -352,12 +360,13 @@ export class BookingService {
       type: PAYMENT_TX_TYPE.REFUND,
       amount: refundAmount,
       status: PAYMENT_TX_STATUS.INITIATED,
+      provider: capturedProvider,
       metadata: { reason },
     })
 
     try {
       await this.paymentService.initiateRefund(
-        capturedPaymentId,
+        capturedPaymentId ?? '',
         refundAmount * 100,
         // orderId is required by Cashfree (refunds are order-scoped); Razorpay ignores it
         { bookingId, reason, orderId: capturedOrderId },
