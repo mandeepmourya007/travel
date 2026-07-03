@@ -114,6 +114,7 @@ export function useTripPaymentSummary(tripId: string) {
  * Query key: paymentKeys.adminPayments(filters)
  */
 export function useAdminPayments(filters: AdminPaymentFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.adminPayments(filters),
     queryFn: async () => {
@@ -123,6 +124,7 @@ export function useAdminPayments(filters: AdminPaymentFilters = {}) {
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
     placeholderData: (prev) => prev,
   })
 }
@@ -133,6 +135,7 @@ export function useAdminPayments(filters: AdminPaymentFilters = {}) {
  * Query key: paymentKeys.adminSummary()
  */
 export function useAdminPaymentSummary() {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.adminSummary(),
     queryFn: async () => {
@@ -143,5 +146,6 @@ export function useAdminPaymentSummary() {
       return res.data.data
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
   })
 }

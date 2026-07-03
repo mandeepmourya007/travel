@@ -15,6 +15,7 @@ import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
 import { RAZORPAY_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
+import type { PaymentProvider } from '../types/payment.types'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // ── Intervals (ms) ───────────────────────────────────
@@ -66,14 +67,17 @@ async function expireStaleBookings(
         try {
           const paymentTx = booking.paymentTransactions[0]
 
-          // H3 fix: Poll Razorpay before expiring — payment might have succeeded
-          if (paymentService && paymentTx?.razorpayOrderId) {
+          // H3 fix: Poll the payment gateway before expiring — payment might have succeeded
+          // but the webhook was missed. Route to the correct gateway via provider field.
+          const orderId = paymentTx?.gatewayOrderId ?? paymentTx?.razorpayOrderId
+          const provider = paymentTx?.provider as PaymentProvider | undefined
+          if (paymentService && orderId) {
             try {
-              const orderStatus = await paymentService.checkOrderStatus(paymentTx.razorpayOrderId)
+              const orderStatus = await paymentService.checkOrderStatus(orderId, provider)
               if (orderStatus === RAZORPAY_ORDER_STATUS.PAID) {
                 logger.warn(
-                  { bookingId: booking.id, orderId: paymentTx.razorpayOrderId },
-                  'Order already paid on Razorpay — attempting booking recovery (webhook may have been missed)',
+                  { bookingId: booking.id, orderId, provider },
+                  'Order already paid — attempting booking recovery (webhook may have been missed)',
                 )
                 if (bookingService) {
                   try {
@@ -86,8 +90,8 @@ async function expireStaleBookings(
               }
             } catch (error) {
               logger.warn(
-                { bookingId: booking.id, error },
-                'Failed to check Razorpay order status — proceeding with expiry',
+                { bookingId: booking.id, orderId, provider, error },
+                'Failed to check gateway order status — proceeding with expiry',
               )
             }
           }

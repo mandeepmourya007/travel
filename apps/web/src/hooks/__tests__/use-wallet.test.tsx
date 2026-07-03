@@ -2,8 +2,9 @@ import { renderHook, waitFor } from '@testing-library/react'
 import React from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useWalletBalance, useWalletTransactions } from '../use-wallet'
+import { useAuthStore } from '@/store/auth.store'
 import { createTestQueryClient } from '@/test/test-utils'
 import { makeWalletSummary, makeWalletTxItem, resetWalletFactory } from '@/test/factories/wallet.factory'
 import { server } from '@/test/mocks/server'
@@ -18,7 +19,14 @@ function createWrapper() {
   }
 }
 
-beforeEach(() => resetWalletFactory())
+beforeEach(() => {
+  resetWalletFactory()
+  useAuthStore.setState({ accessToken: 'test-token' })
+})
+
+afterEach(() => {
+  useAuthStore.setState({ accessToken: null })
+})
 
 // ═════════════════════════════════════════════════════
 // useWalletBalance
