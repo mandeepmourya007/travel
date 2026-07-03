@@ -9,7 +9,7 @@ import { StarRatingInput } from '@/components/shared/star-rating-input'
 import { useCreateReview, useUpdateReview } from '@/hooks/use-reviews'
 import { useCloudinaryUpload } from '@/hooks/use-cloudinary-upload'
 import { REVIEW_MAX_PHOTOS, REVIEW_MAX_COMMENT_LENGTH } from '@shared/constants/review'
-import { MAX_UPLOAD_SIZE_BYTES } from '@shared/constants/upload'
+import { MAX_UPLOAD_SIZE_BYTES, MAX_UPLOAD_SIZE_MB } from '@shared/constants/upload'
 import type { Review } from '@shared/types/review.types'
 
 // ── Per-photo upload state ────────────────────────────────────────────────────
@@ -33,8 +33,7 @@ function PhotoUploadSection({ items, onFiles, onRemove, onPreview }: PhotoUpload
   const dragDepth = useRef(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const doneCount = items.filter((p) => p.state === 'done').length
-  // Only count non-error items toward the cap — error tiles shouldn't lock out new uploads (M1)
+  // Only count non-error items toward the cap — error tiles shouldn't lock out new uploads
   const activeCount = items.filter((p) => p.state !== 'error').length
   const atMax = activeCount >= REVIEW_MAX_PHOTOS
   const hasItems = items.length > 0
@@ -90,7 +89,7 @@ function PhotoUploadSection({ items, onFiles, onRemove, onPreview }: PhotoUpload
         </label>
         {hasItems && (
           <span className="text-xs text-neutral-400">
-            {doneCount} / {REVIEW_MAX_PHOTOS} added
+            {activeCount} / {REVIEW_MAX_PHOTOS} added
           </span>
         )}
       </div>
@@ -127,7 +126,7 @@ function PhotoUploadSection({ items, onFiles, onRemove, onPreview }: PhotoUpload
                   Drop photos here or <span className="text-primary-600">browse</span>
                 </p>
                 <p className="mt-0.5 text-xs text-neutral-400">
-                  Up to {REVIEW_MAX_PHOTOS} photos · JPG, PNG, WEBP · max 5 MB each
+                  Up to {REVIEW_MAX_PHOTOS} photos · JPG, PNG, WEBP · max {MAX_UPLOAD_SIZE_MB} MB each
                 </p>
               </div>
             </>
@@ -263,7 +262,7 @@ export function ReviewFormModal({
   const canSubmit = overallRating >= 1 && !isPending && !isUploadingAny
 
   // Track every blob URL created imperatively so the unmount cleanup always has
-  // the full list — a useEffect with [] would capture a stale photoItems closure. (C1)
+  // the full list — a useEffect with [] would capture a stale photoItems closure.
   const createdBlobUrls = useRef<string[]>([])
 
   useEffect(() => {
@@ -272,12 +271,6 @@ export function ReviewFormModal({
     }
   }, [])
 
-  const createBlob = (file: File): string => {
-    const url = URL.createObjectURL(file)
-    createdBlobUrls.current.push(url)
-    return url
-  }
-
   const handleFiles = useCallback(
     (files: File[]) => {
       const validFiles: Array<{ file: File; id: string; preview: string }> = []
@@ -285,15 +278,18 @@ export function ReviewFormModal({
 
       for (const file of files) {
         const id = crypto.randomUUID()
+        const blobUrl = URL.createObjectURL(file)
+        createdBlobUrls.current.push(blobUrl)
+
         if (!file.type.startsWith('image/')) {
-          errorItems.push({ id, state: 'error', localPreview: createBlob(file), message: 'Not an image' })
+          errorItems.push({ id, state: 'error', localPreview: blobUrl, message: 'Not an image' })
           continue
         }
         if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-          errorItems.push({ id, state: 'error', localPreview: createBlob(file), message: 'Over 5 MB' })
+          errorItems.push({ id, state: 'error', localPreview: blobUrl, message: `Over ${MAX_UPLOAD_SIZE_MB} MB` })
           continue
         }
-        validFiles.push({ file, id, preview: createBlob(file) })
+        validFiles.push({ file, id, preview: blobUrl })
       }
 
       // Add uploading + error placeholders immediately so UI updates before async uploads
@@ -309,8 +305,10 @@ export function ReviewFormModal({
       validFiles.forEach(({ file, id, preview }) => {
         upload(file, 'trips')
           .then((url) => {
-            // Revoke blob URL as soon as Cloudinary URL is available
+            // Revoke blob URL as soon as Cloudinary URL is available; remove from
+            // cleanup ref so unmount doesn't double-revoke it.
             URL.revokeObjectURL(preview)
+            createdBlobUrls.current = createdBlobUrls.current.filter((u) => u !== preview)
             setPhotoItems((prev) =>
               prev.map((p) =>
                 p.id === id ? { id, state: 'done', url, localPreview: url } : p,
@@ -326,7 +324,6 @@ export function ReviewFormModal({
           })
       })
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- createBlob is stable (ref-based), upload is stable
     [upload],
   )
 
