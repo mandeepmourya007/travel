@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { walletKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/store/auth.store'
 import type { WalletSummary, WalletTransactionItem, WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { PaginationMeta } from '@shared/types/api-response.types'
 
@@ -18,6 +19,7 @@ interface PaginatedWalletTxResponse {
  * Error handling: caller should render ErrorState on error
  */
 export function useWalletBalance() {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: walletKeys.balance(),
     queryFn: async () => {
@@ -25,6 +27,7 @@ export function useWalletBalance() {
       return res.data.data
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
   })
 }
 
@@ -35,6 +38,7 @@ export function useWalletBalance() {
  * Error handling: caller should render ErrorState on error
  */
 export function useWalletTransactions(filters: WalletTransactionFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: walletKeys.transactions(filters),
     queryFn: async () => {
@@ -44,6 +48,7 @@ export function useWalletTransactions(filters: WalletTransactionFilters = {}) {
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
     placeholderData: (prev) => prev,
   })
 }
@@ -55,6 +60,7 @@ export function useWalletTransactions(filters: WalletTransactionFilters = {}) {
  * Uses enriched endpoint that resolves booking→trip for tripName.
  */
 export function useWalletCashback(page = 1) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: walletKeys.cashback(page),
     queryFn: async () => {
@@ -66,6 +72,7 @@ export function useWalletCashback(page = 1) {
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
     placeholderData: (prev) => prev,
   })
 }

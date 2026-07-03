@@ -175,7 +175,7 @@ export function Header() {
           })}
 
           {/* Auth-dependent actions */}
-          {(isAuthenticated || loggingOut) ? (
+          {((_hasHydrated && isAuthenticated) || loggingOut) ? (
             <>
               <NotificationBell />
               <span className="ml-1 text-sm text-neutral-500">
@@ -267,7 +267,7 @@ export function Header() {
           })}
 
           {/* Auth actions */}
-          {(isAuthenticated || loggingOut) ? (
+          {((_hasHydrated && isAuthenticated) || loggingOut) ? (
             <>
               <Link
                 href="/notifications"

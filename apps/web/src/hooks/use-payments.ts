@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { paymentKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/store/auth.store'
 import type {
   PaymentHistoryItem,
   PaymentHistoryFilters,
@@ -26,6 +27,7 @@ interface PaginatedPaymentResponse {
  * Error handling: caller should render ErrorState on error
  */
 export function useMyPayments(filters: PaymentHistoryFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.myPayments(filters),
     queryFn: async () => {
@@ -35,6 +37,7 @@ export function useMyPayments(filters: PaymentHistoryFilters = {}) {
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
     placeholderData: (prev) => prev,
   })
 }
@@ -45,6 +48,7 @@ export function useMyPayments(filters: PaymentHistoryFilters = {}) {
  * Query key: paymentKeys.mySummary() — staleTime 30s
  */
 export function useMyPaymentSummary() {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: paymentKeys.mySummary(),
     queryFn: async () => {
@@ -55,6 +59,7 @@ export function useMyPaymentSummary() {
       return res.data.data
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
   })
 }
 

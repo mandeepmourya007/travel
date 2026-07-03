@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { STALE_TIME_REALTIME } from '@/lib/constants'
 import { organizerKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/store/auth.store'
 import type { OrganizerStats } from '@shared/types/trip.types'
 
 /**
@@ -11,6 +12,7 @@ import type { OrganizerStats } from '@shared/types/trip.types'
  * Error handling: caller should render ErrorState on error
  */
 export function useOrganizerStats() {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
   return useQuery({
     queryKey: organizerKeys.stats(),
     queryFn: async () => {
@@ -21,5 +23,6 @@ export function useOrganizerStats() {
       return res.data.data
     },
     staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
   })
 }
