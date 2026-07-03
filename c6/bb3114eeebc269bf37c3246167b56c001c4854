@@ -1,0 +1,42 @@
+apps/api/tests/unit/services/booking.service.test.ts
+  s_098902b016a2d4::t_70b5de10f3480e 783-841
+apps/api/tests/unit/providers/cashfree.gateway.test.ts
+  s_098902b016a2d4::t_db06781e09106d 337,350-375
+  s_098902b016a2d4::t_83a22b2421e6ff 224-225
+apps/api/tests/unit/providers/razorpay.gateway.test.ts
+  s_098902b016a2d4::t_f144255356c928 446-477
+  s_098902b016a2d4::t_94797a5da229ba 192-214
+  s_2421df9a463977::t_8a0292666d3ee5 478
+apps/api/tests/unit/services/payment.service.test.ts
+  s_098902b016a2d4::t_10a54f3d0445f7 521-522
+  s_098902b016a2d4::t_57ef84fcb6a18a 559-560,564-598
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "c6bb3114eeebc269bf37c3246167b56c001c4854",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_098902b016a2d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8fe9d6ca-89b8-4a90-a64f-a0655244a92c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_2421df9a463977": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6397599-f7a1-4db0-b95f-d0c0b44ed4c2",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
