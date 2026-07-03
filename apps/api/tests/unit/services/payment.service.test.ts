@@ -518,6 +518,8 @@ describe('PaymentService', () => {
 
     it('should log warning if payment transaction not found', async () => {
       mockPaymentTxRepo.findByGatewayPaymentId.mockResolvedValue(null)
+      // orderId fallback also returns null — both lookup strategies fail
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(null)
 
       const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
         paymentId: 'pay_unknown',
@@ -554,11 +556,46 @@ describe('PaymentService', () => {
       expect(mockLogger.warn).toHaveBeenCalled()
     })
 
-    it('should return early when paymentId is missing from event', async () => {
-      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, { paymentId: null })
+    it('should return early when both paymentId and orderId are missing (no lookup key)', async () => {
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, { paymentId: null, orderId: null })
       await service.handleRefundProcessed(event)
 
       expect(mockPaymentTxRepo.findByGatewayPaymentId).not.toHaveBeenCalled()
+      expect(mockPaymentTxRepo.findByGatewayOrderId).not.toHaveBeenCalled()
+    })
+
+    it('should use orderId fallback when paymentId is null (Cashfree REFUND_STATUS_WEBHOOK)', async () => {
+      const paymentTx = createMockPaymentTx({
+        status: 'CAPTURED',
+        gatewayPaymentId: 'pay_cf_456',
+        bookingId: 'booking-1',
+      })
+      const refundTx = { id: 'ptx-refund-1', bookingId: 'booking-1', type: 'REFUND', status: 'INITIATED' }
+      // paymentId is null — orderId fallback kicks in
+      mockPaymentTxRepo.findByGatewayOrderId.mockResolvedValue(paymentTx)
+      mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(refundTx)
+      mockPaymentTxRepo.updateStatus.mockResolvedValue({})
+
+      const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
+        paymentId: null,
+        orderId: 'order_cf_123',
+        refundId: 'rfnd_cf_789',
+      })
+      await service.handleRefundProcessed(event)
+
+      // findByGatewayPaymentId NOT called — paymentId is null
+      expect(mockPaymentTxRepo.findByGatewayPaymentId).not.toHaveBeenCalled()
+      // Fell back to orderId lookup
+      expect(mockPaymentTxRepo.findByGatewayOrderId).toHaveBeenCalledWith('order_cf_123')
+      // Both PAYMENT tx and REFUND tx marked REFUNDED
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
+        'ptx-1', 'REFUNDED',
+        expect.objectContaining({ gatewayRefundId: 'rfnd_cf_789' }),
+      )
+      expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledWith(
+        'ptx-refund-1', 'REFUNDED',
+        expect.objectContaining({ gatewayRefundId: 'rfnd_cf_789' }),
+      )
     })
   })
 

@@ -780,6 +780,65 @@ describe('BookingService', () => {
         'razorpay',
       )
     })
+
+    // ── Cashfree orderId forwarding ─────────────────────────────────────────
+
+    it('should pass orderId in notes for Cashfree refund (Cashfree scopes refunds to orders)', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        {
+          id: 'ptx-cf',
+          type: 'PAYMENT',
+          status: 'CAPTURED',
+          gatewayPaymentId: 'pay_cf_123',
+          razorpayPaymentId: null,
+          gatewayOrderId: 'order_cf_abc',
+          razorpayOrderId: null,
+          provider: 'cashfree',
+        },
+      ])
+      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-cf' })
+      mockPaymentService.initiateRefund.mockResolvedValue({ refundId: 'rfnd_cf_1', status: 'SUCCESS' })
+
+      await service.cancelBooking('user-1', 'booking-1', 'Trip cancelled')
+
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_cf_123',
+        900000,
+        expect.objectContaining({ bookingId: 'booking-1', orderId: 'order_cf_abc' }),
+        'cashfree',
+      )
+    })
+
+    it('should pass orderId in retry notes for Cashfree when INITIATED tx exists with no refundId', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+        {
+          id: 'ptx-cf-cap',
+          type: 'PAYMENT',
+          status: 'CAPTURED',
+          gatewayPaymentId: 'pay_cf_456',
+          razorpayPaymentId: null,
+          gatewayOrderId: 'order_cf_xyz',
+          razorpayOrderId: null,
+          provider: 'cashfree',
+        },
+        { id: 'ptx-cf-ref', type: 'REFUND', status: 'INITIATED', razorpayRefundId: null, amount: 9000, metadata: { reason: 'Original reason' } },
+      ])
+      mockPaymentService.initiateRefund.mockResolvedValue({ refundId: 'rfnd_cf_retry', status: 'SUCCESS' })
+
+      await service.cancelBooking('user-1', 'booking-1', 'New reason — ignored on retry')
+
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
+        'pay_cf_456',
+        900000,
+        expect.objectContaining({ orderId: 'order_cf_xyz' }),
+        'cashfree',
+      )
+    })
   })
 
   // ═══════════════════════════════════════════════════

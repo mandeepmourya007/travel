@@ -189,6 +189,29 @@ describe('verifyAndParseWebhook', () => {
     expect(event.failureReason).toBe('Insufficient funds')
   })
 
+  it('should parse refund.processed → REFUND_PROCESSED with refundId from payload.refund.entity', () => {
+    const rawBody = Buffer.from(JSON.stringify({
+      event: 'refund.processed',
+      account_id: 'acc_test123',
+      payload: {
+        payment: {
+          entity: { id: 'pay_rzp_123', order_id: 'order_rzp_abc', status: 'refunded' },
+        },
+        refund: {
+          entity: { id: 'rfnd_rzp_xyz', payment_id: 'pay_rzp_123', amount: 90000 },
+        },
+      },
+    }))
+    const headers = { 'x-razorpay-signature': makeSignature(rawBody) }
+
+    const event = gateway.verifyAndParseWebhook(rawBody, headers)
+
+    expect(event.type).toBe(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED)
+    expect(event.paymentId).toBe('pay_rzp_123')
+    expect(event.orderId).toBe('order_rzp_abc')
+    expect(event.refundId).toBe('rfnd_rzp_xyz')
+  })
+
   it('should return UNKNOWN for unrecognized event names', () => {
     const rawBody = buildRawBody('order.payment.attempted', 'order_x', 'pay_x')
     const headers = { 'x-razorpay-signature': makeSignature(rawBody) }
@@ -418,5 +441,38 @@ describe('createPayoutAccount', () => {
       ;(env as Record<string, unknown>)['NODE_ENV'] = 'test'
       vi.unstubAllGlobals()
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════
+// initiateRefund — Route transfer reversal
+// ═══════════════════════════════════════════════════
+describe('initiateRefund', () => {
+  it('should call payments.refund with amount, reverse_all:1, and notes', async () => {
+    rzpMock.payments.refund.mockResolvedValue({ id: 'rfnd_abc123' })
+
+    const result = await gateway.initiateRefund('pay_xyz', 90000, { bookingId: 'booking-1', reason: 'cancelled' })
+
+    expect(rzpMock.payments.refund).toHaveBeenCalledWith('pay_xyz', expect.objectContaining({
+      amount: 90000,
+      reverse_all: 1,
+      notes: { bookingId: 'booking-1', reason: 'cancelled' },
+    }))
+    expect(result.refundId).toBe('rfnd_abc123')
+  })
+
+  it('should return the raw Razorpay response alongside refundId', async () => {
+    const raw = { id: 'rfnd_raw_1', status: 'processed', amount: 50000 }
+    rzpMock.payments.refund.mockResolvedValue(raw)
+
+    const result = await gateway.initiateRefund('pay_abc', 50000)
+
+    expect(result.raw).toEqual(raw)
+  })
+
+  it('should throw PaymentError when Razorpay refund API fails', async () => {
+    rzpMock.payments.refund.mockRejectedValue(new Error('Gateway timeout'))
+
+    await expect(gateway.initiateRefund('pay_fail', 90000)).rejects.toThrow(PaymentError)
   })
 })

@@ -221,6 +221,8 @@ describe('createOrder', () => {
     expect(requestBody.order_splits).toBeDefined()
     expect(requestBody.order_splits[0].vendor_id).toBe('cf_vendor_123')
     expect(requestBody.order_splits[0].amount).toBe(9000)  // 900000 paise → 9000 rupees
+    // Must not include percentage — spec says use amount OR percentage, not both
+    expect(requestBody.order_splits[0].percentage).toBeUndefined()
   })
 
   it('should convert paise → rupees for order_amount', async () => {
@@ -332,7 +334,7 @@ describe('initiateRefund', () => {
     ).rejects.toThrow('orderId')
   })
 
-  it('should call POST /orders/:orderId/refunds with rupee amount', async () => {
+  it('should call POST /orders/:orderId/refunds with rupee amount and deterministic refund_id', async () => {
     mockFetchResponse({ cf_refund_id: 'rfnd_abc', refund_status: 'SUCCESS' })
 
     const result = await gateway.initiateRefund('pay_cf_1', 50000, {
@@ -345,6 +347,32 @@ describe('initiateRefund', () => {
     expect(fetchCall[0]).toContain('/orders/order_cf_for_refund/refunds')
     const requestBody = JSON.parse(fetchCall[1].body)
     expect(requestBody.refund_amount).toBe(500)  // 50000 paise → 500 rupees
+    // refund_id must be deterministic (orderId-based) so Cashfree deduplicates retries
+    expect(requestBody.refund_id).toBe('REFUND_order_cf_for_refund')
+    expect(requestBody.refund_note).toBe('cancellation')
+  })
+
+  it('should use same refund_id on retry (idempotency — not Date.now())', async () => {
+    mockFetchResponse({ cf_refund_id: 'rfnd_idempotent' })
+
+    const notes = { orderId: 'order_retry_test', reason: 'cancelled' }
+    await gateway.initiateRefund('pay_cf_x', 90000, notes)
+    const body1 = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body)
+
+    vi.clearAllMocks()
+    mockFetchResponse({ cf_refund_id: 'rfnd_idempotent' })
+    await gateway.initiateRefund('pay_cf_x', 90000, notes)
+    const body2 = JSON.parse((globalThis.fetch as any).mock.calls[0][1].body)
+
+    expect(body1.refund_id).toBe(body2.refund_id)
+  })
+
+  it('should fall back to local refund_id when cf_refund_id is absent in response', async () => {
+    mockFetchResponse({ refund_status: 'PENDING' })  // no cf_refund_id
+
+    const result = await gateway.initiateRefund('pay_cf_fallback', 20000, { orderId: 'order_noid' })
+
+    expect(result.refundId).toBe('REFUND_order_noid')
   })
 })
 
