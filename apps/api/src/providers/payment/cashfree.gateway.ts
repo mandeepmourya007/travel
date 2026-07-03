@@ -286,7 +286,8 @@ export class CashfreeGateway implements IPaymentGateway {
     const cfPaymentId = (payment['cf_payment_id'] as string | number | undefined)
       ?? (refund['cf_payment_id'] as string | number | undefined)
     const paymentId = cfPaymentId != null ? String(cfPaymentId) : null
-    const cfRefundId = (refund['cf_refund_id'] as string | undefined) ?? null
+    const cfRefundIdRaw = (refund['cf_refund_id'] as string | number | undefined) ?? null
+    const cfRefundId = cfRefundIdRaw != null ? String(cfRefundIdRaw) : null
     const failureReason = (payment['payment_message'] as string | undefined) ?? null
     const refundStatus = (refund['refund_status'] as string | undefined) ?? null
 
