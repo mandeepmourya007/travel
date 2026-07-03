@@ -3,7 +3,7 @@ import { PaymentTransactionRepository } from '../repositories/payment-transactio
 import { TripRepository } from '../repositories/trip.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError } from '../errors/app-error'
-import { DEFAULT_COMMISSION_RATE, paginate } from '../utils/constants'
+import { DEFAULT_COMMISSION_RATE, paginate, PAYMENT_TX_TYPE } from '../utils/constants'
 import type {
   PaymentHistoryFilters,
   AdminPaymentFilters,
@@ -31,7 +31,7 @@ export class PaymentHistoryService {
       { skip: pg.skip, take: pg.take },
     )
     this.logger.debug({ userId, filters, total }, 'Fetched payment history for traveler')
-    return { data, pagination: pg.meta(total) }
+    return { data: data.map(annotatePartialRefund), pagination: pg.meta(total) }
   }
 
   /** GET /payments/my/summary — Traveler summary stats */
@@ -55,7 +55,7 @@ export class PaymentHistoryService {
       { type: filters.type, status: filters.status, fromDate: filters.fromDate, toDate: filters.toDate },
       { skip: pg.skip, take: pg.take },
     )
-    return { data, pagination: pg.meta(total) }
+    return { data: data.map(annotatePartialRefund), pagination: pg.meta(total) }
   }
 
   /** GET /payments/trip/:tripId/summary — Organizer's trip summary with commission */
@@ -158,7 +158,7 @@ export class PaymentHistoryService {
       },
       { skip: pg.skip, take: pg.take },
     )
-    return { data, pagination: pg.meta(total) }
+    return { data: data.map(annotatePartialRefund), pagination: pg.meta(total) }
   }
 
   /**
@@ -209,5 +209,16 @@ export class PaymentHistoryService {
     }
 
     return profile
+  }
+}
+
+// ─── Helpers ───────────────────────────────────────────
+
+function annotatePartialRefund<T extends { type: string; amount: number; booking: { totalAmount: number } }>(
+  tx: T,
+): T & { isPartialRefund: boolean } {
+  return {
+    ...tx,
+    isPartialRefund: tx.type === PAYMENT_TX_TYPE.REFUND && tx.amount < tx.booking.totalAmount,
   }
 }

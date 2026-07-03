@@ -536,10 +536,9 @@ export class BookingService {
       const holdUntilEpochSec = Math.floor(
         new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
       )
-      // Cashfree Easy Split only works with KYC-verified vendors (production only).
-      // In sandbox, vendor verification never completes, so splits are skipped.
-      const isCashfreeProd = gatewayProvider === PAYMENT_PROVIDER.CASHFREE && env.CASHFREE_ENV === 'production'
-      const cashfreeVendorId = isCashfreeProd ? trip.organizer?.cashfreeVendorId : null
+      const cashfreeVendorId = gatewayProvider === PAYMENT_PROVIDER.CASHFREE
+        ? (trip.organizer?.cashfreeVendorId ?? null)
+        : null
 
       const order = await paymentSvc.createOrder({
         amountPaise: amountInPaise,

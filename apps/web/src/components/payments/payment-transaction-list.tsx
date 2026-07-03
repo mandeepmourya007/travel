@@ -128,7 +128,7 @@ function PaymentRow({
         </td>
       )}
       <td className="px-4 py-3">
-        <PaymentTypeBadge type={transaction.type} />
+        <PaymentTypeBadge type={transaction.type} isPartialRefund={transaction.isPartialRefund} />
       </td>
       <td className={`whitespace-nowrap px-4 py-3 font-bold ${amountColor}`}>
         {amountPrefix}{formatCurrency(transaction.amount)}

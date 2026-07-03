@@ -31,6 +31,8 @@ export interface PaymentHistoryItem {
   razorpayRefundId: string | null
   failureReason: string | null
   createdAt: string
+  /** True when this is a REFUND transaction for less than the booking total (partial refund) */
+  isPartialRefund: boolean
   booking: {
     id: string
     bookingRef: string

@@ -7,6 +7,7 @@ const BOOKING_SELECT_BASE = {
   id: true,
   bookingRef: true,
   bookingStatus: true,
+  totalAmount: true,
   trip: {
     select: {
       id: true,

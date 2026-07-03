@@ -23,6 +23,7 @@ export function makePaymentItem(overrides: Partial<PaymentHistoryItem> = {}): Pa
     razorpayRefundId: null,
     failureReason: null,
     createdAt: '2025-01-15T10:30:00Z',
+    isPartialRefund: false,
     booking: {
       id: `bk_${counter}`,
       bookingRef: `TRP-2025-000${counter}`,

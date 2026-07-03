@@ -41,9 +41,14 @@ describe('PaymentTypeBadge', () => {
     expect(screen.getByText('Payment')).toBeInTheDocument()
   })
 
-  it('should show "Refund" for REFUND type', () => {
+  it('should show "Refund" for full REFUND type', () => {
     render(<PaymentTypeBadge type="REFUND" />)
     expect(screen.getByText('Refund')).toBeInTheDocument()
+  })
+
+  it('should show "Partial Refund" for REFUND type when isPartialRefund is true', () => {
+    render(<PaymentTypeBadge type="REFUND" isPartialRefund />)
+    expect(screen.getByText('Partial Refund')).toBeInTheDocument()
   })
 
   it('should show "SafePay" for ESCROW_RELEASE type', () => {
