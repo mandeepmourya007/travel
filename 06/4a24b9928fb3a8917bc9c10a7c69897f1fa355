@@ -1,0 +1,24 @@
+apps/api/prisma/migrations/20260703000001_fix_booking_unique_index_exclude_confirmed/migration.sql
+  s_098902b016a2d4::t_969a36f00c1162 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "064a24b9928fb3a8917bc9c10a7c69897f1fa355",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_098902b016a2d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8fe9d6ca-89b8-4a90-a64f-a0655244a92c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
