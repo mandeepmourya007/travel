@@ -263,20 +263,11 @@ export class CashfreeGateway implements IPaymentGateway {
       throw new AuthError('CASHFREE_WEBHOOK_SECRET not configured — cannot verify webhook')
     }
 
-    const rawBodyStr = rawBody.toString()
-    const message = timestamp + rawBodyStr
+    const message = timestamp + rawBody.toString()
     const expectedSig = crypto
       .createHmac('sha256', this.config.webhookSecret)
       .update(message)
       .digest('base64')
-
-    this.logger.info({
-      timestamp,
-      rawBody: rawBodyStr,
-      receivedSig: signature,
-      expectedSig,
-      secretPrefix: this.config.webhookSecret.slice(0, 8),
-    }, 'CF webhook debug')
 
     let isValid = false
     try {
