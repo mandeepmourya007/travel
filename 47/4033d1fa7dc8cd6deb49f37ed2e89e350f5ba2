@@ -1,0 +1,36 @@
+apps/web/src/components/layout/header.tsx
+  s_6d50955a9f3201::t_58ee48505b6fcc 270
+  s_6d50955a9f3201::t_d230de397d503a 178
+apps/web/src/hooks/use-wallet.ts
+  s_6d50955a9f3201::t_30934cb8e01dc4 22,30
+  s_6d50955a9f3201::t_0434609f18e036 63,75
+  s_6d50955a9f3201::t_1636579e3f0d5d 41,51
+  s_6d50955a9f3201::t_9e91c28dd68915 5
+apps/web/src/hooks/use-organizer-stats.ts
+  s_6d50955a9f3201::t_5b3cc2099092dc 5,15,26
+apps/web/src/hooks/use-payments.ts
+  s_6d50955a9f3201::t_a99119cdc2d3fb 30,40
+  s_6d50955a9f3201::t_3a5937571a4a20 51,62
+  s_6d50955a9f3201::t_0586a13508f5fd 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "474033d1fa7dc8cd6deb49f37ed2e89e350f5ba2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
