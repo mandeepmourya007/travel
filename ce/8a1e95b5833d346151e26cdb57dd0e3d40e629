@@ -1,0 +1,24 @@
+apps/api/src/controllers/webhook.controller.ts
+  s_adeba16f47712b::t_6edd36c01c93dd 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ce8a1e95b5833d346151e26cdb57dd0e3d40e629",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_adeba16f47712b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c02539f1-9dfb-405c-9474-36dab825dcef",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
