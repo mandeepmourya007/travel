@@ -1,0 +1,26 @@
+.gitignore
+  s_2421df9a463977::t_e57c69f6eccdf9 57
+CLAUDE.md
+  s_2421df9a463977::t_93d3cb9b2dfe0f 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "fa0c8ce204208239f1cc9f47bcb8e6d943c35100",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2421df9a463977": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c6397599-f7a1-4db0-b95f-d0c0b44ed4c2",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
