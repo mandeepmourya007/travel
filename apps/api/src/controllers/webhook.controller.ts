@@ -57,7 +57,7 @@ export class WebhookController {
             id: webhookEventId,
             eventType: normalized.rawEventName,
             normalizedType: normalized.type,
-            payload: normalized.payload,
+            payload: normalized,
           })
 
           // If authorized or paid → attempt booking confirmation
