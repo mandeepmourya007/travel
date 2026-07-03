@@ -1,0 +1,47 @@
+apps/api/src/services/booking.service.ts
+  s_ec7a7024912fe5::t_94ba70fa7d2656 296-297,300,303,305-306
+  s_ec7a7024912fe5::t_2bba56d51fae0d 369
+  s_6d50955a9f3201::t_7cf0f43f7260c5 286,290-292,310-315,363
+  s_6d50955a9f3201::t_7ece9234caa52b 316
+  s_ec7a7024912fe5::t_538473ec76063c 349
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_ec7a7024912fe5::t_2995bb25245284 454
+  s_6d50955a9f3201::t_7cf0f43f7260c5 144
+  s_ec7a7024912fe5::t_c60db14743118e 408
+apps/api/src/services/payment.service.ts
+  s_6d50955a9f3201::t_7cf0f43f7260c5 13,328-332,336,361-363,365,455-486,488
+  s_6d50955a9f3201::t_e283204c7e8642 364
+  s_6d50955a9f3201::t_1ffee29c1fd326 487,489-490
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_ec7a7024912fe5::t_d421ef06598c9b 373,377-380
+  s_ec7a7024912fe5::t_87715f27e3335f 291,299
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "48972680fbb131cde54d809a9ad80f68237cee3e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_6d50955a9f3201": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f91277d1-d63e-4d12-8126-112039605947",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_ec7a7024912fe5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5fd51de-6ca4-4bd6-a827-0fcc29b52638",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
