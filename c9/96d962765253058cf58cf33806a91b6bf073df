@@ -1,0 +1,53 @@
+apps/api/src/services/payment-history.service.ts
+  s_443fb83ba7b4b2::t_ba1235407b06ed 34
+  s_443fb83ba7b4b2::t_6447821db40c6c 214-221,223-224
+  s_443fb83ba7b4b2::t_79e48f5b853fc0 58
+  s_443fb83ba7b4b2::t_cd17cb5e13f87a 161
+  s_443fb83ba7b4b2::t_0ca0a6a0c20ea5 222
+  s_443fb83ba7b4b2::t_d7c0f637c8c351 6
+packages/shared/src/types/payment.types.ts
+  s_443fb83ba7b4b2::t_3c4a61ebf2448b 34-35
+apps/web/src/components/payments/payment-transaction-list.tsx
+  s_443fb83ba7b4b2::t_211842af1c03d8 131
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_443fb83ba7b4b2::t_0cd8b0467a484e 10
+apps/web/src/components/payments/payment-type-badge.tsx
+  s_443fb83ba7b4b2::t_8598ed54ef15c2 2,10-12,17
+  s_443fb83ba7b4b2::t_80feeb9d8247a8 6,15,21
+apps/web/src/test/factories/payment.factory.ts
+  s_443fb83ba7b4b2::t_61a7a837ad628e 26
+apps/api/src/services/booking.service.ts
+  s_af95926cf3994e::t_82eb0f11e9d09b 539-541
+apps/web/src/components/payments/__tests__/payment-badges.test.tsx
+  s_443fb83ba7b4b2::t_38ec8423ffeee2 44,49-51
+  s_443fb83ba7b4b2::t_650ff6b1e868b4 52-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c996d962765253058cf58cf33806a91b6bf073df",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_443fb83ba7b4b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "385ac0d0-62d9-4137-953d-b2f87f804007",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_af95926cf3994e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81b40005-44e3-4fc9-bbe0-9792f4d90be3",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
