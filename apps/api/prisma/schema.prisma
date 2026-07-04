@@ -322,7 +322,12 @@ model Trip {
   itineraryDocUrl    String?
   status             TripStatus         @default(DRAFT)
   bookingMode        BookingMode        @default(INSTANT)
-  acceptingBookings  Boolean            @default(true)
+  acceptingBookings    Boolean            @default(true)
+  bookingsPausedReason String?
+  bookingsPausedBy     UserRole?
+  isHidden             Boolean            @default(false)
+  hiddenReason         String?
+  hiddenBy             UserRole?
   seatSelectionEnabled Boolean           @default(false)
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -349,6 +354,7 @@ model Trip {
   @@index([isDeleted, status, tripType])  // tripType filtered in search/countByType queries
   @@index([status, endDate])             // findTripsToComplete filters on status + endDate
   @@index([isDeleted, status, updatedAt(sort: Desc)]) // findSlugsForSitemap — ORDER BY updatedAt DESC
+  @@index([isDeleted, isHidden, status, startDate])   // public search with hide filter
 }
 
 model Booking {
