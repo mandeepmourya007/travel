@@ -1,0 +1,52 @@
+apps/web/src/app/dashboard/reviews/page.tsx
+  s_28e5ed90b6df52::t_7855d9ed0a4910 3-16,19-22,27-34,37-40,42,45-56,59-60,62-64,66,69-77,81-149
+  s_28e5ed90b6df52::t_a21e532ebff57a 18,23-26
+  s_28e5ed90b6df52::t_9b4360ede25907 150
+apps/web/src/app/my-reviews/layout.tsx
+  s_28e5ed90b6df52::t_61ef079a1c927d 1-5
+apps/web/src/app/my-reviews/error.tsx
+  s_28e5ed90b6df52::t_39eb31b1c8ee5f 1-11
+apps/web/src/app/my-reviews/loading.tsx
+  s_28e5ed90b6df52::t_35db0f3be36c6d 1-10
+apps/web/src/app/admin/reviews/page.tsx
+  s_28e5ed90b6df52::t_8d945dc618a151 32-33,38-41
+  s_28e5ed90b6df52::t_2b17d42967a346 138,141,145,148,154,157
+  s_28e5ed90b6df52::t_feb44e63d8b153 65
+  s_28e5ed90b6df52::t_47b2199299635c 6
+  s_28e5ed90b6df52::t_bb19c3d1bdc6bd 96,105
+  s_28e5ed90b6df52::t_ddd78f3bc6286b 28
+  s_28e5ed90b6df52::t_ced05c6529a3e1 1-5,7-27,29-31,35-37,42-54,56-64,66-95,97-98,106-137,139-140,142-144,146-147,149-153,155-156,158-168,170-207
+  s_28e5ed90b6df52::t_a0f2bcbf2dfe6e 99-104
+  s_28e5ed90b6df52::t_d9bac16394588c 55
+  s_28e5ed90b6df52::t_3318957d756591 34
+  s_28e5ed90b6df52::t_3cddf2f1ff0cc8 169
+apps/web/src/app/my-reviews/page.tsx
+  s_28e5ed90b6df52::t_ad464ada79cc04 44
+  s_28e5ed90b6df52::t_e91d61ad15b512 16
+  s_28e5ed90b6df52::t_922b6985d7681d 31,36,47-60,66
+  s_28e5ed90b6df52::t_3fd8d3cbd846a1 1-15,17-18,20-30,32-35,37-43,45-46,61-65,67-113
+  s_28e5ed90b6df52::t_52dfe2fc996f54 19
+apps/web/src/app/admin/reviews/error.tsx
+  s_28e5ed90b6df52::t_87977d0e00d43b 1-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f4c549d3120909625b1fa700854e61d24a4d9f55",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
