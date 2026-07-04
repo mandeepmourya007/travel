@@ -20,6 +20,7 @@ export function useAdminReviews(filters: AdminReviewFilters) {
       }>('/admin/reviews', {
         params: {
           organizerSearch: filters.organizerSearch || undefined,
+          tripSearch: filters.tripSearch || undefined,
           tripId: filters.tripId || undefined,
           rating: filters.rating,
           sortBy: filters.sortBy || undefined,

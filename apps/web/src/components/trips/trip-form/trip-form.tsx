@@ -134,7 +134,7 @@ export function TripForm({
   }, [storageKey])
 
   // Debounced auto-save to localStorage
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
     const sub = watch((values) => {
       clearTimeout(timerRef.current)
