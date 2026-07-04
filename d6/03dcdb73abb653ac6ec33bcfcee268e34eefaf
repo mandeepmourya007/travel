@@ -1,0 +1,57 @@
+apps/api/src/repositories/booking.repository.ts
+  s_9307cd4c31fb90::t_8d2598cda12490 6
+  s_9307cd4c31fb90::t_ac68a59e0fd706 718
+apps/api/src/services/trip.service.ts
+  s_9307cd4c31fb90::t_9ce2df7b1cebf1 99-110
+apps/api/src/routes/payment.routes.ts
+  s_9307cd4c31fb90::t_f4855cf49c31e6 7
+  s_9307cd4c31fb90::t_da1e5557d5e37b 46-60
+  s_9307cd4c31fb90::t_7d231223167ce1 61
+apps/api/src/controllers/payment-history.controller.ts
+  s_9307cd4c31fb90::t_33cb796a5f5979 57-70,72
+  s_9307cd4c31fb90::t_9da6929f9ef65b 4
+  s_9307cd4c31fb90::t_5ff1372f73e26d 71,73
+apps/api/src/controllers/trip.controller.ts
+  s_9307cd4c31fb90::t_f4057a5d1d4d55 61-67
+  s_9307cd4c31fb90::t_d59a496cb972e4 59-60,68-70
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_9307cd4c31fb90::t_1782da82ad4557 395-411,413-430,432-491
+  s_9307cd4c31fb90::t_7969ab279a7924 3
+  s_9307cd4c31fb90::t_9fafb1b43be96c 431
+  s_9307cd4c31fb90::t_a30c042ebacd9e 412
+  s_9307cd4c31fb90::t_5f30ee96d012a7 492
+apps/api/src/services/payment-history.service.ts
+  s_9307cd4c31fb90::t_7108f9580a69bd 236-242
+  s_9307cd4c31fb90::t_a2601e53bc0ad6 10
+  s_9307cd4c31fb90::t_0d29b2269fd9a3 83-122
+apps/api/src/repositories/trip.repository.ts
+  s_9307cd4c31fb90::t_3ba724bf45eb38 229-258
+  s_9307cd4c31fb90::t_450f84c1eb79e9 297
+  s_9307cd4c31fb90::t_b0771fabd51bb9 8
+apps/api/src/routes/trip.routes.ts
+  s_9307cd4c31fb90::t_f9a5df8e97b7b1 5
+  s_9307cd4c31fb90::t_6f56731e869f84 28-30,32
+  s_9307cd4c31fb90::t_b09507dcfa9928 31
+  s_9307cd4c31fb90::t_8260387739763d 27,33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d603dcdb73abb653ac6ec33bcfcee268e34eefaf",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
