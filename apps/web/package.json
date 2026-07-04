@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -46,10 +46,10 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^12.12.1",
     "lucide-react": "^0.400.0",
-    "next": "^14.2.0",
-    "react": "^18.3.0",
+    "next": "15.5.20",
+    "react": "19.2.7",
     "react-day-picker": "^9.14.0",
-    "react-dom": "^18.3.0",
+    "react-dom": "19.2.7",
     "react-hook-form": "^7.75.0",
     "recharts": "^3.8.1",
     "sharp": "^0.33.5",
@@ -64,17 +64,21 @@
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.0",
+    "eslint-config-next": "15.5.20",
     "jsdom": "^24.1.0",
     "msw": "^2.3.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "overrides": {
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
   }
 }
