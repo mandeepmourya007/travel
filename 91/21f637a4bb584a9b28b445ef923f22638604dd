@@ -1,0 +1,28 @@
+apps/web/src/components/shared/toast.tsx
+  s_b06a7b9ac57572::t_28d5b9de63cd7e 51
+apps/web/src/hooks/use-admin-reviews.ts
+  s_b06a7b9ac57572::t_aa35a8a2539696 23
+apps/web/src/components/trips/trip-form/trip-form.tsx
+  s_b06a7b9ac57572::t_a1667a277d93a8 137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9121f637a4bb584a9b28b445ef923f22638604dd",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b06a7b9ac57572": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74801df7-7ef9-4784-8175-9902d81c0ca1",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
