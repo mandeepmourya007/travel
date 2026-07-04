@@ -1,0 +1,26 @@
+apps/web/src/components/bookings/__tests__/my-bookings-list.test.tsx
+  s_28e5ed90b6df52::t_53e33d5853cfc2 321
+apps/web/src/types/global.d.ts
+  s_28e5ed90b6df52::t_368beb814e2127 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "11561eacc346bff47d245dede41ee370c218a2f7",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
