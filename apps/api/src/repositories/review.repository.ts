@@ -1,6 +1,11 @@
 import { Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
-import type { ReviewListFilters } from '@shared/types/review.types'
+import type { ReviewListFilters, OrganizerReviewFilters } from '@shared/types/review.types'
+import type { AdminReviewFilters, AdminReviewSortBy } from '@shared/types/admin.types'
+import type { SortOrder } from '@shared/constants/sort'
+import { REVIEW_SORT } from '@shared/constants/review'
+import { ADMIN_REVIEW_SORT_BY } from '@shared/constants/admin'
+import { SORT_ORDER } from '@shared/constants/sort'
 
 const REVIEW_USER_SELECT = {
   id: true,
@@ -25,6 +30,25 @@ const REVIEW_SELECT = {
   organizerReplyAt: true,
   createdAt: true,
   user: { select: REVIEW_USER_SELECT },
+} as const
+
+/** Extends REVIEW_SELECT with trip title/slug for dashboard and traveler list views. */
+const REVIEW_WITH_TRIP_SELECT = {
+  ...REVIEW_SELECT,
+  trip: { select: { title: true, slug: true } },
+} as const
+
+/** Admin select — includes organizer businessName for cross-organizer inspection. */
+const ADMIN_REVIEW_SELECT = {
+  ...REVIEW_SELECT,
+  trip: {
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      organizer: { select: { businessName: true } },
+    },
+  },
 } as const
 
 export class ReviewRepository {
@@ -212,12 +236,124 @@ export class ReviewRepository {
     return counts
   }
 
+  /**
+   * Paginated reviews for all trips by an organizer, with optional tripId + rating filters.
+   * Extends findByOrganizerId with dashboard-specific scoping.
+   * Used by: ReviewService.getOrganizerDashboardReviews()
+   *
+   * Filters: isDeleted, organizerId (via trip relation), optional tripId, optional overallRating
+   */
+  async findByOrganizerIdWithFilters(
+    organizerId: string,
+    filters: Pick<OrganizerReviewFilters, 'tripId' | 'rating' | 'sort'>,
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.ReviewWhereInput = {
+      trip: { organizerId },
+      isDeleted: false,
+      ...(filters.tripId && { tripId: filters.tripId }),
+      ...(filters.rating !== undefined && { overallRating: filters.rating }),
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        select: REVIEW_WITH_TRIP_SELECT,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: this.buildOrderBy(filters.sort),
+      }),
+      this.prisma.review.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
+   * Paginated reviews written by a specific user (traveler list view).
+   * Used by: ReviewService.getMyReviews()
+   *
+   * Filters: userId, isDeleted: false
+   */
+  async findAllByUserId(
+    userId: string,
+    filters: Pick<ReviewListFilters, 'sort' | 'tripId'>,
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.ReviewWhereInput = {
+      userId,
+      isDeleted: false,
+      ...(filters.tripId && { tripId: filters.tripId }),
+    }
+    const [data, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        select: REVIEW_WITH_TRIP_SELECT,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: this.buildOrderBy(filters.sort),
+      }),
+      this.prisma.review.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
+   * Admin view — all platform reviews with cross-organizer filters.
+   * Single query joining trip → organizer to avoid N+1.
+   * Used by: AdminService.getAdminReviews()
+   *
+   * Filters: isDeleted, optional overallRating, optional trip title search, optional organizer search
+   */
+  async findAllAdmin(
+    filters: AdminReviewFilters,
+    pagination: { skip: number; take: number },
+  ) {
+    const tripWhere: Prisma.TripWhereInput = {}
+    if (filters.tripId) {
+      tripWhere.id = filters.tripId
+    } else if (filters.tripSearch) {
+      tripWhere.title = { contains: filters.tripSearch, mode: 'insensitive' }
+    }
+    if (filters.organizerSearch) {
+      tripWhere.organizer = { businessName: { contains: filters.organizerSearch, mode: 'insensitive' } }
+    }
+
+    const where: Prisma.ReviewWhereInput = {
+      isDeleted: false,
+      ...(filters.rating !== undefined && { overallRating: filters.rating }),
+      ...(Object.keys(tripWhere).length > 0 && { trip: tripWhere }),
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        select: ADMIN_REVIEW_SELECT,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy: this.buildAdminOrderBy(filters.sortBy, filters.sortOrder),
+      }),
+      this.prisma.review.count({ where }),
+    ])
+    return { data, total }
+  }
+
   private buildOrderBy(sort?: string): Prisma.ReviewOrderByWithRelationInput {
     switch (sort) {
-      case 'oldest': return { createdAt: 'asc' }
-      case 'rating_high': return { overallRating: 'desc' }
-      case 'rating_low': return { overallRating: 'asc' }
-      default: return { createdAt: 'desc' }
+      case REVIEW_SORT.OLDEST: return { createdAt: SORT_ORDER.ASC }
+      case REVIEW_SORT.RATING_HIGH: return { overallRating: SORT_ORDER.DESC }
+      case REVIEW_SORT.RATING_LOW: return { overallRating: SORT_ORDER.ASC }
+      default: return { createdAt: SORT_ORDER.DESC }
+    }
+  }
+
+  private buildAdminOrderBy(
+    sortBy?: AdminReviewSortBy,
+    sortOrder?: SortOrder,
+  ): Prisma.ReviewOrderByWithRelationInput {
+    const dir = sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
+    switch (sortBy) {
+      case ADMIN_REVIEW_SORT_BY.OVERALL_RATING: return { overallRating: dir }
+      case ADMIN_REVIEW_SORT_BY.ORGANIZER_NAME: return { trip: { organizer: { businessName: dir } } }
+      default: return { createdAt: dir }
     }
   }
 }

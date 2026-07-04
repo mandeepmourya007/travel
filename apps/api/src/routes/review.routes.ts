@@ -4,7 +4,7 @@ import type { UserRole } from '@shared/types/user.types'
 import { USER_ROLE } from '@shared/constants'
 import { ReviewController } from '../controllers/review.controller'
 import { validate } from '../middleware/validate.middleware'
-import { createReviewSchema, updateReviewSchema, organizerReplySchema, reviewFiltersSchema } from '@shared/validators/review.schema'
+import { createReviewSchema, updateReviewSchema, organizerReplySchema, reviewFiltersSchema, organizerReviewFiltersSchema, travelerReviewFiltersSchema } from '@shared/validators/review.schema'
 import { cuidParamSchema, bookingIdParamSchema, tripIdParamSchema } from '@shared/validators/common.schema'
 
 export function createReviewRoutes(
@@ -55,6 +55,23 @@ export function createReviewRoutes(
     validate(cuidParamSchema, 'params'),
     validate(organizerReplySchema),
     reviewController.addOrganizerReply,
+  )
+
+  // Organizer — dashboard reviews list with trip/rating/sort filters
+  router.get(
+    '/organizer/mine',
+    authMiddleware,
+    requireRole(USER_ROLE.ORGANIZER),
+    validate(organizerReviewFiltersSchema, 'query'),
+    reviewController.getOrganizerReviews,
+  )
+
+  // Authenticated — traveler's own written reviews
+  router.get(
+    '/my',
+    authMiddleware,
+    validate(travelerReviewFiltersSchema, 'query'),
+    reviewController.getMyReviews,
   )
 
   return router

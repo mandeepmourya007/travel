@@ -1,12 +1,12 @@
 import { Logger } from 'pino'
-import type { CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary } from '@shared/types/review.types'
+import type { CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary, OrganizerReviewFilters } from '@shared/types/review.types'
 import { ReviewRepository } from '../repositories/review.repository'
 import { OrganizerProfileRepository } from '../repositories/organizer-profile.repository'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
 import type { CacheService } from './cache.service'
 import { REVIEW_EDIT_WINDOW_DAYS } from '@shared/constants/review'
 import { BOOKING_STATUS } from '@shared/constants'
-import { PAGINATION_DEFAULTS } from '../utils/constants'
+import { PAGINATION_DEFAULTS, paginate } from '../utils/constants'
 import { cacheInvalidation } from '../utils/cache-keys'
 
 export class ReviewService {
@@ -195,6 +195,44 @@ export class ReviewService {
     const review = await this.reviewRepo.findByBookingId(bookingId)
     if (review && review.userId !== userId) return null
     return review
+  }
+
+  /**
+   * Paginated list of reviews across all of the organizer's trips.
+   * Resolves the OrganizerProfile from userId first.
+   *
+   * Business rules:
+   * - User must have an OrganizerProfile
+   * - Optional tripId scopes to a single trip (must belong to this organizer)
+   * - Optional rating filters by exact overallRating value
+   *
+   * @throws ForbiddenError — user has no OrganizerProfile
+   */
+  async getOrganizerDashboardReviews(userId: string, filters: OrganizerReviewFilters) {
+    const organizer = await this.organizerProfileRepo.findByUserId(userId)
+    if (!organizer) throw new ForbiddenError('Organizer profile not found')
+
+    const pg = paginate(filters)
+    const { data, total } = await this.reviewRepo.findByOrganizerIdWithFilters(
+      organizer.id,
+      filters,
+      { skip: pg.skip, take: pg.take },
+    )
+    return { data, pagination: pg.meta(total) }
+  }
+
+  /**
+   * Paginated list of all reviews written by the traveler.
+   * No ownership guards — users can always view their own reviews.
+   */
+  async getMyReviews(userId: string, filters: ReviewListFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.reviewRepo.findAllByUserId(
+      userId,
+      filters,
+      { skip: pg.skip, take: pg.take },
+    )
+    return { data, pagination: pg.meta(total) }
   }
 
   /**

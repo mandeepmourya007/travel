@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/async-handler'
 import { ReviewService } from '../services/review.service'
-import type { CreateReviewDto, UpdateReviewDto, OrganizerReplyDto, ReviewListFilters } from '@shared/types/review.types'
+import type { CreateReviewDto, UpdateReviewDto, OrganizerReplyDto, ReviewListFilters, OrganizerReviewFilters } from '@shared/types/review.types'
 
 export class ReviewController {
   constructor(private reviewService: ReviewService) {}
@@ -35,5 +35,23 @@ export class ReviewController {
   getMyReview = asyncHandler(async (req: Request, res: Response) => {
     const review = await this.reviewService.getMyReviewForBooking(req.user!.userId, req.params.bookingId)
     res.json({ success: true, data: review })
+  })
+
+  /** GET /reviews/organizer/mine — Organizer's reviews with trip/rating/sort filters */
+  getOrganizerReviews = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.reviewService.getOrganizerDashboardReviews(
+      req.user!.userId,
+      req.query as OrganizerReviewFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /reviews/my — All reviews written by the authenticated user */
+  getMyReviews = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.reviewService.getMyReviews(
+      req.user!.userId,
+      req.query as ReviewListFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 }
