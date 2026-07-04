@@ -1,0 +1,44 @@
+packages/shared/src/constants/index.ts
+  s_9307cd4c31fb90::t_00f6a9de7584ad 12
+packages/shared/src/validators/payment.schema.ts
+  s_9307cd4c31fb90::t_dcb1bc14dd2331 42,50-52,55
+  s_9307cd4c31fb90::t_f9056f903d1de0 2
+  s_9307cd4c31fb90::t_d8e404c884634f 54
+  s_9307cd4c31fb90::t_35cc95ff6d87ad 43-49,53
+packages/shared/src/validators/trip.schema.ts
+  s_9307cd4c31fb90::t_acdfc38bf77e61 158-165
+  s_9307cd4c31fb90::t_9e514e293568f1 3
+packages/shared/src/types/payment.types.ts
+  s_9307cd4c31fb90::t_abde8e732ef93f 2
+  s_9307cd4c31fb90::t_f2ea17059b4628 73-76,79-80
+  s_9307cd4c31fb90::t_5b36e1b47481d8 77
+  s_9307cd4c31fb90::t_ed6fbf9fb895f1 78
+packages/shared/src/types/admin.types.ts
+  s_9307cd4c31fb90::t_ee811a31888e1d 4-5
+packages/shared/src/constants/sort.ts
+  s_9307cd4c31fb90::t_875c84eb639660 1-17
+packages/shared/src/validators/admin.schema.ts
+  s_9307cd4c31fb90::t_6b7a0fde170440 5
+  s_9307cd4c31fb90::t_70e4e316fbe5fe 24,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "932c556faaaf0e8ab11bb9c7cfcba283033cf85c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
