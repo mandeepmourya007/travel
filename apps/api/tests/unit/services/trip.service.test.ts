@@ -13,6 +13,7 @@ const mockTripRepo = {
   findById: vi.fn(),
   findBySlug: vi.fn(),
   findByOrganizerId: vi.fn(),
+  findByIdLite: vi.fn(),
   slugExists: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
@@ -588,85 +589,218 @@ describe('TripService', () => {
     })
   })
 
-  describe('toggleBookings', () => {
-    it('should toggle acceptingBookings from true to false on ACTIVE trip', async () => {
-      mockTripRepo.findById.mockResolvedValue({
-        ...mockTrip,
-        status: 'ACTIVE',
-        acceptingBookings: true,
-      })
+  describe('setBookingPause', () => {
+    it('should pause bookings with reason on ACTIVE trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true })
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.update.mockResolvedValue({
-        ...mockTrip,
-        status: 'ACTIVE',
-        acceptingBookings: false,
-      })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false, bookingsPausedBy: 'ORGANIZER', bookingsPausedReason: 'Too many enquiries' })
 
-      const result = await service.toggleBookings('user-1', 'trip-1')
+      const result = await service.setBookingPause('user-1', 'trip-1', { paused: true, reason: 'Too many enquiries' })
 
       expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
         acceptingBookings: false,
+        bookingsPausedBy: 'ORGANIZER',
+        bookingsPausedReason: 'Too many enquiries',
       })
       expect(result.acceptingBookings).toBe(false)
     })
 
-    it('should toggle acceptingBookings from false to true on ACTIVE trip', async () => {
-      mockTripRepo.findById.mockResolvedValue({
-        ...mockTrip,
-        status: 'ACTIVE',
-        acceptingBookings: false,
-      })
+    it('should pause bookings without reason (stores null)', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true })
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
-      mockTripRepo.update.mockResolvedValue({
-        ...mockTrip,
-        status: 'ACTIVE',
-        acceptingBookings: true,
-      })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false })
 
-      const result = await service.toggleBookings('user-1', 'trip-1')
+      await service.setBookingPause('user-1', 'trip-1', { paused: true })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        acceptingBookings: false,
+        bookingsPausedBy: 'ORGANIZER',
+        bookingsPausedReason: null,
+      })
+    })
+
+    it('should resume bookings and clear reason + pausedBy', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false, bookingsPausedBy: 'ORGANIZER', bookingsPausedReason: 'Some reason' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true, bookingsPausedBy: null, bookingsPausedReason: null })
+
+      const result = await service.setBookingPause('user-1', 'trip-1', { paused: false })
 
       expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
         acceptingBookings: true,
+        bookingsPausedBy: null,
+        bookingsPausedReason: null,
       })
+      expect(result.acceptingBookings).toBe(true)
+    })
+
+    it('should throw ConflictError when pausing an already-paused trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setBookingPause('user-1', 'trip-1', { paused: true })).rejects.toThrow('already paused')
+    })
+
+    it('should throw ConflictError when resuming a trip that is not paused', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setBookingPause('user-1', 'trip-1', { paused: false })).rejects.toThrow('not currently paused')
+    })
+
+    it('should throw ValidationError when trip is not ACTIVE', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'DRAFT' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setBookingPause('user-1', 'trip-1', { paused: true })).rejects.toThrow('Only ACTIVE trips')
+    })
+
+    it('should throw ForbiddenError when pausing another organizer\'s trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({ ...mockOrganizer, id: 'org-other' })
+
+      await expect(service.setBookingPause('user-2', 'trip-1', { paused: true })).rejects.toThrow('only manage your own')
+    })
+
+    it('should throw NotFoundError for non-existent trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(service.setBookingPause('user-1', 'trip-999', { paused: true })).rejects.toThrow('Trip not found')
+    })
+
+    it('should throw ForbiddenError when organizer tries to resume an admin-applied pause', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false, bookingsPausedBy: 'ADMIN' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setBookingPause('user-1', 'trip-1', { paused: false })).rejects.toThrow('paused by an administrator')
+    })
+  })
+
+  describe('adminSetBookingPause', () => {
+    it('should pause bookings on any trip without ownership check', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true, organizerId: 'org-other' })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false, bookingsPausedBy: 'ADMIN' })
+
+      const result = await service.adminSetBookingPause('admin-1', 'trip-1', { paused: true, reason: 'Policy violation' })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        acceptingBookings: false,
+        bookingsPausedBy: 'ADMIN',
+        bookingsPausedReason: 'Policy violation',
+      })
+      expect(result.acceptingBookings).toBe(false)
+    })
+
+    it('should allow admin to resume an admin-applied pause', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: false, bookingsPausedBy: 'ADMIN' })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', acceptingBookings: true, bookingsPausedBy: null, bookingsPausedReason: null })
+
+      const result = await service.adminSetBookingPause('admin-1', 'trip-1', { paused: false })
+
       expect(result.acceptingBookings).toBe(true)
     })
 
     it('should throw NotFoundError for non-existent trip', async () => {
       mockTripRepo.findById.mockResolvedValue(null)
 
-      await expect(service.toggleBookings('user-1', 'trip-999')).rejects.toThrow(
-        'Trip not found',
-      )
+      await expect(service.adminSetBookingPause('admin-1', 'trip-999', { paused: true })).rejects.toThrow('Trip not found')
     })
+  })
 
-    it('should throw ForbiddenError when toggling another organizer\'s trip', async () => {
-      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE' })
-      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({
-        ...mockOrganizer,
-        id: 'org-other',
+  describe('setVisibility', () => {
+    it('should hide an ACTIVE trip with reason', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', isHidden: false })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'ACTIVE', isHidden: true, hiddenBy: 'ORGANIZER', hiddenReason: 'Rescheduling' })
+
+      const result = await service.setVisibility('user-1', 'trip-1', { hidden: true, reason: 'Rescheduling' })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        isHidden: true,
+        hiddenBy: 'ORGANIZER',
+        hiddenReason: 'Rescheduling',
       })
-
-      await expect(service.toggleBookings('user-2', 'trip-1')).rejects.toThrow(
-        'only manage your own',
-      )
+      expect(result.isHidden).toBe(true)
     })
 
-    it('should throw ValidationError for non-ACTIVE trip', async () => {
-      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'DRAFT' })
+    it('should hide a FULL trip (no status restriction)', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'FULL', isHidden: false })
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, status: 'FULL', isHidden: true })
 
-      await expect(service.toggleBookings('user-1', 'trip-1')).rejects.toThrow(
-        'Only ACTIVE trips',
-      )
+      await service.setVisibility('user-1', 'trip-1', { hidden: true })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', expect.objectContaining({ isHidden: true }))
     })
 
-    it('should throw ValidationError for COMPLETED trip', async () => {
-      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, status: 'COMPLETED' })
+    it('should unhide a trip and clear hiddenBy + hiddenReason', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: true, hiddenBy: 'ORGANIZER', hiddenReason: 'Old reason' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, isHidden: false, hiddenBy: null, hiddenReason: null })
+
+      const result = await service.setVisibility('user-1', 'trip-1', { hidden: false })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', { isHidden: false, hiddenBy: null, hiddenReason: null })
+      expect(result.isHidden).toBe(false)
+    })
+
+    it('should throw ConflictError when hiding an already-hidden trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: true })
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
 
-      await expect(service.toggleBookings('user-1', 'trip-1')).rejects.toThrow(
-        'Only ACTIVE trips',
-      )
+      await expect(service.setVisibility('user-1', 'trip-1', { hidden: true })).rejects.toThrow('already hidden')
+    })
+
+    it('should throw ConflictError when unhiding a visible trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: false })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setVisibility('user-1', 'trip-1', { hidden: false })).rejects.toThrow('not currently hidden')
+    })
+
+    it('should throw ForbiddenError when organizer tries to unhide an admin-hidden trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: true, hiddenBy: 'ADMIN' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(service.setVisibility('user-1', 'trip-1', { hidden: false })).rejects.toThrow('hidden by an administrator')
+    })
+
+    it('should throw ForbiddenError when hiding another organizer\'s trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: false })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({ ...mockOrganizer, id: 'org-other' })
+
+      await expect(service.setVisibility('user-2', 'trip-1', { hidden: true })).rejects.toThrow('only manage your own')
+    })
+  })
+
+  describe('adminSetVisibility', () => {
+    it('should hide any trip without ownership check', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: false, organizerId: 'org-other' })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, isHidden: true, hiddenBy: 'ADMIN' })
+
+      const result = await service.adminSetVisibility('admin-1', 'trip-1', { hidden: true, reason: 'Policy' })
+
+      expect(mockTripRepo.update).toHaveBeenCalledWith('trip-1', {
+        isHidden: true,
+        hiddenBy: 'ADMIN',
+        hiddenReason: 'Policy',
+      })
+      expect(result.isHidden).toBe(true)
+    })
+
+    it('should allow admin to unhide an admin-hidden trip', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, isHidden: true, hiddenBy: 'ADMIN' })
+      mockTripRepo.update.mockResolvedValue({ ...mockTrip, isHidden: false, hiddenBy: null, hiddenReason: null })
+
+      const result = await service.adminSetVisibility('admin-1', 'trip-1', { hidden: false })
+
+      expect(result.isHidden).toBe(false)
+    })
+
+    it('should throw NotFoundError for non-existent trip', async () => {
+      mockTripRepo.findById.mockResolvedValue(null)
+
+      await expect(service.adminSetVisibility('admin-1', 'trip-999', { hidden: true })).rejects.toThrow('Trip not found')
     })
   })
 
@@ -979,6 +1113,26 @@ describe('TripService — Redis Cache', () => {
 
       expect(mockCacheService.invalidateByPrefix).toHaveBeenCalledWith('cache:trips:*')
       expect(mockCacheService.del).toHaveBeenCalledWith('cache:trips:detail:goa-beach-getaway-dec-2025')
+    })
+  })
+
+  describe('createTripRequest', () => {
+    const mockLiteTrip = {
+      id: 'trip-1',
+      status: 'ACTIVE',
+      bookingMode: 'REQUEST_BASED',
+      acceptingBookings: true,
+      bookingsPausedReason: null,
+      isHidden: false,
+      organizerId: 'org-1',
+    }
+
+    it('should throw ValidationError when trip is hidden', async () => {
+      mockTripRepo.findByIdLite.mockResolvedValue({ ...mockLiteTrip, isHidden: true })
+
+      await expect(
+        service.createTripRequest('user-1', 'trip-1', { numTravelers: 2 }),
+      ).rejects.toThrow('not available for requests')
     })
   })
 })

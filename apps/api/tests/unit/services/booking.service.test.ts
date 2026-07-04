@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
 import { logger } from '../../../src/utils/logger'
 import { withLock } from '../../../src/utils/redis-lock'
@@ -125,6 +125,10 @@ function createMockBooking(overrides: Record<string, unknown> = {}) {
 }
 
 let service: BookingService
+
+afterEach(() => {
+  mockEnv.PAYMENT_GATEWAY = 'razorpay'
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -899,6 +903,8 @@ describe('BookingService', () => {
       currentBookings: 5,
       version: 0,
       isDeleted: false,
+      isHidden: false,
+      bookingsPausedReason: null,
       organizer: {
         id: 'org-1',
         userId: 'organizer-user-1',
@@ -998,6 +1004,41 @@ describe('BookingService', () => {
       ).rejects.toThrow('not accepting bookings')
     })
 
+    it('should throw ValidationError when trip is hidden', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({ ...mockTrip, isHidden: true })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('not available for booking')
+    })
+
+    it('should surface paused reason in error when bookings are paused with a reason', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        acceptingBookings: false,
+        bookingsPausedReason: 'Dates being revised',
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('Bookings are closed: Dates being revised')
+    })
+
+    it('should throw generic closed error when bookings are paused without a reason', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue({
+        ...mockTrip,
+        acceptingBookings: false,
+        bookingsPausedReason: null,
+      })
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('Bookings are currently closed')
+    })
+
     it('should throw ValidationError when booking deadline has passed', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue({
@@ -1061,7 +1102,7 @@ describe('BookingService', () => {
       mockEnv.PAYMENT_GATEWAY = 'razorpay'
     })
 
-    it('should include split in createOrder when Cashfree sandbox and organizer has cashfreeVendorId', async () => {
+    it('should omit split in createOrder when Cashfree sandbox (Easy Split skipped until production KYC)', async () => {
       mockEnv.PAYMENT_GATEWAY = 'cashfree'
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue({
@@ -1083,12 +1124,7 @@ describe('BookingService', () => {
       await service.createBooking('user-1', validInput)
 
       const callArg = mockPaymentService.createOrder.mock.calls[0][0]
-      expect(callArg.split).toBeDefined()
-      expect(callArg.split.vendorAccountId).toBe('cf_vendor_sandbox_123')
-      // vendorAmountPaise = 800000 paise * (1 - 10/100) = 720000 paise
-      expect(callArg.split.vendorAmountPaise).toBe(720000)
-
-      mockEnv.PAYMENT_GATEWAY = 'razorpay'
+      expect(callArg.split).toBeNull()
     })
 
     it('should use early bird price when deadline has not passed', async () => {
