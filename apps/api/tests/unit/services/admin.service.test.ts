@@ -63,6 +63,10 @@ const mockDocReviewRepo = {
   findByOrganizerId: vi.fn(),
 }
 
+const mockReviewRepo = {
+  findAllAdmin: vi.fn(),
+}
+
 let service: AdminService
 
 beforeEach(() => {
@@ -79,6 +83,7 @@ beforeEach(() => {
     logger as any,
     mockNotificationService as any,
     mockDocReviewRepo as any,
+    mockReviewRepo as any,
   )
 })
 
@@ -1097,5 +1102,73 @@ describe('AdminService — getDocReviewDetail', () => {
     mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(null)
 
     await expect(service.getDocReviewDetail('org_99')).rejects.toThrow('not found')
+  })
+})
+
+// ─── getAdminReviews ─────────────────────────────────
+
+function makeAdminReview(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'review_1',
+    overallRating: 4,
+    comment: 'Great experience!',
+    photos: [],
+    organizerReply: null,
+    editedAt: null,
+    createdAt: new Date('2025-06-01'),
+    user: { id: 'user_1', name: 'Test User', avatarUrl: null },
+    trip: {
+      id: 'trip_1',
+      title: 'Goa Weekend Trip',
+      slug: 'goa-weekend-trip',
+      organizer: { businessName: 'Desi Explorers' },
+    },
+    ...overrides,
+  }
+}
+
+describe('getAdminReviews', () => {
+  it('should return paginated reviews with default filters', async () => {
+    const reviews = [makeAdminReview(), makeAdminReview({ id: 'review_2', overallRating: 2 })]
+    mockReviewRepo.findAllAdmin.mockResolvedValue({ data: reviews, total: 2 })
+
+    const result = await service.getAdminReviews({ page: 1, limit: 20 })
+
+    expect(result.data).toHaveLength(2)
+    expect(result.pagination.total).toBe(2)
+    expect(mockReviewRepo.findAllAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 20 }),
+      expect.objectContaining({ skip: 0, take: 20 }),
+    )
+  })
+
+  it('should pass organizerSearch and tripSearch filters to the repository', async () => {
+    mockReviewRepo.findAllAdmin.mockResolvedValue({ data: [makeAdminReview()], total: 1 })
+
+    await service.getAdminReviews({
+      organizerSearch: 'Desi',
+      tripSearch: 'Goa',
+      rating: 4,
+      page: 1,
+    })
+
+    expect(mockReviewRepo.findAllAdmin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizerSearch: 'Desi',
+        tripSearch: 'Goa',
+        rating: 4,
+      }),
+      expect.any(Object),
+    )
+  })
+
+  it('should return empty list with correct pagination when no reviews exist', async () => {
+    mockReviewRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getAdminReviews({})
+
+    expect(result.data).toHaveLength(0)
+    expect(result.pagination.total).toBe(0)
+    expect(result.pagination.totalPages).toBe(0)
   })
 })

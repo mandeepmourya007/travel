@@ -6,15 +6,17 @@
  * 3. Why:       Trust signal, social proof, quality enforcement
  *
  * 4. API Endpoints:
- *    POST /api/v1/reviews                      — create review (traveler)
- *    PUT  /api/v1/reviews/:id                  — edit review within 30 days
- *    POST /api/v1/reviews/:id/reply            — organizer reply
- *    GET  /api/v1/reviews/trip/:tripId         — public list with summary
- *    GET  /api/v1/reviews/my/booking/:bookingId — get own review
+ *    POST /api/v1/reviews                             — create review (traveler)
+ *    PUT  /api/v1/reviews/:id                         — edit review within 30 days
+ *    POST /api/v1/reviews/:id/reply                   — organizer reply
+ *    GET  /api/v1/reviews/trip/:tripId                — public list with summary
+ *    GET  /api/v1/reviews/my/booking/:bookingId       — get own review
+ *    GET  /api/v1/reviews/organizer/mine              — organizer dashboard reviews
+ *    GET  /api/v1/reviews/my                          — traveler's own reviews
  *
  * 5. DB Tables:  Review (updated), OrganizerProfile (rating cache)
  * 6. Validations: rating 1-5, comment max 2000, photos max 5
- * 7. Error Cases: Not found, forbidden (wrong owner), validation (not completed), conflict (duplicate)
+ * 7. Error Cases: Not found, forbidden (wrong owner/no profile), validation (not completed), conflict (duplicate)
  * 8. Side Effects: OrganizerProfile.rating + totalReviews recalculated
  */
 
@@ -34,6 +36,8 @@ const mockReviewRepo = {
   updateOrganizerReply: vi.fn(),
   getOrganizerRatingStats: vi.fn(),
   getRatingDistribution: vi.fn(),
+  findByOrganizerIdWithFilters: vi.fn(),
+  findAllByUserId: vi.fn(),
 }
 
 const mockOrganizerProfileRepo = {
@@ -319,6 +323,136 @@ describe('ReviewService', () => {
       const result = await service.getMyReviewForBooking('user_1', 'booking_1')
 
       expect(result).toBeNull()
+    })
+  })
+
+  // ─── getOrganizerDashboardReviews ────────────────────
+
+  describe('getOrganizerDashboardReviews', () => {
+    const mockOrganizer = { id: 'org_1', userId: 'user_1' }
+    const mockReviews = [makeReview(), makeReview({ id: 'review_2', overallRating: 3 })]
+
+    it('should return paginated reviews for the organizer with default filters', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockReviewRepo.findByOrganizerIdWithFilters.mockResolvedValue({
+        data: mockReviews,
+        total: 2,
+      })
+
+      const result = await service.getOrganizerDashboardReviews('user_1', { page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(2)
+      expect(result.pagination.total).toBe(2)
+      expect(mockReviewRepo.findByOrganizerIdWithFilters).toHaveBeenCalledWith(
+        'org_1',
+        expect.objectContaining({ page: 1, limit: 10 }),
+        expect.objectContaining({ skip: 0, take: 10 }),
+      )
+    })
+
+    it('should pass tripId and rating filters to the repository', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockReviewRepo.findByOrganizerIdWithFilters.mockResolvedValue({ data: [mockReviews[0]], total: 1 })
+
+      await service.getOrganizerDashboardReviews('user_1', {
+        tripId: 'trip_1',
+        rating: 5,
+        sort: 'rating_high',
+        page: 1,
+        limit: 10,
+      })
+
+      expect(mockReviewRepo.findByOrganizerIdWithFilters).toHaveBeenCalledWith(
+        'org_1',
+        expect.objectContaining({ tripId: 'trip_1', rating: 5, sort: 'rating_high' }),
+        expect.any(Object),
+      )
+    })
+
+    it('should throw ForbiddenError when user has no OrganizerProfile', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+
+      await expect(
+        service.getOrganizerDashboardReviews('user_1', {}),
+      ).rejects.toThrow(ForbiddenError)
+    })
+
+    it('should return empty data and correct pagination when no reviews exist', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockReviewRepo.findByOrganizerIdWithFilters.mockResolvedValue({ data: [], total: 0 })
+
+      const result = await service.getOrganizerDashboardReviews('user_1', { page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(0)
+      expect(result.pagination.total).toBe(0)
+      expect(result.pagination.totalPages).toBe(0)
+    })
+  })
+
+  // ─── getMyReviews ────────────────────────────────────
+
+  describe('getMyReviews', () => {
+    const mockReviews = [makeReview(), makeReview({ id: 'review_2', overallRating: 2 })]
+
+    it('should return paginated reviews written by the user', async () => {
+      mockReviewRepo.findAllByUserId.mockResolvedValue({ data: mockReviews, total: 2 })
+
+      const result = await service.getMyReviews('user_1', { page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(2)
+      expect(result.pagination.total).toBe(2)
+      expect(mockReviewRepo.findAllByUserId).toHaveBeenCalledWith(
+        'user_1',
+        expect.objectContaining({ page: 1, limit: 10 }),
+        expect.objectContaining({ skip: 0, take: 10 }),
+      )
+    })
+
+    it('should return empty list when user has written no reviews', async () => {
+      mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+      const result = await service.getMyReviews('user_1', {})
+
+      expect(result.data).toHaveLength(0)
+      expect(result.pagination.totalPages).toBe(0)
+    })
+
+    it('should pass sort filter to the repository', async () => {
+      mockReviewRepo.findAllByUserId.mockResolvedValue({ data: mockReviews, total: 2 })
+
+      await service.getMyReviews('user_1', { sort: 'rating_low', page: 1, limit: 10 })
+
+      expect(mockReviewRepo.findAllByUserId).toHaveBeenCalledWith(
+        'user_1',
+        expect.objectContaining({ sort: 'rating_low' }),
+        expect.any(Object),
+      )
+    })
+
+    it('should scope results to a specific trip when tripId is provided', async () => {
+      const tripReview = makeReview({ tripId: 'trip_abc' })
+      mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [tripReview], total: 1 })
+
+      const result = await service.getMyReviews('user_1', { tripId: 'trip_abc', page: 1, limit: 10 })
+
+      expect(result.data).toHaveLength(1)
+      expect(mockReviewRepo.findAllByUserId).toHaveBeenCalledWith(
+        'user_1',
+        expect.objectContaining({ tripId: 'trip_abc' }),
+        expect.any(Object),
+      )
+    })
+
+    it('should return all user reviews when tripId is not provided', async () => {
+      mockReviewRepo.findAllByUserId.mockResolvedValue({ data: mockReviews, total: 2 })
+
+      await service.getMyReviews('user_1', { page: 1, limit: 10 })
+
+      expect(mockReviewRepo.findAllByUserId).toHaveBeenCalledWith(
+        'user_1',
+        expect.not.objectContaining({ tripId: expect.anything() }),
+        expect.any(Object),
+      )
     })
   })
 })
