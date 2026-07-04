@@ -13,7 +13,16 @@ export function useAdminBookings(filters: AdminBookingFilters) {
         success: true
         data: AdminBookingItem[]
         pagination: PaginationMeta
-      }>('/admin/bookings', { params: filters })
+      }>('/admin/bookings', {
+        params: {
+          status: filters.status || undefined,
+          search: filters.search || undefined,
+          sortBy: filters.sortBy || undefined,
+          sortOrder: filters.sortOrder || undefined,
+          page: filters.page,
+          limit: filters.limit,
+        },
+      })
       return { data: res.data.data, pagination: res.data.pagination }
     },
     staleTime: STALE_TIME_REALTIME,

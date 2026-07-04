@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -27,7 +27,14 @@ import {
 import { useAdminBookings } from '@/hooks/use-admin-bookings'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import type { AdminBookingFilters } from '@shared/types/admin.types'
+import { cn } from '@/lib/utils'
+import type { AdminBookingFilters, AdminBookingSortBy, SortOrder } from '@shared/types/admin.types'
+
+const SORT_OPTIONS: { field: AdminBookingSortBy; label: string }[] = [
+  { field: 'totalAmount', label: 'Amount' },
+  { field: 'bookingStatus', label: 'Status' },
+  { field: 'createdAt', label: 'Date' },
+]
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -43,11 +50,25 @@ export default function AdminBookingsPage() {
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState<AdminBookingSortBy | undefined>(undefined)
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const debouncedSearch = useDebounce(search, 300)
+
+  function handleSort(field: AdminBookingSortBy) {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(field)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
 
   const filters: AdminBookingFilters = {
     status: status === 'all' ? undefined : status as AdminBookingFilters['status'],
     search: debouncedSearch || undefined,
+    sortBy,
+    sortOrder: sortBy ? sortOrder : undefined,
     page,
     limit: 20,
   }
@@ -93,6 +114,29 @@ export default function AdminBookingsPage() {
         </Select>
       </div>
 
+      {/* Mobile sort chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 md:hidden">
+        <span className="shrink-0 text-xs text-neutral-500">Sort:</span>
+        {SORT_OPTIONS.map(({ field, label }) => {
+          const active = sortBy === field
+          return (
+            <button
+              key={field}
+              onClick={() => handleSort(field)}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                active
+                  ? 'border-primary-300 bg-primary-50 text-primary-700'
+                  : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50',
+              )}
+            >
+              {label}
+              {active && (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+            </button>
+          )
+        })}
+      </div>
+
       {isLoading ? (
         <TableContainer>
           <div className="space-y-0">
@@ -119,9 +163,9 @@ export default function AdminBookingsPage() {
                     <TableHead>Booking Ref</TableHead>
                     <TableHead>Trip</TableHead>
                     <TableHead>Traveler</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
+                    <SortableHead field="totalAmount" label="Amount" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} className="text-right" />
+                    <SortableHead field="bookingStatus" label="Status" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
+                    <SortableHead field="createdAt" label="Date" sortBy={sortBy} sortOrder={sortOrder} onSort={handleSort} />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -197,5 +241,35 @@ export default function AdminBookingsPage() {
         </>
       )}
     </div>
+  )
+}
+
+function SortableHead({
+  field,
+  label,
+  sortBy,
+  sortOrder,
+  onSort,
+  className,
+}: {
+  field: AdminBookingSortBy
+  label: string
+  sortBy: AdminBookingSortBy | undefined
+  sortOrder: SortOrder
+  onSort: (field: AdminBookingSortBy) => void
+  className?: string
+}) {
+  const active = sortBy === field
+  const Icon = active ? (sortOrder === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <TableHead className={className}>
+      <button
+        onClick={() => onSort(field)}
+        className="inline-flex items-center gap-1.5 font-medium hover:text-neutral-900 transition-colors"
+      >
+        {label}
+        <Icon className={cn('h-3.5 w-3.5', active ? 'text-primary-600' : 'text-neutral-400')} />
+      </button>
+    </TableHead>
   )
 }

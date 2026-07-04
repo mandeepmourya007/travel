@@ -168,7 +168,7 @@ export class AdminService {
   async getBookings(filters: AdminBookingFilters) {
     const pg = paginate(filters)
     const { data, total } = await this.bookingRepo.findAllAdmin(
-      { status: filters.status, search: filters.search },
+      { status: filters.status, search: filters.search, sortBy: filters.sortBy, sortOrder: filters.sortOrder },
       { skip: pg.skip, take: pg.take },
     )
     return { data, pagination: pg.meta(total) }

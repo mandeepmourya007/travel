@@ -701,7 +701,7 @@ export class BookingRepository {
    * Used by: AdminService.getBookings()
    */
   async findAllAdmin(
-    filters: { status?: string; search?: string },
+    filters: { status?: string; search?: string; sortBy?: string; sortOrder?: string },
     pagination: { skip: number; take: number },
   ) {
     const where: Prisma.BookingWhereInput = {
@@ -715,12 +715,28 @@ export class BookingRepository {
       }),
     }
 
+    const dir = filters.sortOrder === 'asc' ? 'asc' : 'desc'
+    let orderBy: Prisma.BookingOrderByWithRelationInput
+    switch (filters.sortBy) {
+      case 'totalAmount':
+        orderBy = { totalAmount: dir }
+        break
+      case 'bookingStatus':
+        orderBy = { bookingStatus: dir }
+        break
+      case 'createdAt':
+        orderBy = { createdAt: dir }
+        break
+      default:
+        orderBy = { createdAt: 'desc' }
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.booking.findMany({
         where,
         skip: pagination.skip,
         take: pagination.take,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         select: {
           id: true,
           bookingRef: true,
