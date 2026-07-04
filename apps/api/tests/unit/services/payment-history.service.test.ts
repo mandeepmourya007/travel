@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Prisma } from '@prisma/client'
 import { PaymentHistoryService } from '../../../src/services/payment-history.service'
 import { logger } from '../../../src/utils/logger'
+import { PAYMENT_TYPE, PAYMENT_STATUS, BOOKING_STATUS } from '@shared/constants'
 
 // ─── Mock repositories ──────────────────────────────
 const mockPaymentTxRepo = {
@@ -39,8 +40,8 @@ beforeEach(() => {
 function makePaymentItem(overrides: Record<string, unknown> = {}) {
   return {
     id: 'pt_1',
-    type: 'PAYMENT',
-    status: 'CAPTURED',
+    type: PAYMENT_TYPE.PAYMENT,
+    status: PAYMENT_STATUS.CAPTURED,
     amount: 4500,
     currency: 'INR',
     razorpayPaymentId: 'pay_123',
@@ -50,7 +51,8 @@ function makePaymentItem(overrides: Record<string, unknown> = {}) {
     booking: {
       id: 'bk_1',
       bookingRef: 'TRP-2025-0001',
-      bookingStatus: 'CONFIRMED',
+      bookingStatus: BOOKING_STATUS.CONFIRMED,
+      totalAmount: 4500,
       trip: {
         id: 'trip_1',
         title: 'Goa Beach Getaway',
@@ -114,11 +116,11 @@ describe('PaymentHistoryService', () => {
     it('should pass type filter to repository', async () => {
       mockPaymentTxRepo.findByUserId.mockResolvedValue({ data: [], total: 0 })
 
-      await service.getMyPayments('user_1', { type: 'REFUND' })
+      await service.getMyPayments('user_1', { type: PAYMENT_TYPE.REFUND })
 
       expect(mockPaymentTxRepo.findByUserId).toHaveBeenCalledWith(
         'user_1',
-        expect.objectContaining({ type: 'REFUND' }),
+        expect.objectContaining({ type: PAYMENT_TYPE.REFUND }),
         expect.any(Object),
       )
     })
@@ -279,11 +281,11 @@ describe('PaymentHistoryService', () => {
       mockPaymentTxRepo.findAll.mockResolvedValue({ data: [], total: 0 })
 
       await service.getAllPayments({
-        type: 'PAYMENT', userId: 'user_1', bookingRef: 'TRP',
+        type: PAYMENT_TYPE.PAYMENT, userId: 'user_1', bookingRef: 'TRP',
       })
 
       expect(mockPaymentTxRepo.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'PAYMENT', userId: 'user_1', bookingRef: 'TRP' }),
+        expect.objectContaining({ type: PAYMENT_TYPE.PAYMENT, userId: 'user_1', bookingRef: 'TRP' }),
         expect.any(Object),
       )
     })
@@ -542,6 +544,44 @@ describe('PaymentHistoryService', () => {
 
       // null → 10% default → 5000 * (1 - 0.10) = 4500
       expect(result.pendingTotal).toBe(4500)
+    })
+  })
+
+  describe('annotatePartialRefund (via getMyPayments)', () => {
+    it('sets isPartialRefund=false for PAYMENT type', async () => {
+      mockPaymentTxRepo.findByUserId.mockResolvedValue({
+        data: [makePaymentItem({ type: PAYMENT_TYPE.PAYMENT, amount: 4500 })],
+        total: 1,
+      })
+      const result = await service.getMyPayments('user_1', {})
+      expect(result.data[0].isPartialRefund).toBe(false)
+    })
+
+    it('sets isPartialRefund=false for full REFUND (amount equals totalAmount)', async () => {
+      mockPaymentTxRepo.findByUserId.mockResolvedValue({
+        data: [makePaymentItem({ type: PAYMENT_TYPE.REFUND, amount: 4500, booking: { id: 'bk_1', bookingRef: 'TRP-2025-0001', bookingStatus: BOOKING_STATUS.CONFIRMED, totalAmount: 4500, trip: { id: 'trip_1', title: 'Goa Beach Getaway', slug: 'goa-beach-getaway', destination: { name: 'Goa' } }, user: { id: 'user_1', name: 'Priya S', email: 'priya@test.com' } } })],
+        total: 1,
+      })
+      const result = await service.getMyPayments('user_1', {})
+      expect(result.data[0].isPartialRefund).toBe(false)
+    })
+
+    it('sets isPartialRefund=true for REFUND with amount less than totalAmount', async () => {
+      mockPaymentTxRepo.findByUserId.mockResolvedValue({
+        data: [makePaymentItem({ type: PAYMENT_TYPE.REFUND, amount: 2000, booking: { id: 'bk_1', bookingRef: 'TRP-2025-0001', bookingStatus: BOOKING_STATUS.CONFIRMED, totalAmount: 4500, trip: { id: 'trip_1', title: 'Goa Beach Getaway', slug: 'goa-beach-getaway', destination: { name: 'Goa' } }, user: { id: 'user_1', name: 'Priya S', email: 'priya@test.com' } } })],
+        total: 1,
+      })
+      const result = await service.getMyPayments('user_1', {})
+      expect(result.data[0].isPartialRefund).toBe(true)
+    })
+
+    it('sets isPartialRefund=false for ESCROW_RELEASE type', async () => {
+      mockPaymentTxRepo.findByUserId.mockResolvedValue({
+        data: [makePaymentItem({ type: PAYMENT_TYPE.ESCROW_RELEASE, amount: 4500 })],
+        total: 1,
+      })
+      const result = await service.getMyPayments('user_1', {})
+      expect(result.data[0].isPartialRefund).toBe(false)
     })
   })
 })

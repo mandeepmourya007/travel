@@ -37,7 +37,7 @@ export function CancelBookingModal({ booking, onClose }: CancelBookingModalProps
   const handleConfirm = () => {
     if (!isReasonValid) return
     cancelMutation.mutate(
-      { bookingId: booking.id, reason: reason.trim() },
+      { bookingId: booking.id, reason: reason.trim(), tripSlug: booking.trip.slug },
       { onSuccess: () => onClose() },
     )
   }

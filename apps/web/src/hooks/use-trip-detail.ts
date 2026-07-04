@@ -16,6 +16,6 @@ export function useTripDetail(slug: string, initialData?: TripDetail) {
     queryFn: () => fetchTripDetail(slug),
     enabled: !!slug,
     initialData,
-    staleTime: initialData ? 5 * 60 * 1000 : 0,
+    staleTime: initialData ? 30 * 1000 : 0,
   })
 }
