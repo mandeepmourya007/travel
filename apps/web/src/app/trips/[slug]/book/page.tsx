@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, CheckCircle } from 'lucide-react'
 // [TravelerDetail] import { Users } from 'lucide-react'
@@ -41,12 +41,9 @@ interface BookingResult {
   amountPaid: number
 }
 
-export default function BookingPage({
-  params,
-}: {
-  params: { slug: string }
-}) {
-  const { slug } = params
+export default function BookingPage() {
+  const params = useParams<{ slug: string }>()
+  const slug = params.slug ?? ''
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const queryClient = useQueryClient()

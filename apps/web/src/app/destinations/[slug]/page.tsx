@@ -8,7 +8,7 @@ import { DestinationDetailClient } from '@/components/destinations/destination-d
 import type { DestinationDetailResponse } from '@shared/types/destination.types'
 
 interface DestinationPageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 const getDestination = cache(async (slug: string): Promise<DestinationDetailResponse | null> => {
@@ -20,7 +20,8 @@ const getDestination = cache(async (slug: string): Promise<DestinationDetailResp
 })
 
 export async function generateMetadata({ params }: DestinationPageProps): Promise<Metadata> {
-  const data = await getDestination(params.slug)
+  const { slug } = await params
+  const data = await getDestination(slug)
   if (!data) {
     return { title: 'Destination Not Found' }
   }
@@ -64,7 +65,8 @@ export async function generateStaticParams() {
 }
 
 export default async function DestinationPage({ params }: DestinationPageProps) {
-  const data = await getDestination(params.slug)
+  const { slug } = await params
+  const data = await getDestination(slug)
 
   if (!data) {
     notFound()
@@ -96,7 +98,7 @@ export default async function DestinationPage({ params }: DestinationPageProps) 
         />
       )}
       <Suspense fallback={null}>
-        <DestinationDetailClient initialData={data} slug={params.slug} />
+        <DestinationDetailClient initialData={data} slug={slug} />
       </Suspense>
     </>
   )

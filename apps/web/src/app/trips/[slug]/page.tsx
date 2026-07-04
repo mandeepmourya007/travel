@@ -8,7 +8,7 @@ import { TripDetailClient } from '@/components/trips/trip-detail-client'
 import type { TripDetail } from '@shared/types/trip.types'
 
 interface TripDetailPageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 const getTrip = cache(async (slug: string): Promise<TripDetail | null> => {
@@ -20,7 +20,8 @@ const getTrip = cache(async (slug: string): Promise<TripDetail | null> => {
 })
 
 export async function generateMetadata({ params }: TripDetailPageProps): Promise<Metadata> {
-  const trip = await getTrip(params.slug)
+  const { slug } = await params
+  const trip = await getTrip(slug)
   if (!trip) {
     return { title: 'Trip Not Found' }
   }
@@ -62,7 +63,8 @@ export async function generateStaticParams() {
 }
 
 export default async function TripDetailPage({ params }: TripDetailPageProps) {
-  const trip = await getTrip(params.slug)
+  const { slug } = await params
+  const trip = await getTrip(slug)
 
   if (!trip) {
     notFound()
@@ -85,7 +87,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <TripDetailClient trip={trip} slug={params.slug} />
+      <TripDetailClient trip={trip} slug={slug} />
     </>
   )
 }
