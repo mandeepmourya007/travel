@@ -19,7 +19,9 @@ import { areDocsComplete } from '@shared/utils/organizer-docs'
 import type { OrganizerDocuments } from '@shared/types/user.types'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
-import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE } from '@shared/constants'
+import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE, USER_ROLE } from '@shared/constants'
+import type { ToggleBookingsDto, SetVisibilityDto } from '@shared/types/trip.types'
+import type { AdminTripFilters } from '@shared/types/admin.types'
 import { mapTripToSummary } from '../utils/trip-mapper'
 
 type TripWithDetail = NonNullable<Awaited<ReturnType<TripRepository['findById']>>>
@@ -274,7 +276,7 @@ export class TripService {
       'title', 'description', 'tripType', 'bookingMode', 'pricePerPerson',
       'earlyBirdPrice', 'minGroupSize', 'maxGroupSize', 'cancellationPolicy',
       'inclusions', 'exclusions', 'itinerary', 'photos',
-      'itineraryDocUrl', 'acceptingBookings',
+      'itineraryDocUrl',
     ]
     for (const key of scalarFields) {
       if (input[key] !== undefined) {
@@ -350,24 +352,87 @@ export class TripService {
   }
 
   /**
-   * Toggles the `acceptingBookings` flag on an ACTIVE trip.
-   * Only the trip owner can toggle. Non-ACTIVE trips throw ValidationError.
-   * When bookings are closed, travelers cannot create new bookings or requests.
+   * Pauses or resumes bookings on a trip (organizer-owned trips only).
+   *
+   * Business rules:
+   * - Only ACTIVE trips can change booking status.
+   * - Idempotent: pausing an already-paused trip (or resuming a live one) → ConflictError.
+   * - Admin-lock: if the pause was applied by an admin, only an admin can resume it.
+   * - When paused, an optional public reason is stored and surfaced to travelers.
+   * - When resumed, the reason and lock indicator are cleared.
+   *
+   * @throws NotFoundError — trip not found or not owned by the organizer
+   * @throws ForbiddenError — ownership check failed or admin-lock on resume
+   * @throws ValidationError — trip is not ACTIVE
+   * @throws ConflictError — idempotency violation (already paused / already live)
    */
-  async toggleBookings(userId: string, tripId: string) {
+  async setBookingPause(userId: string, tripId: string, dto: ToggleBookingsDto) {
     const { trip } = await this.verifyTripOwnership(userId, tripId)
+    return this.applyBookingPause({ userId, role: USER_ROLE.ORGANIZER }, trip, dto)
+  }
 
-    if (trip.status !== TRIP_STATUS.ACTIVE) {
-      throw new ValidationError('Only ACTIVE trips can toggle bookings')
+  /**
+   * Pauses or resumes bookings on any trip (admin authority — no ownership check).
+   *
+   * Business rules:
+   * - Admin-lock: if an admin paused the trip, only an admin can resume it.
+   * - All other rules mirror setBookingPause.
+   *
+   * @throws NotFoundError — trip not found
+   * @throws ValidationError — trip is not ACTIVE
+   * @throws ConflictError — idempotency violation
+   */
+  async adminSetBookingPause(adminUserId: string, tripId: string, dto: ToggleBookingsDto) {
+    const trip = await this.requireTrip(tripId)
+    return this.applyBookingPause({ userId: adminUserId, role: USER_ROLE.ADMIN }, trip, dto)
+  }
+
+  /**
+   * Hides or unhides a trip (organizer-owned trips only).
+   *
+   * Business rules:
+   * - Hiding removes the trip from public search, detail pages, and the sitemap.
+   * - No status restriction — any non-deleted trip can be hidden.
+   * - Admin-lock: if an admin hid the trip, only an admin can unhide it.
+   * - An optional internal reason is stored (never surfaced to travelers).
+   *
+   * @throws NotFoundError — trip not found or not owned by the organizer
+   * @throws ForbiddenError — ownership check failed or admin-lock on unhide
+   * @throws ConflictError — idempotency violation (already hidden / already visible)
+   */
+  async setVisibility(userId: string, tripId: string, dto: SetVisibilityDto) {
+    const { trip } = await this.verifyTripOwnership(userId, tripId)
+    return this.applyVisibility({ userId, role: USER_ROLE.ORGANIZER }, trip, dto)
+  }
+
+  /**
+   * Hides or unhides any trip (admin authority — no ownership check).
+   *
+   * Business rules:
+   * - Admin-lock: if an admin hid the trip, only an admin can unhide it.
+   * - All other rules mirror setVisibility.
+   *
+   * @throws NotFoundError — trip not found
+   * @throws ConflictError — idempotency violation
+   */
+  async adminSetVisibility(adminUserId: string, tripId: string, dto: SetVisibilityDto) {
+    const trip = await this.requireTrip(tripId)
+    return this.applyVisibility({ userId: adminUserId, role: USER_ROLE.ADMIN }, trip, dto)
+  }
+
+  /** GET /admin/trips — paginated trip list visible to admins (includes hidden trips). */
+  async adminGetTrips(filters: AdminTripFilters) {
+    const page = filters.page ?? 1
+    const limit = Math.min(filters.limit ?? 20, 50)
+    const offset = (page - 1) * limit
+    const { data, total } = await this.tripRepo.findAllPaginated(
+      { q: filters.q, status: filters.status, sortBy: filters.sortBy, sortOrder: filters.sortOrder },
+      { offset, limit },
+    )
+    return {
+      data: data.map(mapTripToSummary),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     }
-
-    const updated = await this.tripRepo.update(tripId, {
-      acceptingBookings: !trip.acceptingBookings,
-    })
-
-    this.logger.info({ tripId, acceptingBookings: !trip.acceptingBookings }, 'Bookings toggled')
-    await this.invalidateTripCaches(trip.slug)
-    return mapTripToSummary(updated)
   }
 
   /**
@@ -756,6 +821,9 @@ export class TripService {
     const trip = await this.tripRepo.findByIdLite(tripId)
     if (!trip) throw new NotFoundError('Trip')
 
+    if (trip.isHidden) {
+      throw new ValidationError('This trip is not available for requests')
+    }
     if (trip.status !== TRIP_STATUS.ACTIVE) {
       throw new ValidationError('This trip is not accepting requests')
     }
@@ -763,7 +831,11 @@ export class TripService {
       throw new ValidationError('This trip accepts direct bookings — no request needed')
     }
     if (!trip.acceptingBookings) {
-      throw new ValidationError('This trip is no longer accepting bookings')
+      throw new ValidationError(
+        trip.bookingsPausedReason
+          ? `Bookings are closed: ${trip.bookingsPausedReason}`
+          : 'This trip is no longer accepting bookings',
+      )
     }
 
     const seatsLeft = trip.maxGroupSize - trip.currentBookings
@@ -828,6 +900,115 @@ export class TripService {
       this.cache.invalidateByPrefix(cacheInvalidation.allDestinations()),
     ])
     if (slug) await this.cache.del(cacheKeys.tripDetail(slug))
+  }
+
+  /**
+   * Fetches a trip by ID without an ownership check. Used by admin paths.
+   *
+   * @throws NotFoundError — trip not found or soft-deleted
+   */
+  private async requireTrip(tripId: string) {
+    const trip = await this.tripRepo.findById(tripId)
+    if (!trip) throw new NotFoundError('Trip')
+    return trip
+  }
+
+  /**
+   * Core booking-pause logic shared by organizer and admin paths.
+   *
+   * Business rules:
+   * - Pause: only ACTIVE trips allowed; idempotency guard; stores reason + lock.
+   * - Resume: clears acceptingBookings, bookingsPausedBy, bookingsPausedReason;
+   *   admin-lock prevents organizer from resuming an admin-applied pause.
+   *
+   * Edge cases:
+   * - Already paused / already live → ConflictError.
+   * - Admin-lock on resume: bookingsPausedBy===ADMIN + actor is ORGANIZER → ForbiddenError.
+   */
+  private async applyBookingPause(
+    actor: { userId: string; role: string },
+    trip: NonNullable<Awaited<ReturnType<TripRepository['findById']>>>,
+    dto: ToggleBookingsDto,
+  ) {
+    if (trip.status !== TRIP_STATUS.ACTIVE) {
+      throw new ValidationError('Only ACTIVE trips can change booking status')
+    }
+
+    if (dto.paused) {
+      if (!trip.acceptingBookings) {
+        throw new ConflictError('Bookings are already paused for this trip')
+      }
+      const updated = await this.tripRepo.update(trip.id, {
+        acceptingBookings: false,
+        bookingsPausedBy: actor.role as 'ORGANIZER' | 'ADMIN',
+        bookingsPausedReason: dto.reason ?? null,
+      })
+      this.logger.info({ tripId: trip.id, pausedBy: actor.role, reason: dto.reason }, 'Bookings paused')
+      await this.invalidateTripCaches(trip.slug)
+      return mapTripToSummary(updated)
+    } else {
+      if (trip.acceptingBookings) {
+        throw new ConflictError('Bookings are not currently paused for this trip')
+      }
+      if (trip.bookingsPausedBy === USER_ROLE.ADMIN && actor.role !== USER_ROLE.ADMIN) {
+        throw new ForbiddenError('Bookings were paused by an administrator and can only be resumed by an administrator')
+      }
+      const updated = await this.tripRepo.update(trip.id, {
+        acceptingBookings: true,
+        bookingsPausedBy: null,
+        bookingsPausedReason: null,
+      })
+      this.logger.info({ tripId: trip.id, resumedBy: actor.role }, 'Bookings resumed')
+      await this.invalidateTripCaches(trip.slug)
+      return mapTripToSummary(updated)
+    }
+  }
+
+  /**
+   * Core visibility-toggle logic shared by organizer and admin paths.
+   *
+   * Business rules:
+   * - Hide: any non-deleted trip allowed (no status restriction); stores reason + lock.
+   * - Unhide: clears isHidden, hiddenBy, hiddenReason;
+   *   admin-lock prevents organizer from unhiding an admin-hidden trip.
+   *
+   * Edge cases:
+   * - Already hidden / already visible → ConflictError.
+   * - Admin-lock on unhide: hiddenBy===ADMIN + actor is ORGANIZER → ForbiddenError.
+   */
+  private async applyVisibility(
+    actor: { userId: string; role: string },
+    trip: NonNullable<Awaited<ReturnType<TripRepository['findById']>>>,
+    dto: SetVisibilityDto,
+  ) {
+    if (dto.hidden) {
+      if (trip.isHidden) {
+        throw new ConflictError('This trip is already hidden')
+      }
+      const updated = await this.tripRepo.update(trip.id, {
+        isHidden: true,
+        hiddenBy: actor.role as 'ORGANIZER' | 'ADMIN',
+        hiddenReason: dto.reason ?? null,
+      })
+      this.logger.info({ tripId: trip.id, hiddenBy: actor.role, reason: dto.reason }, 'Trip hidden')
+      await this.invalidateTripCaches(trip.slug)
+      return mapTripToSummary(updated)
+    } else {
+      if (!trip.isHidden) {
+        throw new ConflictError('This trip is not currently hidden')
+      }
+      if (trip.hiddenBy === USER_ROLE.ADMIN && actor.role !== USER_ROLE.ADMIN) {
+        throw new ForbiddenError('This trip was hidden by an administrator and can only be unhidden by an administrator')
+      }
+      const updated = await this.tripRepo.update(trip.id, {
+        isHidden: false,
+        hiddenBy: null,
+        hiddenReason: null,
+      })
+      this.logger.info({ tripId: trip.id, unhiddenBy: actor.role }, 'Trip unhidden')
+      await this.invalidateTripCaches(trip.slug)
+      return mapTripToSummary(updated)
+    }
   }
 
   /**

@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { TripController } from '../controllers/trip.controller'
 import { validate } from '../middleware/validate.middleware'
 import { cacheControl } from '../middleware/cache-control.middleware'
-import { createTripSchema, updateTripSchema, tripFiltersSchema } from '@shared/validators/trip.schema'
+import { createTripSchema, updateTripSchema, tripFiltersSchema, toggleBookingsSchema, setVisibilitySchema } from '@shared/validators/trip.schema'
 import { cuidParamSchema, slugParamSchema, tripIdParamSchema, tripRequestParamSchema, organizerIdParamSchema, organizerProfileQuerySchema } from '@shared/validators/common.schema'
 import { tripBookingFiltersSchema, tripRequestFiltersSchema, respondTripRequestSchema, createTripRequestBodySchema } from '@shared/validators/booking.schema'
 import type { RequestHandler } from 'express'
@@ -95,7 +95,16 @@ export function createTripRoutes(
     authMiddleware,
     requireRole(USER_ROLE.ORGANIZER),
     validate(cuidParamSchema, 'params'),
+    validate(toggleBookingsSchema),
     tripController.toggleBookings,
+  )
+  router.patch(
+    '/:id/visibility',
+    authMiddleware,
+    requireRole(USER_ROLE.ORGANIZER),
+    validate(cuidParamSchema, 'params'),
+    validate(setVisibilitySchema),
+    tripController.setVisibility,
   )
   router.get(
     '/:id/history',

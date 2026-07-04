@@ -86,9 +86,15 @@ export class TripController {
     res.json({ success: true, message: 'Trip deleted' })
   })
 
-  /** PATCH /trips/:id/toggle-bookings — Toggle accepting bookings (organizer only) */
+  /** PATCH /trips/:id/toggle-bookings — Pause or resume bookings (organizer only) */
   toggleBookings = asyncHandler(async (req: Request, res: Response) => {
-    const trip = await this.tripService.toggleBookings(req.user!.userId, req.params.id)
+    const trip = await this.tripService.setBookingPause(req.user!.userId, req.params.id, req.body)
+    res.json({ success: true, data: trip })
+  })
+
+  /** PATCH /trips/:id/visibility — Hide or unhide a trip (organizer only) */
+  setVisibility = asyncHandler(async (req: Request, res: Response) => {
+    const trip = await this.tripService.setVisibility(req.user!.userId, req.params.id, req.body)
     res.json({ success: true, data: trip })
   })
 

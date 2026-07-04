@@ -8,6 +8,7 @@ import {
   organizerApprovalFiltersSchema,
   approveRejectSchema,
   adminBookingFiltersSchema,
+  adminTripFiltersSchema,
   cashbackTripFiltersSchema,
   issueCashbackSchema,
   cashbackHistoryFiltersSchema,
@@ -16,6 +17,8 @@ import {
   addDocCommentSchema,
   organizerInviteFiltersSchema,
 } from '@shared/validators/admin.schema'
+import { adminToggleBookingsSchema, adminSetVisibilitySchema } from '@shared/validators/trip.schema'
+import { cuidParamSchema } from '@shared/validators/common.schema'
 
 export function createAdminRoutes(
   adminController: AdminController,
@@ -116,6 +119,27 @@ export function createAdminRoutes(
     '/cashback/by-trip',
     validate(cashbackHistoryFiltersSchema, 'query'),
     adminController.getCashbackHistoryByTrip,
+  )
+
+  // ─── Trip Controls ─────────────────────────────────
+  router.get(
+    '/trips',
+    validate(adminTripFiltersSchema, 'query'),
+    adminController.adminGetTrips,
+  )
+
+  router.patch(
+    '/trips/:id/bookings',
+    validate(cuidParamSchema, 'params'),
+    validate(adminToggleBookingsSchema),
+    adminController.adminSetBookingPause,
+  )
+
+  router.patch(
+    '/trips/:id/visibility',
+    validate(cuidParamSchema, 'params'),
+    validate(adminSetVisibilitySchema),
+    adminController.adminSetVisibility,
   )
 
   return router

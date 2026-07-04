@@ -27,6 +27,11 @@ export interface TripForSummary {
   currentBookings: number
   status: string
   acceptingBookings: boolean
+  bookingsPausedReason?: string | null
+  bookingsPausedBy?: string | null
+  isHidden: boolean
+  hiddenReason?: string | null
+  hiddenBy?: string | null
   photos: string[]
   seatSelectionEnabled?: boolean | null
   trendingScore?: number | null
@@ -69,6 +74,11 @@ export function mapTripToSummary(trip: TripForSummary) {
     pendingRequestCount: trip._count?.tripRequests ?? 0,
     status: trip.status,
     acceptingBookings: trip.acceptingBookings,
+    bookingsPausedReason: trip.bookingsPausedReason ?? null,
+    bookingsPausedBy: trip.bookingsPausedBy ?? null,
+    isHidden: trip.isHidden ?? false,
+    hiddenReason: trip.hiddenReason ?? null,
+    hiddenBy: trip.hiddenBy ?? null,
     photos: trip.photos,
     seatSelectionEnabled: trip.seatSelectionEnabled ?? false,
     isTrending: (trip.trendingScore ?? 0) >= TRENDING_SCORE_THRESHOLD,

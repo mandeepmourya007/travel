@@ -1,14 +1,18 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/async-handler'
 import type { AdminService } from '../services/admin.service'
+import type { TripService } from '../services/trip.service'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
-  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters,
+  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminTripFilters,
 } from '@shared/types/admin.types'
 
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private tripService: TripService,
+  ) {}
 
   /** GET /admin/organizers — Paginated approval queue */
   getApprovalQueue = asyncHandler(async (req: Request, res: Response) => {
@@ -139,5 +143,25 @@ export class AdminController {
       req.query as unknown as OrganizerInviteFilters,
     )
     res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  // ─── Trip Controls ─────────────────────────────────
+
+  /** GET /admin/trips — Paginated list of all trips (including hidden) */
+  adminGetTrips = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.tripService.adminGetTrips(req.query as unknown as AdminTripFilters)
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** PATCH /admin/trips/:id/bookings — Pause or resume bookings on any trip */
+  adminSetBookingPause = asyncHandler(async (req: Request, res: Response) => {
+    const trip = await this.tripService.adminSetBookingPause(req.user!.userId, req.params.id, req.body)
+    res.json({ success: true, data: trip })
+  })
+
+  /** PATCH /admin/trips/:id/visibility — Hide or unhide any trip */
+  adminSetVisibility = asyncHandler(async (req: Request, res: Response) => {
+    const trip = await this.tripService.adminSetVisibility(req.user!.userId, req.params.id, req.body)
+    res.json({ success: true, data: trip })
   })
 }

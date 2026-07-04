@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma, BookingStatus, TripRequestStatus } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 import type { DestinationTripFilters } from '@shared/types/destination.types'
@@ -7,6 +7,16 @@ import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants/booking-s
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, SITEMAP_MAX_TRIPS } from '../utils/constants'
 import { tokenizeQuery } from '../utils/search'
+
+// Mutable typed arrays used in _count select filters.
+// Defined outside `as const` objects so they retain their `T[]` type rather
+// than becoming `readonly [...]` tuples, which Prisma's Exact<> rejects.
+const CONFIRMED_COMPLETED_BOOKING_STATUSES: BookingStatus[] = [
+  BOOKING_STATUS.CONFIRMED as BookingStatus, BOOKING_STATUS.COMPLETED as BookingStatus,
+]
+const PENDING_APPROVED_REQUEST_STATUSES: TripRequestStatus[] = [
+  TRIP_REQUEST_STATUS.PENDING as TripRequestStatus, TRIP_REQUEST_STATUS.APPROVED as TripRequestStatus,
+]
 
 export const TRIP_INCLUDE_SUMMARY = {
   destination: {
@@ -53,6 +63,11 @@ export const TRIP_SELECT_SUMMARY = {
   currentBookings: true,
   status: true,
   acceptingBookings: true,
+  bookingsPausedReason: true,
+  bookingsPausedBy: true,
+  isHidden: true,
+  hiddenReason: true,
+  hiddenBy: true,
   photos: true,
   seatSelectionEnabled: true,
   trendingScore: true,
@@ -75,7 +90,7 @@ export const TRIP_SELECT_SUMMARY = {
     select: {
       reviews: { where: { isDeleted: false } },
       // confirmedGroupCount: booking records in CONFIRMED/COMPLETED state (row count, not seat count)
-      bookings: { where: { bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] }, isDeleted: false } },
+      bookings: { where: { bookingStatus: { in: CONFIRMED_COMPLETED_BOOKING_STATUSES }, isDeleted: false } },
     },
   },
 } as const
@@ -100,10 +115,16 @@ export const ORGANIZER_TRIP_SELECT_SUMMARY = {
   currentBookings: true,
   status: true,
   acceptingBookings: true,
+  bookingsPausedReason: true,
+  bookingsPausedBy: true,
+  isHidden: true,
+  hiddenReason: true,
+  hiddenBy: true,
   photos: true,
   seatSelectionEnabled: true,
   trendingScore: true,
   createdAt: true,
+  updatedAt: true,
   destination: {
     select: { id: true, name: true, slug: true },
   },
@@ -120,9 +141,9 @@ export const ORGANIZER_TRIP_SELECT_SUMMARY = {
   _count: {
     select: {
       reviews: { where: { isDeleted: false } },
-      bookings: { where: { bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] }, isDeleted: false } },
+      bookings: { where: { bookingStatus: { in: CONFIRMED_COMPLETED_BOOKING_STATUSES }, isDeleted: false } },
       // pendingRequestCount: trip requests still in the organizer's queue
-      tripRequests: { where: { status: { in: [TRIP_REQUEST_STATUS.PENDING, TRIP_REQUEST_STATUS.APPROVED] }, isDeleted: false } },
+      tripRequests: { where: { status: { in: PENDING_APPROVED_REQUEST_STATUSES }, isDeleted: false } },
     },
   },
 } as const
@@ -186,7 +207,7 @@ export class TripRepository {
 
   async findBySlug(slug: string) {
     return this.prisma.trip.findFirst({
-      where: { slug, isDeleted: false },
+      where: { slug, isDeleted: false, isHidden: false },
       include: TRIP_INCLUDE_DETAIL,
     })
   }
@@ -227,6 +248,53 @@ export class TripRepository {
     return { data, total }
   }
 
+  async findAllPaginated(
+    filters: { q?: string; status?: string; sortBy?: string; sortOrder?: string },
+    pagination: { offset: number; limit: number },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      isDeleted: false,
+      ...(filters.status && { status: filters.status as Prisma.EnumTripStatusFilter }),
+      ...(filters.q && {
+        OR: [
+          { title: { contains: filters.q, mode: 'insensitive' } },
+          { destination: { name: { contains: filters.q, mode: 'insensitive' } } },
+        ],
+      }),
+    }
+
+    const dir = filters.sortOrder === 'asc' ? 'asc' : 'desc'
+    let orderBy: Prisma.TripOrderByWithRelationInput
+    switch (filters.sortBy) {
+      case 'destination':
+        orderBy = { destination: { name: dir } }
+        break
+      case 'startDate':
+        orderBy = { startDate: dir }
+        break
+      case 'pricePerPerson':
+        orderBy = { pricePerPerson: dir }
+        break
+      case 'status':
+        orderBy = { status: dir }
+        break
+      default:
+        orderBy = { createdAt: 'desc' }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.trip.findMany({
+        where,
+        select: ORGANIZER_TRIP_SELECT_SUMMARY,
+        orderBy,
+        skip: pagination.offset,
+        take: pagination.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
   async findByDestinationIdPaginated(
     destinationId: string,
     pagination: { offset: number; limit: number },
@@ -235,6 +303,7 @@ export class TripRepository {
     const where: Prisma.TripWhereInput = {
       destinationId,
       isDeleted: false,
+      isHidden: false,
       status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
       ...(filters?.tripType ? { tripType: filters.tripType } : {}),
       ...(filters?.minPrice || filters?.maxPrice
@@ -276,6 +345,7 @@ export class TripRepository {
     const baseWhere: Prisma.TripWhereInput = {
       destinationId,
       isDeleted: false,
+      isHidden: false,
       status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
     }
 
@@ -334,7 +404,7 @@ export class TripRepository {
 
   async findSlugsForSitemap(): Promise<{ slug: string; updatedAt: Date }[]> {
     return this.prisma.trip.findMany({
-      where: { isDeleted: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
+      where: { isDeleted: false, isHidden: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
       take: SITEMAP_MAX_TRIPS,
@@ -363,6 +433,7 @@ export class TripRepository {
 
     return {
       isDeleted: false,
+      isHidden: false,
       status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
       ...textFilter,
       ...(filters.destinationId && { destinationId: filters.destinationId }),
@@ -449,6 +520,8 @@ export class TripRepository {
         status: true,
         bookingMode: true,
         acceptingBookings: true,
+        bookingsPausedReason: true,
+        isHidden: true,
         maxGroupSize: true,
         currentBookings: true,
         version: true,

@@ -463,8 +463,18 @@ export class BookingService {
 
       const trip = await this.tripRepo.findByIdForBooking(input.tripId)
       if (!trip) throw new NotFoundError('Trip')
-      if (trip.status !== TRIP_STATUS.ACTIVE || !trip.acceptingBookings) {
+      if (trip.isHidden) {
+        throw new ValidationError('This trip is not available for booking')
+      }
+      if (trip.status !== TRIP_STATUS.ACTIVE) {
         throw new ValidationError('This trip is not accepting bookings')
+      }
+      if (!trip.acceptingBookings) {
+        throw new ValidationError(
+          trip.bookingsPausedReason
+            ? `Bookings are closed: ${trip.bookingsPausedReason}`
+            : 'Bookings are currently closed for this trip',
+        )
       }
       if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
         throw new ValidationError('Booking deadline has passed')
