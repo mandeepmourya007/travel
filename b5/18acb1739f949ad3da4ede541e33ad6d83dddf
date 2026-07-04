@@ -1,0 +1,36 @@
+docker/web.Dockerfile
+  s_b06a7b9ac57572::t_3ad8c43351d642 30
+apps/web/package.json
+  s_1618fa3cb4515a::t_7a20c289372ac3 36
+package-lock.json
+  s_1618fa3cb4515a::t_4fa57714ef14b8 115,655-880,14827,14849,14871,14887,14903,14919,14935,14951,14967,14983,14999,15021,15043,15065,15087,15109,15131,15150,15169,15185,15214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b518acb1739f949ad3da4ede541e33ad6d83dddf",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_1618fa3cb4515a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "9b01e3c9-9521-4155-ad34-bd38f35550af",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_b06a7b9ac57572": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74801df7-7ef9-4784-8175-9902d81c0ca1",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
