@@ -1,0 +1,36 @@
+apps/web/src/components/bookings/__tests__/my-bookings-list.test.tsx
+  s_443fb83ba7b4b2::t_aec2f9bf12ab96 321-325
+  s_443fb83ba7b4b2::t_507a7599046d26 1
+apps/web/src/test/factories/trip.factory.ts
+  s_2e2585c6712eca::t_c7abebcdea2a40 38-39
+  s_2e2585c6712eca::t_59908f9d6dd0f1 59-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "57fb43389b8656e822cb39b3958dbe0cb3ce8333",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_443fb83ba7b4b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "385ac0d0-62d9-4137-953d-b2f87f804007",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": null
+    }
+  }
+}
