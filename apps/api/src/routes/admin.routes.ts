@@ -4,6 +4,7 @@ import type { UserRole } from '@shared/types/user.types'
 import { USER_ROLE } from '@shared/constants'
 import type { AdminController } from '../controllers/admin.controller'
 import { validate } from '../middleware/validate.middleware'
+import { adminRateLimit } from '../middleware/rate-limit.middleware'
 import {
   organizerApprovalFiltersSchema,
   approveRejectSchema,
@@ -13,6 +14,7 @@ import {
   issueCashbackSchema,
   cashbackHistoryFiltersSchema,
   reviewDocSchema,
+  adminReviewFiltersSchema,
   docTypeParamSchema,
   addDocCommentSchema,
   organizerInviteFiltersSchema,
@@ -140,6 +142,14 @@ export function createAdminRoutes(
     validate(cuidParamSchema, 'params'),
     validate(adminSetVisibilitySchema),
     adminController.adminSetVisibility,
+  )
+
+  // ─── Reviews ───────────────────────────────────────
+  router.get(
+    '/reviews',
+    adminRateLimit,
+    validate(adminReviewFiltersSchema, 'query'),
+    adminController.getAdminReviews,
   )
 
   return router

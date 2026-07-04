@@ -5,7 +5,7 @@ import type { TripService } from '../services/trip.service'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
-  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminTripFilters,
+  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminTripFilters, AdminReviewFilters,
 } from '@shared/types/admin.types'
 
 export class AdminController {
@@ -163,5 +163,11 @@ export class AdminController {
   adminSetVisibility = asyncHandler(async (req: Request, res: Response) => {
     const trip = await this.tripService.adminSetVisibility(req.user!.userId, req.params.id, req.body)
     res.json({ success: true, data: trip })
+  })
+
+  /** GET /admin/reviews — Platform-wide review list with filters */
+  getAdminReviews = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getAdminReviews(req.query as AdminReviewFilters)
+    res.json({ success: true, data: result.data, pagination: result.pagination })
   })
 }

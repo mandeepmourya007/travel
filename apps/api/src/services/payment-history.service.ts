@@ -28,7 +28,7 @@ export class PaymentHistoryService {
     const pg = paginate(filters)
     const { data, total } = await this.paymentTxRepo.findByUserId(
       userId,
-      { type: filters.type, status: filters.status, fromDate: filters.fromDate, toDate: filters.toDate },
+      { type: filters.type, status: filters.status, fromDate: filters.fromDate, toDate: filters.toDate, tripId: filters.tripId },
       { skip: pg.skip, take: pg.take },
     )
     this.logger.debug({ userId, filters, total }, 'Fetched payment history for traveler')

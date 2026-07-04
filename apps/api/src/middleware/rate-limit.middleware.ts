@@ -122,3 +122,6 @@ export const webhookRateLimit = createRateLimiter('webhook', 50, 60)
 // verification, cancellation). 20/min per IP stops brute-force payment
 // attempts while leaving headroom for legitimate multi-leg bookings.
 export const bookingRateLimit = createRateLimiter('booking', 20, 60)
+// Admin search endpoints can trigger expensive ILIKE queries; cap at 30/min
+// per authenticated session to prevent accidental or malicious scan loops.
+export const adminRateLimit = createRateLimiter('admin', 30, 60)

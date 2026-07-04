@@ -256,6 +256,60 @@ export class TripRepository {
     return { data, total }
   }
 
+  /** Combobox search — trips that a specific traveler has at least one booking for. */
+  async searchBookedByUserId(
+    userId: string,
+    opts: { q?: string; page: number; limit: number },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      isDeleted: false,
+      bookings: { some: { userId, isDeleted: false } },
+      ...(opts.q && {
+        OR: [
+          { title: { contains: opts.q, mode: 'insensitive' } },
+          { destination: { name: { contains: opts.q, mode: 'insensitive' } } },
+        ],
+      }),
+    }
+    const skip = (opts.page - 1) * opts.limit
+    const [data, total] = await Promise.all([
+      this.prisma.trip.findMany({
+        where,
+        select: { id: true, title: true, slug: true, status: true, destination: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: opts.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /** Combobox search — all trips (admin use). */
+  async searchAll(opts: { q?: string; page: number; limit: number }) {
+    const where: Prisma.TripWhereInput = {
+      isDeleted: false,
+      ...(opts.q && {
+        OR: [
+          { title: { contains: opts.q, mode: 'insensitive' } },
+          { destination: { name: { contains: opts.q, mode: 'insensitive' } } },
+        ],
+      }),
+    }
+    const skip = (opts.page - 1) * opts.limit
+    const [data, total] = await Promise.all([
+      this.prisma.trip.findMany({
+        where,
+        select: { id: true, title: true, slug: true, status: true, destination: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: opts.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
   async findByOrganizerIdPaginated(
     organizerId: string,
     status: string | undefined,

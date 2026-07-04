@@ -96,6 +96,26 @@ export class TripService {
     }))
   }
 
+  /** GET /trips/my/booked-search — Trips the logged-in traveler has booked, for combobox use */
+  async searchBookedTrips(userId: string, opts: { q?: string; page: number; limit: number }) {
+    const { data, total } = await this.tripRepo.searchBookedByUserId(userId, opts)
+    const totalPages = Math.ceil(total / opts.limit)
+    return {
+      data: data.map((t) => ({ id: t.id, title: t.title, slug: t.slug, status: t.status, destination: t.destination })),
+      pagination: { page: opts.page, limit: opts.limit, total, totalPages },
+    }
+  }
+
+  /** GET /trips/admin/search — All trips, searchable, admin combobox use */
+  async searchAllTrips(opts: { q?: string; page: number; limit: number }) {
+    const { data, total } = await this.tripRepo.searchAll(opts)
+    const totalPages = Math.ceil(total / opts.limit)
+    return {
+      data: data.map((t) => ({ id: t.id, title: t.title, slug: t.slug, status: t.status, destination: t.destination })),
+      pagination: { page: opts.page, limit: opts.limit, total, totalPages },
+    }
+  }
+
   /** GET /trips/my/search — Searchable + paginated trip list for comboboxes */
   async searchMyTrips(userId: string, opts: { q?: string; page: number; limit: number; status?: string }) {
     const profile = await this.organizerProfileRepo.findByUserId(userId)

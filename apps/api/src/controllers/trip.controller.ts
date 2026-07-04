@@ -56,6 +56,24 @@ export class TripController {
     res.json({ success: true, data: trips })
   })
 
+  /** GET /trips/my/booked-search — Trips the logged-in traveler has at least one booking for */
+  searchBookedTrips = asyncHandler(async (req: Request, res: Response) => {
+    const { q, page, limit } = req.query as { q?: string; page: string; limit: string }
+    const result = await this.tripService.searchBookedTrips(req.user!.userId, {
+      q,
+      page: Number(page),
+      limit: Number(limit),
+    })
+    res.json({ success: true, ...result })
+  })
+
+  /** GET /trips/admin/search — All trips searchable, for admin combobox */
+  searchAllTrips = asyncHandler(async (req: Request, res: Response) => {
+    const { q, page, limit } = req.query as { q?: string; page: string; limit: string }
+    const result = await this.tripService.searchAllTrips({ q, page: Number(page), limit: Number(limit) })
+    res.json({ success: true, ...result })
+  })
+
   /** GET /trips/my/search — Searchable + paginated trip list for comboboxes */
   searchMyTrips = asyncHandler(async (req: Request, res: Response) => {
     const { q, page, limit, status } = req.query as { q?: string; page: string; limit: string; status?: string }

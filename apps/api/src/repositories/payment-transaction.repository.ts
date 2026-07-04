@@ -221,7 +221,7 @@ export class PaymentTransactionRepository {
    */
   async findByUserId(
     userId: string,
-    filters: { type?: string; status?: string; fromDate?: string; toDate?: string },
+    filters: { type?: string; status?: string; fromDate?: string; toDate?: string; tripId?: string },
     pagination: { skip: number; take: number },
   ) {
     const where = this.buildPaymentWhere({ ...filters, userId })

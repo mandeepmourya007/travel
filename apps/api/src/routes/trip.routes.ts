@@ -33,6 +33,22 @@ export function createTripRoutes(
   )
 
   router.get(
+    '/my/booked-search',
+    authMiddleware,
+    requireRole(USER_ROLE.TRAVELER, USER_ROLE.ADMIN),
+    validate(myTripSearchSchema, 'query'),
+    tripController.searchBookedTrips,
+  )
+
+  router.get(
+    '/admin/search',
+    authMiddleware,
+    requireRole(USER_ROLE.ADMIN),
+    validate(myTripSearchSchema, 'query'),
+    tripController.searchAllTrips,
+  )
+
+  router.get(
     '/organizer/stats',
     authMiddleware,
     requireRole(USER_ROLE.ORGANIZER),

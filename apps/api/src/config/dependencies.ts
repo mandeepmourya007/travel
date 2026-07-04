@@ -244,7 +244,7 @@ const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
   paymentTxRepo, messageRepo,
   walletRepo, walletService, logger, notificationService,
-  docReviewRepo, organizerInviteRepo,
+  docReviewRepo, reviewRepo, organizerInviteRepo,
 )
 
 const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)

@@ -10,10 +10,11 @@ import type { WalletService } from './wallet.service'
 import type { NotificationService } from './notification.service'
 import type { DocumentReviewRepository, DocumentReviewCommentRow } from '../repositories/document-review.repository'
 import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
+import type { ReviewRepository } from '../repositories/review.repository'
 import type {
   OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
-  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters,
+  ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminReviewFilters,
 } from '@shared/types/admin.types'
 import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
@@ -36,6 +37,7 @@ export class AdminService {
     private logger: Logger,
     private notificationService: NotificationService,
     private docReviewRepo: DocumentReviewRepository,
+    private reviewRepo: ReviewRepository,
     private organizerInviteRepo?: OrganizerInviteRepository,
   ) {}
 
@@ -444,5 +446,25 @@ export class AdminService {
     }))
 
     return { data: mapped, pagination: pg.meta(total) }
+  }
+
+  // ─── Reviews ──────────────────────────────────────────
+
+  /**
+   * Platform-wide paginated review list for admin inspection.
+   * Supports text search on organizer businessName and trip title via ILIKE.
+   * Single Prisma query — no N+1 (trip + organizer joined in ADMIN_REVIEW_SELECT).
+   *
+   * Edge cases:
+   * - Both organizerSearch and tripSearch can be active simultaneously (different nested fields)
+   * - Empty results return { data: [], pagination: {..., total: 0 } }
+   */
+  async getAdminReviews(filters: AdminReviewFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.reviewRepo.findAllAdmin(
+      filters,
+      { skip: pg.skip, take: pg.take },
+    )
+    return { data, pagination: pg.meta(total) }
   }
 }
