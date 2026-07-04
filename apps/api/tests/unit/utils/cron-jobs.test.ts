@@ -26,6 +26,7 @@ const mockRefreshTokenRepo = {
 
 const mockPaymentService = {
   checkOrderStatus: vi.fn(),
+  resolveProviderFromTx: vi.fn().mockReturnValue('razorpay'),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const mockTripLifecycleService = {

@@ -149,7 +149,7 @@ describe('verifyAndParseWebhook', () => {
       type: 'REFUND_STATUS_WEBHOOK',
       data: {
         order: { order_id: 'order_cf_ref' },
-        refund: { cf_refund_id: 'rfnd_123' },
+        refund: { cf_refund_id: 'rfnd_123', refund_status: 'SUCCESS' },
         payment: { cf_payment_id: 99003 },
       },
     }))
