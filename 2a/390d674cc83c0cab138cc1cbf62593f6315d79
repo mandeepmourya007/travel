@@ -1,0 +1,33 @@
+apps/web/src/components/trips/trip-sticky-book-bar.tsx
+  s_2e2585c6712eca::t_dc25f9ce99a63a 35,38
+  s_2e2585c6712eca::t_4bb02486a7d890 12-13
+  s_2e2585c6712eca::t_172d009ede907f 34,36-37,39
+  s_2e2585c6712eca::t_c5287dfd7878b9 3
+apps/web/src/components/trips/trip-cta-button.tsx
+  s_2e2585c6712eca::t_2f82bfb92649f1 96-104
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_2e2585c6712eca::t_b65b5f2dce71f1 40-56
+apps/web/src/components/trips/trip-card.tsx
+  s_2e2585c6712eca::t_93ca1389d62fc0 124-148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "2a390d674cc83c0cab138cc1cbf62593f6315d79",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
