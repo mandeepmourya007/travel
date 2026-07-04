@@ -1,0 +1,64 @@
+packages/shared/src/validators/admin.schema.ts
+  s_28e5ed90b6df52::t_4b9471db15661a 82-86,88,90-91
+  s_28e5ed90b6df52::t_78043ac400bf4d 87
+  s_28e5ed90b6df52::t_aa945ba99a7b9c 89
+  s_28e5ed90b6df52::t_d23e0acce31c03 6
+packages/shared/src/types/payment.types.ts
+  s_28e5ed90b6df52::t_397091c7c0b16e 62
+packages/shared/src/types/admin.types.ts
+  s_28e5ed90b6df52::t_ab90c5f38e0814 300
+  s_28e5ed90b6df52::t_d89d8269553685 294-299,301-320,322-323
+  s_28e5ed90b6df52::t_df8240405ac8d8 321
+  s_28e5ed90b6df52::t_fc3f098ec8692f 6-7
+packages/shared/src/constants/review.ts
+  s_28e5ed90b6df52::t_4eba7f48e34dcc 22
+  s_28e5ed90b6df52::t_1ae813fb6427f7 5-21
+  s_28e5ed90b6df52::t_707360aca86857 23-24
+packages/shared/src/constants/index.ts
+  s_28e5ed90b6df52::t_7815c857e5a3f2 13
+packages/shared/src/constants/roles.ts
+  s_28e5ed90b6df52::t_9d1c502ad87c5f 12-14
+packages/shared/src/validators/payment.schema.ts
+  s_28e5ed90b6df52::t_d7ccd46e2ee28f 33-36
+packages/shared/src/types/review.types.ts
+  s_28e5ed90b6df52::t_ea814f9aa0c4b9 63-66
+  s_28e5ed90b6df52::t_f2ccd9c6a5a8f3 60
+  s_28e5ed90b6df52::t_da569abc5805e2 1-2
+  s_28e5ed90b6df52::t_fb8820c876a24c 59
+  s_1618fa3cb4515a::t_b040dd880ea58a 61-62
+packages/shared/src/constants/admin.ts
+  s_28e5ed90b6df52::t_3a8cdaf0120491 1-15
+packages/shared/src/validators/review.schema.ts
+  s_28e5ed90b6df52::t_c42f1c5641b613 34,36-44
+  s_28e5ed90b6df52::t_4a115297d991cf 2-3
+  s_28e5ed90b6df52::t_087390a197355b 45-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9d8d28bc555ba0a08d3bc0ebea63e7271df22b28",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_1618fa3cb4515a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "9b01e3c9-9521-4155-ad34-bd38f35550af",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
