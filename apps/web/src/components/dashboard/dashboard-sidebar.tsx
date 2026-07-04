@@ -11,6 +11,7 @@ import {
   Landmark,
   Plus,
   ShieldCheck,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useProfile } from '@/hooks/use-profile'
@@ -26,6 +27,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
+  { id: 'payments', label: 'Payments', href: '/dashboard/payments', icon: Wallet },
   { id: 'messages', label: 'Messages', href: '/messages', icon: MessageSquare },
   { id: 'reviews', label: 'Reviews', href: '/dashboard/reviews', icon: Star },
   { id: 'verification', label: 'Verification', href: '/dashboard/settings/verification', icon: ShieldCheck },

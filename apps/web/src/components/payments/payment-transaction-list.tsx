@@ -50,7 +50,15 @@ export function PaymentTransactionList({
   // State 4: Data
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm">
+      {/* Mobile cards */}
+      <div className="space-y-3 md:hidden">
+        {data.map((tx) => (
+          <MobilePaymentCard key={tx.id} transaction={tx} showUser={showUser} />
+        ))}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm md:block">
         <table className="w-full text-sm">
           <thead className="border-b-2 border-neutral-200 bg-neutral-50">
             <tr>
@@ -97,6 +105,54 @@ export function PaymentTransactionList({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Mobile Card Component ───────────────────────────
+
+function MobilePaymentCard({
+  transaction,
+  showUser,
+}: {
+  transaction: PaymentHistoryItem
+  showUser: boolean
+}) {
+  const isRefund = transaction.type === 'REFUND'
+  const amountColor = isRefund ? 'text-success-600' : 'text-accent-600'
+  const amountPrefix = isRefund ? '+' : ''
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-sm text-neutral-800">
+            {transaction.booking.trip.title}
+          </p>
+          <p className="mt-0.5 font-mono text-xs text-neutral-400">
+            {transaction.booking.bookingRef}
+          </p>
+          {showUser && transaction.booking.user && (
+            <p className="mt-1 text-xs text-neutral-500">{transaction.booking.user.name}</p>
+          )}
+        </div>
+        <span className={`shrink-0 font-bold text-sm ${amountColor}`}>
+          {amountPrefix}{formatCurrency(transaction.amount)}
+        </span>
+      </div>
+      <div className="mt-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <PaymentTypeBadge type={transaction.type} isPartialRefund={transaction.isPartialRefund} />
+          <PaymentStatusBadge status={transaction.status} />
+        </div>
+        <span className="text-xs text-neutral-400">
+          {new Date(transaction.createdAt).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </span>
+      </div>
     </div>
   )
 }

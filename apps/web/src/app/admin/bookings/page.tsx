@@ -29,6 +29,7 @@ import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { cn } from '@/lib/utils'
 import type { AdminBookingFilters, AdminBookingSortBy, SortOrder } from '@shared/types/admin.types'
+import { SORT_ORDER } from '@shared/constants/sort'
 
 const SORT_OPTIONS: { field: AdminBookingSortBy; label: string }[] = [
   { field: 'totalAmount', label: 'Amount' },
@@ -51,15 +52,15 @@ export default function AdminBookingsPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<AdminBookingSortBy | undefined>(undefined)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_ORDER.DESC)
   const debouncedSearch = useDebounce(search, 300)
 
   function handleSort(field: AdminBookingSortBy) {
     if (sortBy === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      setSortOrder((prev) => (prev === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC))
     } else {
       setSortBy(field)
-      setSortOrder('desc')
+      setSortOrder(SORT_ORDER.DESC)
     }
     setPage(1)
   }
@@ -131,7 +132,7 @@ export default function AdminBookingsPage() {
               )}
             >
               {label}
-              {active && (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+              {active && (sortOrder === SORT_ORDER.ASC ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
             </button>
           )
         })}
@@ -260,7 +261,7 @@ function SortableHead({
   className?: string
 }) {
   const active = sortBy === field
-  const Icon = active ? (sortOrder === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  const Icon = active ? (sortOrder === SORT_ORDER.ASC ? ArrowUp : ArrowDown) : ArrowUpDown
   return (
     <TableHead className={className}>
       <button

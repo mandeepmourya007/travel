@@ -41,6 +41,7 @@ import { formatDateRange, formatCurrency } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { OrganizerTripListItem } from '@shared/types/trip.types'
 import type { AdminTripSortBy, SortOrder } from '@shared/types/admin.types'
+import { SORT_ORDER } from '@shared/constants/sort'
 
 const TRIP_STATUS_VARIANT: Record<string, 'default' | 'outline' | 'secondary' | 'destructive'> = {
   DRAFT: 'secondary',
@@ -78,15 +79,15 @@ export default function AdminTripsPage() {
   const [status, setStatus] = useState('all')
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<AdminTripSortBy | undefined>(undefined)
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_ORDER.ASC)
   const debouncedSearch = useDebounce(search, 300)
 
   function handleSort(field: AdminTripSortBy) {
     if (sortBy === field) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      setSortOrder((prev) => (prev === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC))
     } else {
       setSortBy(field)
-      setSortOrder('asc')
+      setSortOrder(SORT_ORDER.ASC)
     }
     setPage(1)
   }
@@ -188,7 +189,7 @@ export default function AdminTripsPage() {
               )}
             >
               {label}
-              {active && (sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+              {active && (sortOrder === SORT_ORDER.ASC ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
             </button>
           )
         })}
@@ -322,7 +323,7 @@ function SortableHead({
   className?: string
 }) {
   const active = sortBy === field
-  const Icon = active ? (sortOrder === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  const Icon = active ? (sortOrder === SORT_ORDER.ASC ? ArrowUp : ArrowDown) : ArrowUpDown
   return (
     <TableHead className={className}>
       <button

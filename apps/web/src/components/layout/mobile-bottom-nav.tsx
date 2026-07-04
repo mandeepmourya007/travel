@@ -6,13 +6,13 @@ import {
   LayoutDashboard,
   Map,
   MessageSquare,
-  Landmark,
   UserCircle,
   MapPin,
   BookOpen,
   Coins,
   Compass,
   LogIn,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth.store'
@@ -28,8 +28,8 @@ interface NavItem {
 const ORGANIZER_NAV: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
+  { id: 'payments', label: 'Payments', href: '/dashboard/payments', icon: Wallet },
   { id: 'messages', label: 'Messages', href: '/messages', icon: MessageSquare },
-  { id: 'bank', label: 'Bank', href: '/dashboard/settings/bank', icon: Landmark },
   { id: 'profile', label: 'Profile', href: '/profile', icon: UserCircle },
 ]
 
