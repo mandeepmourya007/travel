@@ -6,6 +6,7 @@ import { useMyTrips } from '@/hooks/use-my-trips'
 import { usePublishTrip } from '@/hooks/use-publish-trip'
 import { useDeleteTrip } from '@/hooks/use-delete-trip'
 import { useToggleBookings } from '@/hooks/use-toggle-bookings'
+import { useSetTripVisibility } from '@/hooks/use-set-trip-visibility'
 import { TripListCard, TripListCardSkeleton } from '@/components/dashboard/trip-list-card'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 
@@ -14,6 +15,7 @@ export default function MyTripsPage() {
   const publishTrip = usePublishTrip()
   const deleteTrip = useDeleteTrip()
   const toggleBookings = useToggleBookings()
+  const setVisibility = useSetTripVisibility()
 
   if (isLoading) {
     return (
@@ -63,7 +65,12 @@ export default function MyTripsPage() {
               trip={trip}
               onPublish={(id) => publishTrip.mutate(id)}
               onDelete={(id) => deleteTrip.mutate(id)}
-              onToggleBookings={(id) => toggleBookings.mutate(id)}
+              onSetBookingPause={(id, paused, reason, slug) =>
+                toggleBookings.mutate({ tripId: id, paused, reason, slug })
+              }
+              onSetVisibility={(id, hidden, reason, slug) =>
+                setVisibility.mutate({ tripId: id, hidden, reason, slug })
+              }
             />
           ))}
         </div>

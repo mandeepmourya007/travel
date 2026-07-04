@@ -325,7 +325,9 @@ export default function BookingPage({
         {renderState === 'notAccepting' && (
           <div className="text-center py-16">
             <h2 className="text-xl font-display font-bold text-neutral-800">Bookings Closed</h2>
-            <p className="text-neutral-500 mt-2">This trip is not accepting bookings at the moment.</p>
+            <p className="text-neutral-500 mt-2">
+              {trip?.bookingsPausedReason ?? 'This trip is not accepting bookings at the moment.'}
+            </p>
             <Link
               href={`/trips/${slug}`}
               className="btn-secondary inline-flex items-center gap-2 text-sm mt-6"
