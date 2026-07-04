@@ -5,6 +5,7 @@ import type { DestinationTripFilters } from '@shared/types/destination.types'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { BOOKING_STATUS, TRIP_REQUEST_STATUS } from '@shared/constants/booking-status'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { SORT_ORDER } from '@shared/constants/sort'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, SITEMAP_MAX_TRIPS } from '../utils/constants'
 import { tokenizeQuery } from '../utils/search'
 
@@ -225,6 +226,36 @@ export class TripRepository {
     })
   }
 
+  /** Searchable + paginated variant — used by the trip picker combobox. */
+  async searchByOrganizerId(
+    organizerId: string,
+    opts: { q?: string; page: number; limit: number; status?: string },
+  ) {
+    const where: Prisma.TripWhereInput = {
+      organizerId,
+      isDeleted: false,
+      ...(opts.status && { status: opts.status as Prisma.EnumTripStatusFilter }),
+      ...(opts.q && {
+        OR: [
+          { title: { contains: opts.q, mode: 'insensitive' } },
+          { destination: { name: { contains: opts.q, mode: 'insensitive' } } },
+        ],
+      }),
+    }
+    const skip = (opts.page - 1) * opts.limit
+    const [data, total] = await Promise.all([
+      this.prisma.trip.findMany({
+        where,
+        select: { id: true, title: true, slug: true, status: true, destination: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: opts.limit,
+      }),
+      this.prisma.trip.count({ where }),
+    ])
+    return { data, total }
+  }
+
   async findByOrganizerIdPaginated(
     organizerId: string,
     status: string | undefined,
@@ -263,7 +294,7 @@ export class TripRepository {
       }),
     }
 
-    const dir = filters.sortOrder === 'asc' ? 'asc' : 'desc'
+    const dir = filters.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
     let orderBy: Prisma.TripOrderByWithRelationInput
     switch (filters.sortBy) {
       case 'destination':

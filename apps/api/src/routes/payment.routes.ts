@@ -4,7 +4,7 @@ import type { UserRole } from '@shared/types/user.types'
 import { USER_ROLE } from '@shared/constants'
 import { PaymentHistoryController } from '../controllers/payment-history.controller'
 import { validate } from '../middleware/validate.middleware'
-import { paymentHistoryFiltersSchema, adminPaymentFiltersSchema } from '@shared/validators/payment.schema'
+import { paymentHistoryFiltersSchema, adminPaymentFiltersSchema, organizerPaymentFiltersSchema } from '@shared/validators/payment.schema'
 
 export function createPaymentRoutes(
   paymentHistoryController: PaymentHistoryController,
@@ -41,6 +41,22 @@ export function createPaymentRoutes(
     authMiddleware,
     requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
     paymentHistoryController.getTripPaymentSummary,
+  )
+
+  // ─── Organizer global payment history ────────────
+  router.get(
+    '/organizer',
+    authMiddleware,
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
+    validate(organizerPaymentFiltersSchema, 'query'),
+    paymentHistoryController.getOrganizerPayments,
+  )
+
+  router.get(
+    '/organizer/summary',
+    authMiddleware,
+    requireRole(USER_ROLE.ORGANIZER, USER_ROLE.ADMIN),
+    paymentHistoryController.getOrganizerPaymentSummary,
   )
 
   // ─── Organizer payout statement ───────────────────

@@ -3,7 +3,7 @@ import { Prisma, type BookingStatus, type Gender, type PaymentType, type Payment
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
-import { BOOKING_STATUS, TRIP_REQUEST_STATUS, PAYMENT_PROVIDER } from '@shared/constants'
+import { BOOKING_STATUS, TRIP_REQUEST_STATUS, PAYMENT_PROVIDER, SORT_ORDER } from '@shared/constants'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 const ASSIGNED_SEAT_SELECT = {
@@ -715,7 +715,7 @@ export class BookingRepository {
       }),
     }
 
-    const dir = filters.sortOrder === 'asc' ? 'asc' : 'desc'
+    const dir = filters.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
     let orderBy: Prisma.BookingOrderByWithRelationInput
     switch (filters.sortBy) {
       case 'totalAmount':

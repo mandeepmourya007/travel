@@ -7,6 +7,7 @@ import { DEFAULT_COMMISSION_RATE, paginate, PAYMENT_TX_TYPE } from '../utils/con
 import type {
   PaymentHistoryFilters,
   AdminPaymentFilters,
+  OrganizerPaymentFilters,
   TravelerPaymentSummary,
   TripPaymentSummary,
   AdminPaymentSummary,
@@ -68,6 +69,46 @@ export class PaymentHistoryService {
     const platformCommission = Math.round(netRevenue * commissionRate)
     const organizerEarnings = netRevenue - platformCommission
 
+    return {
+      totalRevenue: raw.totalRevenue,
+      totalRefunded: raw.totalRefunded,
+      netRevenue,
+      platformCommission,
+      organizerEarnings,
+      transactionCount: raw.transactionCount,
+      refundCount: raw.refundCount,
+    }
+  }
+
+  /** GET /payments/organizer — Organizer's global payment history across all trips */
+  async getOrganizerPayments(userId: string, filters: OrganizerPaymentFilters = {}) {
+    const profile = await this.verifyOrganizerProfile(userId)
+    const pg = paginate(filters)
+    const { data, total } = await this.paymentTxRepo.findByOrganizerId(
+      profile.id,
+      {
+        type: filters.type,
+        status: filters.status,
+        fromDate: filters.fromDate,
+        toDate: filters.toDate,
+        tripId: filters.tripId,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+      },
+      { skip: pg.skip, take: pg.take },
+    )
+    this.logger.debug({ organizerId: profile.id, filters, total }, 'Fetched organizer global payment history')
+    return { data: data.map(annotatePartialRefund), pagination: pg.meta(total) }
+  }
+
+  /** GET /payments/organizer/summary — Organizer's global payment summary with commission */
+  async getOrganizerPaymentSummary(userId: string): Promise<TripPaymentSummary> {
+    const profile = await this.verifyOrganizerProfile(userId)
+    const raw = await this.paymentTxRepo.getOrganizerSummary(profile.id)
+    const netRevenue = raw.totalRevenue - raw.totalRefunded
+    const commissionRate = (profile.commissionRate != null ? Number(profile.commissionRate) : DEFAULT_COMMISSION_RATE) / 100
+    const platformCommission = Math.round(netRevenue * commissionRate)
+    const organizerEarnings = netRevenue - platformCommission
     return {
       totalRevenue: raw.totalRevenue,
       totalRefunded: raw.totalRefunded,
@@ -192,6 +233,13 @@ export class PaymentHistoryService {
    * @throws ForbiddenError — not the organizer
    * @returns the organizer profile (for commission rate access)
    */
+  /** Resolves the organizer profile for a user; throws ForbiddenError if not an organizer. */
+  private async verifyOrganizerProfile(userId: string) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new ForbiddenError('Organizer profile not found')
+    return profile
+  }
+
   private async verifyTripOrganizer(userId: string, tripId: string) {
     const [trip, profile] = await Promise.all([
       this.tripRepo.findById(tripId),

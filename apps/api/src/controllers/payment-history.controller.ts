@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
 import { asyncHandler } from '../utils/async-handler'
 import { PaymentHistoryService } from '../services/payment-history.service'
-import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/payment.types'
+import type { PaymentHistoryFilters, AdminPaymentFilters, OrganizerPaymentFilters } from '@shared/types/payment.types'
 
 export class PaymentHistoryController {
   constructor(private paymentHistoryService: PaymentHistoryService) {}
@@ -51,6 +51,23 @@ export class PaymentHistoryController {
   /** GET /payments/admin/summary — Admin global summary */
   getGlobalSummary = asyncHandler(async (_req: Request, res: Response) => {
     const summary = await this.paymentHistoryService.getGlobalSummary()
+    res.json({ success: true, data: summary })
+  })
+
+  /** GET /payments/organizer — Organizer's cross-trip payment history */
+  getOrganizerPayments = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId
+    const result = await this.paymentHistoryService.getOrganizerPayments(
+      userId,
+      req.query as OrganizerPaymentFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /payments/organizer/summary — Organizer global summary with commission */
+  getOrganizerPaymentSummary = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user!.userId
+    const summary = await this.paymentHistoryService.getOrganizerPaymentSummary(userId)
     res.json({ success: true, data: summary })
   })
 

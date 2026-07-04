@@ -56,6 +56,18 @@ export class TripController {
     res.json({ success: true, data: trips })
   })
 
+  /** GET /trips/my/search — Searchable + paginated trip list for comboboxes */
+  searchMyTrips = asyncHandler(async (req: Request, res: Response) => {
+    const { q, page, limit, status } = req.query as { q?: string; page: string; limit: string; status?: string }
+    const result = await this.tripService.searchMyTrips(req.user!.userId, {
+      q,
+      page: Number(page),
+      limit: Number(limit),
+      status,
+    })
+    res.json({ success: true, ...result })
+  })
+
   /** POST /trips — Create a new trip (organizer only) */
   create = asyncHandler(async (req: Request, res: Response) => {
     const trip = await this.tripService.createTrip(req.user!.userId, req.body)

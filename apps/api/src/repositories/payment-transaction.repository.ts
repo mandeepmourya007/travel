@@ -1,6 +1,6 @@
 import type { PaymentStatus, PaymentType, Prisma } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
-import { BOOKING_STATUS, TRIP_STATUS } from '@shared/constants'
+import { BOOKING_STATUS, TRIP_STATUS, SORT_ORDER } from '@shared/constants'
 import { PAYMENT_TX_TYPE, PAYMENT_TX_STATUS } from '../utils/constants'
 
 const BOOKING_SELECT_BASE = {
@@ -390,6 +390,104 @@ export class PaymentTransactionRepository {
       if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.REFUNDED) totalRefunded = g._sum.amount ?? 0
     }
     return { totalRevenue, totalRefunded, transactionCount: txCount, failedCount }
+  }
+
+  // ─── Organizer Global Queries ──────────────────────
+
+  /**
+   * Finds all payment transactions across an organizer's trips.
+   *
+   * WHERE: booking.trip.organizerId = organizerId (ownership enforced by join)
+   * Optionally scoped to a single trip via filters.tripId.
+   * Used by: PaymentHistoryService.getOrganizerPayments()
+   */
+  async findByOrganizerId(
+    organizerId: string,
+    filters: {
+      type?: string; status?: string; fromDate?: string; toDate?: string
+      tripId?: string; sortBy?: string; sortOrder?: string
+    },
+    pagination: { skip: number; take: number },
+  ) {
+    // Omit tripId from buildPaymentWhere — ownership is enforced via trip.organizerId join below
+    const baseWhere = this.buildPaymentWhere({
+      type: filters.type,
+      status: filters.status,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+    })
+
+    const where: Prisma.PaymentTransactionWhereInput = {
+      ...baseWhere,
+      booking: {
+        trip: {
+          organizerId,
+          isDeleted: false,
+          ...(filters.tripId ? { id: filters.tripId } : {}),
+        },
+      },
+    }
+
+    const dir = filters.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
+    let orderBy: Prisma.PaymentTransactionOrderByWithRelationInput
+    switch (filters.sortBy) {
+      case 'amount':    orderBy = { amount: dir };    break
+      case 'status':    orderBy = { status: dir };    break
+      case 'createdAt': orderBy = { createdAt: dir }; break
+      default:          orderBy = { createdAt: 'desc' }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.paymentTransaction.findMany({
+        where,
+        include: { booking: { select: BOOKING_SELECT_WITH_USER } },
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prisma.paymentTransaction.count({ where }),
+    ])
+    return { data, total }
+  }
+
+  /**
+   * Aggregate summary across all of an organizer's trips.
+   *
+   * Returns raw totals — commission is calculated in the service layer.
+   * Used by: PaymentHistoryService.getOrganizerSummary()
+   */
+  async getOrganizerSummary(organizerId: string) {
+    const [groups, txCount, refundCount] = await Promise.all([
+      this.prisma.paymentTransaction.groupBy({
+        by: ['type', 'status'],
+        _sum: { amount: true },
+        where: {
+          booking: { trip: { organizerId, isDeleted: false } },
+          status: { in: [PAYMENT_TX_STATUS.CAPTURED, PAYMENT_TX_STATUS.REFUNDED] },
+          type: { in: [PAYMENT_TX_TYPE.PAYMENT, PAYMENT_TX_TYPE.REFUND] },
+        },
+      }),
+      this.prisma.paymentTransaction.count({
+        where: { booking: { trip: { organizerId, isDeleted: false } } },
+      }),
+      this.prisma.paymentTransaction.count({
+        where: {
+          booking: { trip: { organizerId, isDeleted: false } },
+          type: PAYMENT_TX_TYPE.REFUND,
+          status: PAYMENT_TX_STATUS.REFUNDED,
+        },
+      }),
+    ])
+
+    let totalRevenue = 0
+    let totalRefunded = 0
+    for (const g of groups) {
+      if (g.type === PAYMENT_TX_TYPE.PAYMENT && g.status === PAYMENT_TX_STATUS.CAPTURED)
+        totalRevenue = g._sum.amount ?? 0
+      if (g.type === PAYMENT_TX_TYPE.REFUND && g.status === PAYMENT_TX_STATUS.REFUNDED)
+        totalRefunded = g._sum.amount ?? 0
+    }
+    return { totalRevenue, totalRefunded, transactionCount: txCount, refundCount }
   }
 
   // ─── SafePay Release Queries ────────────────────────

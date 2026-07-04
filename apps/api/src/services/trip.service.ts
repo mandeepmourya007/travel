@@ -96,6 +96,18 @@ export class TripService {
     }))
   }
 
+  /** GET /trips/my/search — Searchable + paginated trip list for comboboxes */
+  async searchMyTrips(userId: string, opts: { q?: string; page: number; limit: number; status?: string }) {
+    const profile = await this.organizerProfileRepo.findByUserId(userId)
+    if (!profile) throw new ForbiddenError('Organizer profile not found')
+    const { data, total } = await this.tripRepo.searchByOrganizerId(profile.id, opts)
+    const totalPages = Math.ceil(total / opts.limit)
+    return {
+      data: data.map((t) => ({ id: t.id, title: t.title, slug: t.slug, status: t.status, destination: t.destination })),
+      pagination: { page: opts.page, limit: opts.limit, total, totalPages },
+    }
+  }
+
   async getOrganizerPublicProfile(
     organizerId: string,
     tripsPage = 1,
