@@ -1,0 +1,55 @@
+apps/api/src/config/dependencies.ts
+  s_28e5ed90b6df52::t_e6096600746614 247
+apps/api/src/services/trip.service.ts
+  s_28e5ed90b6df52::t_4eab93ebb701c8 99-118
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_28e5ed90b6df52::t_22a0a085e3e1af 224
+apps/api/src/controllers/admin.controller.ts
+  s_28e5ed90b6df52::t_2a3860a8ab162b 167-171
+  s_28e5ed90b6df52::t_137b68a108c089 8
+  s_28e5ed90b6df52::t_04c3382039506d 172
+apps/api/src/middleware/rate-limit.middleware.ts
+  s_28e5ed90b6df52::t_a0d5ceecb8b91c 125-127
+apps/api/src/routes/trip.routes.ts
+  s_28e5ed90b6df52::t_81f439c17dab4b 35-50
+apps/api/src/routes/admin.routes.ts
+  s_28e5ed90b6df52::t_15ad69088bbad6 150
+  s_28e5ed90b6df52::t_c5bf89dfc65a45 7
+  s_28e5ed90b6df52::t_701f28b2fd31e9 147-149,151-152
+  s_28e5ed90b6df52::t_00b4df28e95c96 17
+  s_28e5ed90b6df52::t_65fd08c6f433ef 153-154
+apps/api/src/services/admin.service.ts
+  s_28e5ed90b6df52::t_d2ebb217e2b3ac 13,17
+  s_28e5ed90b6df52::t_ba1198487c87aa 455
+  s_28e5ed90b6df52::t_d0a4a549bcc99d 450-454,456-468
+  s_28e5ed90b6df52::t_e2a9dc9cf7d89f 40
+  s_28e5ed90b6df52::t_8c8ef78627473b 469
+apps/api/src/controllers/trip.controller.ts
+  s_28e5ed90b6df52::t_83a01d2ee72d72 59-76
+apps/api/src/services/payment-history.service.ts
+  s_28e5ed90b6df52::t_89c4392c552ce5 31
+apps/api/src/repositories/trip.repository.ts
+  s_28e5ed90b6df52::t_4bb5f03cdbf6de 250-257,259-303
+  s_28e5ed90b6df52::t_4d79cd8b9eb504 258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "80e4a1e24e1becf6b0e0809b16354d50b564a2e4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
