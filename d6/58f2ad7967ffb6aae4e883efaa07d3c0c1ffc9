@@ -1,0 +1,37 @@
+apps/web/src/components/shared/trip-search-combobox.tsx
+  s_9307cd4c31fb90::t_1d27c4175a7179 3,5,16-22,29,32-36,38-43,45,48-60
+  s_9307cd4c31fb90::t_95e9fc1e833aa5 1-2,4,6-15,23-28,31,37,46-47,61-62
+  s_9307cd4c31fb90::t_5e3d2c387a99ce 30,44
+apps/web/src/components/shared/search-combobox.tsx
+  s_9307cd4c31fb90::t_f02d6ac0f3a436 106
+  s_9307cd4c31fb90::t_332a093b5d4e2c 83,87,93
+  s_9307cd4c31fb90::t_2e6ad3fe7e83ee 1-82,84-86,88-92,94-105,107-225
+apps/web/src/hooks/use-my-trips.ts
+  s_9307cd4c31fb90::t_6d50cb3b167833 22
+  s_9307cd4c31fb90::t_e78f8435eddc0f 7-20
+  s_9307cd4c31fb90::t_fe693a7c7b7034 23-38
+  s_9307cd4c31fb90::t_67fb95e9735bfc 21
+apps/web/src/hooks/use-search-combobox.ts
+  s_9307cd4c31fb90::t_ea3ed6231b684a 1-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d658f2ad7967ffb6aae4e883efaa07d3c0c1ffc9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
