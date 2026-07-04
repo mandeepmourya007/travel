@@ -36,6 +36,36 @@ export function useMyTripsSearch(q: string, page: number, limit = 10) {
   })
 }
 
+/** Trips the logged-in traveler has at least one booking for — for combobox search. */
+export function useTravelerTripsSearch(q: string, page: number, limit = 10) {
+  return useQuery({
+    queryKey: tripKeys.bookedTripsSearch(q, page, limit),
+    queryFn: async () => {
+      const res = await apiClient.get<TripSearchResponse>('/trips/my/booked-search', {
+        params: { q: q || undefined, page, limit },
+      })
+      return res.data
+    },
+    staleTime: STALE_TIME_REALTIME,
+    placeholderData: (prev) => prev,
+  })
+}
+
+/** All trips searchable — for admin combobox search. */
+export function useAdminTripsSearch(q: string, page: number, limit = 10) {
+  return useQuery({
+    queryKey: tripKeys.adminTripsSearch(q, page, limit),
+    queryFn: async () => {
+      const res = await apiClient.get<TripSearchResponse>('/trips/admin/search', {
+        params: { q: q || undefined, page, limit },
+      })
+      return res.data
+    },
+    staleTime: STALE_TIME_REALTIME,
+    placeholderData: (prev) => prev,
+  })
+}
+
 /**
  * Fetches the logged-in organizer's trip list, optionally filtered by status.
  * Query key: tripKeys.myTrips(status) — staleTime 30s

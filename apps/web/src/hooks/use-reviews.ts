@@ -2,9 +2,53 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { reviewKeys, bookingKeys, tripKeys, organizerKeys } from '@/lib/query-keys'
 import { useToast } from '@/components/shared/toast'
-import type { Review, CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary } from '@shared/types/review.types'
+import { STALE_TIME_REALTIME } from '@/lib/constants'
+import type { Review, CreateReviewDto, UpdateReviewDto, ReviewListFilters, ReviewSummary, OrganizerReviewFilters } from '@shared/types/review.types'
+import type { PaginationMeta } from '@shared/types/api-response.types'
 
 // ─── Read Hooks ─────────────────────────────────────
+
+/**
+ * Organizer dashboard — all reviews for the organizer's trips with optional filters.
+ * Query key: reviewKeys.organizerMine(filters) — staleTime: realtime
+ * Error handling: returns error object; caller handles display.
+ */
+export function useOrganizerReviews(filters?: OrganizerReviewFilters) {
+  return useQuery({
+    queryKey: reviewKeys.organizerMine(filters),
+    queryFn: async () => {
+      const res = await apiClient.get<{
+        success: true
+        data: Review[]
+        pagination: PaginationMeta
+      }>('/reviews/organizer/mine', { params: filters })
+      return { data: res.data.data, pagination: res.data.pagination }
+    },
+    staleTime: STALE_TIME_REALTIME,
+    placeholderData: (prev) => prev,
+  })
+}
+
+/**
+ * Traveler — all reviews written by the current user.
+ * Query key: reviewKeys.myReviews(filters) — staleTime: realtime
+ * Invalidates: reviewKeys.all on create/update (handled by write hooks).
+ */
+export function useMyReviews(filters?: ReviewListFilters) {
+  return useQuery({
+    queryKey: reviewKeys.myReviews(filters),
+    queryFn: async () => {
+      const res = await apiClient.get<{
+        success: true
+        data: Review[]
+        pagination: PaginationMeta
+      }>('/reviews/my', { params: filters })
+      return { data: res.data.data, pagination: res.data.pagination }
+    },
+    staleTime: STALE_TIME_REALTIME,
+    placeholderData: (prev) => prev,
+  })
+}
 
 /**
  * Fetches paginated reviews for a trip (public, no auth).
