@@ -1,0 +1,35 @@
+apps/web/src/components/dashboard/trip-list-card.tsx
+  s_2e2585c6712eca::t_4715f0901093c9 6,24-25,28,30-32,38-84,86,90,93,96-99,102,107-110,113,118-121,124,126,128-129,151,153,156,160-167,177-182,220-288,290,295
+  s_9307cd4c31fb90::t_c1767929a0e7ee 85,87-89,91-92,94-95,100-101,103-106,111-112,114-117,122-123,125,127
+  s_9307cd4c31fb90::t_94ef4f155c16d7 154-155,186,213-215
+  s_2e2585c6712eca::t_22fa6c0a48fea7 196,202,205,208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "16c149001c779ae9b9b8fcd81e54c17b2e74c9a9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
