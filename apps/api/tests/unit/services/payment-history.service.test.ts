@@ -14,6 +14,8 @@ const mockPaymentTxRepo = {
   getGlobalSummary: vi.fn(),
   findSafePayReleasesForOrganizer: vi.fn(),
   findPendingSafePayForOrganizer: vi.fn(),
+  findByOrganizerId: vi.fn(),
+  getOrganizerSummary: vi.fn(),
 }
 
 const mockTripRepo = {
@@ -544,6 +546,94 @@ describe('PaymentHistoryService', () => {
 
       // null → 10% default → 5000 * (1 - 0.10) = 4500
       expect(result.pendingTotal).toBe(4500)
+    })
+  })
+
+  describe('getOrganizerPayments', () => {
+    it('returns annotated payment list for valid organizer', async () => {
+      const profile = makeOrganizerProfile()
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.findByOrganizerId.mockResolvedValue({
+        data: [makePaymentItem()],
+        total: 1,
+      })
+
+      const result = await service.getOrganizerPayments('organizer_1', {})
+
+      expect(mockPaymentTxRepo.findByOrganizerId).toHaveBeenCalledWith(
+        profile.id,
+        expect.objectContaining({ type: undefined, status: undefined }),
+        expect.objectContaining({ skip: 0, take: 20 }),
+      )
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].isPartialRefund).toBe(false)
+      expect(result.pagination.total).toBe(1)
+    })
+
+    it('passes tripId and sortBy through to repository', async () => {
+      const profile = makeOrganizerProfile()
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.findByOrganizerId.mockResolvedValue({ data: [], total: 0 })
+
+      await service.getOrganizerPayments('organizer_1', {
+        tripId: 'trip_1',
+        sortBy: 'amount',
+        sortOrder: 'asc',
+      })
+
+      expect(mockPaymentTxRepo.findByOrganizerId).toHaveBeenCalledWith(
+        profile.id,
+        expect.objectContaining({ tripId: 'trip_1', sortBy: 'amount', sortOrder: 'asc' }),
+        expect.anything(),
+      )
+    })
+
+    it('throws ForbiddenError when user has no organizer profile', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+      await expect(service.getOrganizerPayments('unknown_user', {})).rejects.toThrow('Organizer profile not found')
+    })
+  })
+
+  describe('getOrganizerPaymentSummary', () => {
+    it('calculates commission correctly with custom commissionRate', async () => {
+      const profile = makeOrganizerProfile({ commissionRate: new Prisma.Decimal('12.5') })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.getOrganizerSummary.mockResolvedValue({
+        totalRevenue: 10000,
+        totalRefunded: 1000,
+        transactionCount: 5,
+        refundCount: 1,
+      })
+
+      const result = await service.getOrganizerPaymentSummary('organizer_1')
+
+      // netRevenue = 10000 - 1000 = 9000; commission = round(9000 * 0.125) = 1125
+      expect(result.netRevenue).toBe(9000)
+      expect(result.platformCommission).toBe(1125)
+      expect(result.organizerEarnings).toBe(7875)
+      expect(result.refundCount).toBe(1)
+    })
+
+    it('falls back to DEFAULT_COMMISSION_RATE when commissionRate is null', async () => {
+      const profile = makeOrganizerProfile({ commissionRate: null })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
+      mockPaymentTxRepo.getOrganizerSummary.mockResolvedValue({
+        totalRevenue: 5000,
+        totalRefunded: 0,
+        transactionCount: 2,
+        refundCount: 0,
+      })
+
+      const result = await service.getOrganizerPaymentSummary('organizer_1')
+
+      // DEFAULT_COMMISSION_RATE = 10%; netRevenue = 5000; commission = 500
+      expect(result.platformCommission).toBe(500)
+      expect(result.organizerEarnings).toBe(4500)
+    })
+
+    it('throws ForbiddenError when user has no organizer profile', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(null)
+      await expect(service.getOrganizerPaymentSummary('unknown_user')).rejects.toThrow('Organizer profile not found')
     })
   })
 
