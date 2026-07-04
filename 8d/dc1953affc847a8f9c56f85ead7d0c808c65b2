@@ -1,0 +1,26 @@
+apps/api/tests/unit/services/payment-history.service.test.ts
+  s_9307cd4c31fb90::t_1f1dc6f39d2075 552-638
+  s_9307cd4c31fb90::t_4130518bbb4419 17-18
+  s_9307cd4c31fb90::t_359e55b1973b16 639
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8ddc1953affc847a8f9c56f85ead7d0c808c65b2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
