@@ -1,0 +1,42 @@
+apps/web/src/hooks/use-admin-trips.ts
+  s_2e2585c6712eca::t_19081b981a3999 22-31
+  s_2e2585c6712eca::t_f439a005601453 1-21,32-36
+apps/web/src/lib/constants.ts
+  s_2e2585c6712eca::t_28a96d9bd38c91 1-2
+  s_2e2585c6712eca::t_7c7e6cba925d73 32
+  s_2e2585c6712eca::t_63b9ca2d9168e2 30-31
+apps/web/src/hooks/use-set-trip-visibility.ts
+  s_2e2585c6712eca::t_1d89062cdb7333 1-46
+apps/web/src/hooks/use-admin-set-trip-visibility.ts
+  s_2e2585c6712eca::t_ba19f95f3d1733 1-39
+apps/web/src/lib/query-keys.ts
+  s_2e2585c6712eca::t_deeacdce7ebc6a 166-168
+apps/web/src/hooks/use-toggle-bookings.ts
+  s_2e2585c6712eca::t_a2dad843f59a82 33
+  s_2e2585c6712eca::t_18710364c475c0 7-13,15,17-18,26,29,36-41
+apps/web/src/hooks/use-trip-detail.ts
+  s_2e2585c6712eca::t_1682db3a3511ed 19
+apps/web/src/hooks/use-admin-toggle-trip-bookings.ts
+  s_2e2585c6712eca::t_09ca3d64bc61a3 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "90ba458aecfe4e61af700e5e463e2add85cceb51",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
