@@ -1,0 +1,39 @@
+apps/web/src/hooks/use-trip-detail.ts
+  s_443fb83ba7b4b2::t_e5d0ea9dff2e63 19
+apps/web/src/hooks/use-cancel-booking.ts
+  s_443fb83ba7b4b2::t_d88699be7a53f0 3,10-11,25,27-32
+  s_443fb83ba7b4b2::t_341f11aead6640 18
+apps/api/src/services/booking.service.ts
+  s_443fb83ba7b4b2::t_88db8bc0c4f1b4 539-544
+apps/web/src/components/bookings/cancel-booking-modal.tsx
+  s_443fb83ba7b4b2::t_d4948153db8dd8 40
+apps/api/tests/unit/services/payment-history.service.test.ts
+  s_443fb83ba7b4b2::t_388f9e11c12cf2 284,288
+  s_443fb83ba7b4b2::t_830ea38f950314 43-44,54
+  s_443fb83ba7b4b2::t_00ec7668459a62 5
+  s_443fb83ba7b4b2::t_b2bb61d442c8e3 119,123
+  s_443fb83ba7b4b2::t_66fa91f6a82080 55
+  s_443fb83ba7b4b2::t_ca87d6f2c0c622 553,562,571,580
+  s_443fb83ba7b4b2::t_65fe8c60df1546 549-552,554-561,563-570,572-579,581-586
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "358a3af4644e3b4959f481ddb32799a4ccdec6b4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_443fb83ba7b4b2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "385ac0d0-62d9-4137-953d-b2f87f804007",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
