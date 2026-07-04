@@ -1,0 +1,31 @@
+docs/engineering/tech-stack.md
+  s_9307cd4c31fb90::t_e997f64a712d05 144-184,187-251
+  s_9307cd4c31fb90::t_0c71c1e80f0859 367-368
+  s_9307cd4c31fb90::t_1e6f5ba4b13cca 115-116
+  s_9307cd4c31fb90::t_daa91c6f96c7d5 252
+docs/PROJECT_REFERENCE.md
+  s_9307cd4c31fb90::t_e17f29c5d348d0 649-666
+  s_9307cd4c31fb90::t_8b91d265c5ec4b 627
+  s_9307cd4c31fb90::t_ff125dd093af26 667
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8fb92584551fb02b59931462639a198a60117164",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
