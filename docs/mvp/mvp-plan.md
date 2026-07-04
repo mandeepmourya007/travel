@@ -1179,6 +1179,24 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Organizer reviews dashboard page (`/dashboard/trips/[id]/reviews`)
 - [x] `useReviews` hook
 
+#### ✅ Reviews Management Dashboard (2026-07-04)
+- [x] `REVIEW_SORT` constant + `ReviewSort` type + `REVIEW_SORTS` tuple (packages/shared/constants/review.ts)
+- [x] `organizerReviewFiltersSchema` + `travelerReviewFiltersSchema` + `adminReviewFiltersSchema` validators
+- [x] `OrganizerReviewFilters` type, `AdminReviewFilters` + `AdminReviewItem` + `AdminReviewSortBy` types
+- [x] `ReviewRepository.findByOrganizerIdWithFilters` — organizer-scoped, tripId+rating filters, N+1-safe select
+- [x] `ReviewRepository.findAllByUserId` — traveler review history, paginated
+- [x] `ReviewRepository.findAllAdmin` — platform-wide, dual search (organizer+trip), nested sort
+- [x] `ReviewService.getOrganizerDashboardReviews` + `ReviewService.getMyReviews`
+- [x] `AdminService.getAdminReviews` (ReviewRepository injected directly)
+- [x] Routes: `GET /reviews/organizer/mine`, `GET /reviews/my`, `GET /admin/reviews`
+- [x] `useOrganizerReviews` + `useMyReviews` hooks (use-reviews.ts), `useAdminReviews` hook (use-admin-reviews.ts)
+- [x] Organizer dashboard `/dashboard/reviews` — trip combobox filter, rating filter, sort, OrganizerReviewCard list
+- [x] Traveler page `/my-reviews` — sort, TravelerReviewCard with inline edit (ReviewFormModal), organizer reply
+- [x] Admin page `/admin/reviews` — debounced search, sortable table columns (organizer/rating/date), reply badge
+- [x] `TravelerReviewCard` component (components/reviews/)
+- [x] Admin sidebar Reviews nav item
+- [x] Service tests: `getOrganizerDashboardReviews` (4 tests), `getMyReviews` (3 tests), `getAdminReviews` (3 tests)
+
 #### ✅ Backend — Chat Module
 - [x] `ConversationRepository` + `MessageRepository`
 - [x] `ChatService` — full business logic + authorization + anti-leakage filter

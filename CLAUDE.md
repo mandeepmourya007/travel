@@ -1,3 +1,38 @@
+## Project Coding Rules
+
+### Constants — No Magic Strings
+
+**Rule:** Every hardcoded string that represents a domain value (sort field, role, status, segment label, route segment, filter key) MUST live in a constants file. Never repeat the same string literal in more than one file.
+
+**Where to put constants:**
+
+| Layer | Location | Examples |
+|-------|----------|---------|
+| Shared domain values (roles, statuses, sort fields) | `packages/shared/src/constants/<domain>.ts` | `REVIEW_SORT`, `ADMIN_REVIEW_SORT_BY`, `USER_ROLE`, `TRAVELER_ROLES` |
+| Web-only query key segments | `apps/web/src/lib/query-keys.ts` — `QK` object at top | `QK.MY`, `QK.REVIEWS`, `QK.CASHBACK` |
+| Web-only UI labels / page constants | `apps/web/src/lib/constants.ts` or local `const` at top of file | `STALE_TIME_*`, `COMMENT_PREVIEW_LENGTH` |
+| API-only config strings | `apps/api/src/utils/constants.ts` or local `const` at top of file | pagination defaults, error messages |
+
+**Before adding a new string:**
+1. `grep -r "your-string"` across `packages/shared/src/constants/` — if found, import from there
+2. If not found, add it to the most appropriate constants file, then import
+
+**Pattern for new domain sort/status constants (DRY):**
+```typescript
+// constants file
+export const MY_SORT = { NEWEST: 'newest', OLDEST: 'oldest' } as const
+export type MySort = (typeof MY_SORT)[keyof typeof MY_SORT]
+export const MY_SORTS = [MY_SORT.NEWEST, MY_SORT.OLDEST] as const  // for z.enum()
+
+// validator — import the tuple
+sortBy: z.enum(MY_SORTS).optional()
+
+// type — derive from constant, never hardcode union
+sortBy?: MySort
+```
+
+---
+
 ## Cashfree Payments — Integration Skills
 
 You are helping a developer integrate Cashfree Payments.
