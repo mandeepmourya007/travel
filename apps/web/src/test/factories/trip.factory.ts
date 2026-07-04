@@ -35,6 +35,8 @@ export function makeTripSummary(overrides: Partial<TripSummary> = {}): TripSumma
       verified: true,
     },
     photos: [`/photo-${counter}.jpg`],
+    acceptingBookings: true,
+    bookingsPausedReason: null,
     ...overrides,
   }
 }
@@ -54,6 +56,8 @@ export function makeTripDetail(overrides: Partial<TripDetail> = {}): TripDetail 
     ],
     status: 'ACTIVE',
     acceptingBookings: true,
+    bookingsPausedReason: null,
+    isHidden: false,
     bookingDeadline: null,
     earlyBirdDeadline: null,
     organizer: {

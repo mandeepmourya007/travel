@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -318,10 +318,11 @@ describe('MyBookingsList', () => {
     await user.click(screen.getByText(/cancel booking/i))
 
     // Modal should be visible — use heading role to disambiguate from card button
-    expect(screen.getByRole('heading', { name: 'Cancel Booking' })).toBeInTheDocument()
-    expect(screen.getByText(/TRP-2025-0099/)).toBeInTheDocument()
-    expect(screen.getByText('FLEXIBLE')).toBeInTheDocument()
-    expect(screen.getByText(/keep booking/i)).toBeInTheDocument()
+    const modal = screen.getByRole('heading', { name: 'Cancel Booking' }).closest('div[tabindex]')!
+    expect(modal).toBeInTheDocument()
+    expect(within(modal).getByText(/TRP-2025-0099/)).toBeInTheDocument()
+    expect(within(modal).getByText('FLEXIBLE')).toBeInTheDocument()
+    expect(within(modal).getByText(/keep booking/i)).toBeInTheDocument()
   })
 
   // ── 9. Cancel Confirm Success ──
