@@ -1,0 +1,44 @@
+apps/web/src/app/destinations/[slug]/page.tsx
+  s_b06a7b9ac57572::t_f017c05e2c7342 11
+  s_b06a7b9ac57572::t_4f1904afd46611 101
+  s_b06a7b9ac57572::t_52c75387e1d918 23-24
+  s_b06a7b9ac57572::t_776814dd862011 68-69
+apps/web/src/app/trips/[slug]/page.tsx
+  s_b06a7b9ac57572::t_3347fee488cefb 90
+  s_b06a7b9ac57572::t_aa348de27d453f 23-24
+  s_b06a7b9ac57572::t_fcaeb29e18a2db 66-67
+  s_b06a7b9ac57572::t_fe54363271e071 11
+apps/web/src/app/trips/page.tsx
+  s_b06a7b9ac57572::t_d83cb87096aa7f 12
+  s_b06a7b9ac57572::t_90f7ea8bc0d290 15-16
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_b06a7b9ac57572::t_021a01aec54c2f 44
+  s_b06a7b9ac57572::t_ce81acf4d33c4b 5
+  s_b06a7b9ac57572::t_cefb70c5fdf147 45-46
+apps/web/src/app/trips/organizers/[slug]/page.tsx
+  s_b06a7b9ac57572::t_bd41c35d1de151 41-42,59,65
+  s_b06a7b9ac57572::t_337eb55dc387e0 14
+  s_b06a7b9ac57572::t_4aa24c8e3edb0a 83-84,87-88
+  s_b06a7b9ac57572::t_97943350a4732f 99,103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cce40307b5e22429a8d96e93806ffb52fbfd0e57",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b06a7b9ac57572": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74801df7-7ef9-4784-8175-9902d81c0ca1",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
