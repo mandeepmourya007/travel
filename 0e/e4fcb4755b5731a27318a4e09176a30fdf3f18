@@ -1,0 +1,52 @@
+apps/web/src/app/admin/payments/page.tsx
+  s_28e5ed90b6df52::t_e06f9bc0f84c2b 9,15
+  s_28e5ed90b6df52::t_2e1bc8c687f640 35-55
+  s_28e5ed90b6df52::t_440eb4a6194280 19
+apps/web/src/app/trips/[slug]/page.tsx
+  s_1618fa3cb4515a::t_dcefb37570588e 16
+apps/web/src/components/layout/header.tsx
+  s_28e5ed90b6df52::t_804f2328f69126 46
+  s_28e5ed90b6df52::t_819fe998ec95ab 167
+  s_28e5ed90b6df52::t_ba9afa375ef398 21
+  s_28e5ed90b6df52::t_32fcb311ab3131 148
+apps/web/src/app/my-bookings/page.tsx
+  s_28e5ed90b6df52::t_2e0fc0581d6619 5,9
+apps/web/src/app/my-payments/page.tsx
+  s_28e5ed90b6df52::t_6fddfd64c2fc2c 23
+  s_28e5ed90b6df52::t_75f1fa34463b90 36-56
+  s_28e5ed90b6df52::t_8dc3d8f6ca8bb3 20
+  s_28e5ed90b6df52::t_d28d13c24965fe 9,16
+  s_28e5ed90b6df52::t_3bc79faa775b74 11
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_28e5ed90b6df52::t_bf90a1694d305b 33
+  s_28e5ed90b6df52::t_ea5338f6a0bcfb 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0ee4fcb4755b5731a27318a4e09176a30fdf3f18",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_1618fa3cb4515a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "9b01e3c9-9521-4155-ad34-bd38f35550af",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
