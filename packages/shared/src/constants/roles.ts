@@ -9,5 +9,8 @@ export const USER_ROLE = Object.fromEntries(
 export const SIGNUP_ROLES = ['TRAVELER', 'ORGANIZER'] as const
 export type SignupRole = (typeof SIGNUP_ROLES)[number]
 
+/** Roles allowed on traveler-facing pages — includes ADMIN for impersonation. */
+export const TRAVELER_ROLES = [USER_ROLE.TRAVELER, USER_ROLE.ADMIN] as const
+
 export const DEFAULT_USER_NAME = 'User'
 export const DEFAULT_CUSTOMER_NAME = 'Traveler'

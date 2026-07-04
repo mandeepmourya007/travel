@@ -3,6 +3,7 @@ import { VERIFICATION_STATUSES, APPROVE_REJECT_ACTIONS } from '../constants/veri
 import { BOOKING_STATUSES } from '../constants/booking-status'
 import { DOC_TYPES } from '../constants/upload'
 import { SORT_ORDERS } from '../constants/sort'
+import { ADMIN_REVIEW_SORT_BYS } from '../constants/admin'
 import { paginationSchema, idSchema } from './common.schema'
 
 /** Validates query params for GET /admin/organizers */
@@ -77,4 +78,14 @@ export const addDocCommentSchema = z.object({
 /** Validates query params for GET /admin/organizer-invites */
 export const organizerInviteFiltersSchema = paginationSchema.extend({
   status: z.enum(['pending', 'accepted']).optional(),
+})
+
+/** Validates query params for GET /admin/reviews */
+export const adminReviewFiltersSchema = paginationSchema.extend({
+  organizerSearch: z.string().max(100).trim().optional(),
+  tripSearch: z.string().max(100).trim().optional(),
+  tripId: idSchema.optional(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  sortBy: z.enum(ADMIN_REVIEW_SORT_BYS).optional(),
+  sortOrder: z.enum(SORT_ORDERS).optional(),
 })

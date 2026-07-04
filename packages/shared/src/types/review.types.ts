@@ -1,3 +1,5 @@
+import type { ReviewSort } from '../constants/review'
+
 export interface Review {
   id: string
   tripId: string
@@ -54,7 +56,14 @@ export interface OrganizerReplyDto {
 export interface ReviewListFilters {
   page?: number
   limit?: number
-  sort?: 'newest' | 'oldest' | 'rating_high' | 'rating_low'
+  sort?: ReviewSort
+  tripId?: string
+}
+
+/** Organizer dashboard filters — superset of ReviewListFilters with trip + rating scoping. */
+export interface OrganizerReviewFilters extends ReviewListFilters {
+  tripId?: string
+  rating?: number
 }
 
 /** Rating distribution for trip review summary */

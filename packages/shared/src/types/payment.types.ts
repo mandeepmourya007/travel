@@ -59,6 +59,7 @@ export interface PaymentHistoryFilters {
   status?: PaymentStatusConst
   fromDate?: string
   toDate?: string
+  tripId?: string
   page?: number
   limit?: number
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { idSchema } from './common.schema'
-import { REVIEW_MAX_PHOTOS, REVIEW_MAX_COMMENT_LENGTH, REVIEW_MAX_REPLY_LENGTH } from '../constants/review'
+import { idSchema, paginationSchema } from './common.schema'
+import { REVIEW_MAX_PHOTOS, REVIEW_MAX_COMMENT_LENGTH, REVIEW_MAX_REPLY_LENGTH, REVIEW_SORTS, REVIEW_SORT } from '../constants/review'
 
 const ratingField = z.coerce.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5')
 const optionalRatingField = z.coerce.number().int().min(1).max(5).optional()
@@ -31,8 +31,18 @@ export const organizerReplySchema = z.object({
   reply: z.string().min(1, 'Reply cannot be empty').max(REVIEW_MAX_REPLY_LENGTH, `Reply must be under ${REVIEW_MAX_REPLY_LENGTH} characters`).trim(),
 })
 
-export const reviewFiltersSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+export const reviewFiltersSchema = paginationSchema.extend({
   limit: z.coerce.number().int().min(1).max(50).default(10),
-  sort: z.enum(['newest', 'oldest', 'rating_high', 'rating_low']).default('newest'),
+  sort: z.enum(REVIEW_SORTS).default(REVIEW_SORT.NEWEST),
+})
+
+/** Organizer dashboard — extends base with trip scoping + rating filter. */
+export const organizerReviewFiltersSchema = reviewFiltersSchema.extend({
+  tripId: idSchema.optional(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+})
+
+/** Traveler's own reviews — extends base with optional trip scoping. */
+export const travelerReviewFiltersSchema = reviewFiltersSchema.extend({
+  tripId: idSchema.optional(),
 })

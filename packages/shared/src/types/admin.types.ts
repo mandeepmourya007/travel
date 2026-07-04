@@ -3,6 +3,8 @@ import type { VerificationStatus, ApproveRejectAction } from '../constants/verif
 import type { BookingStatusConst } from '../constants/booking-status'
 import type { SortOrder } from '../constants/sort'
 export type { SortOrder } from '../constants/sort'
+import type { AdminReviewSortBy } from '../constants/admin'
+export type { AdminReviewSortBy } from '../constants/admin'
 
 // ─── Document Review ────────────────────────────────────
 
@@ -288,4 +290,34 @@ export interface OrganizerInviteFilters {
   status?: OrganizerInviteStatus
   page?: number
   limit?: number
+}
+
+// ─── Admin Reviews ──────────────────────────────────────
+
+export interface AdminReviewFilters {
+  organizerSearch?: string
+  tripSearch?: string
+  tripId?: string
+  rating?: number
+  sortBy?: AdminReviewSortBy
+  sortOrder?: SortOrder
+  page?: number
+  limit?: number
+}
+
+export interface AdminReviewItem {
+  id: string
+  overallRating: number
+  comment?: string | null
+  photos: string[]
+  organizerReply?: string | null
+  editedAt?: string | null
+  createdAt: string
+  user: { id: string; name: string; avatarUrl?: string | null }
+  trip: {
+    id: string
+    title: string
+    slug: string
+    organizer: { businessName: string }
+  }
 }

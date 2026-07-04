@@ -30,8 +30,10 @@ const basePaymentFilters = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20),
 })
 
-/** Validates query params for GET /payments/my and GET /payments/trip/:tripId */
-export const paymentHistoryFiltersSchema = basePaymentFilters.refine(dateRangeRefine, dateRangeMessage)
+/** Validates query params for GET /payments/my */
+export const paymentHistoryFiltersSchema = basePaymentFilters.extend({
+  tripId: idSchema.optional(),
+}).refine(dateRangeRefine, dateRangeMessage)
 
 /** Validates query params for GET /payments/admin — extends base with search fields */
 export const adminPaymentFiltersSchema = basePaymentFilters.extend({
