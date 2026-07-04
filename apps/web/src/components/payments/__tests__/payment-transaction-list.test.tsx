@@ -58,9 +58,10 @@ describe('PaymentTransactionList', () => {
       const items = [makePaymentItem(), makePaymentItem({ status: 'FAILED' })]
       render(<PaymentTransactionList {...baseProps} data={items} />)
 
-      expect(screen.getAllByText('Goa Beach Getaway')).toHaveLength(2)
-      expect(screen.getByText('TRP-2025-0001')).toBeInTheDocument()
-      expect(screen.getByText('TRP-2025-0002')).toBeInTheDocument()
+      // Each item renders in both the mobile card and the desktop row
+      expect(screen.getAllByText('Goa Beach Getaway')).toHaveLength(4)
+      expect(screen.getAllByText('TRP-2025-0001')).toHaveLength(2)
+      expect(screen.getAllByText('TRP-2025-0002')).toHaveLength(2)
     })
   })
 
@@ -81,7 +82,8 @@ describe('PaymentTransactionList', () => {
       render(<PaymentTransactionList {...baseProps} data={[item]} showUser />)
 
       expect(screen.getByText('Traveler')).toBeInTheDocument()
-      expect(screen.getByText('Priya S')).toBeInTheDocument()
+      // Name appears in both mobile card and desktop row
+      expect(screen.getAllByText('Priya S')).toHaveLength(2)
     })
 
     it('should hide Traveler column when showUser is false', () => {
@@ -94,7 +96,8 @@ describe('PaymentTransactionList', () => {
       const refund = makePaymentItem({ type: 'REFUND', amount: 2000 })
       render(<PaymentTransactionList {...baseProps} data={[refund]} />)
 
-      expect(screen.getByText(/\+₹2,000/)).toBeInTheDocument()
+      // Amount appears in both mobile card and desktop row
+      expect(screen.getAllByText(/\+₹2,000/)).toHaveLength(2)
     })
   })
 
