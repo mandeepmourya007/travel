@@ -1,0 +1,48 @@
+packages/shared/src/types/trip.types.ts
+  s_2e2585c6712eca::t_fae925cfbd7d03 146-157
+  s_2e2585c6712eca::t_3ae87045d32fc8 31-32
+  s_2e2585c6712eca::t_a02bd545a8b58e 58-61
+  s_2e2585c6712eca::t_03f4d4f9c0c47d 166-181
+packages/shared/src/validators/trip.schema.ts
+  s_2e2585c6712eca::t_bf0ea30aff73fb 134-156
+packages/shared/src/validators/admin.schema.ts
+  s_9307cd4c31fb90::t_da627eb636729c 22-23
+  s_2e2585c6712eca::t_29eaccfbc9e750 26-28
+  s_9307cd4c31fb90::t_11921d9170e654 30-31
+  s_2e2585c6712eca::t_bcc9092939c3b7 29
+  s_9307cd4c31fb90::t_f2d68c3e2f5ef3 24-25
+packages/shared/src/types/admin.types.ts
+  s_9307cd4c31fb90::t_0572e31b7e12e6 135-136,140-141
+  s_9307cd4c31fb90::t_f4003cffb88beb 146-148,152-153
+  s_2e2585c6712eca::t_770f0c68e4bce7 149-151
+  s_9307cd4c31fb90::t_ab4101b6ceb431 142-145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "83c468eb78dec1f1ba9f2b3f3a15788bfb475ef9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
