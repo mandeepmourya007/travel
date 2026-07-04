@@ -132,9 +132,25 @@ export interface AdminBookingItem {
   }
 }
 
+export type AdminBookingSortBy = 'totalAmount' | 'bookingStatus' | 'createdAt'
+
 export interface AdminBookingFilters {
   status?: BookingStatusConst
   search?: string
+  sortBy?: AdminBookingSortBy
+  sortOrder?: SortOrder
+  page?: number
+  limit?: number
+}
+
+export type AdminTripSortBy = 'destination' | 'startDate' | 'pricePerPerson' | 'status'
+export type SortOrder = 'asc' | 'desc'
+
+export interface AdminTripFilters {
+  q?: string
+  status?: string
+  sortBy?: AdminTripSortBy
+  sortOrder?: SortOrder
   page?: number
   limit?: number
 }

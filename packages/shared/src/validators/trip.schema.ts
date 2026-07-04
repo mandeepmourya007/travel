@@ -111,7 +111,6 @@ export const updateTripSchema = z
     dropPoints: z.array(transferPointSchema).min(1).max(10).optional(),
     itineraryDocUrl: z.preprocess((val) => (val === '' ? undefined : val), z.string().url().optional()),
     bookingDeadline: datetimeString.optional(),
-    acceptingBookings: z.boolean().optional(),
   })
   .refine(
     (data) => {
@@ -131,6 +130,29 @@ export const updateTripSchema = z
     },
     { message: 'Max group size must be >= min group size', path: ['maxGroupSize'] },
   )
+
+/**
+ * Optional reason field reused by pause/hide schemas.
+ * Coerces empty string to undefined so `""` is never stored.
+ */
+const reasonField = z.preprocess(
+  (v) => (v === '' ? undefined : v),
+  z.string().max(500, 'Reason must be 500 characters or fewer').trim().optional(),
+)
+
+/** Body for PATCH /trips/:id/toggle-bookings and PATCH /admin/trips/:id/bookings */
+export const toggleBookingsSchema = z.object({
+  paused: z.boolean(),
+  reason: reasonField,
+})
+export const adminToggleBookingsSchema = toggleBookingsSchema
+
+/** Body for PATCH /trips/:id/visibility and PATCH /admin/trips/:id/visibility */
+export const setVisibilitySchema = z.object({
+  hidden: z.boolean(),
+  reason: reasonField,
+})
+export const adminSetVisibilitySchema = setVisibilitySchema
 
 export const tripFiltersSchema = z.object({
   destinationId: idSchema.optional(),

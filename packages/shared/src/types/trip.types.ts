@@ -28,6 +28,8 @@ export interface TripSummary {
   photos: string[]
   seatSelectionEnabled?: boolean
   isTrending?: boolean
+  acceptingBookings: boolean
+  bookingsPausedReason?: string | null
 }
 
 export interface TripDetailReview {
@@ -53,6 +55,10 @@ export interface TripDetail extends Omit<TripSummary, 'organizer'> {
   dropPoints: TransferPoint[]
   status: TripStatus
   acceptingBookings: boolean
+  /** Public reason shown to travelers when bookings are paused. Null when bookings are open. */
+  bookingsPausedReason?: string | null
+  /** True when the trip has been hidden from public search and detail pages. */
+  isHidden: boolean
   bookingDeadline?: string | null
   earlyBirdDeadline?: string | null
   organizer: TripSummary['organizer'] & {
@@ -137,8 +143,18 @@ export interface CreateTripDto {
   bookingDeadline?: string
 }
 
-export type UpdateTripDto = Partial<CreateTripDto> & {
-  acceptingBookings?: boolean
+export type UpdateTripDto = Partial<CreateTripDto>
+
+/** DTO for stop/resume bookings on a trip (organizer or admin). */
+export interface ToggleBookingsDto {
+  paused: boolean
+  reason?: string
+}
+
+/** DTO for hide/unhide a trip (organizer or admin). */
+export interface SetVisibilityDto {
+  hidden: boolean
+  reason?: string
 }
 
 export interface OrganizerTripListItem {
@@ -147,6 +163,22 @@ export interface OrganizerTripListItem {
   slug: string
   status: TripStatus
   acceptingBookings: boolean
+  /** Public reason shown to travelers when bookings are paused. */
+  bookingsPausedReason?: string | null
+  /**
+   * Role that applied the booking pause. Non-null only when paused.
+   * If 'ADMIN', the organizer cannot resume — only an admin can.
+   */
+  bookingsPausedBy?: string | null
+  /** True when trip is hidden from public search and detail pages. */
+  isHidden: boolean
+  /**
+   * Role that applied the hide. Non-null only when hidden.
+   * If 'ADMIN', the organizer cannot unhide — only an admin can.
+   */
+  hiddenBy?: string | null
+  /** Internal reason stored when the trip was hidden. Not shown to travelers. */
+  hiddenReason?: string | null
   startDate: string
   endDate: string
   pricePerPerson: number
