@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { Users, Package, IndianRupee, Map, AlertTriangle, MessageSquare } from 'lucide-react'
+import { Users, Package, IndianRupee, Map, AlertTriangle, MessageSquare, Tags, Gift, Mail } from 'lucide-react'
 import { useAdminStats } from '@/hooks/use-admin-stats'
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
@@ -137,29 +137,59 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="card-static p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-neutral-800">Quick Actions</h2>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          {overview.pendingApprovals > 0 && (
+      {(overview.pendingApprovals > 0 || overview.flaggedMessages > 0) && (
+        <div className="card-static p-6">
+          <h2 className="mb-4 font-display text-lg font-semibold text-neutral-800">Quick Actions</h2>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {overview.pendingApprovals > 0 && (
+              <Link
+                href="/admin/organizers"
+                className="flex items-center gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm font-medium text-neutral-800 transition-colors hover:bg-warning-100"
+              >
+                <AlertTriangle className="h-5 w-5" />
+                <span>{overview.pendingApprovals} Pending Approval{overview.pendingApprovals !== 1 && 's'}</span>
+              </Link>
+            )}
+            {overview.flaggedMessages > 0 && (
+              <Link
+                href="/admin/chat"
+                className="flex items-center gap-3 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm font-medium text-error-700 transition-colors hover:bg-error-100"
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span>{overview.flaggedMessages} Flagged Message{overview.flaggedMessages !== 1 && 's'}</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Management — visible on mobile where these aren't in the bottom nav */}
+      <div className="md:hidden">
+        <h2 className="mb-3 font-display text-lg font-semibold text-neutral-800">Manage</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {MANAGE_LINKS.map(({ href, label, icon: Icon, description }) => (
             <Link
-              href="/admin/organizers"
-              className="flex items-center gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm font-medium text-neutral-800 transition-colors hover:bg-warning-100"
+              key={href}
+              href={href}
+              className="card flex flex-col gap-2 p-4 transition-colors hover:bg-neutral-50 active:bg-neutral-100"
             >
-              <AlertTriangle className="h-5 w-5" />
-              <span>{overview.pendingApprovals} Pending Approval{overview.pendingApprovals !== 1 && 's'}</span>
+              <Icon className="h-5 w-5 text-primary-600" />
+              <div>
+                <p className="text-sm font-semibold text-neutral-800">{label}</p>
+                <p className="text-xs text-neutral-500">{description}</p>
+              </div>
             </Link>
-          )}
-          {overview.flaggedMessages > 0 && (
-            <Link
-              href="/admin/chat"
-              className="flex items-center gap-3 rounded-lg border border-error-200 bg-error-50 px-4 py-3 text-sm font-medium text-error-700 transition-colors hover:bg-error-100"
-            >
-              <MessageSquare className="h-5 w-5" />
-              <span>{overview.flaggedMessages} Flagged Message{overview.flaggedMessages !== 1 && 's'}</span>
-            </Link>
-          )}
+          ))}
         </div>
       </div>
     </div>
   )
 }
+
+const MANAGE_LINKS = [
+  { href: '/admin/organizers', label: 'Organizers', icon: Users, description: 'Approvals & profiles' },
+  { href: '/admin/trip-types', label: 'Trip Types', icon: Tags, description: 'Manage categories' },
+  { href: '/admin/cashback', label: 'Cashback', icon: Gift, description: 'Issue rewards' },
+  { href: '/admin/chat', label: 'Chat', icon: MessageSquare, description: 'Review flagged messages' },
+  { href: '/admin/invites', label: 'Invites', icon: Mail, description: 'Send organizer invites' },
+]
