@@ -12,6 +12,7 @@ import {
   Tags,
   Mail,
   Map,
+  Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
   { id: 'cashback', label: 'Cashback', href: '/admin/cashback', icon: Gift },
+  { id: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: Star },
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
   { id: 'invites', label: 'Invites', href: '/admin/invites', icon: Mail },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },

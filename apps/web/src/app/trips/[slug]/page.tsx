@@ -13,7 +13,7 @@ interface TripDetailPageProps {
 
 const getTrip = cache(async (slug: string): Promise<TripDetail | null> => {
   try {
-    return await fetchApi<TripDetail>(`/trips/slug/${slug}`, { revalidate: 0 })
+    return await fetchApi<TripDetail>(`/trips/slug/${slug}`, { revalidate: 600 })
   } catch {
     return null
   }

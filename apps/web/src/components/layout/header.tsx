@@ -18,6 +18,7 @@ import {
   CreditCard,
   UserCircle,
   MessageSquare,
+  Star,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { useLogout } from '@/hooks/use-logout'
@@ -42,6 +43,7 @@ const NAV_LINKS: NavLink[] = [
   { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  { href: '/my-reviews', label: 'My Reviews', icon: Star, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
@@ -143,7 +145,7 @@ export function Header() {
                   prefetch={false}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all',
+                    'flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition-all whitespace-nowrap',
                     active
                       ? 'bg-primary-600 text-white'
                       : 'bg-primary-500 text-white hover:bg-primary-600',
@@ -162,7 +164,7 @@ export function Header() {
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
+                  'flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors whitespace-nowrap',
                   active
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
