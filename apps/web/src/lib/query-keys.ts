@@ -1,7 +1,7 @@
 import type { TripFilters } from '@shared/types/trip.types'
 import type { TripBookingFilters, MyBookingFilters } from '@shared/types/booking.types'
 import type { TripRequestFilters } from '@shared/types/trip-request.types'
-import type { PaymentHistoryFilters, AdminPaymentFilters } from '@shared/types/payment.types'
+import type { PaymentHistoryFilters, AdminPaymentFilters, OrganizerPaymentFilters } from '@shared/types/payment.types'
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
@@ -14,6 +14,7 @@ export const tripKeys = {
   details: () => [...tripKeys.all, 'detail'] as const,
   detail: (slug: string) => [...tripKeys.details(), slug] as const,
   myTrips: (status?: string) => [...tripKeys.all, 'my', status] as const,
+  myTripsSearch: (q: string, page: number, limit: number) => [...tripKeys.all, 'my', 'search', q, page, limit] as const,
   editHistory: (id: string) => [...tripKeys.all, 'history', id] as const,
 }
 
@@ -95,6 +96,9 @@ export const paymentKeys = {
   adminPayments: (filters?: AdminPaymentFilters) =>
     [...paymentKeys.all, 'admin', filters] as const,
   adminSummary: () => [...paymentKeys.all, 'admin', 'summary'] as const,
+  organizerPayments: (filters?: OrganizerPaymentFilters) =>
+    [...paymentKeys.all, 'organizer', filters] as const,
+  organizerSummary: () => [...paymentKeys.all, 'organizer', 'summary'] as const,
 }
 
 export const chatKeys = {

@@ -7,6 +7,7 @@ import type {
   PaymentHistoryItem,
   PaymentHistoryFilters,
   AdminPaymentFilters,
+  OrganizerPaymentFilters,
   TravelerPaymentSummary,
   TripPaymentSummary,
   AdminPaymentSummary,
@@ -128,6 +129,49 @@ export function useAdminPayments(filters: AdminPaymentFilters = {}) {
     staleTime: STALE_TIME_REALTIME,
     enabled: hasToken,
     placeholderData: (prev) => prev,
+  })
+}
+
+// ─── Organizer Global Payment Hooks ─────────────────
+
+/**
+ * Fetches an organizer's cross-trip paginated payment history.
+ *
+ * Query key: paymentKeys.organizerPayments(filters) — staleTime 30s
+ */
+export function useOrganizerPayments(filters: OrganizerPaymentFilters = {}) {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
+  return useQuery({
+    queryKey: paymentKeys.organizerPayments(filters),
+    queryFn: async () => {
+      const res = await apiClient.get<PaginatedPaymentResponse>('/payments/organizer', {
+        params: filters,
+      })
+      return { data: res.data.data, pagination: res.data.pagination }
+    },
+    staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
+    placeholderData: (prev) => prev,
+  })
+}
+
+/**
+ * Fetches the organizer's global payment summary with commission breakdown.
+ *
+ * Query key: paymentKeys.organizerSummary()
+ */
+export function useOrganizerPaymentSummary() {
+  const hasToken = !!useAuthStore((s) => s.accessToken)
+  return useQuery({
+    queryKey: paymentKeys.organizerSummary(),
+    queryFn: async () => {
+      const res = await apiClient.get<{ success: true; data: TripPaymentSummary }>(
+        '/payments/organizer/summary',
+      )
+      return res.data.data
+    },
+    staleTime: STALE_TIME_REALTIME,
+    enabled: hasToken,
   })
 }
 
