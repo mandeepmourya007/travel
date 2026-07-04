@@ -163,6 +163,9 @@ export const adminKeys = {
   invitesBase: () => [...adminKeys.all, 'invites'] as const,
   invites: (filters?: OrganizerInviteFilters) =>
     filters ? [...adminKeys.invitesBase(), filters] as const : adminKeys.invitesBase(),
+  tripsBase: () => [...adminKeys.all, 'trips'] as const,
+  trips: (filters?: { q?: string; page?: number }) =>
+    filters ? [...adminKeys.tripsBase(), filters] as const : adminKeys.tripsBase(),
 }
 
 export const docReviewKeys = {

@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
-import { tripKeys, organizerKeys } from '@/lib/query-keys'
+import { adminKeys, tripKeys } from '@/lib/query-keys'
 import { useToast } from '@/components/shared/toast'
 import type { TripSummary } from '@shared/types/trip.types'
 
-interface SetBookingPauseInput {
+interface AdminToggleBookingsInput {
   tripId: string
   paused: boolean
   reason?: string
@@ -12,27 +12,25 @@ interface SetBookingPauseInput {
 }
 
 /**
- * Pauses or resumes bookings on an ACTIVE trip (organizer).
+ * Admin: pauses or resumes bookings on any trip.
  *
- * Query key: tripKeys.myTrips() + tripKeys.detail(slug) + tripKeys.lists()
- * Invalidates: myTrips, organizerKeys.stats(), public trip detail, all trip lists
+ * Invalidates: adminKeys.trips, tripKeys.detail(slug), tripKeys.lists()
  * Error handling: shows error toast via onError callback
  */
-export function useToggleBookings() {
+export function useAdminToggleTripBookings() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async ({ tripId, paused, reason }: SetBookingPauseInput) => {
+    mutationFn: async ({ tripId, paused, reason }: AdminToggleBookingsInput) => {
       const res = await apiClient.patch<{ success: true; data: TripSummary }>(
-        `/trips/${tripId}/toggle-bookings`,
+        `/admin/trips/${tripId}/bookings`,
         { paused, reason },
       )
       return res.data.data
     },
     onSuccess: (_data, { slug, paused }) => {
-      queryClient.invalidateQueries({ queryKey: tripKeys.myTrips() })
-      queryClient.invalidateQueries({ queryKey: organizerKeys.stats() })
+      queryClient.invalidateQueries({ queryKey: adminKeys.tripsBase() })
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(slug) })
       queryClient.invalidateQueries({ queryKey: tripKeys.lists() })
       toast({

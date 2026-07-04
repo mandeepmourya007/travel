@@ -1,3 +1,5 @@
+import { USER_ROLE } from '@shared/constants'
+
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Safarnama'
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
@@ -25,5 +27,7 @@ export const REFETCH_INTERVAL_BACKGROUND = 5 * 60_000
 
 /** Returns the post-login landing route based on user role. */
 export function getHomeRoute(role?: string): string {
-  return role === 'ORGANIZER' ? '/dashboard' : '/trips'
+  if (role === USER_ROLE.ADMIN) return '/admin'
+  if (role === USER_ROLE.ORGANIZER) return '/dashboard'
+  return '/trips'
 }

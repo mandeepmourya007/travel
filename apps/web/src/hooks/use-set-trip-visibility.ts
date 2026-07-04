@@ -4,44 +4,43 @@ import { tripKeys, organizerKeys } from '@/lib/query-keys'
 import { useToast } from '@/components/shared/toast'
 import type { TripSummary } from '@shared/types/trip.types'
 
-interface SetBookingPauseInput {
+interface SetVisibilityInput {
   tripId: string
-  paused: boolean
+  hidden: boolean
   reason?: string
   slug: string
 }
 
 /**
- * Pauses or resumes bookings on an ACTIVE trip (organizer).
+ * Hides or unhides a trip (organizer, own trips only).
  *
- * Query key: tripKeys.myTrips() + tripKeys.detail(slug) + tripKeys.lists()
  * Invalidates: myTrips, organizerKeys.stats(), public trip detail, all trip lists
  * Error handling: shows error toast via onError callback
  */
-export function useToggleBookings() {
+export function useSetTripVisibility() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async ({ tripId, paused, reason }: SetBookingPauseInput) => {
+    mutationFn: async ({ tripId, hidden, reason }: SetVisibilityInput) => {
       const res = await apiClient.patch<{ success: true; data: TripSummary }>(
-        `/trips/${tripId}/toggle-bookings`,
-        { paused, reason },
+        `/trips/${tripId}/visibility`,
+        { hidden, reason },
       )
       return res.data.data
     },
-    onSuccess: (_data, { slug, paused }) => {
+    onSuccess: (_data, { slug, hidden }) => {
       queryClient.invalidateQueries({ queryKey: tripKeys.myTrips() })
       queryClient.invalidateQueries({ queryKey: organizerKeys.stats() })
       queryClient.invalidateQueries({ queryKey: tripKeys.detail(slug) })
       queryClient.invalidateQueries({ queryKey: tripKeys.lists() })
       toast({
         variant: 'success',
-        title: paused ? 'Bookings paused' : 'Bookings resumed',
+        title: hidden ? 'Trip hidden from public listing' : 'Trip is now visible to the public',
       })
     },
     onError: () => {
-      toast({ variant: 'error', title: 'Failed to update booking status' })
+      toast({ variant: 'error', title: 'Failed to update trip visibility' })
     },
   })
 }
