@@ -1,0 +1,41 @@
+apps/web/src/app/dashboard/payments/page.tsx
+  s_9307cd4c31fb90::t_f502415db92b05 1-4,6-11,14-26,28-42,44-45,47-70,77-93,96-110,112-116,118-130
+  s_9307cd4c31fb90::t_07856f86519a9a 43,46
+  s_9307cd4c31fb90::t_c4c2996ae3b763 5
+  s_9307cd4c31fb90::t_d7b1684e7bb5a3 117
+  s_9307cd4c31fb90::t_434f079f96df97 71-76
+  s_9307cd4c31fb90::t_4e76c57ce9994e 27
+  s_9307cd4c31fb90::t_2d476dfafa9328 12
+  s_9307cd4c31fb90::t_c4ae5bfebe1009 94-95
+  s_9307cd4c31fb90::t_0acd9505afd56a 13
+  s_9307cd4c31fb90::t_f29875b70a658a 111
+apps/web/src/lib/query-keys.ts
+  s_9307cd4c31fb90::t_fe8be5816e8c15 17
+  s_9307cd4c31fb90::t_a9054c8f8f60b7 4
+  s_9307cd4c31fb90::t_594095f14b562d 99-101
+apps/web/src/hooks/use-payments.ts
+  s_9307cd4c31fb90::t_aab677ca58399b 10
+  s_9307cd4c31fb90::t_606f4bdb5dc20d 135-176
+  s_9307cd4c31fb90::t_3ad5727b4415c7 177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5ff9fa5fb49d9f24477e84a0f52f6b6ed873adc2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
