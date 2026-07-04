@@ -624,7 +624,7 @@ apps/web/src/components/
 - **Compare:** `use-compare-queue`, `use-compare-trips`
 - **Upload:** `use-cloudinary-upload`, `use-upload-signature`
 - **Profile:** `use-profile`, `use-organizer-stats`, `use-organizer-public-profile`
-- **Utility:** `use-debounce`, `use-blocking-mutation`, `use-log-error`
+- **Utility:** `use-debounce` (generic timer), `use-search-combobox` (generic search/page state), `use-blocking-mutation`, `use-log-error`
 
 ### State Management
 
@@ -645,6 +645,25 @@ Component → useXxx() hook → apiClient.get/post() → Axios interceptors → 
 ```
 
 **Query key factories** in `lib/query-keys.ts`: `tripKeys`, `bookingKeys`, `tripRequestKeys`, `paymentKeys`, `walletKeys`, `reviewKeys`, `chatKeys`, `destinationKeys`, `organizerKeys`, `profileKeys`, `uploadKeys`, `notificationKeys`, **`vehicleKeys`**, **`adminKeys`**
+
+### Search-with-Pagination Dropdown Pattern (Layered Combobox)
+
+For any dropdown that searches a remote list with pagination, use the 4-layer pattern:
+
+```
+useDebounce          hooks/use-debounce.ts            Generic timer
+useSearchCombobox    hooks/use-search-combobox.ts      Generic query + page state
+SearchCombobox       components/shared/search-combobox.tsx   Generic UI
+*SearchCombobox      components/shared/*-search-combobox.tsx  Data adapter (one per context)
+```
+
+Existing adapters:
+
+| Component | Hook | Scope |
+|-----------|------|-------|
+| `TripSearchCombobox` | `useMyTripsSearch` | Organizer's own trips |
+
+To add a new one: write a data hook → create a thin wrapper (~25 lines) composing `useSearchCombobox` + your hook + `SearchCombobox`. See `tech-stack.md § Layered Combobox Pattern` for the full how-to.
 
 ### API Client (`lib/api-client.ts`)
 

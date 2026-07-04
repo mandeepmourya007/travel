@@ -112,6 +112,8 @@ A senior architect-level tech spec for building a scalable, maintainable group t
 | **Compound Component** | Form components with React Hook Form + Zod — form ↔ field ↔ error coupling | `components/booking/booking-form.tsx` | Parent form manages state, children (fields, errors) are coordinated |
 | **Render Props / Children** | Error boundary with `fallback` prop | `components/shared/error-boundary.tsx` | Parent provides error UI via prop; boundary handles when to show it |
 | **HOC (Higher-Order Component)** | `asyncHandler()` wraps a function to add error handling behavior | `utils/async-handler.ts` | Classic HOC: takes a function, returns an enhanced function |
+| **Adapter Pattern (Data Adapter)** | `TripSearchCombobox` adapts organizer trip data into `SearchCombobox` props | `components/shared/trip-search-combobox.tsx` | Decouples generic UI from data source — swap data hook without touching the UI layer |
+| **Layered Combobox Pattern** | `useDebounce` → `useSearchCombobox` → `SearchCombobox` → context-specific wrapper | `hooks/use-search-combobox.ts`, `components/shared/search-combobox.tsx` | 4-layer separation: timer / state / UI / data adapter. New data source = new wrapper only |
 
 ### Pattern Usage Rules
 
@@ -139,7 +141,114 @@ RULE 5: Use Facade when orchestrating 3+ subsystems.
 RULE 6: Use Singleton for expensive resources.
   ❌ const prisma = new PrismaClient()  (inside every request handler)
   ✅ Export one instance from lib/prisma.ts, import everywhere
+
+RULE 7: Use the Layered Combobox Pattern for any search-with-pagination dropdown.
+  ❌ One fat component that fetches, debounces, and renders everything
+  ✅ useDebounce → useSearchCombobox → SearchCombobox → thin data-adapter wrapper
 ```
+
+---
+
+### Layered Combobox Pattern
+
+Any search-with-pagination dropdown (trip filter, user search, cashback filter, etc.) follows a strict 4-layer architecture. Each layer has one responsibility.
+
+```
+Layer 1  hooks/use-debounce.ts          Generic timer — any <T>, any delay
+Layer 2  hooks/use-search-combobox.ts   Generic state — query + page + debounce wiring
+Layer 3  components/shared/search-combobox.tsx   Generic UI — zero data coupling
+Layer 4  components/shared/*-search-combobox.tsx  Data adapter — one per data source
+```
+
+#### Layer responsibilities
+
+| Layer | Owns | Does NOT own |
+|-------|------|-------------|
+| `useDebounce<T>` | Debounce timer | What is being debounced |
+| `useSearchCombobox` | `query`, `debouncedQuery`, `page`, page-reset-on-search | API calls, what data to fetch |
+| `SearchCombobox` | `open/close`, `selectedLabel` persistence, all UI markup | Where items come from, pagination state |
+| Data-adapter wrapper | Picking the right data hook, mapping to `SearchComboboxOption[]` | UI, debounce logic, state |
+
+#### How to add a new combobox (e.g. admin trip filter)
+
+**Step 1 — create a data hook** (or reuse existing):
+```ts
+// hooks/use-admin-trips-search.ts
+export function useAdminTripsSearch(q: string, page: number, limit = 10) {
+  return useQuery({
+    queryKey: adminKeys.tripsSearch(q, page, limit),
+    queryFn: () => apiClient.get('/admin/trips/search', { params: { q, page, limit } }).then(r => r.data),
+    staleTime: STALE_TIME_REALTIME,
+    placeholderData: (prev) => prev,
+  })
+}
+```
+
+**Step 2 — create a thin wrapper** (~25 lines):
+```tsx
+// components/shared/admin-trip-search-combobox.tsx
+'use client'
+import { useSearchCombobox } from '@/hooks/use-search-combobox'
+import { useAdminTripsSearch } from '@/hooks/use-admin-trips-search'
+import { SearchCombobox } from './search-combobox'
+
+export function AdminTripSearchCombobox({ value, onChange, placeholder = 'All Trips', className }) {
+  const { query, debouncedQuery, page, setPage, handleQueryChange } = useSearchCombobox()
+  const { data, isFetching } = useAdminTripsSearch(debouncedQuery, page, 10)
+
+  return (
+    <SearchCombobox
+      value={value}
+      onChange={onChange}
+      options={(data?.data ?? []).map(t => ({ id: t.id, label: t.title, meta: t.destination.name }))}
+      query={query}
+      onQueryChange={handleQueryChange}
+      isLoading={isFetching}
+      pagination={data?.pagination ? { ...data.pagination, onPageChange: setPage } : undefined}
+      placeholder={placeholder}
+      allOptionLabel="All Trips"
+      className={className}
+    />
+  )
+}
+```
+
+**Step 3 — use anywhere**:
+```tsx
+<AdminTripSearchCombobox value={tripId} onChange={setTripId} />
+```
+
+#### Existing implementations
+
+| Component | Data Source | Used In |
+|-----------|-------------|---------|
+| `TripSearchCombobox` | `useMyTripsSearch` (organizer's own trips) | `dashboard/payments/page.tsx` |
+
+#### `SearchCombobox` props reference
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `value` | `string \| undefined` | ✓ | Selected option id |
+| `onChange` | `(id: string \| undefined) => void` | ✓ | Called on select / clear |
+| `options` | `SearchComboboxOption[]` | ✓ | `{ id, label, meta? }` array |
+| `query` | `string` | ✓ | Controlled search input value |
+| `onQueryChange` | `(q: string) => void` | ✓ | Called on every keystroke |
+| `isLoading` | `boolean` | — | Shows spinner in search input |
+| `pagination` | `{ page, totalPages, total, onPageChange }` | — | Renders prev/next when `totalPages > 1` |
+| `placeholder` | `string` | — | Trigger text when nothing selected (default: `"Select…"`) |
+| `searchPlaceholder` | `string` | — | Input placeholder (default: `"Search…"`) |
+| `allOptionLabel` | `string \| null` | — | "Clear" row label. `null` = hide row (default: `"All"`) |
+| `className` | `string` | — | Wrapper div class |
+
+#### `useSearchCombobox` return reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `query` | `string` | Current raw search string (bind to `SearchCombobox.query`) |
+| `debouncedQuery` | `string` | Debounced value — pass this to the data hook |
+| `page` | `number` | Current page (1-indexed) |
+| `setPage` | `(page: number) => void` | Pass as `pagination.onPageChange` |
+| `handleQueryChange` | `(q: string) => void` | Pass as `SearchCombobox.onQueryChange` — resets page to 1 |
 
 ---
 
@@ -255,7 +364,8 @@ travel-app/
 │   │   │   │   ├── use-notifications.ts
 │   │   │   │   ├── use-chat.ts
 │   │   │   │   ├── use-auth.ts
-│   │   │   │   └── use-debounce.ts
+│   │   │   │   ├── use-debounce.ts          # Generic debounce timer
+│   │   │   │   └── use-search-combobox.ts   # Generic search/page state (Layer 2 of Layered Combobox Pattern)
 │   │   │   ├── lib/                  # Utility functions
 │   │   │   │   ├── api-client.ts     # Axios/fetch wrapper
 │   │   │   │   ├── query-keys.ts     # TanStack Query key factories
