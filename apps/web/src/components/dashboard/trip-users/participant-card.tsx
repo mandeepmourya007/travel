@@ -90,6 +90,33 @@ export function BookingCard({ booking, onViewDetails }: BookingCardProps) {
   )
 }
 
+// ── Message Preview ─────────────────────────────────────
+
+const PREVIEW_CHAR_LIMIT = 120
+
+function MessagePreview({ message }: { message: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const isLong = message.length > PREVIEW_CHAR_LIMIT
+
+  return (
+    <div className="mt-3 rounded-md bg-neutral-50 px-3 py-2 border-l-2 border-neutral-200">
+      <p className="text-sm text-neutral-600 italic leading-snug">
+        &ldquo;{expanded || !isLong ? message : `${message.slice(0, PREVIEW_CHAR_LIMIT).trimEnd()}...`}&rdquo;
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
+          className="mt-1 text-xs font-medium text-primary-600 hover:text-primary-700"
+        >
+          {expanded ? 'Show less ↑' : 'Read more ↓'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 // ── Request Card ────────────────────────────────────────
 
 /** Displays a single trip request in the organizer's participant list */
@@ -115,64 +142,72 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
         (isPending || isApprovedAwaitingPayment) && 'border-l-4 border-l-warning-400',
       )}
     >
-      <div className="flex items-center gap-4">
+      {/* Row 1: Avatar + identity + time */}
+      <div className="flex items-start gap-3">
         <Avatar name={request.user.name} size="md" color={isPending ? 'highlight' : 'primary'} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="truncate font-semibold text-neutral-800">{request.user.name}</p>
-            {!isApprovedAwaitingPayment && (
-              <span className={STATUS_COLORS[request.status] ?? 'badge'}>
-                {request.status}
-              </span>
-            )}
-            {isApprovedAwaitingPayment && (
-              <span className="badge badge-warning">Payment Pending</span>
-            )}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <p className="font-semibold text-neutral-800 leading-tight">{request.user.name}</p>
+              {!isApprovedAwaitingPayment && (
+                <span className={STATUS_COLORS[request.status] ?? 'badge'}>
+                  {request.status}
+                </span>
+              )}
+              {isApprovedAwaitingPayment && (
+                <span className="badge badge-warning">Payment Pending</span>
+              )}
+            </div>
+            <span className="shrink-0 text-xs text-neutral-400">{timeAgo(request.createdAt)}</span>
           </div>
-          <p className="mt-0.5 text-sm text-neutral-500">
-            {request.user.email}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-neutral-500">
-            <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" /> {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
-            </span>
-            {request.message && (
-              <span className="truncate max-w-[200px] italic text-neutral-400">
-                &ldquo;{request.message}&rdquo;
-              </span>
-            )}
-            <span className="text-xs">{timeAgo(request.createdAt)}</span>
-          </div>
+          <p className="mt-0.5 truncate text-sm text-neutral-500">{request.user.email}</p>
         </div>
+      </div>
 
-        {isPending ? (
-          <div className="flex shrink-0 items-center gap-2">
+      {/* Row 2: Message preview — full width, expandable */}
+      {request.message && (
+        <MessagePreview message={request.message} />
+      )}
+
+      {/* Row 3: Travelers count + action buttons */}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 text-sm text-neutral-500">
+          <Users className="h-4 w-4" />
+          {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
+        </span>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {isPending ? (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onReject(request) }}
+                disabled={isResponding}
+                className="flex items-center gap-1.5 rounded-lg border border-error-500 bg-error-50 px-3 py-1.5 text-sm font-medium text-error-500 transition-colors hover:bg-error-50 disabled:opacity-50"
+                aria-label="Reject request"
+              >
+                <X className="h-3.5 w-3.5" />
+                Decline
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onApprove(request) }}
+                disabled={isResponding}
+                className="flex items-center gap-1.5 rounded-lg border border-success-500 bg-success-50 px-3 py-1.5 text-sm font-medium text-success-500 transition-colors hover:bg-success-50 disabled:opacity-50"
+                aria-label="Approve request"
+              >
+                <Check className="h-3.5 w-3.5" />
+                Approve
+              </button>
+            </>
+          ) : onViewDetails ? (
             <button
-              onClick={(e) => { e.stopPropagation(); onApprove(request) }}
-              disabled={isResponding}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 transition-colors hover:bg-success-100 disabled:opacity-50"
-              aria-label="Approve request"
+              onClick={(e) => { e.stopPropagation(); onViewDetails(request) }}
+              className="btn-ghost shrink-0 p-2"
+              aria-label="View request details"
             >
-              <Check className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
             </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onReject(request) }}
-              disabled={isResponding}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-error-50 text-error-500 transition-colors hover:bg-error-100 disabled:opacity-50"
-              aria-label="Reject request"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        ) : onViewDetails ? (
-          <button
-            onClick={(e) => { e.stopPropagation(); onViewDetails(request) }}
-            className="btn-ghost shrink-0 p-2"
-            aria-label="View request details"
-          >
-            <Eye className="h-4 w-4" />
-          </button>
-        ) : null}
+          ) : null}
+        </div>
       </div>
 
       {/* Expandable traveler details */}

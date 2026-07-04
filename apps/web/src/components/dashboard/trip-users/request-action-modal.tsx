@@ -56,6 +56,13 @@ export function RequestActionModal({
           )}
         </p>
 
+        {request.message && (
+          <div className="rounded-md bg-neutral-50 border-l-2 border-neutral-200 px-3 py-2">
+            <p className="mb-1 text-xs font-medium text-neutral-400 uppercase tracking-wide">Traveler&apos;s message</p>
+            <p className="max-h-32 overflow-y-auto text-sm text-neutral-700 italic leading-snug">&ldquo;{request.message}&rdquo;</p>
+          </div>
+        )}
+
         {tooManyTravelers && (
           <div className="rounded-lg bg-error-50 border border-error-200 p-3 text-sm text-error-700">
             Not enough seats! Only <strong>{seatsLeft}</strong> seat{seatsLeft !== 1 ? 's' : ''} left,
