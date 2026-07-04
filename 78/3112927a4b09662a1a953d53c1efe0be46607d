@@ -1,0 +1,81 @@
+apps/api/src/controllers/admin.controller.ts
+  s_2e2585c6712eca::t_ee56633bf4cb76 150-155
+  s_2e2585c6712eca::t_89832baa234c5f 8
+  s_2e2585c6712eca::t_ea9e756c3cff51 147-149,156-166
+  s_2e2585c6712eca::t_6ff1861b4e8528 4,12-15
+apps/api/src/services/booking.service.ts
+  s_2e2585c6712eca::t_1de9282ed0c3d9 466-469,472-478
+apps/api/src/routes/admin.routes.ts
+  s_2e2585c6712eca::t_bafd69552516fe 125-130
+  s_2e2585c6712eca::t_8cf9ba483d3775 20-21
+  s_2e2585c6712eca::t_4283f303e1ae79 124,131-143
+  s_2e2585c6712eca::t_18c8b994d0ee96 11
+  s_2e2585c6712eca::t_500d58bac7d460 144
+apps/api/src/config/dependencies.ts
+  s_2e2585c6712eca::t_574dd91359e99c 267
+apps/api/src/routes/trip.routes.ts
+  s_2e2585c6712eca::t_d3b32625d83cb6 98,101-107
+  s_2e2585c6712eca::t_e350811d92f616 5
+  s_2e2585c6712eca::t_d768cdd08c8f77 108
+apps/api/src/utils/trip-mapper.ts
+  s_2e2585c6712eca::t_868e4e879f7304 30-34
+  s_2e2585c6712eca::t_078a97ab7cf128 77-81
+apps/api/src/services/trip.service.ts
+  s_2e2585c6712eca::t_9300f03e34ff08 423-428,430-435
+  s_2e2585c6712eca::t_c28033d2a3e594 24
+  s_2e2585c6712eca::t_df7dbd78c95961 824-826,834-838
+  s_2e2585c6712eca::t_f5119a424deb08 279
+  s_2e2585c6712eca::t_13ec76c06332ed 421,905-1012
+  s_2e2585c6712eca::t_6e11e8ce47516b 22-23
+  s_2e2585c6712eca::t_e081ffebf2da8f 355-367,369,371-372,374-388,390-406,408-420
+  s_9307cd4c31fb90::t_3a712967fead1f 429
+  s_2e2585c6712eca::t_b583d0e5520d62 422,1013
+apps/api/src/controllers/trip.controller.ts
+  s_2e2585c6712eca::t_33b63be9032713 89,91-97
+apps/api/src/repositories/trip.repository.ts
+  s_2e2585c6712eca::t_b3bd25d4454fe7 1
+  s_2e2585c6712eca::t_c9da494667d254 93,144
+  s_2e2585c6712eca::t_ec8c0b3597f2ed 348
+  s_2e2585c6712eca::t_3fa535a2ba1add 436
+  s_2e2585c6712eca::t_889f8b47f90bf4 210
+  s_2e2585c6712eca::t_7074142f2baa93 11-12,14-15,17-18
+  s_2e2585c6712eca::t_ab7c9c99b52bee 251,253-264,285-288,292
+  s_2e2585c6712eca::t_ea99b2dd792425 523-524
+  s_2e2585c6712eca::t_71b635d09da1ea 306
+  s_2e2585c6712eca::t_55334144f5fdb5 66-70
+  s_9307cd4c31fb90::t_7fbbd5accc5c8b 252,265-284,289
+  s_2e2585c6712eca::t_ac309ff5582d98 407
+  s_2e2585c6712eca::t_67d1a155c702fd 118-122,127
+  s_2e2585c6712eca::t_6968b04dafee2d 146
+  s_2e2585c6712eca::t_ce797e068b733e 13,16,19-20
+  s_2e2585c6712eca::t_7c2a391fb73927 290-291,293-297
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "783112927a4b09662a1a953d53c1efe0be46607d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2e2585c6712eca": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b6a76f5a-dd4b-48bb-b5e7-b87f607e6424",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_9307cd4c31fb90": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d01d6994-0972-4055-86fd-51da6d68ba36",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
