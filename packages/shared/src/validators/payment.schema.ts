@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SORT_ORDERS, SORT_FIELD } from '../constants/sort'
 import { idSchema } from './common.schema'
 // PAYMENT_TYPES / PAYMENT_STATUSES live in constants/payment — imported here to feed z.enum
 // ESCROW_RELEASE is stored in the DB and cannot be renamed without a data migration.
@@ -37,4 +38,18 @@ export const adminPaymentFiltersSchema = basePaymentFilters.extend({
   userId: idSchema.optional(),
   tripId: idSchema.optional(),
   bookingRef: z.string().max(50).optional(),
+}).refine(dateRangeRefine, dateRangeMessage)
+
+/** Sort fields available on the organizer payment list. */
+export const ORGANIZER_PAYMENT_SORT_FIELDS = [
+  SORT_FIELD.AMOUNT,
+  SORT_FIELD.CREATED_AT,
+  SORT_FIELD.STATUS,
+] as const
+
+/** Validates query params for GET /payments/organizer — trip scope + sorting */
+export const organizerPaymentFiltersSchema = basePaymentFilters.extend({
+  tripId: idSchema.optional(),
+  sortBy: z.enum(ORGANIZER_PAYMENT_SORT_FIELDS).optional(),
+  sortOrder: z.enum(SORT_ORDERS).optional(),
 }).refine(dateRangeRefine, dateRangeMessage)

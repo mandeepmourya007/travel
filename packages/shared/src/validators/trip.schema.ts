@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { idSchema } from './common.schema'
+import { TRIP_STATUSES } from '../constants/trip-types'
 
 /** Accepts a string (newline-separated) or string[] and normalizes to string[] */
 const stringOrArray = z.preprocess(
@@ -153,6 +154,14 @@ export const setVisibilitySchema = z.object({
   reason: reasonField,
 })
 export const adminSetVisibilitySchema = setVisibilitySchema
+
+/** Validates query params for GET /trips/my/search (organizer combobox search) */
+export const myTripSearchSchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(20).default(10),
+  status: z.enum(TRIP_STATUSES).optional(),
+})
 
 export const tripFiltersSchema = z.object({
   destinationId: idSchema.optional(),

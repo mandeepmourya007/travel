@@ -1,4 +1,5 @@
 import type { PaymentProviderConst, PaymentTypeConst, PaymentStatusConst } from '../constants/payment'
+import type { SortOrder, SORT_FIELD } from '../constants/sort'
 
 export interface CreateBookingResponse {
   bookingId: string
@@ -67,6 +68,14 @@ export interface AdminPaymentFilters extends PaymentHistoryFilters {
   userId?: string
   tripId?: string
   bookingRef?: string
+}
+
+/** Organizer global payment filters — extends base with trip scope and sorting */
+export interface OrganizerPaymentFilters extends PaymentHistoryFilters {
+  /** Scope to a single trip owned by the organizer */
+  tripId?: string
+  sortBy?: (typeof SORT_FIELD)[keyof typeof SORT_FIELD]
+  sortOrder?: SortOrder
 }
 
 /** Summary card for Traveler view */

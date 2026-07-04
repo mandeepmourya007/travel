@@ -1,6 +1,8 @@
 import type { PaginationMeta } from './api-response.types'
 import type { VerificationStatus, ApproveRejectAction } from '../constants/verification-status'
 import type { BookingStatusConst } from '../constants/booking-status'
+import type { SortOrder } from '../constants/sort'
+export type { SortOrder } from '../constants/sort'
 
 // ─── Document Review ────────────────────────────────────
 
@@ -144,7 +146,6 @@ export interface AdminBookingFilters {
 }
 
 export type AdminTripSortBy = 'destination' | 'startDate' | 'pricePerPerson' | 'status'
-export type SortOrder = 'asc' | 'desc'
 
 export interface AdminTripFilters {
   q?: string
