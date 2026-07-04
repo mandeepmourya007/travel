@@ -148,6 +148,9 @@ services:
     restart: unless-stopped
     ports:
       - '127.0.0.1:3001:${WEB_PORT:-3000}'
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       NODE_ENV: production
       PORT: ${WEB_PORT:-3000}

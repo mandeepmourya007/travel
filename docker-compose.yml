@@ -128,6 +128,9 @@ services:
     restart: unless-stopped
     ports:
       - '${WEB_PORT:-3000}:${WEB_PORT:-3000}'
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     env_file:
       - path: apps/api/.env
         required: false
