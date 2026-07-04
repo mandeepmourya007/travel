@@ -318,7 +318,7 @@ describe('MyBookingsList', () => {
     await user.click(screen.getByText(/cancel booking/i))
 
     // Modal should be visible — use heading role to disambiguate from card button
-    const modal = screen.getByRole('heading', { name: 'Cancel Booking' }).closest('div[tabindex]')!
+    const modal = screen.getByRole('heading', { name: 'Cancel Booking' }).closest('div[tabindex]') as HTMLElement
     expect(modal).toBeInTheDocument()
     expect(within(modal).getByText(/TRP-2025-0099/)).toBeInTheDocument()
     expect(within(modal).getByText('FLEXIBLE')).toBeInTheDocument()
