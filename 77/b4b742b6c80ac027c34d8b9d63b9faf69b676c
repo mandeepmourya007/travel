@@ -1,0 +1,53 @@
+apps/web/src/lib/query-keys.ts
+  s_28e5ed90b6df52::t_b09600c91c075e 154,158,160-161,163
+  s_28e5ed90b6df52::t_38ff1afb68fdbf 130,132
+  s_28e5ed90b6df52::t_6d8a034f8bc561 168-171
+  s_28e5ed90b6df52::t_b9bcdeb8d24917 6,8-11
+  s_28e5ed90b6df52::t_5efb4cfe9ebd8d 117-118,123
+  s_28e5ed90b6df52::t_ee05f5d24f2234 186,192-193,199-200,204-205,208,212,214-215,218,221
+  s_28e5ed90b6df52::t_ed7c49d9b5ca57 138-139,141,143,145-146,148-149
+  s_28e5ed90b6df52::t_a7b020b554160e 79-84
+  s_28e5ed90b6df52::t_0ce818438bc546 176-177,179-180
+  s_28e5ed90b6df52::t_35bfb8e94aac71 222-223
+  s_28e5ed90b6df52::t_3d0412f4a114e0 12-50
+  s_28e5ed90b6df52::t_bd76b0fe9c953b 60-61
+  s_28e5ed90b6df52::t_2e8f21b20f3601 89-91
+  s_28e5ed90b6df52::t_5f43a0900891b2 54,56,58-59,62
+  s_28e5ed90b6df52::t_3b2707db190e37 67,74
+  s_28e5ed90b6df52::t_8744f3f46f54f6 96-98
+  s_28e5ed90b6df52::t_2739468f4ac891 106,108,110,112
+  s_28e5ed90b6df52::t_9d44db078e4a02 109,111
+apps/web/src/hooks/use-admin-reviews.ts
+  s_28e5ed90b6df52::t_f06fc88c9faa7b 23
+  s_28e5ed90b6df52::t_e10805181154c0 1-22,24-32,35-37
+  s_28e5ed90b6df52::t_14997db70cece1 33-34
+apps/web/src/hooks/use-my-trips.ts
+  s_28e5ed90b6df52::t_b2ee8daa3357fe 39-68
+apps/web/src/components/shared/trip-search-combobox.tsx
+  s_28e5ed90b6df52::t_9ecbd7857ad9e0 4,9,16-23,25-26,28,31,33-42,44-71,75-78
+apps/web/src/hooks/use-reviews.ts
+  s_28e5ed90b6df52::t_e78374765901b3 11-51
+  s_28e5ed90b6df52::t_5a39f965ffd715 5-7
+  s_28e5ed90b6df52::t_26c53265d6f069 52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "77b4b742b6c80ac027c34d8b9d63b9faf69b676c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
