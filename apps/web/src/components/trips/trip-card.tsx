@@ -121,12 +121,31 @@ export const TripCard = memo(function TripCard({ trip, onCompare, isSelected = f
           >
             {trip.bookingMode === 'INSTANT' ? 'Instant Book' : 'Request'}
           </span>
-          {/* Seats urgency */}
-          <SeatsLeftBadge
-            maxGroupSize={trip.maxGroupSize}
-            currentBookings={trip.currentBookings}
-            className="absolute bottom-3 right-3"
-          />
+          {/* Availability overlays — shown instead of seats badge when unavailable */}
+          {trip.currentBookings >= trip.maxGroupSize ? (
+            <div className="absolute inset-0 bg-neutral-900/60 flex items-center justify-center">
+              <span className="rounded-full bg-neutral-800/90 px-4 py-1.5 text-sm font-semibold text-white">
+                Fully Booked
+              </span>
+            </div>
+          ) : !trip.acceptingBookings ? (
+            <div className="absolute inset-0 bg-neutral-900/50 flex items-center justify-center">
+              <div className="text-center">
+                <span className="rounded-full bg-warning-600/90 px-4 py-1.5 text-sm font-semibold text-white">
+                  Bookings Closed
+                </span>
+                {trip.bookingsPausedReason && (
+                  <p className="mt-2 mx-4 text-xs text-white/90 line-clamp-2">{trip.bookingsPausedReason}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <SeatsLeftBadge
+              maxGroupSize={trip.maxGroupSize}
+              currentBookings={trip.currentBookings}
+              className="absolute bottom-3 right-3"
+            />
+          )}
           {trip.seatSelectionEnabled && (
             <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-md bg-primary-600 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
               <Armchair className="h-3 w-3" />

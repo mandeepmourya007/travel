@@ -37,6 +37,23 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
 
   return (
     <div className="card sticky top-24 p-6">
+      {/* Availability notice — shown prominently before price */}
+      {isFull ? (
+        <div className="mb-4 rounded-lg bg-neutral-100 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-neutral-700">This trip is fully booked</p>
+          <p className="mt-0.5 text-xs text-neutral-500">No seats remaining</p>
+        </div>
+      ) : !trip.acceptingBookings ? (
+        <div className="mb-4 rounded-lg bg-warning-50 px-4 py-3 text-center">
+          <p className="text-sm font-semibold text-warning-700">Bookings are closed</p>
+          {trip.bookingsPausedReason ? (
+            <p className="mt-0.5 text-xs text-warning-600">{trip.bookingsPausedReason}</p>
+          ) : (
+            <p className="mt-0.5 text-xs text-warning-600">This trip is not accepting new bookings</p>
+          )}
+        </div>
+      ) : null}
+
       {/* Price */}
       <div className="mb-4">
         {trip.earlyBirdPrice ? (

@@ -93,6 +93,15 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             <CreditCard className="h-4 w-4" /> Pay Now
           </Link>
         )
+      ) : !trip.acceptingBookings ? (
+        <div className={isCard ? 'space-y-1 w-full' : 'space-y-1'}>
+          <button disabled className={isCard ? 'btn-disabled w-full text-center' : 'btn-disabled px-5 py-2.5 text-sm'}>
+            Bookings Closed
+          </button>
+          {trip.bookingsPausedReason && (
+            <p className="text-xs text-neutral-500 text-center px-1">{trip.bookingsPausedReason}</p>
+          )}
+        </div>
       ) : isFull ? (
         <button disabled className={isCard ? 'btn-disabled w-full text-center' : 'btn-disabled px-5 py-2.5 text-sm'}>
           Fully Booked
