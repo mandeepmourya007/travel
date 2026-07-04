@@ -1,0 +1,29 @@
+apps/web/src/components/reviews/__tests__/traveler-review-card.test.tsx
+  s_28e5ed90b6df52::t_92cbf3048af1af 1-30,33-89
+  s_28e5ed90b6df52::t_d48beda2bf45cb 31-32
+apps/web/src/hooks/__tests__/use-reviews.test.tsx
+  s_28e5ed90b6df52::t_f73a9a2db1b1e8 1-180
+apps/web/src/hooks/__tests__/use-admin-reviews.test.tsx
+  s_28e5ed90b6df52::t_e6b11649f4017a 1-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b70d24208e51e94874c04d0bd2e71d7fb31db89f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_28e5ed90b6df52": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1986bbe-edc7-4a41-bbf4-ad6b2bd1c31d",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
