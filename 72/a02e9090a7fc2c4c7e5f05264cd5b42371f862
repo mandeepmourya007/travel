@@ -1,0 +1,24 @@
+apps/api/src/providers/nodemailer-email.provider.ts
+  s_505e8bb6acd407::t_37aba82e19aac7 24-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "72a02e9090a7fc2c4c7e5f05264cd5b42371f862",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_505e8bb6acd407": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7e7f1324-2570-47b4-9a54-54c950d2ede2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
