@@ -1,0 +1,24 @@
+apps/web/src/app/(public)/contact/page.tsx
+  s_747f62df8343d9::t_1affeeacbf4ca0 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "dcfc023bdeeb1429fd57977bdd4c7c62773a64bc",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_747f62df8343d9": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7ae815b9-59d0-46f3-ad54-36f5f4b6aeeb",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
