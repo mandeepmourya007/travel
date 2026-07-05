@@ -65,11 +65,11 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
-    // Bing verification — only included when env var is set (ChatGPT uses Bing index)
-    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
-      other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION },
-    }),
+    google: 'NCRkUGRq6YtK7iit0nZ_dolWgx8tR96q5rKlFMx2YpY',
+    // Bing verification — add value here once obtained from bing.com/webmasters
+    // ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
+    //   other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION },
+    // }),
   },
 }
 
