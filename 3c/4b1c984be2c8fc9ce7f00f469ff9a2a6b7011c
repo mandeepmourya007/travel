@@ -1,0 +1,33 @@
+apps/web/src/app/(public)/safety/page.tsx
+  s_077108b64ce7ec::t_2286fd8146a149 45-48
+apps/web/src/lib/legal-content.ts
+  s_077108b64ce7ec::t_33df1295df801c 215-226,230,233-235,244,248
+  s_077108b64ce7ec::t_7d04829aedefdd 255
+  s_077108b64ce7ec::t_ae1c9572b4ea15 264
+  s_077108b64ce7ec::t_989001edaafadb 249
+  s_077108b64ce7ec::t_1e991d6cddc1aa 213-214
+apps/web/src/app/(public)/how-it-works/page.tsx
+  s_077108b64ce7ec::t_624812e4b70272 74
+  s_077108b64ce7ec::t_c664f4611ecd88 40-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "3c4b1c984be2c8fc9ce7f00f469ff9a2a6b7011c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_077108b64ce7ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7e56cdc-a85d-444c-a1d1-881a5e00fe89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
