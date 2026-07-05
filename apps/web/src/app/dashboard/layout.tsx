@@ -1,9 +1,14 @@
+import type { Metadata } from 'next'
 import { Header } from '@/components/layout/header'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { RoleGuard } from '@/components/shared/role-guard'
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar'
 import { DashboardAlerts } from '@/components/dashboard/dashboard-alerts'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (

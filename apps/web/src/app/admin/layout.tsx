@@ -1,6 +1,11 @@
+import type { Metadata } from 'next'
 import { AuthGuard } from '@/components/shared/auth-guard'
 import { Header } from '@/components/layout/header'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
