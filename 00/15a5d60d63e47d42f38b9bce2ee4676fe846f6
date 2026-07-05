@@ -1,0 +1,28 @@
+apps/web/src/components/trips/trip-cta-button.tsx
+  s_747f62df8343d9::t_836bbe63979e0f 130
+  s_747f62df8343d9::t_5a20034e65b8cf 5
+  s_747f62df8343d9::t_a61fbbc29a0a95 76
+  s_747f62df8343d9::t_5bb40b6be9fed4 28,40-46
+  s_747f62df8343d9::t_4f77d3f91ef672 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0015a5d60d63e47d42f38b9bce2ee4676fe846f6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_747f62df8343d9": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7ae815b9-59d0-46f3-ad54-36f5f4b6aeeb",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
