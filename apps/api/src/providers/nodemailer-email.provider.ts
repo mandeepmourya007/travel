@@ -21,9 +21,9 @@ export class NodemailerEmailProvider implements IEmailProvider {
     this.ready = this.init()
   }
 
-  // Nodemailer v8 has its own DNS cache that ignores --dns-result-order.
-  // Resolve to IPv4 explicitly so we never hand it an IPv6 address on
-  // hosts (e.g. Render free tier) that block outbound IPv6.
+  // Nodemailer's internal DNS resolution can return IPv6 addresses, which some
+  // hosts (e.g. Render free tier) block on outbound SMTP. Resolve to IPv4
+  // explicitly before handing the host to the transporter.
   private async init(): Promise<void> {
     let host = this.config.host
     try {
