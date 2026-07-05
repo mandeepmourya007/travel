@@ -1,0 +1,56 @@
+apps/web/src/components/trips/trip-cta-button.tsx
+  s_747f62df8343d9::t_f2d9822f4ebaec 157-162
+  s_747f62df8343d9::t_1a234474bcae6b 10
+  s_747f62df8343d9::t_8373f3bc1b7a7b 79,81
+  s_747f62df8343d9::t_988b46c03dad10 33,43,49-54
+  s_747f62df8343d9::t_cd79d05254b217 111,113
+  s_747f62df8343d9::t_6b79e25f8cc7c7 133,135
+  s_747f62df8343d9::t_f4538c42046ce9 97,99
+  s_747f62df8343d9::t_07ea71915a4b8b 55-56
+apps/web/vitest.config.ts
+  s_8225ec90304d58::t_718bd52b0793ec 4
+docker/web.Dockerfile
+  s_8225ec90304d58::t_8fc4972c9e82bc 30
+apps/web/src/components/shared/login-required-dialog.tsx
+  s_8225ec90304d58::t_ac813ff7d5a9ef 24
+  s_747f62df8343d9::t_5037b95e1f4c3a 1-23,25-58
+apps/web/src/test/jest-dom.d.ts
+  s_505e8bb6acd407::t_7e58ee834149a8 1-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e577c255ed8b635db2bab2cb983e1fad95fb1ece",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_505e8bb6acd407": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7e7f1324-2570-47b4-9a54-54c950d2ede2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_747f62df8343d9": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "7ae815b9-59d0-46f3-ad54-36f5f4b6aeeb",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_8225ec90304d58": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6c67e706-1372-4add-b5f2-01ce7f447906",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
