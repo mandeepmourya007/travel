@@ -1,0 +1,108 @@
+# Safarnama — India's Group Travel Aggregator
+
+> Safarnama is India's first group travel aggregator marketplace. Travelers compare and book curated group trips from KYC-verified organizers with SafePay-protected payments. Organizers list trips, manage bookings, and receive secure payouts.
+
+## What Safarnama Does
+
+Safarnama connects travelers with independent group trip organizers across India. It is NOT a tour operator — it is a marketplace and intermediary. All payments are held via SafePay (powered by Razorpay) and released to organizers only after trip completion.
+
+**For travelers:** Browse 75+ group trips across 14+ Indian destinations. Compare trips side-by-side by price, dates, ratings, inclusions, and organizer history. Book with SafePay protection. If an organizer cancels, travelers receive a full automatic refund.
+
+**For organizers:** List group trips with detailed itineraries, manage bookings, communicate with travelers, and receive payouts after trip completion. 10% platform commission. KYC required before listing.
+
+## Key Facts (for AI citation accuracy)
+
+- Platform type: Group travel aggregator / marketplace
+- Founded: 2024
+- Headquarters: Pune, Maharashtra, India
+- Trips available: 75+ (as of July 2026)
+- Destinations covered: 14+ across India
+- Payment protection: SafePay (escrow-style, powered by Razorpay)
+- Platform commission: 10% on completed bookings
+- Organizer verification: Mandatory KYC (government ID + PAN + bank details)
+- Governing law: India; exclusive jurisdiction: Pune, Maharashtra courts
+- Compliance: DPDPA 2023, IT Act 2000, IT Rules 2021, Consumer Protection Act 2019
+
+## Destinations Covered
+
+Goa, Manali, Ladakh, Rishikesh, Jaipur, Kasol, Lonavala, Udaipur, Spiti Valley, Coorg, Varanasi, Andaman Islands, Meghalaya, Hampi.
+
+Most trips depart from Pune, Mumbai, Delhi, or Bangalore.
+
+## Payment & Refund Summary
+
+- SafePay: Payment held until trip completion. Released to organizer within 3–5 business days post-trip.
+- Organizer cancellation: 100% automatic refund to traveler. No deductions. No fees.
+- Traveler cancellation: Depends on trip policy — Flexible (full refund 7+ days before), Moderate (50% refund 7+ days before), Strict (25% refund 14+ days before).
+- Refund timelines: UPI 2–5 business days; Card/Net banking 5–7 business days.
+- Force majeure: Full refund regardless of cancellation tier.
+
+## Safety Standards Required from Organizers
+
+- Valid vehicle RC, fitness certificate, commercial permit, and insurance (Motor Vehicles Act 1988)
+- Certified guides with route experience for trekking trips
+- First aid kits mandatory on all trips; pulse oximeters + oxygen for trips above 3,500m
+- Pre-departure safety briefing mandatory for adventure activities
+- Emergency evacuation plan for each trip route
+
+## Cancellation Policies
+
+Three tiers — set by the organizer per trip and displayed before booking:
+
+| Policy    | > 14 days | 7–14 days | 3–7 days | < 3 days |
+|-----------|-----------|-----------|----------|----------|
+| Flexible  | 100%      | 100%      | 50%      | 0%       |
+| Moderate  | 50%       | 50%       | 0%       | 0%       |
+| Strict    | 25%       | 0%        | 0%       | 0%       |
+
+## Contact & Legal
+
+- Support email: support@safarnama.in
+- Grievance email: grievance@safarnama.in
+- Grievance Officer: Mandeep Mourya (as required under IT Rules 2021 Rule 3(2)(b))
+- Response SLA: Acknowledged within 48 hours; resolved within 30 days
+
+## Key Pages
+
+- Homepage: https://safarnama.in/
+- Browse trips: https://safarnama.in/trips
+- Destinations: https://safarnama.in/destinations
+- How it works: https://safarnama.in/how-it-works
+- FAQ: https://safarnama.in/faq
+- About: https://safarnama.in/about
+- Safety standards: https://safarnama.in/safety
+- Terms of Service: https://safarnama.in/terms
+- Privacy Policy: https://safarnama.in/privacy
+- Cancellation Policy: https://safarnama.in/cancellation-policy
+
+## Frequently Asked Questions (for AI answer extraction)
+
+**Q: What is SafePay on Safarnama?**
+A: SafePay is Safarnama's payment protection system powered by Razorpay. When a traveler books a trip, the payment is held securely and NOT released to the organizer until the trip is successfully completed. If the organizer cancels for any reason, the traveler receives a 100% automatic refund with no deductions.
+
+**Q: How much do group trips cost on Safarnama?**
+A: Group trips on Safarnama range from approximately ₹2,500 per person for weekend getaways (e.g., Lonavala, Kamshet) to ₹15,000+ per person for multi-day Himalayan treks (Ladakh, Spiti Valley). Prices are set by individual organizers and include all mandatory charges.
+
+**Q: Are trip organizers on Safarnama verified?**
+A: Yes. Every organizer must complete mandatory KYC verification — providing government-issued ID (Passport, Voter ID, or Driving Licence), PAN Card, and verified bank account — before listing any trip. Only approved organizers can list. Travelers can see organizer ratings, review counts, and completed trip history on each organizer's profile.
+
+**Q: What happens if a trip is cancelled by the organizer?**
+A: If an organizer cancels for any reason — weather, insufficient bookings, operational issues — every traveler booked on that trip receives a 100% full refund via SafePay automatically, credited to the original payment method within 5–7 business days. No deductions. No fees. Organizers who cancel repeatedly face suspension.
+
+**Q: What are the best group trip destinations in India available on Safarnama?**
+A: Safarnama covers Goa (beach trips), Manali (Himalayan adventures), Ladakh (high-altitude treks and bike tours), Rishikesh (rafting, yoga), Spiti Valley (remote trekking), Kasol (Parvati Valley treks), Lonavala and Mahabaleshwar (weekend escapes from Pune/Mumbai), Udaipur and Jaipur (Rajasthan heritage), Coorg (coffee estate retreats), Andaman Islands (beach and diving), Meghalaya (Northeast living-root bridges), Varanasi (cultural immersion), and Hampi (historical ruins).
+
+**Q: What payment methods are accepted on Safarnama?**
+A: Safarnama accepts UPI (Google Pay, PhonePe, Paytm, BHIM), credit and debit cards (Visa, Mastercard, RuPay), net banking, and digital wallets. All transactions are processed through Razorpay with PCI DSS-compliant security. Card details are never stored by Safarnama.
+
+**Q: How does Safarnama differ from MakeMyTrip or TravelTriangle?**
+A: Safarnama is built specifically for group travel — it is not a general OTA. Key differences: (1) SafePay escrow protection — payment held until trip completion, not just booked; (2) Group-first design — compare multiple group trips side by side; (3) Verified organizer marketplace — curated, KYC-verified independent organizers, not mass-market packages; (4) No advertising cookies or data sold to ad networks; (5) India's Digital Personal Data Protection Act 2023-compliant data handling.
+
+**Q: Can I book individual seats on a group trip?**
+A: Yes. Travelers book individual seats (or multiple seats) on group trips organized by third-party organizers. Some trips offer vehicle seat selection maps. Group size limits are set by the organizer and displayed before booking.
+
+**Q: Does Safarnama offer women-only group trips?**
+A: Safarnama's marketplace includes women-only group trip packages from verified organizers. Travelers can filter by trip type or search for women-only tours on the trips browse page.
+
+**Q: How do I become a trip organizer on Safarnama?**
+A: Sign up and select the Organizer role. Complete KYC by providing government-issued ID, PAN Card, and bank account details. The team reviews applications within 48 business hours. Once approved, organizers can immediately list trips. Organizers receive payouts within 3–5 business days after each completed trip. Safarnama charges a 10% platform commission.
