@@ -1,0 +1,24 @@
+docs/engineering/tech-stack.md
+  s_505e8bb6acd407::t_d63d804314183d 931
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8af5f1dd7e810803480ed836f2bf0bec53bf1df9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_505e8bb6acd407": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7e7f1324-2570-47b4-9a54-54c950d2ede2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
