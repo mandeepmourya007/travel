@@ -1,0 +1,24 @@
+.env.example
+  s_077108b64ce7ec::t_aae88022dc3adb 127-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "64fafc5fc93051f5d817bf32ac47e9b5690baa2e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_077108b64ce7ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7e56cdc-a85d-444c-a1d1-881a5e00fe89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
