@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Clock, CreditCard, AlertTriangle } from 'lucide-react'
 import { getSeatsLeft } from '@/lib/format'
 import { useAuthStore } from '@/store/auth.store'
@@ -24,6 +25,7 @@ interface TripCtaButtonProps {
 }
 
 export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
+  const router = useRouter()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
   const [showRequestModal, setShowRequestModal] = useState(false)
@@ -34,6 +36,14 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
   const isOrganizer = currentUser?.role === USER_ROLE.ORGANIZER
 
   const isCard = variant === 'card'
+
+  const handleRequestToBookClick = () => {
+    if (!currentUser) {
+      router.push(`/login/email?returnTo=/trips/${trip.slug}`)
+      return
+    }
+    setShowRequestModal(true)
+  }
 
   const disabledCls = isCard
     ? 'btn-disabled w-full text-center flex items-center justify-center gap-2'
@@ -63,7 +73,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
         ) : (
           <button
             type="button"
-            onClick={() => setShowRequestModal(true)}
+            onClick={handleRequestToBookClick}
             className={primaryCls}
           >
             Book Again
@@ -117,7 +127,7 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
       ) : (
         <button
           type="button"
-          onClick={() => setShowRequestModal(true)}
+          onClick={handleRequestToBookClick}
           className={primaryCls}
         >
           Request to Book
