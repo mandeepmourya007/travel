@@ -66,10 +66,10 @@ export const metadata: Metadata = {
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
-    other: {
-      // Bing verification — critical for ChatGPT citations (ChatGPT uses Bing index)
-      'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || undefined,
-    },
+    // Bing verification — only included when env var is set (ChatGPT uses Bing index)
+    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
+      other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION },
+    }),
   },
 }
 
