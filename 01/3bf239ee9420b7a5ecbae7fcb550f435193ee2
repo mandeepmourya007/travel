@@ -1,0 +1,27 @@
+apps/web/public/llms.txt
+  s_077108b64ce7ec::t_5328b20b212e61 1-108
+apps/web/src/app/manifest.ts
+  s_077108b64ce7ec::t_81dfca0ddc2d89 1-11,13-39
+  s_077108b64ce7ec::t_3691098f1ca26d 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "013bf239ee9420b7a5ecbae7fcb550f435193ee2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_077108b64ce7ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7e56cdc-a85d-444c-a1d1-881a5e00fe89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
