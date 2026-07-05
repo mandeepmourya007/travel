@@ -34,8 +34,8 @@ export function buildTripJsonLd(trip: TripDetail, siteUrl: string) {
       '@type': 'TouristAttraction',
       name: trip.destination.name,
       containedInPlace: {
-        '@type': 'AdministrativeArea',
-        name: trip.destination.state ?? 'India',
+        '@type': 'Country',
+        name: 'India',
       },
     },
 
