@@ -212,9 +212,26 @@ ${APP_NAME} shall not be liable for any indirect, incidental, special, consequen
 This limitation shall not apply to damages arising from ${APP_NAME}'s gross negligence or wilful misconduct.`,
   },
   {
+    id: 'indemnification',
+    title: '13. Indemnification',
+    content: `You agree to indemnify, defend, and hold harmless ${APP_NAME}, its officers, directors, employees, agents, and successors from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable legal fees and court costs) arising out of or in connection with:
+
+• Your access to or use of the platform.
+• Your breach of any provision of these Terms, the Privacy Policy, the Cancellation & Refund Policy, or any other applicable ${APP_NAME} policy.
+• Your conduct before, during, or after a trip — including any harm caused to a fellow traveler, organizer, guide, third party, or property.
+• Any claim made by a third party arising from your operation of trips (applicable to organizers) — including but not limited to personal injury claims, property damage claims, or regulatory violations.
+• Any inaccurate, false, or misleading information you provided to ${APP_NAME} or to other users.
+• Your violation of any applicable Indian law, rule, or regulation.
+
+${APP_NAME} reserves the right, at its own expense, to assume exclusive defence and control of any matter otherwise subject to indemnification by you, in which case you agree to cooperate fully with ${APP_NAME} in asserting any available defence. This indemnification obligation survives termination of your account and your use of the platform.`,
+  },
+  {
     id: 'governing-law',
-    title: '13. Governing Law and Dispute Resolution',
+    title: '14. Governing Law and Dispute Resolution',
     content: `These Terms are governed by and construed in accordance with the laws of India, including the Consumer Protection Act, 2019, the Consumer Protection (E-Commerce) Rules, 2020, the Information Technology Act, 2000, and the IT (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021. Any dispute arising out of or in connection with these Terms shall be subject to the exclusive jurisdiction of the competent courts in Pune, Maharashtra.
+
+Pre-Litigation Resolution — Mandatory Step:
+Before either party initiates any legal or court proceedings, the disputing party must first raise the matter with our Grievance Officer and allow a minimum period of 30 days for good-faith resolution. Legal proceedings may only be initiated if the dispute remains unresolved after this 30-day period has elapsed. This requirement does not prevent either party from seeking urgent interim or injunctive relief from a court where necessary to prevent irreparable harm.
 
 Grievance Redressal — as mandated under IT Rules 2021 Rule 3(2)(b) and Consumer Protection (E-Commerce) Rules 2020:
 
@@ -224,18 +241,18 @@ Email: ${GRIEVANCE_EMAIL}
 Address: ${COMPANY_ADDRESS}
 Response Time: Acknowledged within 48 hours; resolved within 30 days as required by law.
 
-We encourage users to first attempt to resolve disputes through our in-platform support before escalating to legal proceedings. Users may also approach the National Consumer Helpline at 1800-11-4000 (toll-free) or file a complaint at consumerhelpline.gov.in.`,
+Users may also approach the National Consumer Helpline at 1800-11-4000 (toll-free) or file a complaint at consumerhelpline.gov.in.`,
   },
   {
     id: 'changes',
-    title: '14. Changes to These Terms',
-    content: `We may revise these Terms at any time. When we make material changes, we will notify you via email or a prominent notice on the platform at least 7 days before the changes take effect. Your continued use of the platform after the effective date constitutes acceptance of the revised Terms.
+    title: '15. Changes to These Terms',
+    content: `We may revise these Terms at any time. When we make material changes, we will notify you via email or a prominent notice on the platform at least 7 days before the changes take effect. Your continued use of the platform after the effective date constitutes your acceptance of the revised Terms.
 
 If you disagree with the revised Terms, you must stop using the platform and may request account deletion by emailing ${CONTACT_EMAIL}.`,
   },
   {
     id: 'severability',
-    title: '15. Severability, Waiver, and Entire Agreement',
+    title: '16. Severability, Waiver, and Entire Agreement',
     content: `If any provision of these Terms is found by a competent court to be invalid, illegal, or unenforceable, that provision shall be modified to the minimum extent necessary to make it enforceable, or severed if modification is not possible. The remaining provisions shall continue in full force and effect.
 
 No waiver by ${APP_NAME} of any breach of these Terms shall be treated as a waiver of any subsequent breach of the same or any other provision.
@@ -244,7 +261,7 @@ These Terms, together with our Privacy Policy, Cancellation & Refund Policy, Dis
   },
   {
     id: 'contact',
-    title: '16. Contact Us',
+    title: '17. Contact Us',
     content: `For any questions, concerns, or feedback about these Terms, please contact:
 
 Email: ${CONTACT_EMAIL}
