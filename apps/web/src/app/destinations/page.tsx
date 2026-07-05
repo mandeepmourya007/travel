@@ -8,16 +8,17 @@ import { DestinationsListClient } from '@/components/destinations/destinations-l
 import type { Destination } from '@shared/types/destination.types'
 
 export const metadata: Metadata = {
-  title: `Explore Destinations — Group Trip Destinations | ${APP_NAME}`,
-  description: `Browse group trip destinations across India. Find adventure trips, beach getaways, treks, and weekend escapes with ${APP_NAME}.`,
+  title: `Group Trip Destinations India — Goa, Manali, Ladakh, Spiti & More | ${APP_NAME}`,
+  description: `Explore 14+ group trip destinations across India. Weekend getaways from Pune & Mumbai to Lonavala, Mahabaleshwar & Goa. Adventure treks to Ladakh, Spiti Valley & Manali. Cultural tours to Rajasthan, Varanasi & Meghalaya. Book safely with ${APP_NAME}.`,
   alternates: {
     canonical: '/destinations',
   },
   openGraph: {
-    title: `Explore Destinations | ${APP_NAME}`,
-    description: `Browse group trip destinations across India.`,
+    title: `Group Trip Destinations India — Goa, Manali, Ladakh, Spiti & More | ${APP_NAME}`,
+    description: `14+ group travel destinations across India. Weekend escapes, Himalayan treks, beach trips & heritage tours. Compare packages, read real reviews & book with SafePay protection.`,
     type: 'website',
     url: '/destinations',
+    locale: 'en_IN',
   },
 }
 
