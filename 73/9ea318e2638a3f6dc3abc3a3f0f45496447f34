@@ -1,0 +1,49 @@
+apps/web/src/app/my-reviews/layout.tsx
+  s_077108b64ce7ec::t_3d20e9792be624 1,4-6
+  s_077108b64ce7ec::t_9a13c5dbea3099 7
+apps/web/src/app/my-bookings/layout.tsx
+  s_077108b64ce7ec::t_eae0ba4051f033 1,4-6
+  s_077108b64ce7ec::t_69c1e8b1975539 7
+apps/web/src/app/messages/layout.tsx
+  s_077108b64ce7ec::t_ecc92199d999c0 1,4-6
+  s_077108b64ce7ec::t_67c3d3c8c1cfa0 7
+apps/web/src/app/profile/layout.tsx
+  s_077108b64ce7ec::t_00c9d497413824 1,4-6
+  s_077108b64ce7ec::t_5f93c3f5af67a5 7
+apps/web/src/app/payment-complete/layout.tsx
+  s_077108b64ce7ec::t_10d315ef7ee74a 1-9
+apps/web/src/app/wallet/layout.tsx
+  s_077108b64ce7ec::t_5eb46ccef382d9 1,4-6
+  s_077108b64ce7ec::t_434bf4817126f8 7
+apps/web/src/app/admin/layout.tsx
+  s_077108b64ce7ec::t_1f6444348edaf2 1,6-8
+  s_077108b64ce7ec::t_d2fed8c763d7f2 9
+apps/web/src/app/dashboard/layout.tsx
+  s_077108b64ce7ec::t_b8e53864a86906 1
+  s_077108b64ce7ec::t_c6c10730727ee6 9-11
+  s_077108b64ce7ec::t_9e426494ffbab6 12
+apps/web/src/app/my-payments/layout.tsx
+  s_077108b64ce7ec::t_2cc8421ddde6fe 1,4-6
+  s_077108b64ce7ec::t_0ee762fe4e4b5b 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "739ea318e2638a3f6dc3abc3a3f0f45496447f34",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_077108b64ce7ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7e56cdc-a85d-444c-a1d1-881a5e00fe89",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
