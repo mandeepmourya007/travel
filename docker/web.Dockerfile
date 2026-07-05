@@ -27,4 +27,4 @@ ENV NODE_OPTIONS="--max-old-space-size=1536" \
 EXPOSE ${PORT}
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["sh", "-c", "./node_modules/.bin/next dev --turbopack -p ${PORT}"]
+CMD ["sh", "-c", "/app/node_modules/.bin/next dev --turbopack -p ${PORT}"]
