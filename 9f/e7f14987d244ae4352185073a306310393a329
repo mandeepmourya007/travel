@@ -1,0 +1,34 @@
+.claude/hooks/after-file-edit.sh
+  s_273bdd7a039769::t_4242b13cc649fb 1-33
+.claude/settings.json
+  s_273bdd7a039769::t_b2b6934e537cb7 3-13,22-37
+.claude/hooks/session-start.sh
+  s_273bdd7a039769::t_78c94ded9b11ac 1-13
+.claude/hooks/test-hooks.sh
+  s_273bdd7a039769::t_f76de8fd49f3b3 1-131
+.claude/hooks/stop-typecheck-followup.sh
+  s_273bdd7a039769::t_99167ee5e12c06 1-46
+.claude/hooks/lib.sh
+  s_273bdd7a039769::t_8b2d0a0875438e 1-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9fe7f14987d244ae4352185073a306310393a329",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_273bdd7a039769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9762a518-4236-477b-a363-c29c2e064e18",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
