@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/session-start.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
@@ -8,6 +19,22 @@
             "type": "command",
             "command": "jq -r '.tool_input.file_path // empty' | { read -r f; case \"$f\" in */docs/*|*/tests/*|*__tests__*|*.test.*|*.spec.*|*.md) ;; */apps/api/*|*/apps/web/*|*/packages/shared/*|*/docker/*|*docker-compose*|*render.yaml|*turbo.json|*/scripts/*|*.env.example) printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Docs Sync rule (CLAUDE.md): this edit touched source described in docs/codebase/. Before finishing the task, update the matching reference note per the mapping table (e.g. schema.prisma -> Database Schema.md, API routes -> API Routes Reference.md). Skip only if the change is test-only or a purely internal refactor.\"}}' ;; esac; } 2>/dev/null || true",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/after-file-edit.sh\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/stop-typecheck-followup.sh\"",
+            "timeout": 60
           }
         ]
       }
