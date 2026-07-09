@@ -1,0 +1,59 @@
+.claude/agents/travel-security-auditor.md
+  s_273bdd7a039769::t_d6fc77e5f2cb0c 79
+  s_273bdd7a039769::t_18846578619e78 10-11
+  s_273bdd7a039769::t_b6c9383de3b135 132,134-135,138-141
+  s_273bdd7a039769::t_ea12e38d515fc0 54
+  s_273bdd7a039769::t_c46ffa26951d9c 21
+  s_273bdd7a039769::t_07f5d66785e797 1-9,12-20,22-53,55-78,80-131,133,136-137,142-169
+.claude/agents/travel-qa-engineer.md
+  s_273bdd7a039769::t_774a334563fe6f 1-80,82-134
+  s_273bdd7a039769::t_83a4ef020773e7 81
+.claude/agents/travel-backend-engineer.md
+  s_273bdd7a039769::t_56ae037e022d0c 18
+  s_273bdd7a039769::t_b6a4e1cbf74733 1-17,19-113
+.claude/agents/travel-frontend-engineer.md
+  s_273bdd7a039769::t_c084c04d57fa8c 1-42,44-50,52-68
+  s_273bdd7a039769::t_9407e2e92be257 51
+  s_273bdd7a039769::t_b68a328b37b1de 43
+.claude/agents/travel-product-manager.md
+  s_273bdd7a039769::t_4bd908e0c6765d 1-71
+.claude/agents/travel-market-researcher.md
+  s_273bdd7a039769::t_e64f9b68c109b2 1-61
+.claude/agents/travel-ui-ux-engineer.md
+  s_273bdd7a039769::t_d85d4b85d30d67 1-181
+.claude/agents/travel-debugger.md
+  s_273bdd7a039769::t_3485de20de4a79 1-137
+.claude/agents/travel-fullstack-engineer.md
+  s_273bdd7a039769::t_cc27618b9234ff 1-78
+.claude/agents/travel-designer.md
+  s_273bdd7a039769::t_61453f34080349 1-98
+.claude/agents/travel-infra-engineer.md
+  s_273bdd7a039769::t_7306b952e836b2 3
+  s_273bdd7a039769::t_c8afec32b399d7 17
+  s_273bdd7a039769::t_38075a47e9cecb 75
+  s_273bdd7a039769::t_d26003968fa8fe 1-2,4-16,18-74,76-134
+.claude/agents/travel-api-docs-engineer.md
+  s_273bdd7a039769::t_cca4aa75d55d8c 1-30,32-81
+  s_273bdd7a039769::t_1d492ed7dede8c 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6e2fa12cc94d74056cad169224222fa14711314f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_273bdd7a039769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9762a518-4236-477b-a363-c29c2e064e18",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
