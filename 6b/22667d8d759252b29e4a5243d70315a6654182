@@ -1,0 +1,59 @@
+.claude/skills/travel-ui-audit/SKILL.md
+  s_273bdd7a039769::t_6fd39241da93bb 1-141
+.claude/skills/travel-ui-creativity/SKILL.md
+  s_273bdd7a039769::t_d3daacee04f817 1-70
+.claude/skills/travel-api-route/SKILL.md
+  s_273bdd7a039769::t_827539c9959076 211
+  s_273bdd7a039769::t_d20d875aaaed60 1-210,212-226
+.claude/skills/travel-ui-creativity/references/forms.md
+  s_273bdd7a039769::t_cfb3af07f31665 1-66
+.claude/skills/travel-auth-security/SKILL.md
+  s_273bdd7a039769::t_6afae35aee73a0 1-203
+.claude/skills/travel-ui-creativity/references/motion.md
+  s_273bdd7a039769::t_75a59af5d282ed 1-72
+.claude/skills/travel-ui-creativity/references/inspiration.md
+  s_273bdd7a039769::t_4f9aa89d8e0992 1-81
+.claude/skills/web-design-guidelines/SKILL.md
+  s_273bdd7a039769::t_9e83362cdab62d 1-44
+.claude/skills/travel-ui-stack/SKILL.md
+  s_273bdd7a039769::t_329c1160cd92c6 1-69,71-156
+  s_273bdd7a039769::t_167a1b77c80e27 70
+.claude/skills/travel-ui-creativity/references/typography.md
+  s_273bdd7a039769::t_cdd18e81077aca 1-9,11-43
+  s_273bdd7a039769::t_d7ced1f47c4d48 44
+  h_b3232c20134322 10
+.claude/skills/travel-verify/SKILL.md
+  s_273bdd7a039769::t_1ad85b1fe12214 49-50
+  s_273bdd7a039769::t_f40322c409bd2c 1-26,28-48,51-104,106-116
+  s_273bdd7a039769::t_827539c9959076 27,105
+.claude/skills/travel-ui-creativity/references/states.md
+  s_273bdd7a039769::t_259f49b66c25e4 11
+  s_273bdd7a039769::t_8f48bcd00ce315 27
+  s_273bdd7a039769::t_2feefa032d21e8 1-10,12-26,28-45
+.claude/skills/travel-local-visual-review/SKILL.md
+  s_273bdd7a039769::t_f38173a7e3b576 1-213
+.claude/skills/travel-prisma-patterns/SKILL.md
+  s_273bdd7a039769::t_f23c583d14c32a 17
+  s_273bdd7a039769::t_e7d7f699894a4a 1-16,18-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6b22667d8d759252b29e4a5243d70315a6654182",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_273bdd7a039769": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9762a518-4236-477b-a363-c29c2e064e18",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
