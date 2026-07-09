@@ -33,6 +33,37 @@ sortBy?: MySort
 
 ---
 
+### Docs Sync — Keep `docs/codebase/` Up To Date
+
+**Rule:** `docs/codebase/` is the Obsidian-flavored reference vault for this codebase (entry point: `docs/codebase/Codebase Overview.md`). Whenever a code change alters something those notes describe, update the matching note(s) **in the same task** — before declaring the work done.
+
+**Change → note mapping:**
+
+| You changed... | Update |
+|----------------|--------|
+| API endpoints (add/remove/rename, guards, rate limits) | `API Routes Reference.md` |
+| Services, middleware, repositories, backend constants | `API Backend.md` |
+| `schema.prisma` (models, enums, indexes, migrations) | `Database Schema.md` |
+| Payment gateways, webhooks, escrow/refund flow | `Payments & Webhooks.md` |
+| Cron jobs, Socket.IO events, notification channels | `Background Jobs & Realtime.md` |
+| Next.js pages/layouts/route groups | `Frontend Routes Reference.md` |
+| Components, styling/tokens, SEO, `next.config.js` | `Web Frontend.md` |
+| Query keys (`QK`), hooks, stores, api-client behavior | `Data Fetching & State.md` |
+| Auth flows, tokens, guards, security middleware | `Auth & Security.md` |
+| `packages/shared` constants/types/validators/utils | `Shared Package.md` |
+| Env vars, Docker, Render, deploy scripts | `Environment & Deployment.md` |
+| Turbo/tsconfig/npm scripts, workspace layout | `Monorepo & Tooling.md` |
+| Test setup or notable suites | `Testing & Quality.md` |
+| Roles, features, business rules (commission, refund matrix, limits) | `Product Domain.md` |
+
+**How to update:**
+1. Keep the note's existing Obsidian format — frontmatter, `[[wikilinks]]`, callouts, tables. Edit only the rows/sections affected; don't regenerate whole files.
+2. If a change resolves an item listed under `Shared Package.md` → "Known Inconsistencies", remove it from that list.
+3. New major subsystem → new note in `docs/codebase/` with frontmatter + a link from `Codebase Overview.md`'s Map of Content.
+4. Doc-only, test-only, or purely internal refactors (no behavior/API/schema change) need no doc update.
+
+---
+
 ## Cashfree Payments — Integration Skills
 
 You are helping a developer integrate Cashfree Payments.
