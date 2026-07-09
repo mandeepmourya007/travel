@@ -25,6 +25,12 @@ npm workspaces (`apps/*`, `packages/*`) + ==Turborepo 2==. Node ≥ 20, npm@10. 
 
 ES2022 target/lib, ESNext modules, bundler resolution, ==`strict: true`==, `noUnusedLocals`/`noUnusedParameters`/`noFallthroughCasesInSwitch`, incremental + declaration maps + sourcemaps.
 
+`apps/api/tsconfig.json` overrides to `module: CommonJS` + `moduleResolution: node` (legacy) and includes `../../packages/shared/src/**/*` directly (no project-reference build step for `@shared/*` path aliases). That legacy resolution can't see exports-only-typed packages like `vitest` — so `packages/shared/src/**/*.test.ts` is explicitly excluded from `apps/api`'s compile; `apps/api` never needs to type-check `packages/shared`'s test files, only its source.
+
+## ESLint
+
+Root `.eslintrc.js`: `@typescript-eslint/no-explicit-any` is `error` repo-wide, with an `overrides` exception for `**/*.d.ts` (ambient type-declaration files, e.g. `apps/web/src/test/jest-dom.d.ts`'s vitest/jest-dom matcher augmentation, legitimately need `any` in generic defaults).
+
 ## Root Scripts
 
 ```bash
