@@ -1,0 +1,14 @@
+docs/mvp/mvp-plan.md
+  h_b3232c20134322 11-21,26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cc8f22694b8bde01b41830b574751ced4264ce73",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
