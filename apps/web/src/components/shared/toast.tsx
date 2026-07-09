@@ -48,7 +48,7 @@ function ToastItem({ toast, onDismiss }: ToastItemProps) {
   const duration = toast.duration ?? DEFAULT_DURATION
   const [progress, setProgress] = useState(100)
   const [exiting, setExiting] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
 
   useEffect(() => {
     const startTime = Date.now()

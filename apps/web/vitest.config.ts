@@ -1,10 +1,8 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
 
+// Note: no esbuild.jsx override needed — @vitejs/plugin-react handles JSX transform
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-  },
   test: {
     globals: true,
     environment: 'jsdom',

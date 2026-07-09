@@ -928,7 +928,7 @@ export function ErrorState({ message = 'Failed to load', onRetry }: DataStatePro
 | Prisma | 5.x | ORM + migrations |
 | Zod | 3.x | Request validation |
 | jsonwebtoken | 9.x | JWT auth |
-| bcrypt | 5.x | Password hashing |
+| bcrypt | 6.x | Password hashing |
 | razorpay | 2.x | Payment SDK |
 | socket.io | 4.x | Real-time chat |
 | pino | 9.x | Structured JSON logging (fastest Node.js logger) |

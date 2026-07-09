@@ -42,7 +42,10 @@ export default function SafetyPage() {
           </h1>
           <p className="mt-3 text-sm text-neutral-400">Last updated: {POLICY_DATES.safety}</p>
           <p className="mt-4 text-base text-neutral-600 leading-relaxed">
-            Your safety is not negotiable. Every organizer on {APP_NAME} must meet the safety standards on this page before and during every trip. These standards are built into our Organizer Agreement — violations lead to immediate suspension.
+            Every organizer on {APP_NAME} is contractually required to meet the safety standards on this page before and during every trip. Violations of these standards are grounds for immediate suspension under our Organizer Agreement.
+          </p>
+          <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
+            {APP_NAME} is an intermediary marketplace and cannot physically verify compliance on every trip. Travelers should exercise their own judgement and report any safety concerns before or during a trip. See our <a href="/disclaimer" className="text-primary-600 hover:underline">Disclaimer</a> for the full scope of platform liability.
           </p>
         </div>
 

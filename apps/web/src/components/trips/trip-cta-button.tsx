@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Clock, CreditCard, AlertTriangle } from 'lucide-react'
 import { getSeatsLeft } from '@/lib/format'
 import { useAuthStore } from '@/store/auth.store'
 import { useMyTripBookingStatus } from '@/hooks/use-my-trip-booking-status'
 import { RequestToBookModal } from './request-to-book-modal'
+import { LoginRequiredDialog } from '@/components/shared/login-required-dialog'
 import {
   Dialog,
   DialogContent,
@@ -24,16 +25,34 @@ interface TripCtaButtonProps {
 }
 
 export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
+  const router = useRouter()
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
   const [showRequestModal, setShowRequestModal] = useState(false)
   const [showOrganizerError, setShowOrganizerError] = useState(false)
+  const [showLoginRequired, setShowLoginRequired] = useState(false)
   const { data: tripStatus } = useMyTripBookingStatus(trip.id)
   const currentUser = useAuthStore((s) => s.user)
 
   const isOrganizer = currentUser?.role === USER_ROLE.ORGANIZER
 
   const isCard = variant === 'card'
+
+  const handleRequestToBookClick = () => {
+    if (!currentUser) {
+      setShowLoginRequired(true)
+      return
+    }
+    setShowRequestModal(true)
+  }
+
+  const handleInstantBookClick = () => {
+    if (!currentUser) {
+      setShowLoginRequired(true)
+      return
+    }
+    router.push(`/trips/${trip.slug}/book`)
+  }
 
   const disabledCls = isCard
     ? 'btn-disabled w-full text-center flex items-center justify-center gap-2'
@@ -57,13 +76,13 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             Book Again
           </button>
         ) : trip.bookingMode === 'INSTANT' ? (
-          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={primaryCls}>
+          <button type="button" onClick={handleInstantBookClick} className={primaryCls}>
             Book Again
-          </Link>
+          </button>
         ) : (
           <button
             type="button"
-            onClick={() => setShowRequestModal(true)}
+            onClick={handleRequestToBookClick}
             className={primaryCls}
           >
             Book Again
@@ -75,9 +94,9 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             <CreditCard className="h-4 w-4" /> Complete Payment
           </button>
         ) : (
-          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={accentCls}>
+          <button type="button" onClick={handleInstantBookClick} className={accentCls}>
             <CreditCard className="h-4 w-4" /> Complete Payment
-          </Link>
+          </button>
         )
       ) : tripStatus?.requestStatus === 'PENDING' ? (
         <button disabled className={disabledCls}>
@@ -89,9 +108,9 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
             <CreditCard className="h-4 w-4" /> Pay Now
           </button>
         ) : (
-          <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={accentCls}>
+          <button type="button" onClick={handleInstantBookClick} className={accentCls}>
             <CreditCard className="h-4 w-4" /> Pay Now
-          </Link>
+          </button>
         )
       ) : !trip.acceptingBookings ? (
         <div className={isCard ? 'space-y-1 w-full' : 'space-y-1'}>
@@ -111,13 +130,13 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
           {trip.bookingMode === 'INSTANT' ? 'Book Now' : 'Request to Book'}
         </button>
       ) : trip.bookingMode === 'INSTANT' ? (
-        <Link href={`/trips/${trip.slug}/book`} prefetch={false} className={primaryCls}>
+        <button type="button" onClick={handleInstantBookClick} className={primaryCls}>
           Book Now
-        </Link>
+        </button>
       ) : (
         <button
           type="button"
-          onClick={() => setShowRequestModal(true)}
+          onClick={handleRequestToBookClick}
           className={primaryCls}
         >
           Request to Book
@@ -134,6 +153,12 @@ export function TripCtaButton({ trip, variant = 'card' }: TripCtaButtonProps) {
           seatsLeft={seatsLeft}
         />
       )}
+
+      <LoginRequiredDialog
+        open={showLoginRequired}
+        onClose={() => setShowLoginRequired(false)}
+        returnTo={`/trips/${trip.slug}`}
+      />
 
       <Dialog open={showOrganizerError} onOpenChange={setShowOrganizerError}>
         <DialogContent className="max-w-sm">

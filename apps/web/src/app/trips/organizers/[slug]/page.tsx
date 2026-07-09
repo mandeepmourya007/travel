@@ -11,7 +11,7 @@ import type { OrganizerPublicProfileResponse } from '@shared/types/organizer.typ
 const CUID_PATTERN = /^c[lm][a-z0-9]{23,}$/i
 
 interface OrganizerPageProps {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 const getOrganizerProfile = cache(async (slug: string): Promise<OrganizerPublicProfileResponse | null> => {
@@ -38,7 +38,8 @@ const getOrganizerById = cache(async (id: string): Promise<OrganizerPublicProfil
 })
 
 export async function generateMetadata({ params }: OrganizerPageProps): Promise<Metadata> {
-  const data = await getOrganizerProfile(params.slug)
+  const { slug } = await params
+  const data = await getOrganizerProfile(slug)
   if (!data) {
     return { title: 'Organizer Not Found' }
   }
@@ -55,13 +56,13 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
     title,
     description,
     alternates: {
-      canonical: `/trips/organizers/${params.slug}`,
+      canonical: `/trips/organizers/${slug}`,
     },
     openGraph: {
       title,
       description,
       type: 'website',
-      url: `/trips/organizers/${params.slug}`,
+      url: `/trips/organizers/${slug}`,
     },
   }
 }
@@ -79,11 +80,12 @@ export async function generateStaticParams() {
 }
 
 export default async function OrganizerPublicProfilePage({ params }: OrganizerPageProps) {
-  const data = await getOrganizerProfile(params.slug)
+  const { slug } = await params
+  const data = await getOrganizerProfile(slug)
 
   // Legacy redirect: if slug looks like a CUID, try fetching by ID and redirect to canonical slug URL
-  if (!data && CUID_PATTERN.test(params.slug)) {
-    const legacyData = await getOrganizerById(params.slug)
+  if (!data && CUID_PATTERN.test(slug)) {
+    const legacyData = await getOrganizerById(slug)
     if (legacyData) {
       redirect(`/trips/organizers/${legacyData.organizer.slug}`)
     }
@@ -94,11 +96,11 @@ export default async function OrganizerPublicProfilePage({ params }: OrganizerPa
   }
 
   const { organizer } = data
-  const organizerJsonLd = buildOrganizerProfileJsonLd(organizer, SITE_URL, params.slug, APP_NAME)
+  const organizerJsonLd = buildOrganizerProfileJsonLd(organizer, SITE_URL, slug, APP_NAME)
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },
     { name: 'Trips', url: `${SITE_URL}/trips` },
-    { name: organizer.businessName, url: `${SITE_URL}/trips/organizers/${params.slug}` },
+    { name: organizer.businessName, url: `${SITE_URL}/trips/organizers/${slug}` },
   ])
 
   return (

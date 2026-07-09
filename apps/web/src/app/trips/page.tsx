@@ -9,10 +9,11 @@ import { TripsPageClient } from '@/components/trips/trips-page-client'
 import type { TripSummary } from '@shared/types/trip.types'
 
 interface TripsPageProps {
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function TripsPage({ searchParams }: TripsPageProps) {
+export default async function TripsPage({ searchParams: searchParamsPromise }: TripsPageProps) {
+  const searchParams = await searchParamsPromise
   // `q` is the free-text search from the hero form; `destination` is the legacy
   // destination-name param (still supported for back-compat with existing links).
   const q = typeof searchParams.q === 'string' ? searchParams.q : undefined

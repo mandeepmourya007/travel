@@ -11,6 +11,9 @@ const nextConfig = {
   // on the Nginx path it passes through already-gzipped responses (no double-compression).
   trailingSlash: false,
   transpilePackages: ['@travel/shared'],
+  // Lint runs as a separate turbo task — skip it during `next build` to avoid
+  // ESLint version mismatches between the build environment and the lint config.
+  eslint: { ignoreDuringBuilds: true },
   images: {
     // Custom loader — serve images straight from the Cloudinary/Unsplash CDN with
     // CDN-side transforms (f_auto/q_auto/resize), bypassing Next's server-side

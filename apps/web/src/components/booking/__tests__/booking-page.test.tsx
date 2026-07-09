@@ -18,6 +18,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => '/trips/goa-beach/book',
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({ slug: 'goa-beach' }),
 }))
 
 // Mock next/link
@@ -138,7 +139,7 @@ function setupBookingHandlers() {
 }
 
 function renderBookingPage() {
-  return renderWithQuery(<BookingPage params={{ slug: 'goa-beach' }} />)
+  return renderWithQuery(<BookingPage />)
 }
 
 // ── Tests ────────────────────────────────────────────

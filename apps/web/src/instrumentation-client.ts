@@ -1,5 +1,6 @@
-// ── Sentry — Browser / Client Config ─────────────────
-// Runs in the user's browser.
+// ── Sentry — Browser / Client Instrumentation ─────────
+// Next.js 15+ loads this file for client-side initialisation.
+// Replaces the legacy sentry.client.config.ts pattern.
 // Captures:
 //   • Unhandled JS errors and unhandled promise rejections
 //   • Web-vitals (LCP, FCP, CLS, TTFB, INP) as performance spans
@@ -32,3 +33,11 @@ if (SENTRY_DSN) {
     ].filter(Boolean),
   })
 }
+
+// Navigation instrumentation for the App Router (Next.js 15+).
+// `captureRouterTransitionStart` is not exported by @sentry/nextjs@10.60.0; it will be
+// added in a future Sentry release. The defensive cast + undefined union keeps the export
+// valid today and forwards the real function transparently once the SDK ships it.
+// TODO: replace with a proper import once @sentry/nextjs exports it and drop the cast.
+export const onRouterTransitionStart = (Sentry as Record<string, unknown>).captureRouterTransitionStart as
+  ((...args: unknown[]) => void) | undefined

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AppShell } from '@/components/layout/app-shell'
-import { APP_NAME, SITE_URL, COMPANY_ADDRESS } from '@/lib/constants'
+import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { contactChannels, responseTimeRows, responseTimeNote, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
@@ -71,18 +71,6 @@ export default function ContactPage() {
             </div>
           ))}
         </div>
-
-        {/* Office info */}
-        <section id="office" className="scroll-mt-20 mb-12">
-          <h2 className="font-display text-xl font-bold text-neutral-800 mb-4">Office</h2>
-          <div className="rounded-2xl bg-neutral-50 border border-neutral-200 p-6">
-            <p className="text-sm font-semibold text-neutral-700">{APP_NAME}</p>
-            <p className="mt-1 text-sm text-neutral-600">{COMPANY_ADDRESS}</p>
-            <p className="mt-3 text-sm text-neutral-500">
-              We are a remote-first team. Walk-in visits are not available — please use email for all queries.
-            </p>
-          </div>
-        </section>
 
         {/* Response time policy */}
         <section id="response-times" className="scroll-mt-20 mb-12">

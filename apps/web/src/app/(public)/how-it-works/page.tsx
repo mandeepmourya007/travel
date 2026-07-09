@@ -37,8 +37,8 @@ const travelerSteps = [
   },
   {
     icon: MapPin,
-    title: 'Travel Worry-Free',
-    description: 'Get pickup point details, itinerary, and direct chat with your organizer. Choose your seat in the vehicle, track trip updates, and enjoy hassle-free group travel.',
+    title: 'Travel with Confidence',
+    description: 'Get pickup point details, itinerary, and direct chat with your organizer. Choose your seat in the vehicle, track trip updates, and enjoy well-organised group travel.',
   },
   {
     icon: Star,
@@ -71,7 +71,7 @@ export default function HowItWorksPage() {
             How {APP_NAME} Works
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Book group trips safely in 3 simple steps — compare, book with SafePay protection, and travel worry-free.
+            Book group trips safely in 3 simple steps — compare, book with SafePay protection, and travel with confidence.
           </p>
         </div>
 

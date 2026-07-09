@@ -25,21 +25,33 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${APP_NAME} — Group Travel Aggregator`,
+    default: `${APP_NAME} — India's Group Travel Aggregator`,
     template: `%s | ${APP_NAME}`,
   },
   description:
-    'Discover and book curated group trips. SafePay-protected payments, verified organizers, and hassle-free group travel.',
+    `${APP_NAME} is India's group travel aggregator — compare group trips from Pune, Mumbai, Delhi & Bangalore, book with SafePay-protected payments, and travel with verified organizers. Weekend getaways, treks, beach trips & adventure tours.`,
   keywords: [
-    'group trips', 'group travel', 'weekend trips', 'adventure trips India',
-    'trekking trips', 'beach trips Goa', 'Ladakh bike trip', 'SafePay payment travel',
-    'verified trip organizers', 'compare group trips',
+    // Primary transactional
+    'group trips India', 'group travel packages India', 'group tour packages',
+    'weekend trips from Pune', 'weekend trips from Mumbai', 'weekend getaways from Bangalore',
+    'weekend trips from Delhi',
+    // Activity-based
+    'group trekking India', 'group adventure trips', 'beach group trips Goa',
+    'Ladakh group tour', 'Spiti Valley group trip', 'Manali group tour',
+    // Platform-specific
+    'book group trips online India', 'verified trip organizers India',
+    'SafePay group travel', 'compare group trips India',
+    // Trending niches
+    'women only group tours India', 'solo traveller group trips India',
+    'weekend group getaways India', 'budget group tours India',
+    // Organizer-side
+    'list group trips India', 'group travel organizer platform India',
   ],
   twitter: {
     card: 'summary_large_image',
     title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
     description:
-      'Discover curated group trips from verified organizers. SafePay-protected payments and real reviews.',
+      `India's group travel aggregator. Compare trips from verified organizers, book with SafePay protection, and travel with confidence. Weekend getaways, treks & adventure tours.`,
   },
   robots: {
     index: true,
@@ -53,13 +65,17 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    google: 'NCRkUGRq6YtK7iit0nZ_dolWgx8tR96q5rKlFMx2YpY',
+    // Bing verification — add value here once obtained from bing.com/webmasters
+    // ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
+    //   other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION },
+    // }),
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en-IN" className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}>
       <body suppressHydrationWarning>
         <Providers>
           {children}
