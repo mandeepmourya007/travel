@@ -9,6 +9,7 @@ Full repository audit of TripCompare, run as three parallel evidence-based revie
 | [frontend-audit.md](./frontend-audit.md) | `apps/web/src` — open items: chat UX, modal accessibility, filter double-fetch, img/polling polish |
 | [product-audit.md](./product-audit.md) | Built vs stubbed ground truth, plus new feature proposals filtered against `docs/mvp/mvp-plan.md` and `docs/rnd/` |
 | [docker-audit.md](./docker-audit.md) | Deploy & infra — open items: nginx SSR cache bypass dead code, optional tsx→tsc compilation |
+| [2026-07-10-agent-tooling-session-findings.md](./2026-07-10-agent-tooling-session-findings.md) | Findings surfaced while porting `.claude/` agent tooling — escrow buffer discrepancy, broken frontend test suite, no CI/CD, tooling config gaps |
 
 ## Original headline findings — resolution status
 
