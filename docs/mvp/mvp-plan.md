@@ -8,29 +8,29 @@ A complete MVP blueprint for a group travel aggregator platform (web app), targe
 
 ### IN (Build for MVP)
 
-| Feature | Why It's Essential |
-|---------|-------------------|
-| Trip listing & search | Core product — users need to find trips |
-| Trip comparison | Key differentiator vs Instagram |
-| Trip detail page | SEO landing page + conversion page |
-| Booking with Razorpay SafePay | Prevents leakage, builds trust |
-| User auth (signup/login) | Required for booking |
-| Organizer auth & dashboard | Organizers need to list and manage trips |
-| Review system | Trust moat — only post-trip, verified reviews |
-| In-app chat (traveler ↔ organizer) | Keeps communication on-platform |
-| Basic admin panel | Manage disputes, approve organizers |
+| Feature                            | Why It's Essential                            |
+| ------------------------------------| -----------------------------------------------|
+| Trip listing & search              | Core product — users need to find trips       |
+| Trip comparison                    | Key differentiator vs Instagram               |
+| Trip detail page                   | SEO landing page + conversion page            |
+| Booking with Razorpay SafePay      | Prevents leakage, builds trust                |
+| User auth (signup/login)           | Required for booking                          |
+| Organizer auth & dashboard         | Organizers need to list and manage trips      |
+| Review system                      | Trust moat — only post-trip, verified reviews |
+| In-app chat (traveler ↔ organizer) | Keeps communication on-platform               |
+| Basic admin panel                  | Manage disputes, approve organizers           |
 
 ### OUT (Deferred to Phase 2+)
 
-| Feature | Why It Can Wait |
-|---------|----------------|
-| Mobile app | Web-first for SEO; mobile later |
-| Trip protection insurance | Needs insurance partner; manual refunds for now |
-| Organizer analytics dashboard | Not needed until 50+ organizers |
-| AI recommendations | Not needed at MVP scale |
-| Multi-city support | Launch Pune only; add cities later |
-| Social features (trip photos, community) | Nice-to-have, not core |
-| Surge/dynamic pricing | Needs data; implement after 6 months |
+| Feature                                  | Why It Can Wait                                 |
+| ------------------------------------------| -------------------------------------------------|
+| Mobile app                               | Web-first for SEO; mobile later                 |
+| Trip protection insurance                | Needs insurance partner; manual refunds for now |
+| Organizer analytics dashboard            | Not needed until 50+ organizers                 |
+| AI recommendations                       | Not needed at MVP scale                         |
+| Multi-city support                       | Launch Pune only; add cities later              |
+| Social features (trip photos, community) | Nice-to-have, not core                          |
+| Surge/dynamic pricing                    | Needs data; implement after 6 months            |
 
 ---
 
