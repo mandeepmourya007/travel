@@ -1,0 +1,24 @@
+CLAUDE.md
+  s_3f219d5a1ac65f::t_58aa953e361062 36-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6ea6c10317e94f68ae161cdc620e2c15e5c2f595",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3f219d5a1ac65f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "788aa1e3-4e1f-46b9-aefd-1b2e98b14f10",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
