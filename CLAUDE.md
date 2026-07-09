@@ -64,6 +64,71 @@ sortBy?: MySort
 
 ---
 
+## Agent Team — Specialized Subagents
+
+**Roster** (`.claude/agents/`) — invoke via the `Agent` tool, `subagent_type: <slug>`:
+
+| Role | Slug | Output |
+|------|------|--------|
+| Product Manager | `travel-product-manager` | Docs (`docs/rnd/`) |
+| UI/UX Designer | `travel-designer` | Docs (`docs/rnd/`) |
+| Market Researcher | `travel-market-researcher` | Docs (`docs/rnd/`) |
+| Security Auditor | `travel-security-auditor` | Report only, no code |
+| Backend Engineer | `travel-backend-engineer` | Code (`apps/api/`) |
+| Frontend Engineer | `travel-frontend-engineer` | Code (`apps/web/`) |
+| Full Stack Engineer | `travel-fullstack-engineer` | Code (both apps) |
+| Infrastructure Engineer | `travel-infra-engineer` | Code (Docker/Render/CI) |
+| API Docs Engineer | `travel-api-docs-engineer` | Docs (`docs/codebase/API Routes Reference.md`) |
+| QA Engineer | `travel-qa-engineer` | Code (tests) |
+| Debugger | `travel-debugger` | Code (targeted fixes) |
+| UI/UX Engineer | `travel-ui-ux-engineer` | Code (`apps/web/`) |
+
+**UX disambiguation:** spec before build → `travel-designer`; new page needing new API → `travel-fullstack-engineer`; UI-only, API exists → `travel-frontend-engineer`; polish a shipped page (states/spacing/a11y, no new routes) → `travel-ui-ux-engineer`.
+
+### Decision rules
+
+| Situation | Slug |
+|-----------|------|
+| What to build / specs / user stories | `travel-product-manager` |
+| How should this look / UX audit (spec only) | `travel-designer` |
+| Competitors / market gaps (group travel, India) | `travel-market-researcher` |
+| Pre-ship security review (auth, payments, escrow) | `travel-security-auditor` |
+| New feature needs API + UI | `travel-fullstack-engineer` |
+| API-only change | `travel-backend-engineer` |
+| UI-only, API exists | `travel-frontend-engineer` |
+| Docker / CI / Render / env changes | `travel-infra-engineer` |
+| `docs/codebase/API Routes Reference.md` out of sync | `travel-api-docs-engineer` |
+| Add tests / fix a flaky suite | `travel-qa-engineer` |
+| Errors / unexpected behaviour | `travel-debugger` |
+| Polish existing pages (no new routes) | `travel-ui-ux-engineer` |
+
+### Parallelism
+
+**Run in parallel** (read-only, independent):
+```
+Run travel-product-manager and travel-market-researcher in parallel.
+Run travel-security-auditor and travel-qa-engineer in parallel (audit vs test plan).
+```
+
+**Sequential** (depends on output): Product Manager → you decide → Full Stack Engineer · Designer spec → you approve → Frontend Engineer · Backend Engineer → (route merged) → Frontend Engineer · Full Stack build → Security Auditor → QA Engineer.
+
+Never run two write agents on the same file simultaneously.
+
+### After every build session
+
+```bash
+npm run type-check   # turbo type-check across all workspaces
+npm run test          # turbo test
+```
+
+Archive PM/Designer/Market Researcher output in `docs/rnd/` with a date prefix (`YYYY-MM-DD-<topic>.md`).
+
+### Agent mistakes log
+
+When you make a mistake — wrong tool call, bad parameter, avoidable error, misread requirement — append a 4-line entry to `.claude/AGENT_MISTAKES.md` before finishing your turn. This is how the team learns across sessions.
+
+---
+
 ## Cashfree Payments — Integration Skills
 
 You are helping a developer integrate Cashfree Payments.
