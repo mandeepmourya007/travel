@@ -1,0 +1,62 @@
+"docs/codebase/Monorepo & Tooling.md"
+  s_3f219d5a1ac65f::t_141f783d1addf5 1-23,25-79
+  s_3f219d5a1ac65f::t_83dcaf916646be 24
+"docs/codebase/Shared Package.md"
+  s_3f219d5a1ac65f::t_b97076b4ce4562 1-82
+"docs/codebase/Data Fetching & State.md"
+  s_3f219d5a1ac65f::t_615817a82ce031 1-73
+"docs/codebase/Codebase Overview.md"
+  s_3f219d5a1ac65f::t_c49428be41fd38 1-30,32-77
+  s_3f219d5a1ac65f::t_e57c1e99b1e8f8 31
+"docs/codebase/Product Domain.md"
+  s_3f219d5a1ac65f::t_d227c676ac866e 1-64
+"docs/codebase/Auth & Security.md"
+  s_3f219d5a1ac65f::t_7b7cd1f25eb5ca 1-67
+"docs/codebase/Payments & Webhooks.md"
+  s_3f219d5a1ac65f::t_90cb4ddf840a0a 1-79
+"docs/codebase/Testing & Quality.md"
+  s_3f219d5a1ac65f::t_796f17241ef475 1-46
+"docs/codebase/Database Schema.md"
+  s_3f219d5a1ac65f::t_beb75139e3615e 72
+  s_3f219d5a1ac65f::t_b0044f12333b5b 1-11,13-22,24-71,73-126
+  s_3f219d5a1ac65f::t_3dc632e2505d48 12
+  h_b3232c20134322 23
+"docs/codebase/API Backend.md"
+  h_b3232c20134322 24
+  s_3f219d5a1ac65f::t_f5d961fed42f54 35
+  s_3f219d5a1ac65f::t_344bd45711d5b6 1-23,25-34,36-112
+"docs/codebase/API Routes Reference.md"
+  s_3f219d5a1ac65f::t_3190e20a37750e 1-225
+"docs/codebase/Frontend Routes Reference.md"
+  s_3f219d5a1ac65f::t_eab73228b1bff6 1-113
+"docs/codebase/Environment & Deployment.md"
+  s_3f219d5a1ac65f::t_339b5f50f95e2f 1-37,39-86
+  s_3f219d5a1ac65f::t_168f0a111b5f0d 38
+"docs/codebase/Web Frontend.md"
+  h_b3232c20134322 17
+  s_3f219d5a1ac65f::t_624a70d36f7a7a 1-16,18-25,27-86
+  s_3f219d5a1ac65f::t_742601aec22534 26
+"docs/codebase/Background Jobs & Realtime.md"
+  s_3f219d5a1ac65f::t_95f6ca798e923d 1-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "81fe99811069a7b5148d45ab52f5bc435ebee5e4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3f219d5a1ac65f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "788aa1e3-4e1f-46b9-aefd-1b2e98b14f10",
+        "model": "claude-fable-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
