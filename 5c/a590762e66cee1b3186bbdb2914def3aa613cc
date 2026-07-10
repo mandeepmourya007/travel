@@ -1,0 +1,24 @@
+apps/web/vitest.config.ts
+  s_1086759ac50742::t_4270d3ef443b09 4-8,10-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "5ca590762e66cee1b3186bbdb2914def3aa613cc",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_1086759ac50742": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c9f1a1bd-5e58-4e8d-8f5b-6ad37dfd34db",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
