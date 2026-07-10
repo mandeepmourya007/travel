@@ -1,8 +1,15 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
 
-// Note: no esbuild.jsx override needed — @vitejs/plugin-react handles JSX transform
+// esbuild.jsx must be set explicitly: @vitejs/plugin-react's babel transform only
+// applies to the "client" environment consumer (Vite's Environment API), but Vitest
+// runs test files under a server/ssr consumer, so esbuild's own JSX transform is what
+// actually processes .tsx files here — without this it defaults to the classic
+// runtime, which needs a global `React` and fails with "React is not defined".
 export default defineConfig({
+  esbuild: {
+    jsx: 'automatic',
+  },
   test: {
     globals: true,
     environment: 'jsdom',
