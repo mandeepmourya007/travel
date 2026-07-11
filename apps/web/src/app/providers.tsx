@@ -14,6 +14,7 @@ import { FullScreenLoader } from '@/components/shared/full-screen-loader'
 import { DismissLoader } from '@/components/shared/dismiss-loader'
 import { SocketConnector } from '@/components/shared/socket-connector'
 import { ServerDownBanner } from '@/components/shared/server-down-banner'
+import { ChunkErrorReload } from '@/components/shared/chunk-error-reload'
 
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then((mod) => ({ default: mod.ReactQueryDevtools })),
@@ -49,6 +50,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       {/* ToastProvider wraps SocketConnector + CompareQueueProvider so both can show toasts */}
       <ToastProvider>
+        <ChunkErrorReload />
         <ServerDownBanner />
         <SocketConnector />
         <FullScreenLoader />
