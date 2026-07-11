@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { AuthService } from '../../../src/services/auth.service'
-import { AuthError, ConflictError, NotFoundError, PaymentError } from '../../../src/errors/app-error'
+import { AuthError, ConflictError, NotFoundError, PaymentError, ValidationError } from '../../../src/errors/app-error'
 import { PAYOUT_ERROR } from '../../../src/providers/payment/payment.constants'
 
 // ── Test doubles ──────────────────────────────────────
@@ -1071,6 +1071,14 @@ describe('AuthService', () => {
 
       await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
         .rejects.toThrow(ConflictError)
+    })
+
+    it('throws ValidationError when PAN is missing for Razorpay gateway, without calling the gateway', async () => {
+      const { pan, ...dtoWithoutPan } = BANK_DTO
+
+      await expect(serviceWithGateway.connectBankAccount('user-123', dtoWithoutPan as any))
+        .rejects.toThrow(ValidationError)
+      expect(mockGateway.createPayoutAccount).not.toHaveBeenCalled()
     })
 
     it('delegates to gateway.createPayoutAccount and persists via linkPayoutAccount', async () => {

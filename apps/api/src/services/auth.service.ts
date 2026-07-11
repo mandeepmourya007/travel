@@ -13,12 +13,12 @@ import { OrganizerProfileRepository } from '../repositories/organizer-profile.re
 import { WalletRepository } from '../repositories/wallet.repository'
 import { DocumentReviewRepository } from '../repositories/document-review.repository'
 import { DOC_TYPES } from '@shared/constants/upload'
-import { AuthError, ConflictError, NotFoundError, PaymentError, GoneError } from '../errors/app-error'
+import { AuthError, ConflictError, NotFoundError, PaymentError, ValidationError, GoneError } from '../errors/app-error'
 import { env } from '../config/env'
 import { SALT_ROUNDS, JWT_ACCESS_EXPIRY, REFRESH_TOKEN_DAYS, JWT_ACCESS_EXPIRY_SECONDS, INVITE_TOKEN_TYPE } from '../utils/constants'
 import { uniqueSlug, slugify } from '../utils/slugify'
 import { mergeDocuments } from '../utils/documents'
-import { USER_ROLE } from '@shared/constants'
+import { USER_ROLE, PAYMENT_PROVIDER } from '@shared/constants'
 import type { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
 import type { IEmailProvider } from '../providers/email-provider.interface'
@@ -431,6 +431,12 @@ export class AuthService {
       : !!profile.razorpayAccountId
     if (alreadyLinked) {
       throw new ConflictError(PAYOUT_ERROR.ALREADY_LINKED)
+    }
+
+    // Razorpay's Route linked-account API hardcodes business_type: 'individual', which
+    // requires legal_info.pan — catch that here as a 400 before hitting the gateway (502).
+    if (provider === PAYMENT_PROVIDER.RAZORPAY && !dto.pan) {
+      throw new ValidationError('PAN is required to link a Razorpay payout account')
     }
 
     const user = await this.userRepo.findById(userId)
