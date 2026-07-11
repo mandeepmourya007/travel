@@ -30,6 +30,24 @@ import { RAZORPAY_PAYMENT_STATUS, RZP_MOCK_ACCOUNT_PREFIX } from './payment.cons
  *
  * Does NOT touch the DB. All persistence lives in PaymentService (the orchestrator).
  */
+/**
+ * The `razorpay` SDK's HTTP layer throws plain objects (`{ statusCode, error: {...} }`),
+ * not `Error` instances (see node_modules/razorpay/dist/api.js `normalizeError`).
+ * Sentry's LinkedErrors integration only walks `.cause` chains where the cause is an
+ * `instanceof Error`, so a plain-object throw silently breaks error-chain visibility —
+ * the real Razorpay failure reason (e.g. a 400 validation message) never reaches Sentry,
+ * only our generic wrapper message. Normalize into a real Error before it becomes `cause`.
+ */
+function toGatewayError(error: unknown): Error {
+  if (error instanceof Error) return error
+  const rzp = error as { statusCode?: number; error?: { description?: string; code?: string; reason?: string } } | undefined
+  const description = rzp?.error?.description ?? rzp?.error?.reason ?? rzp?.error?.code
+  const normalized = new Error(
+    description ? `Razorpay API error (${rzp?.statusCode ?? 'unknown'}): ${description}` : 'Unknown Razorpay API error',
+  )
+  return Object.assign(normalized, { statusCode: rzp?.statusCode, razorpayError: rzp?.error })
+}
+
 export class RazorpayGateway implements IPaymentGateway {
   readonly provider = PAYMENT_PROVIDER.RAZORPAY
 
@@ -106,7 +124,7 @@ export class RazorpayGateway implements IPaymentGateway {
         { error, amountPaise, receipt, durationMs: timer.elapsed() },
         'Razorpay order creation failed',
       )
-      throw new PaymentError('Failed to create Razorpay order', error)
+      throw new PaymentError('Failed to create Razorpay order', toGatewayError(error))
     }
   }
 
@@ -143,7 +161,7 @@ export class RazorpayGateway implements IPaymentGateway {
       }
 
       this.logger.error({ error, paymentId, amountPaise }, 'Payment capture failed')
-      throw new PaymentError('Failed to capture payment', error)
+      throw new PaymentError('Failed to capture payment', toGatewayError(error))
     }
   }
 
@@ -180,7 +198,7 @@ export class RazorpayGateway implements IPaymentGateway {
       return (order as unknown as { status: string }).status
     } catch (error) {
       this.logger.error({ error, orderId }, 'Order status check failed')
-      throw new PaymentError('Failed to check order status', error)
+      throw new PaymentError('Failed to check order status', toGatewayError(error))
     }
   }
 
@@ -232,7 +250,7 @@ export class RazorpayGateway implements IPaymentGateway {
       }
     } catch (error) {
       this.logger.error({ error, paymentId, amountPaise }, 'Refund initiation failed')
-      throw new PaymentError('Failed to initiate refund', error)
+      throw new PaymentError('Failed to initiate refund', toGatewayError(error))
     }
   }
 
@@ -295,7 +313,7 @@ export class RazorpayGateway implements IPaymentGateway {
         return
       }
       this.logger.error({ error, transferId }, 'Failed to release Razorpay transfer hold')
-      throw new PaymentError('Failed to release SafePay transfer', error)
+      throw new PaymentError('Failed to release SafePay transfer', toGatewayError(error))
     }
   }
 
@@ -381,6 +399,13 @@ export class RazorpayGateway implements IPaymentGateway {
       return { accountId, provider: PAYMENT_PROVIDER.RAZORPAY, status: 'mock' }
     }
 
+    // Razorpay's Route linked-account API requires legal_info.pan for business_type
+    // "individual" — without it the API rejects the request with a 400. Mirrors the
+    // guard already in cashfree.gateway.ts createPayoutAccount for the same field.
+    if (!params.pan) {
+      throw new PaymentError('PAN is required to create a Razorpay linked account')
+    }
+
     const body = {
       email: params.email ?? `organizer-${params.referenceId}@placeholder.local`,
       phone: params.phone ? { primary: params.phone } : undefined,
@@ -398,7 +423,7 @@ export class RazorpayGateway implements IPaymentGateway {
           },
         },
       },
-      legal_info: {},
+      legal_info: { pan: params.pan },
       bank_account: {
         ifsc_code: params.bank.ifsc,
         beneficiary_name: params.bank.beneficiaryName,

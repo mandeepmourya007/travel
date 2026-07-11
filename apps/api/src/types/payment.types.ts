@@ -147,7 +147,7 @@ export interface CreatePayoutAccountParams {
   contactName: string
   email: string
   phone: string | null
-  /** Required for Cashfree vendor KYC; ignored by Razorpay */
+  /** Required for Cashfree vendor KYC and Razorpay Route linked-account legal_info.pan */
   pan?: string
   /** Required for Cashfree vendor KYC; ignored by Razorpay */
   accountType?: 'INDIVIDUAL' | 'BUSINESS'

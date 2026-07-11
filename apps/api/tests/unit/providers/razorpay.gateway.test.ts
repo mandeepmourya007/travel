@@ -285,6 +285,39 @@ describe('createOrder', () => {
     ).rejects.toThrow(PaymentError)
   })
 
+  it('should normalize a plain-object SDK throw into an Error cause so Sentry can walk it', async () => {
+    rzpMock.orders.create.mockRejectedValue({
+      statusCode: 400,
+      error: { description: 'Some validation message', code: 'BAD_REQUEST_ERROR' },
+    })
+
+    let caught: PaymentError | undefined
+    try {
+      await gateway.createOrder({ amountPaise: 500000, receipt: 'booking-bad-request', notes: {} })
+    } catch (err) {
+      caught = err as PaymentError
+    }
+
+    expect(caught).toBeInstanceOf(PaymentError)
+    expect(caught?.cause).toBeInstanceOf(Error)
+    expect((caught?.cause as Error).message).toMatch(/400/)
+    expect((caught?.cause as Error).message).toMatch(/Some validation message/)
+  })
+
+  it('should pass through an already-Error SDK throw unchanged as the cause', async () => {
+    const sdkError = new Error('Network error')
+    rzpMock.orders.create.mockRejectedValue(sdkError)
+
+    let caught: PaymentError | undefined
+    try {
+      await gateway.createOrder({ amountPaise: 500000, receipt: 'booking-fail', notes: {} })
+    } catch (err) {
+      caught = err as PaymentError
+    }
+
+    expect(caught?.cause).toBe(sdkError)
+  })
+
   it('should throw ValidationError for zero amount', async () => {
     await expect(
       gateway.createOrder({ amountPaise: 0, receipt: 'booking-zero', notes: {} }),
