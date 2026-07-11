@@ -4,7 +4,7 @@ description: Commit staged/unstaged changes with small, feature-wise commit mess
 
 # Commit Changes Workflow
 
-This workflow commits all pending changes as small, logically grouped commits. Run when the user says "commit", "commit changes", or uses `/commit-changes`.
+This workflow groups all pending changes into small, logically grouped commits and outputs the exact `git add && git commit` commands for the user to run themselves — it does not execute them (see Step 5). Run when the user says "commit", "commit changes", or uses `/commit-changes`.
 
 ---
 
@@ -144,9 +144,11 @@ refactor(api): extract buildWhereClause to private method
 
 ---
 
-## Step 5: Execute Commits
+## Step 5: Output Commit Commands (do NOT execute)
 
-Chain **all** commit groups into a **single command** using `&&` so every commit runs in one shot:
+`git commit`/`git push` are blocked by this repo's hooks unless the user gives explicit per-action instruction in their own words — a slash-command invocation alone does not satisfy that. **Do not attempt to run `git add`/`git commit` yourself.** Instead, print the full chained command block for the user to copy-paste (or run themselves via `!` in this session).
+
+Chain **all** commit groups into a **single command** using `&&` so the user can run every commit in one shot:
 
 ```bash
 git add <group1-files> && git commit -m "<type>(<scope>): <msg1>" && \
@@ -167,10 +169,9 @@ git add apps/web/src/hooks/use-trips.ts apps/web/src/components/trips/trip-card.
 - **Stage files explicitly** — never use `git add .` (may include unintended files)
 - **Escape special characters** in file paths — e.g., `\[slug\]` for Next.js dynamic routes
 - **Commit in dependency order** — shared types first, then BE, then FE, then tests, then docs, then config
-- **One `run_command` call** — combine all `git add && git commit` pairs with `&&` into a single command string
-- **If any group fails, the chain stops** — this is intentional; fix the issue and re-run the remaining groups
+- **Print one fenced code block** — combine all `git add && git commit` pairs with `&&` into a single command string, plus the same set as separate one-line commands underneath in case the user wants to run/skip individually
 - **Never add `Co-Authored-By` trailers** — do not append any co-author lines to commit messages
-- **Verify after all commits**:
+- **After the user reports the commands ran**, offer to verify:
 
 ```bash
 // turbo
@@ -178,6 +179,8 @@ git status --short
 // turbo
 git log --oneline -N  # where N = number of commits just made
 ```
+
+- **If the user explicitly asks you to run the commands yourself** (not just to generate them), attempt it — the hook may prompt for confirmation or block outright; if blocked, fall back to printing the commands per above and tell the user the hook rejected direct execution.
 
 ---
 
