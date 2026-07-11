@@ -1,4 +1,5 @@
 import { Logger } from 'pino'
+import { Prisma } from '@prisma/client'
 import { startTimer } from '../utils/perf-timer'
 import type { MyBookingFilters, MyBookingSummary, CancelBookingResult, MyTripBookingStatus } from '@shared/types/booking.types'
 import type { MyTripRequestItem } from '@shared/types/trip-request.types'
@@ -535,7 +536,7 @@ export class BookingService {
       if (input.seatIds?.length && this.vehicleService) {
         const availableSeats = await this.vehicleService.checkSeatsAvailable(input.seatIds)
         if (!availableSeats) {
-          throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
+          throw new ConflictError('One or more selected seats are no longer available', BOOKING_ERROR_CODE.SEAT_CONFLICT)
         }
       }
 
@@ -576,27 +577,53 @@ export class BookingService {
       // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
       // where booking exists but has no PaymentTransaction, making webhook lookup fail.
       const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
-      const booking = await this.bookingRepo.createWithPaymentTx(
-        {
-          tripId: input.tripId,
-          userId,
-          numTravelers: input.numTravelers,
-          totalAmount,
-          expiresAt,
-          pickupPointId: input.pickupPointId,
-          dropPointId: input.dropPointId,
-          // [TravelerDetail] travelers: input.travelers,
-        },
-        // Service owns these business decisions — type=PAYMENT, status=INITIATED
-        {
-          provider: order.clientPayload.provider,
-          gatewayOrderId: order.orderId,
-          razorpayOrderId: order.orderId, // mirror during expand phase
-          amount: totalAmount,
-          type: PAYMENT_TX_TYPE.PAYMENT,
-          status: PAYMENT_TX_STATUS.INITIATED,
-        },
-      )
+      let booking: Awaited<ReturnType<typeof this.bookingRepo.createWithPaymentTx>>
+      try {
+        booking = await this.bookingRepo.createWithPaymentTx(
+          {
+            tripId: input.tripId,
+            userId,
+            numTravelers: input.numTravelers,
+            totalAmount,
+            expiresAt,
+            pickupPointId: input.pickupPointId,
+            dropPointId: input.dropPointId,
+            // [TravelerDetail] travelers: input.travelers,
+          },
+          // Service owns these business decisions — type=PAYMENT, status=INITIATED
+          {
+            provider: order.clientPayload.provider,
+            gatewayOrderId: order.orderId,
+            razorpayOrderId: order.orderId, // mirror during expand phase
+            amount: totalAmount,
+            type: PAYMENT_TX_TYPE.PAYMENT,
+            status: PAYMENT_TX_STATUS.INITIATED,
+          },
+        )
+      } catch (err) {
+        // The partial unique index on Booking(userId, tripId) is the hard backstop for the
+        // TOCTOU gap between the fast-path/lock checks above and this insert (e.g. two
+        // concurrent requests from the same user both slipping past the Redis lock when
+        // Redis is unavailable). Translate the resulting P2002 into the documented
+        // ConflictError instead of letting a raw PrismaClientKnownRequestError reach the
+        // client as an unhandled 500.
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+          // The gateway order created above (step 6) is now orphaned — no Booking/PaymentTransaction
+          // row exists for it. Razorpay orders have no cancel/void endpoint (they only support
+          // deferred *capture*, not order cancellation) and expire naturally when unpaid; Cashfree
+          // exposes no cancel capability in IPaymentGateway either, so there is nothing to actively
+          // cancel here. This order also isn't picked up by the expireStaleBookings or
+          // sweepOrphanedConfirmedBookings crons (cron-jobs.ts) — both sweep rows on the Booking
+          // table, and no Booking row was ever created for this order. Log for ops/Sentry
+          // visibility so a dangling gateway-side order doesn't silently confuse reconciliation.
+          this.logger.warn(
+            { orderId: order.orderId, provider: order.clientPayload.provider, tripId: input.tripId, userId },
+            'Gateway order orphaned by concurrent duplicate-booking conflict (P2002) — no DB row created; order will expire naturally at the gateway',
+          )
+          throw new ConflictError('You already have an active booking for this trip', BOOKING_ERROR_CODE.ALREADY_BOOKED)
+        }
+        throw err
+      }
 
       // 9. Atomically hold seats (if hold fails, expire booking to prevent orphaned state)
       if (input.seatIds?.length && this.vehicleService) {
@@ -639,7 +666,7 @@ export class BookingService {
     if (!lockAcquired) {
       throw new ConflictError(
         'A booking request for this trip is already in progress — please wait a moment and try again',
-        'BOOKING_IN_PROGRESS',
+        BOOKING_ERROR_CODE.BOOKING_IN_PROGRESS,
       )
     }
 

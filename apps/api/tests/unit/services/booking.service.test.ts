@@ -956,6 +956,33 @@ describe('BookingService', () => {
       )
     })
 
+    it('should log a warning with the orphaned gateway order details when a P2002 race fires', async () => {
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_orphaned',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_orphaned', razorpayKeyId: 'rzp_test_key' },
+      })
+      const { Prisma } = await import('@prisma/client')
+      mockBookingRepo.createWithPaymentTx.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+        }),
+      )
+      const warnSpy = vi.spyOn(logger, 'warn')
+
+      await expect(
+        service.createBooking('user-1', validInput),
+      ).rejects.toThrow('You already have an active booking for this trip')
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: 'order_orphaned', provider: 'razorpay', tripId: 'trip-1', userId: 'user-1' }),
+        expect.stringContaining('orphaned'),
+      )
+    })
+
     it('should return existing order for idempotent re-request (PENDING_PAYMENT)', async () => {
       const existingBooking = {
         id: 'booking-existing',

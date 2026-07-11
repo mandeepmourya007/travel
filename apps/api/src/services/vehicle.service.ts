@@ -4,7 +4,7 @@ import type { SeatCellTypeConst } from '@shared/constants/vehicle'
 import { SEAT_STATUS, SEAT_CELL_TYPE } from '@shared/constants'
 import { VehicleRepository } from '../repositories/vehicle.repository'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError } from '../errors/app-error'
-import { SEAT_HOLD_MINUTES } from '../utils/constants'
+import { SEAT_HOLD_MINUTES, BOOKING_ERROR_CODE } from '../utils/constants'
 
 /** Inferred type for a single vehicle row returned by findByTripId (with seats relation). */
 type VehicleWithSeats = Awaited<ReturnType<VehicleRepository['findByTripId']>>[number]
@@ -279,7 +279,7 @@ export class VehicleService {
     if (updatedCount < seatIds.length) {
       // Rollback any that were partially held
       await this.vehicleRepo.releaseSeatsByBookingId(bookingId)
-      throw new ConflictError('One or more selected seats are no longer available', 'SEAT_CONFLICT')
+      throw new ConflictError('One or more selected seats are no longer available', BOOKING_ERROR_CODE.SEAT_CONFLICT)
     }
 
     this.logger.info({ seatIds, userId, bookingId }, 'Seats held')

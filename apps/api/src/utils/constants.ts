@@ -108,6 +108,9 @@ export const RAZORPAY_WEBHOOK_EVENT = {
 export const BOOKING_ERROR_CODE = {
   CONFIRM_RACE: 'CONFIRM_RACE',
   CAPACITY_FULL: 'CAPACITY_FULL',
+  ALREADY_BOOKED: 'ALREADY_BOOKED',
+  BOOKING_IN_PROGRESS: 'BOOKING_IN_PROGRESS',
+  SEAT_CONFLICT: 'SEAT_CONFLICT',
 } as const
 
 // ─── Webhook Log Tags (for ops grep) ─────────────────
