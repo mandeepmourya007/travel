@@ -1,0 +1,36 @@
+apps/api/src/utils/constants.ts
+  s_5c3f05c1ec81c4::t_59b2e86c0cf04c 111-112
+  s_5c3f05c1ec81c4::t_93bdcde7ffa4cd 113
+apps/api/src/services/booking.service.ts
+  s_5c3f05c1ec81c4::t_72fa9fd4183659 580-610,623-626
+  s_5c3f05c1ec81c4::t_bcb0454761161e 2
+  s_5c3f05c1ec81c4::t_f4828a2eb6d52f 539
+  s_5c3f05c1ec81c4::t_4e950e7e41b24f 611-622
+  s_5c3f05c1ec81c4::t_6693584a549dce 669
+apps/api/tests/unit/services/booking.service.test.ts
+  s_5c3f05c1ec81c4::t_7c397c2943cb7d 959-985
+apps/api/src/services/vehicle.service.ts
+  s_5c3f05c1ec81c4::t_6ccaafa12bafd8 7
+  s_5c3f05c1ec81c4::t_15c7a0a5a7911a 282
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "1eca3384985a171ae7b521fa37ce1de423727019",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_5c3f05c1ec81c4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c991ff72-5850-483d-9aee-9dc282ea5770",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
