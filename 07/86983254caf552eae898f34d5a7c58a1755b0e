@@ -1,0 +1,35 @@
+apps/api/src/providers/nodemailer-email.provider.ts
+  s_5c3f05c1ec81c4::t_5219004426f815 79,83
+  s_5c3f05c1ec81c4::t_a58f2b6723f747 4
+  s_5c3f05c1ec81c4::t_e6fe679ef08a75 51
+apps/api/src/providers/resend-email.provider.ts
+  s_5c3f05c1ec81c4::t_8d6ba94584f425 3
+  s_5c3f05c1ec81c4::t_5d5516eb13cffa 16,28,34
+apps/api/src/services/otp.service.ts
+  s_5c3f05c1ec81c4::t_c96deadf50ee74 204-207
+apps/api/src/providers/mock-email.provider.ts
+  s_5c3f05c1ec81c4::t_69ef01a731b3ec 2,7,12
+apps/api/src/providers/email-provider.interface.ts
+  s_5c3f05c1ec81c4::t_777b110c39cc86 8-16,20,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "0786983254caf552eae898f34d5a7c58a1755b0e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_5c3f05c1ec81c4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c991ff72-5850-483d-9aee-9dc282ea5770",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
