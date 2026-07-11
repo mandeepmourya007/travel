@@ -24,6 +24,8 @@ Multi-gateway payments via ==Strategy + Factory registry== built in `apps/api/sr
 ### Razorpay (`razorpay.gateway.ts`, config `config/razorpay.ts`)
 - Route **linked accounts** for organizers; transfers created with `on_hold` = SafePay escrow.
 - Escrow released by [[Background Jobs & Realtime#Cron Jobs|cron]] `complete-trips-safepay` via `releaseTransferHold`.
+- `createPayoutAccount` requires `params.pan` — Razorpay's Route API rejects `business_type: 'individual'` linked accounts without `legal_info.pan` (400). Same requirement as Cashfree's vendor KYC guard.
+- The `razorpay` SDK throws plain objects (`{ statusCode, error: {...} }`), not `Error` instances, which breaks Sentry's cause-chain linking. `toGatewayError()` normalizes these into real `Error`s before wrapping in `PaymentError` so the underlying Razorpay failure reason is visible in Sentry.
 
 ### Cashfree (`cashfree.gateway.ts`, config `config/cashfree.ts`)
 - Base URLs: sandbox `https://sandbox.cashfree.com/pg`, prod `https://api.cashfree.com/pg`; API version ==`2025-01-01`==; gated by `isCashfreeConfigured()`.
