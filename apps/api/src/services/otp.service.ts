@@ -201,7 +201,10 @@ export class OtpService {
     const smtpDurationMs = Date.now() - smtpStart
     this.logger.info({ email: `${email.slice(0, 3)}***`, smtpDurationMs }, 'Email OTP sendOtp completed')
     if (!sendResult.success) {
-      throw new AppError('Failed to send OTP. Please try again.', 502, 'OTP_SEND_FAILED')
+      // Pass the provider's underlying error as `cause` — without it the real reason
+      // (bad sender domain, SMTP auth failure, rate limit, etc.) is silently dropped
+      // and every occurrence of this error is undiagnosable in Sentry.
+      throw new AppError('Failed to send OTP. Please try again.', 502, 'OTP_SEND_FAILED', true, sendResult.error)
     }
 
     this.logger.info({ email: `${email.slice(0, 3)}***` }, 'Email OTP sent')

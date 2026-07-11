@@ -1,7 +1,7 @@
 import dns from 'dns/promises'
 import nodemailer from 'nodemailer'
 import type { Logger } from 'pino'
-import type { IEmailProvider, EmailMessage } from './email-provider.interface'
+import type { IEmailProvider, EmailMessage, EmailSendResult } from './email-provider.interface'
 
 export interface SmtpConfig {
   host: string
@@ -48,7 +48,7 @@ export class NodemailerEmailProvider implements IEmailProvider {
     })
   }
 
-  async sendEmail(msg: EmailMessage): Promise<{ success: boolean }> {
+  async sendEmail(msg: EmailMessage): Promise<EmailSendResult> {
     await this.ready
     const start = Date.now()
     const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
@@ -76,11 +76,11 @@ export class NodemailerEmailProvider implements IEmailProvider {
         },
         'SMTP: email send failed',
       )
-      return { success: false }
+      return { success: false, error: e }
     }
   }
 
-  async sendOtp(email: string, otp: string): Promise<{ success: boolean }> {
+  async sendOtp(email: string, otp: string): Promise<EmailSendResult> {
     return this.sendEmail({
       to: email,
       subject: 'Your verification code',

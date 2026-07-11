@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 import type { Logger } from 'pino'
-import type { IEmailProvider, EmailMessage } from './email-provider.interface'
+import type { IEmailProvider, EmailMessage, EmailSendResult } from './email-provider.interface'
 
 export class ResendEmailProvider implements IEmailProvider {
   private client: Resend
@@ -13,7 +13,7 @@ export class ResendEmailProvider implements IEmailProvider {
     this.client = new Resend(apiKey)
   }
 
-  async sendEmail(msg: EmailMessage): Promise<{ success: boolean }> {
+  async sendEmail(msg: EmailMessage): Promise<EmailSendResult> {
     const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
     this.logger.info({ to: maskedTo, subject: msg.subject }, 'Resend: attempting send')
     const { error } = await this.client.emails.send({
@@ -25,13 +25,13 @@ export class ResendEmailProvider implements IEmailProvider {
     })
     if (error) {
       this.logger.error({ to: maskedTo, error }, 'Resend: email send failed')
-      return { success: false }
+      return { success: false, error }
     }
     this.logger.info({ to: maskedTo, subject: msg.subject }, 'Resend: email sent')
     return { success: true }
   }
 
-  async sendOtp(email: string, otp: string): Promise<{ success: boolean }> {
+  async sendOtp(email: string, otp: string): Promise<EmailSendResult> {
     return this.sendEmail({
       to: email,
       subject: 'Your verification code',
