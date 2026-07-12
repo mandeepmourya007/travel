@@ -1,0 +1,33 @@
+apps/api/src/repositories/booking.repository.ts
+  s_9ac187d25bc95a::t_4bb5174f98823f 704,710
+apps/api/src/services/admin.service.ts
+  s_9ac187d25bc95a::t_f7f0bb31872128 23
+  s_9ac187d25bc95a::t_5fd1073ad48a79 133
+  s_9ac187d25bc95a::t_f4aee2a1e82620 364
+  s_9ac187d25bc95a::t_0078208be4f267 93
+  s_9ac187d25bc95a::t_4a5adad2d30fe3 174
+  s_9ac187d25bc95a::t_ac7334fb7a2684 26
+  s_9ac187d25bc95a::t_d54d485978fec3 307
+  s_9ac187d25bc95a::t_654db6e2cafc02 323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "e1b2202b63a1dfe9cfe6228a8814322eb060d96a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9ac187d25bc95a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e58f2cec-5dba-428a-b93f-f95bf43d77af",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
