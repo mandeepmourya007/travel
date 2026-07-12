@@ -6,11 +6,17 @@ import { useDestinations } from '@/hooks/use-destinations'
 import { useTripCategories, useSubmitTripTypeRequest } from '@/hooks/use-trip-categories'
 import { FormField } from './form-field'
 import type { CreateTripDto } from '@shared/types/trip.types'
+import { REQUEST_BASED_BOOKING_ENABLED } from '@shared/constants'
 
-const BOOKING_MODES = [
+const ALL_BOOKING_MODES = [
   { value: 'INSTANT', label: 'Instant Booking' },
   { value: 'REQUEST_BASED', label: 'Request Based' },
 ] as const
+
+// Request Based is temporarily disabled — see REQUEST_BASED_BOOKING_ENABLED.
+const BOOKING_MODES = REQUEST_BASED_BOOKING_ENABLED
+  ? ALL_BOOKING_MODES
+  : ALL_BOOKING_MODES.filter((mode) => mode.value !== 'REQUEST_BASED')
 
 export function BasicInfoTab() {
   const { register, formState: { errors }, setValue, watch } = useFormContext<CreateTripDto>()
