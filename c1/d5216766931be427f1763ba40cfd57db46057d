@@ -1,0 +1,33 @@
+apps/web/src/components/trips/trip-form/basic-info-tab.tsx
+  s_dd75619afee7c5::t_7ee902ae77917b 9,11,16-19
+  s_98935526b248ca::t_2018c0ff593297 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "c1d5216766931be427f1763ba40cfd57db46057d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_98935526b248ca": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "829f9a99-bbc3-4101-bcc1-f63acd41d954",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_dd75619afee7c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2b63e835-8866-47aa-adf7-cca3933e56a8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
