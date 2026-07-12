@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { idSchema } from './common.schema'
-import { TRIP_STATUSES } from '../constants/trip-types'
+import { TRIP_STATUSES, REQUEST_BASED_BOOKING_ENABLED } from '../constants/trip-types'
 
 /** Accepts a string (newline-separated) or string[] and normalizes to string[] */
 const stringOrArray = z.preprocess(
@@ -87,6 +87,10 @@ export const createTripSchema = z
       return true
     },
     { message: 'Early bird deadline is required when early bird price is set', path: ['earlyBirdDeadline'] },
+  )
+  .refine(
+    (data) => REQUEST_BASED_BOOKING_ENABLED || data.bookingMode !== 'REQUEST_BASED',
+    { message: 'Request-based booking is currently unavailable', path: ['bookingMode'] },
   )
 
 export const updateTripSchema = z

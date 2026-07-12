@@ -13,6 +13,10 @@ export const TRIP_TYPES = DEFAULT_TRIP_TYPES
 
 export const BOOKING_MODES = ['INSTANT', 'REQUEST_BASED'] as const
 
+/** Feature flag: temporarily disable the REQUEST_BASED booking mode.
+ *  Flip to `true` to re-enable request-based trips everywhere. */
+export const REQUEST_BASED_BOOKING_ENABLED = false
+
 type BookingModeConst = (typeof BOOKING_MODES)[number]
 /** Object form for dot-access: BOOKING_MODE.REQUEST_BASED — derived from array */
 export const BOOKING_MODE = Object.fromEntries(
