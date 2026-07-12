@@ -1,0 +1,43 @@
+apps/api/src/providers/email-provider.interface.ts
+  s_dd75619afee7c5::t_9880798264e03e 6-9
+apps/api/src/templates/index.ts
+  s_dd75619afee7c5::t_020f34c8947fa9 3,7
+  s_dd75619afee7c5::t_a3e384a6c5aaec 151,156
+  s_dd75619afee7c5::t_984ebc87124358 33-34
+apps/api/src/providers/resend-email.provider.ts
+  s_dd75619afee7c5::t_74b040db7e93b3 11-12,20,28-29
+apps/api/src/providers/nodemailer-email.provider.ts
+  s_dd75619afee7c5::t_09cca94a1fc61e 57,66-67
+  s_dd75619afee7c5::t_8ae890c53d967c 19-20
+.env.example
+  s_dd75619afee7c5::t_6eefe36c4c5785 65,67-68,74-76
+apps/api/src/config/env.ts
+  s_dd75619afee7c5::t_4a6356d7a93826 30-31
+apps/api/src/config/dependencies.ts
+  s_dd75619afee7c5::t_17e7d5db828b54 202-203,218,225
+  s_dd75619afee7c5::t_40a01161341d9c 193-201,204-209,213-217
+  s_dd75619afee7c5::t_501d595d982e8c 4
+apps/api/src/utils/constants.ts
+  s_dd75619afee7c5::t_c817fb4d3a2143 32-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "505f97b2f85ca5cabb756d0a24e5506e4c6fd4f0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_dd75619afee7c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2b63e835-8866-47aa-adf7-cca3933e56a8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
