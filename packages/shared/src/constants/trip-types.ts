@@ -39,7 +39,7 @@ export const TRANSFER_POINT_TYPE = {
 
 export const TRIP_STATUSES = ['DRAFT', 'ACTIVE', 'FULL', 'COMPLETED', 'CANCELLED'] as const
 
-type TripStatusConst = (typeof TRIP_STATUSES)[number]
+export type TripStatusConst = (typeof TRIP_STATUSES)[number]
 /** Object form for dot-access: TRIP_STATUS.COMPLETED — derived from array */
 export const TRIP_STATUS = Object.fromEntries(
   TRIP_STATUSES.map((s) => [s, s]),

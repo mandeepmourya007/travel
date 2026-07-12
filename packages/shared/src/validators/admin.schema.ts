@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import { VERIFICATION_STATUSES, APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
 import { BOOKING_STATUSES } from '../constants/booking-status'
+import { TRIP_STATUSES } from '../constants/trip-types'
 import { DOC_TYPES } from '../constants/upload'
 import { SORT_ORDERS } from '../constants/sort'
-import { ADMIN_REVIEW_SORT_BYS } from '../constants/admin'
+import { ADMIN_REVIEW_SORT_BYS, ADMIN_BOOKING_SORT_BYS, ADMIN_TRIP_SORT_BYS } from '../constants/admin'
 import { paginationSchema, idSchema } from './common.schema'
 
 /** Validates query params for GET /admin/organizers */
@@ -21,15 +22,16 @@ export const approveRejectSchema = z.object({
 export const adminBookingFiltersSchema = paginationSchema.extend({
   status: z.enum(BOOKING_STATUSES).optional(),
   search: z.string().max(100).trim().optional(),
-  sortBy: z.enum(['totalAmount', 'bookingStatus', 'createdAt']).optional(),
+  tripId: idSchema.optional(),
+  sortBy: z.enum(ADMIN_BOOKING_SORT_BYS).optional(),
   sortOrder: z.enum(SORT_ORDERS).optional(),
 })
 
 /** Validates query params for GET /admin/trips */
 export const adminTripFiltersSchema = paginationSchema.extend({
   q: z.string().max(100).trim().optional(),
-  status: z.enum(['DRAFT', 'ACTIVE', 'FULL', 'COMPLETED', 'CANCELLED']).optional(),
-  sortBy: z.enum(['destination', 'startDate', 'pricePerPerson', 'status']).optional(),
+  status: z.enum(TRIP_STATUSES).optional(),
+  sortBy: z.enum(ADMIN_TRIP_SORT_BYS).optional(),
   sortOrder: z.enum(SORT_ORDERS).optional(),
 })
 

@@ -3,8 +3,8 @@ import type { VerificationStatus, ApproveRejectAction } from '../constants/verif
 import type { BookingStatusConst } from '../constants/booking-status'
 import type { SortOrder } from '../constants/sort'
 export type { SortOrder } from '../constants/sort'
-import type { AdminReviewSortBy } from '../constants/admin'
-export type { AdminReviewSortBy } from '../constants/admin'
+import type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy } from '../constants/admin'
+export type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy } from '../constants/admin'
 
 // ─── Document Review ────────────────────────────────────
 
@@ -136,18 +136,15 @@ export interface AdminBookingItem {
   }
 }
 
-export type AdminBookingSortBy = 'totalAmount' | 'bookingStatus' | 'createdAt'
-
 export interface AdminBookingFilters {
   status?: BookingStatusConst
   search?: string
+  tripId?: string
   sortBy?: AdminBookingSortBy
   sortOrder?: SortOrder
   page?: number
   limit?: number
 }
-
-export type AdminTripSortBy = 'destination' | 'startDate' | 'pricePerPerson' | 'status'
 
 export interface AdminTripFilters {
   q?: string
