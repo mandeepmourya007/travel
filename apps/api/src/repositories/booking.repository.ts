@@ -701,12 +701,13 @@ export class BookingRepository {
    * Used by: AdminService.getBookings()
    */
   async findAllAdmin(
-    filters: { status?: string; search?: string; sortBy?: string; sortOrder?: string },
+    filters: { status?: string; search?: string; tripId?: string; sortBy?: string; sortOrder?: string },
     pagination: { skip: number; take: number },
   ) {
     const where: Prisma.BookingWhereInput = {
       isDeleted: false,
       ...(filters.status && { bookingStatus: filters.status as BookingStatus }),
+      ...(filters.tripId && { tripId: filters.tripId }),
       ...(filters.search && {
         OR: [
           { bookingRef: { contains: filters.search, mode: 'insensitive' as const } },

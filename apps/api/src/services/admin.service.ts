@@ -20,9 +20,10 @@ import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
-import { VERIFICATION_STATUS, NOTIFICATION_TYPE } from '@shared/constants'
+import { VERIFICATION_STATUS, NOTIFICATION_TYPE, USER_ROLE } from '@shared/constants'
 import { paginate } from '../utils/constants'
 
+const ORGANIZER_APPROVED_TITLE = 'Your organizer profile has been approved!'
 
 export class AdminService {
   constructor(
@@ -89,7 +90,7 @@ export class AdminService {
     // Create notification for the organizer
     const isApproved = dto.action === VERIFICATION_STATUS.APPROVED
     const title = isApproved
-      ? 'Your organizer profile has been approved!'
+      ? ORGANIZER_APPROVED_TITLE
       : 'Your organizer profile has been rejected'
     const body = isApproved
       ? 'Congratulations! You can now create and publish trips on Safarnama.'
@@ -129,7 +130,7 @@ export class AdminService {
       globalSummary,
     ] = await Promise.all([
       this.userRepo.countAll(),
-      this.userRepo.countByRole('ORGANIZER'),
+      this.userRepo.countByRole(USER_ROLE.ORGANIZER),
       this.organizerProfileRepo.countPending(),
       this.tripRepo.countByStatus(),
       this.tripRepo.countByType(),
@@ -170,7 +171,7 @@ export class AdminService {
   async getBookings(filters: AdminBookingFilters) {
     const pg = paginate(filters)
     const { data, total } = await this.bookingRepo.findAllAdmin(
-      { status: filters.status, search: filters.search, sortBy: filters.sortBy, sortOrder: filters.sortOrder },
+      { status: filters.status, search: filters.search, tripId: filters.tripId, sortBy: filters.sortBy, sortOrder: filters.sortOrder },
       { skip: pg.skip, take: pg.take },
     )
     return { data, pagination: pg.meta(total) }
@@ -303,7 +304,7 @@ export class AdminService {
       await this.docReviewRepo.addComment({
         organizerId,
         authorId: adminUserId,
-        authorRole: 'ADMIN',
+        authorRole: USER_ROLE.ADMIN,
         docType,
         comment: dto.comment,
       })
@@ -319,7 +320,7 @@ export class AdminService {
         this.notificationService.send({
           userId: profile.userId,
           type: NOTIFICATION_TYPE.ORGANIZER_APPROVED,
-          title: 'Your organizer profile has been approved!',
+          title: ORGANIZER_APPROVED_TITLE,
           body: 'All documents verified. You can now create and publish trips on Safarnama.',
           data: { profileId: organizerId },
         }).catch((err) => this.logger.error({ err, organizerId }, 'Failed to send approval notification'))
@@ -360,7 +361,7 @@ export class AdminService {
     })
 
     // Notify organizer about the admin comment
-    if (role === 'ADMIN') {
+    if (role === USER_ROLE.ADMIN) {
       this.notificationService.send({
         userId: profile.userId,
         type: NOTIFICATION_TYPE.ADMIN_SUPPORT_MESSAGE,
