@@ -1,0 +1,31 @@
+apps/web/src/app/admin/bookings/page.tsx
+  s_9ac187d25bc95a::t_b2637cccacd2c1 56
+  s_9ac187d25bc95a::t_29166022a4416c 111-114
+  s_9ac187d25bc95a::t_b26be8f178b1e7 75
+  s_9ac187d25bc95a::t_4fbb0e205073a4 28
+  s_9ac187d25bc95a::t_03566db8d6e6d9 34-35,38-40,43,45-50
+  s_9ac187d25bc95a::t_87fd6819187a1e 115-116
+apps/web/src/hooks/use-admin-bookings.ts
+  s_9ac187d25bc95a::t_ba4f27ead2e023 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "bd5c9ba2fb1fe725c12a62ea771e6219a622a87a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9ac187d25bc95a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e58f2cec-5dba-428a-b93f-f95bf43d77af",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
