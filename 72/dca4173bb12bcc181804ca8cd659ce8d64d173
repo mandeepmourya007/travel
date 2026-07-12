@@ -1,0 +1,39 @@
+apps/web/src/lib/api-server.ts
+  s_98935526b248ca::t_7e1c0cbd76908c 12
+"docs/codebase/API Backend.md"
+  s_dd75619afee7c5::t_0c54c20df816e2 21-23
+apps/api/src/services/cache.service.ts
+  s_98935526b248ca::t_843315c6ae6605 34-36,39
+  s_98935526b248ca::t_7f973e4b86e4c9 28-31,42,49
+apps/api/src/index.ts
+  s_dd75619afee7c5::t_d48ebaba82edbe 19-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "72dca4173bb12bcc181804ca8cd659ce8d64d173",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_98935526b248ca": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "829f9a99-bbc3-4101-bcc1-f63acd41d954",
+        "model": "SWE-1.6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_dd75619afee7c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2b63e835-8866-47aa-adf7-cca3933e56a8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
