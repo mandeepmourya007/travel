@@ -42,29 +42,31 @@ import { cn } from '@/lib/utils'
 import type { OrganizerTripListItem } from '@shared/types/trip.types'
 import type { AdminTripSortBy, SortOrder } from '@shared/types/admin.types'
 import { SORT_ORDER } from '@shared/constants/sort'
+import { ADMIN_TRIP_SORT_BY } from '@shared/constants/admin'
+import { TRIP_STATUS, type TripStatusConst } from '@shared/constants/trip-types'
 
-const TRIP_STATUS_VARIANT: Record<string, 'default' | 'outline' | 'secondary' | 'destructive'> = {
-  DRAFT: 'secondary',
-  ACTIVE: 'default',
-  FULL: 'outline',
-  COMPLETED: 'outline',
-  CANCELLED: 'destructive',
+const TRIP_STATUS_VARIANT: Record<TripStatusConst, 'default' | 'outline' | 'secondary' | 'destructive'> = {
+  [TRIP_STATUS.DRAFT]: 'secondary',
+  [TRIP_STATUS.ACTIVE]: 'default',
+  [TRIP_STATUS.FULL]: 'outline',
+  [TRIP_STATUS.COMPLETED]: 'outline',
+  [TRIP_STATUS.CANCELLED]: 'destructive',
 }
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: 'all' | TripStatusConst; label: string }[] = [
   { value: 'all', label: 'All Statuses' },
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'FULL', label: 'Full' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: TRIP_STATUS.DRAFT, label: 'Draft' },
+  { value: TRIP_STATUS.ACTIVE, label: 'Active' },
+  { value: TRIP_STATUS.FULL, label: 'Full' },
+  { value: TRIP_STATUS.COMPLETED, label: 'Completed' },
+  { value: TRIP_STATUS.CANCELLED, label: 'Cancelled' },
 ]
 
 const SORT_OPTIONS: { field: AdminTripSortBy; label: string }[] = [
-  { field: 'destination', label: 'Destination' },
-  { field: 'startDate', label: 'Dates' },
-  { field: 'pricePerPerson', label: 'Price' },
-  { field: 'status', label: 'Status' },
+  { field: ADMIN_TRIP_SORT_BY.DESTINATION, label: 'Destination' },
+  { field: ADMIN_TRIP_SORT_BY.START_DATE, label: 'Dates' },
+  { field: ADMIN_TRIP_SORT_BY.PRICE_PER_PERSON, label: 'Price' },
+  { field: ADMIN_TRIP_SORT_BY.STATUS, label: 'Status' },
 ]
 
 type ActionType = 'pause' | 'resume' | 'hide' | 'unhide'
