@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { render } from '@testing-library/react'
+import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ChunkErrorReload } from '../chunk-error-reload'
 
@@ -8,6 +10,30 @@ function dispatchRejection(message: string, stack?: string) {
   if (stack !== undefined) error.stack = stack
   Object.defineProperty(event, 'reason', { value: error })
   window.dispatchEvent(event)
+}
+
+/** Renders ChunkErrorReload inside a real QueryClientProvider so useQueryClient() resolves. */
+function renderWithQueryClient(queryClient = new QueryClient()) {
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ChunkErrorReload />
+    </QueryClientProvider>,
+  )
+  return queryClient
+}
+
+/** Starts a mutation that never resolves, so queryClient.isMutating() stays > 0. */
+function startPendingMutation(queryClient: QueryClient) {
+  function PendingMutation() {
+    const { mutate } = useMutation({ mutationFn: () => new Promise(() => {}) })
+    useEffect(() => { mutate() }, [mutate])
+    return null
+  }
+  render(
+    <QueryClientProvider client={queryClient}>
+      <PendingMutation />
+    </QueryClientProvider>,
+  )
 }
 
 describe('ChunkErrorReload', () => {
@@ -27,7 +53,7 @@ describe('ChunkErrorReload', () => {
   })
 
   it('reloads once on a stale webpack chunk error', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     dispatchRejection(
       "Cannot read properties of undefined (reading 'call')",
@@ -38,7 +64,7 @@ describe('ChunkErrorReload', () => {
   })
 
   it('does not reload for a generic "reading call" error without a webpack stack signature', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     dispatchRejection(
       "Cannot read properties of undefined (reading 'call')",
@@ -49,7 +75,7 @@ describe('ChunkErrorReload', () => {
   })
 
   it('reloads on a classic ChunkLoadError message', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     dispatchRejection('ChunkLoadError: Loading chunk 42 failed.')
 
@@ -57,7 +83,7 @@ describe('ChunkErrorReload', () => {
   })
 
   it('reloads on a "Loading chunk N failed" message with no stack', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     dispatchRejection('Loading chunk 7 failed.')
 
@@ -65,7 +91,7 @@ describe('ChunkErrorReload', () => {
   })
 
   it('does not reload for an unrelated rejection', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     dispatchRejection('Network request failed')
 
@@ -73,12 +99,24 @@ describe('ChunkErrorReload', () => {
   })
 
   it('does not reload a second time within the guard window (no reload loop)', () => {
-    render(<ChunkErrorReload />)
+    renderWithQueryClient()
 
     const stack = "TypeError: Cannot read properties of undefined (reading 'call')\n    at __webpack_require__ (/_next/static/chunks/webpack.js:1:1)"
     dispatchRejection("Cannot read properties of undefined (reading 'call')", stack)
     dispatchRejection("Cannot read properties of undefined (reading 'call')", stack)
 
     expect(reloadSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not reload while a mutation is in flight (never cancel a user-initiated request)', () => {
+    const queryClient = renderWithQueryClient()
+    startPendingMutation(queryClient)
+
+    dispatchRejection(
+      "Cannot read properties of undefined (reading 'call')",
+      "TypeError: Cannot read properties of undefined (reading 'call')\n    at __webpack_require__ (/_next/static/chunks/webpack.js:1:1)",
+    )
+
+    expect(reloadSpy).not.toHaveBeenCalled()
   })
 })

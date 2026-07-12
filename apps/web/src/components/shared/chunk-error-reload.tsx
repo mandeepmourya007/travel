@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { feLogger } from '@/lib/logger'
 
 /** sessionStorage guard key — ensures we reload at most once per incident, never loop. */
@@ -44,6 +45,8 @@ function isStaleChunkError(reason: unknown): boolean {
  * sessionStorage so a real, persistent bug can't reload-loop the user.
  */
 export function ChunkErrorReload() {
+  const queryClient = useQueryClient()
+
   useEffect(() => {
     const resetTimer = setTimeout(() => sessionStorage.removeItem(CHUNK_RELOAD_FLAG), CHUNK_RELOAD_GUARD_RESET_MS)
 
@@ -53,6 +56,13 @@ export function ChunkErrorReload() {
 
       if (sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
         feLogger.error('Stale chunk error persisted after reload', { message })
+        return
+      }
+
+      // An unrelated chunk failing to load must never abort a request the user is actively
+      // submitting (e.g. Request to Book) — defer the reload rather than cancel it in-flight.
+      if (queryClient.isMutating() > 0) {
+        feLogger.warn('Stale webpack chunk detected during an in-flight mutation, deferring reload', { message })
         return
       }
 
@@ -66,7 +76,7 @@ export function ChunkErrorReload() {
       clearTimeout(resetTimer)
       window.removeEventListener('unhandledrejection', handleRejection)
     }
-  }, [])
+  }, [queryClient])
 
   return null
 }
