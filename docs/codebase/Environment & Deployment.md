@@ -21,7 +21,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Auth | `JWT_SECRET` (min 32 chars), `GOOGLE_CLIENT_ID/SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` |
 | Firebase phone auth | `PHONE_AUTH_STRATEGY` (backend\|firebase), `FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY`, `NEXT_PUBLIC_FIREBASE_*` (API_KEY, AUTH_DOMAIN, PROJECT_ID, APP_ID), `NEXT_PUBLIC_PHONE_AUTH_STRATEGY` |
 | Redis | `REDIS_URL` (required in prod) |
-| Email | `SMTP_HOST/PORT/USER/PASS/FROM` (all-or-nothing), `RESEND_API_KEY`, `RESEND_FROM` |
+| Email | `SMTP_HOST/PORT/USER/PASS/FROM` (all-or-nothing), `RESEND_API_KEY`, `RESEND_FROM`, `SUPPORT_EMAIL` (optional, defaults `support@safarnama.store`; used as Reply-To + `List-Unsubscribe` mailto) |
 | SMS OTP | `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID` |
 | Payments | `PAYMENT_GATEWAY` (razorpay\|cashfree), `RAZORPAY_KEY_ID` (must start `rzp_`) / `KEY_SECRET` / `WEBHOOK_SECRET`, `CASHFREE_APP_ID` / `SECRET_KEY` / `WEBHOOK_SECRET` / `CASHFREE_ENV`, `NEXT_PUBLIC_CASHFREE_ENV` |
 | Media | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` |
@@ -34,6 +34,9 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 
 > [!note] env.ts Bypasses
 > A few values read `process.env` directly: `WALLET_AUTO_CASHBACK_PERCENT/CAP`, `WALLET_CREDIT_EXPIRY_DAYS` (`utils/constants.ts`), `RENDER_EXTERNAL_URL` (cron keepalive).
+
+> [!warning] Email Deliverability — DNS, Not Code
+> Reply-To / `List-Unsubscribe` headers and footer contact info (wired in `config/dependencies.ts`, `providers/resend-email.provider.ts` / `nodemailer-email.provider.ts`) are secondary hygiene only. The actual fix for emails landing in spam is **SPF, DKIM, and DMARC DNS records** for the sending domain (`safarnama.store`) — configured in the Resend dashboard (domain verification) + the domain registrar's DNS zone. This is outside the codebase; the app cannot self-remediate spam placement without it.
 
 ## Docker — Dev (docker-compose.yml, Compose ≥ 2.24)
 

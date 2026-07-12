@@ -37,7 +37,7 @@ Feature folders, kebab-case filenames, PascalCase exports, tests co-located in `
 | Folder | Contents |
 | :--- | :--- |
 | `ui/` (28) | shadcn/ui, style **new-york**, base color neutral, `cssVariables: false` |
-| `shared/` (38) | `auth-guard`, `role-guard`, toasts, modals, pagination, date/phone/email inputs, star ratings, `blur-image`, lightbox, loaders/overlays, `route-progress`, `server-down-banner`, `socket-connector`, `chunk-error-reload` (mounted in `Providers`; reloads once on a stale post-deploy webpack chunk error — `unhandledrejection` for "reading 'call'"/`ChunkLoadError`, session-guarded against reload loops), `login-required-dialog`, `data-states`, `price-range-slider`, … |
+| `shared/` (38) | `auth-guard`, `role-guard`, toasts, modals, pagination, date/phone/email inputs, star ratings, `blur-image`, lightbox, loaders/overlays, `route-progress`, `server-down-banner`, `socket-connector`, `chunk-error-reload` (mounted in `Providers`; reloads once on a stale post-deploy webpack chunk error — `unhandledrejection` for "reading 'call'"/`ChunkLoadError`, session-guarded against reload loops; defers the reload while `queryClient.isMutating() > 0` so it never cancels an in-flight user-initiated mutation like Request to Book), `login-required-dialog`, `data-states`, `price-range-slider`, … |
 | `layout/` | `app-shell`, `header`, `footer`, `mobile-bottom-nav` |
 | `trips/` (24) | incl. `trip-form/` — 10-file multi-tab trip builder |
 | `booking/` (5) vs `bookings/` (7) | ==singular = booking flow, plural = my-bookings views== |

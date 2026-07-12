@@ -17,7 +17,7 @@ tags:
 - **Anti-leakage chat filter** — blocks phone/UPI/email/URL sharing in chat to keep transactions on-platform (`apps/api/src/utils/chat-filter.ts`).
 - **In-app wallet** — refunds, cashback (default 5%), booking deductions, promotional credits with ==90-day expiry==.
 - **Trip comparison** — side-by-side compare of up to **3** trips.
-- **Dual booking modes** — `INSTANT` and `REQUEST_BASED` (organizer approves, approval expires in 48h).
+- **Dual booking modes** — `INSTANT` and `REQUEST_BASED` (organizer approves, approval expires in 48h). ==Temporarily disabled==: `REQUEST_BASED_BOOKING_ENABLED = false` in [[Shared Package#Constants|shared constants]] currently blocks choosing `REQUEST_BASED` on new trip creation and blocks switching an existing trip into it; already-existing request-based trips keep working unaffected (still accept/respond to `TripRequest`s normally). Reversible by flipping the flag to `true`.
 - **Visual seat maps** — organizer builds vehicle layouts; travelers pick seats (10-minute holds).
 - **Real-time chat** — Socket.IO trip chat + admin support conversations.
 

@@ -103,6 +103,7 @@ graph TD
 | `MAX_COMPARE_TRIPS` | 3 |
 | `MAX_PHOTOS_PER_TRIP` | 8 |
 | `MIN_PRICE_PER_PERSON` | 100 |
+| `DEFAULT_SUPPORT_EMAIL` | `support@safarnama.store` (Reply-To fallback when `SUPPORT_EMAIL` env is unset) |
 | `MAX_GROUP_SIZE` | 50 |
 | `JWT_ACCESS_EXPIRY` | 15m |
 | `REFRESH_TOKEN_DAYS` | 7 |

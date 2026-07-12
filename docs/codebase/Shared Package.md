@@ -16,13 +16,13 @@ tags:
 
 ## Structure
 
-| Folder | Contents |
-| :--- | :--- |
-| `src/constants/` | 14 files + barrel |
-| `src/types/` | 18 files + barrel |
-| `src/validators/` | 15 Zod schema files |
-| `src/utils/` | `refund.ts` (root-exported), `slug.ts`, `organizer-docs.ts` (direct-path imports) |
-| `src/theme/` | `tokens.json` — design tokens consumed by Tailwind → [[Web Frontend#Styling]] |
+| Folder            | Contents                                                                          |
+| :------------------| :----------------------------------------------------------------------------------|
+| `src/constants/`  | 14 files + barrel                                                                 |
+| `src/types/`      | 18 files + barrel                                                                 |
+| `src/validators/` | 15 Zod schema files                                                               |
+| `src/utils/`      | `refund.ts` (root-exported), `slug.ts`, `organizer-docs.ts` (direct-path imports) |
+| `src/theme/`      | `tokens.json` — design tokens consumed by Tailwind → [[Web Frontend#Styling]]     |
 
 ## Constants
 
@@ -31,7 +31,7 @@ tags:
 | `roles.ts` | `USER_ROLES` (TRAVELER/ORGANIZER/ADMIN), `USER_ROLE`, `SIGNUP_ROLES`, ==`TRAVELER_ROLES` = [TRAVELER, ADMIN]== (admin impersonation), `DEFAULT_USER_NAME`, `DEFAULT_CUSTOMER_NAME` |
 | `booking-status.ts` | `BOOKING_STATUSES` (PENDING_PAYMENT/CONFIRMED/CANCELLED/COMPLETED/REFUNDED/EXPIRED), `TRIP_REQUEST_STATUSES` (PENDING/APPROVED/REJECTED/EXPIRED/CONVERTED) + objects |
 | `review.ts` | `REVIEW_MAX_PHOTOS=5`, `REVIEW_MAX_COMMENT_LENGTH=2000`, `REVIEW_MAX_REPLY_LENGTH=1000`, `REVIEW_EDIT_WINDOW_DAYS=30`, `REVIEW_SORT` (newest/oldest/rating_high/rating_low) + `REVIEW_SORTS`, `REVIEW_RATING_VALUES` |
-| `trip-types.ts` | ~~`DEFAULT_TRIP_TYPES`~~ *(deprecated — DB-driven via TripCategory)*, `BOOKING_MODES` (INSTANT/REQUEST_BASED), `CANCELLATION_POLICIES` (FLEXIBLE/MODERATE/STRICT), `TRANSFER_POINT_TYPE` (PICKUP/DROP), `TRIP_STATUSES` (DRAFT/ACTIVE/FULL/COMPLETED/CANCELLED) |
+| `trip-types.ts` | ~~`DEFAULT_TRIP_TYPES`~~ *(deprecated — DB-driven via TripCategory)*, `BOOKING_MODES` (INSTANT/REQUEST_BASED), `CANCELLATION_POLICIES` (FLEXIBLE/MODERATE/STRICT), `TRANSFER_POINT_TYPE` (PICKUP/DROP), `TRIP_STATUSES` (DRAFT/ACTIVE/FULL/COMPLETED/CANCELLED), ==`REQUEST_BASED_BOOKING_ENABLED` = `false`== *(temporary feature flag — gates `REQUEST_BASED` mode off in `createTripSchema` refine, web trip-form radio, and `trip.service.ts#updateTrip` mode-switch guard; flip back to `true` to fully restore, no other code changes needed)* |
 | `verification-status.ts` | `VERIFICATION_STATUSES` (PENDING/APPROVED/REJECTED/REVISION_REQUIRED), `APPROVE_REJECT_ACTIONS` |
 | `wallet.ts` | `WALLET_REFERENCE_MODELS` (Booking/AdminAction/WalletTransaction), `WALLET_TX` (CASHBACK/REFUND/BOOKING_DEDUCTION/ADMIN_CREDIT/ADMIN_DEBIT/PROMOTIONAL_CREDIT/EXPIRY) — canonical array lives in `types/wallet.types.ts` |
 | `notification.ts` | `NOTIFICATION_TYPE` (==18 keys==), `NOTIFICATION_CHANNEL` (IN_APP/EMAIL/SMS/PUSH) |
