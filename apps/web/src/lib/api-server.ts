@@ -9,7 +9,7 @@
 
 import { cache } from 'react'
 
-const SSR_SLOW_THRESHOLD_MS = 500
+const SSR_SLOW_THRESHOLD_MS = 1000
 
 function getApiBaseUrl(): string {
   return process.env.API_URL_INTERNAL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'

@@ -18,6 +18,9 @@ Package **`@travel/api`** at `apps/api`. Express 4 + Prisma 6 (PostgreSQL) + Soc
 > [!info] Composition Root
 > All wiring lives in `src/config/dependencies.ts` — repositories → services → controllers → routes are instantiated there (manual DI). The Socket.IO instance is injected lazily via `setIoInstance`/`getIo` to avoid circular capture.
 
+> [!warning] keepAliveTimeout / headersTimeout (`src/index.ts`)
+> Set to `65_000`/`66_000` ms — longer than Node's 5s default. `apps/web`'s Next.js `rewrites()` proxies `/api/*` to this service over a pooled keep-alive connection; if this server's keep-alive window is shorter than the load balancer's (Render's front door included), Node can close a socket the LB/proxy still considers open, surfacing as `ECONNRESET`/"socket hang up" on the next request reused on that socket. Keep this above whatever idle timeout sits in front of the service.
+
 ## Folder Structure (`src/`)
 
 | Folder          | Contents                                                                                                                                                             |

@@ -16,6 +16,15 @@ const PORT = env.PORT
 const app = createServer()
 const httpServer = createHttpServer(app)
 
+// Node's default keepAliveTimeout (5s) is shorter than most load balancers' idle
+// timeout in front of this service (Render included). That mismatch lets Node close
+// a socket the LB/proxy still considers open, so the next request reused on that
+// socket fails with ECONNRESET ("socket hang up") — seen in production on Next.js's
+// rewrite proxy to this API. Keeping our timeout longer than the LB's avoids the race;
+// headersTimeout must stay slightly above keepAliveTimeout (Node requirement).
+httpServer.keepAliveTimeout = 65_000
+httpServer.headersTimeout = 66_000
+
 // ── Socket.IO ─────────────────────────────────────────
 const corsOrigins = [env.CLIENT_URL]
 if (env.NODE_ENV === 'development') {

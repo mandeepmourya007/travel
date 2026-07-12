@@ -25,25 +25,28 @@ export class CacheService {
    * @param fetcher    — Async function that produces the value on cache miss
    */
   async getOrSet<T>(key: string, ttlSeconds: number, fetcher: () => Promise<T>): Promise<T> {
-    if (!this.redis) return fetcher()
+    if (!this.redis) {
+      this.logger.warn({ key }, 'Redis not configured — skipping cache')
+      return fetcher()
+    }
 
     try {
-      // Race against 200ms — if Redis is slow, fall through to the fetcher
-      // rather than blocking the response. Same rationale as the rate limiter:
-      // commandTimeout can't be set on the client without breaking TLS startup.
+      // Production: Upstash/Redis Cloud cross-region latency can be 100-300ms.
+      // Race against 1000ms to avoid unnecessary cache misses while still
+      // protecting against Redis hangs. Local dev: typically <50ms.
       const cached = await Promise.race([
         this.redis.get(key),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 200)),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
       ])
       if (cached !== null) {
-        this.logger.debug({ key }, 'Cache HIT')
+        this.logger.info({ key }, 'Cache HIT')
         return JSON.parse(cached) as T
       }
     } catch (err) {
       this.logger.warn({ err, key }, 'Redis GET failed — falling through to fetcher')
     }
 
-    this.logger.debug({ key, ttlSeconds }, 'Cache MISS — fetching & caching')
+    this.logger.info({ key, ttlSeconds }, 'Cache MISS — fetching & caching')
     const value = await fetcher()
 
     // Fire-and-forget: don't block the response waiting for the cache write.
