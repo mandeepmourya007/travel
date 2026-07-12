@@ -1,5 +1,36 @@
 import { describe, it, expect } from 'vitest'
-import { tripFiltersSchema } from '@shared/validators/trip.schema'
+import { tripFiltersSchema, createTripSchema } from '@shared/validators/trip.schema'
+
+const validCreateTripInput = {
+  title: 'Goa Beach Getaway',
+  destinationId: 'clh1234567890abcdefghijkl',
+  tripType: 'BEACH',
+  description: 'An amazing beach trip to Goa with water sports and parties.',
+  startDate: '2026-12-06T00:00:00.000Z',
+  endDate: '2026-12-08T00:00:00.000Z',
+  pricePerPerson: 4500,
+  minGroupSize: 10,
+  maxGroupSize: 20,
+  photos: ['https://example.com/photo.jpg'],
+  pickupPoints: [{ label: 'Pune Station', time: '06:00 AM' }],
+  dropPoints: [{ label: 'Pune Station', time: '08:00 PM' }],
+}
+
+describe('createTripSchema', () => {
+  it('accepts INSTANT bookingMode', () => {
+    const result = createTripSchema.safeParse({ ...validCreateTripInput, bookingMode: 'INSTANT' })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects REQUEST_BASED bookingMode while the feature is disabled', () => {
+    const result = createTripSchema.safeParse({ ...validCreateTripInput, bookingMode: 'REQUEST_BASED' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Request-based booking is currently unavailable')
+      expect(result.error.issues[0].path).toEqual(['bookingMode'])
+    }
+  })
+})
 
 describe('tripFiltersSchema', () => {
   describe('sort', () => {

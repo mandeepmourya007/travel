@@ -407,6 +407,28 @@ describe('TripService', () => {
         service.updateTrip('user-1', 'trip-1', { title: 'X' }),
       ).rejects.toThrow('Only DRAFT or ACTIVE')
     })
+
+    it('should throw ValidationError when switching an INSTANT trip to REQUEST_BASED while the feature is disabled', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, bookingMode: 'INSTANT' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+
+      await expect(
+        service.updateTrip('user-1', 'trip-1', { bookingMode: 'REQUEST_BASED' }),
+      ).rejects.toThrow('Request-based booking is currently unavailable')
+    })
+
+    it('should allow editing an already-REQUEST_BASED trip while the feature is disabled', async () => {
+      mockTripRepo.findById.mockResolvedValue({ ...mockTrip, bookingMode: 'REQUEST_BASED' })
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue({ ...mockTrip, bookingMode: 'REQUEST_BASED', title: 'Updated Title' })
+
+      const result = await service.updateTrip('user-1', 'trip-1', {
+        bookingMode: 'REQUEST_BASED',
+        title: 'Updated Title',
+      })
+
+      expect(result.title).toBe('Updated Title')
+    })
   })
 
   describe('publishTrip', () => {
