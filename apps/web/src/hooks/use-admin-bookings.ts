@@ -17,6 +17,7 @@ export function useAdminBookings(filters: AdminBookingFilters) {
         params: {
           status: filters.status || undefined,
           search: filters.search || undefined,
+          tripId: filters.tripId || undefined,
           sortBy: filters.sortBy || undefined,
           sortOrder: filters.sortOrder || undefined,
           page: filters.page,

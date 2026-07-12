@@ -25,31 +25,35 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminBookings } from '@/hooks/use-admin-bookings'
+import { AdminTripSearchCombobox } from '@/components/shared/trip-search-combobox'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { cn } from '@/lib/utils'
 import type { AdminBookingFilters, AdminBookingSortBy, SortOrder } from '@shared/types/admin.types'
 import { SORT_ORDER } from '@shared/constants/sort'
+import { ADMIN_BOOKING_SORT_BY } from '@shared/constants/admin'
+import { BOOKING_STATUS, type BookingStatusConst } from '@shared/constants/booking-status'
 
 const SORT_OPTIONS: { field: AdminBookingSortBy; label: string }[] = [
-  { field: 'totalAmount', label: 'Amount' },
-  { field: 'bookingStatus', label: 'Status' },
-  { field: 'createdAt', label: 'Date' },
+  { field: ADMIN_BOOKING_SORT_BY.TOTAL_AMOUNT, label: 'Amount' },
+  { field: ADMIN_BOOKING_SORT_BY.BOOKING_STATUS, label: 'Status' },
+  { field: ADMIN_BOOKING_SORT_BY.CREATED_AT, label: 'Date' },
 ]
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: 'all' | BookingStatusConst; label: string }[] = [
   { value: 'all', label: 'All Statuses' },
-  { value: 'CONFIRMED', label: 'Confirmed' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'REFUNDED', label: 'Refunded' },
-  { value: 'EXPIRED', label: 'Expired' },
-  { value: 'PENDING_PAYMENT', label: 'Pending Payment' },
+  { value: BOOKING_STATUS.CONFIRMED, label: 'Confirmed' },
+  { value: BOOKING_STATUS.COMPLETED, label: 'Completed' },
+  { value: BOOKING_STATUS.CANCELLED, label: 'Cancelled' },
+  { value: BOOKING_STATUS.REFUNDED, label: 'Refunded' },
+  { value: BOOKING_STATUS.EXPIRED, label: 'Expired' },
+  { value: BOOKING_STATUS.PENDING_PAYMENT, label: 'Pending Payment' },
 ]
 
 export default function AdminBookingsPage() {
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
+  const [tripId, setTripId] = useState<string | undefined>(undefined)
   const [page, setPage] = useState(1)
   const [sortBy, setSortBy] = useState<AdminBookingSortBy | undefined>(undefined)
   const [sortOrder, setSortOrder] = useState<SortOrder>(SORT_ORDER.DESC)
@@ -68,6 +72,7 @@ export default function AdminBookingsPage() {
   const filters: AdminBookingFilters = {
     status: status === 'all' ? undefined : status as AdminBookingFilters['status'],
     search: debouncedSearch || undefined,
+    tripId,
     sortBy,
     sortOrder: sortBy ? sortOrder : undefined,
     page,
@@ -101,6 +106,12 @@ export default function AdminBookingsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
             className="pl-9"
+          />
+        </div>
+        <div className="w-full sm:w-52">
+          <AdminTripSearchCombobox
+            value={tripId}
+            onChange={(id) => { setTripId(id); setPage(1) }}
           />
         </div>
         <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1) }}>
