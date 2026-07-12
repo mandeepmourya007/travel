@@ -3,6 +3,10 @@ export interface EmailMessage {
   subject: string
   html: string
   text?: string
+  /** Overrides the provider's default reply-to address for this message. */
+  replyTo?: string
+  /** Extra headers merged on top of the provider's defaults (e.g. List-Unsubscribe). */
+  headers?: Record<string, string>
 }
 
 /** Result of a send attempt. `error` is populated on failure so callers can

@@ -8,6 +8,8 @@ export class ResendEmailProvider implements IEmailProvider {
   constructor(
     apiKey: string,
     private from: string,
+    /** Default reply-to shown to recipients — improves trust signals and inbox placement. */
+    private replyTo: string,
     private logger: Logger,
   ) {
     this.client = new Resend(apiKey)
@@ -15,6 +17,7 @@ export class ResendEmailProvider implements IEmailProvider {
 
   async sendEmail(msg: EmailMessage): Promise<EmailSendResult> {
     const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
+    const replyTo = msg.replyTo ?? this.replyTo
     this.logger.info({ to: maskedTo, subject: msg.subject }, 'Resend: attempting send')
     const { error } = await this.client.emails.send({
       from: this.from,
@@ -22,6 +25,8 @@ export class ResendEmailProvider implements IEmailProvider {
       subject: msg.subject,
       html: msg.html,
       text: msg.text,
+      replyTo,
+      headers: { 'List-Unsubscribe': `<mailto:${replyTo}>`, ...msg.headers },
     })
     if (error) {
       this.logger.error({ to: maskedTo, error }, 'Resend: email send failed')

@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma'
 import { env } from './env'
 import { logger } from '../utils/logger'
+import { DEFAULT_SUPPORT_EMAIL } from '../utils/constants'
 import { UserRepository } from '../repositories/user.repository'
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository'
 import { DestinationRepository } from '../repositories/destination.repository'
@@ -189,21 +190,42 @@ const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
   ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
   : new MockOtpProvider(logger)
 
+const smtpConfigured = !!(env.RESEND_API_KEY || (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS))
+
+// Warns only when a real email provider is active — a missing SUPPORT_EMAIL/RESEND_FROM
+// is irrelevant noise when MockEmailProvider (no configured provider) is what's actually sending.
+function resolveWithWarning(value: string | undefined, fallback: string, warningIfMissing: string): string {
+  if (!value && smtpConfigured) {
+    logger.warn(warningIfMissing)
+  }
+  return value || fallback
+}
+
+const supportEmailReplyTo = resolveWithWarning(
+  env.SUPPORT_EMAIL,
+  DEFAULT_SUPPORT_EMAIL,
+  `SUPPORT_EMAIL not set — falling back to ${DEFAULT_SUPPORT_EMAIL} as the email reply-to address`,
+)
+
 export const emailProvider = env.RESEND_API_KEY
   ? new ResendEmailProvider(
       env.RESEND_API_KEY,
-      env.RESEND_FROM || 'Safarnama <onboarding@resend.dev>',
+      resolveWithWarning(
+        env.RESEND_FROM,
+        'Safarnama <onboarding@resend.dev>',
+        'RESEND_FROM not set — falling back to Resend\'s shared sandbox domain, which hurts deliverability',
+      ),
+      supportEmailReplyTo,
       logger,
     )
   : env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
     ? new NodemailerEmailProvider(
         { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
         env.SMTP_FROM || `Safarnama <${env.SMTP_USER}>`,
+        supportEmailReplyTo,
         logger,
       )
     : new MockEmailProvider(logger)
-
-const smtpConfigured = !!(env.RESEND_API_KEY || (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS))
 
 export const authService = new AuthService(
   userRepo,

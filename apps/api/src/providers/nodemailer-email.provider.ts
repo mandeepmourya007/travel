@@ -16,6 +16,8 @@ export class NodemailerEmailProvider implements IEmailProvider {
   constructor(
     private config: SmtpConfig,
     private from: string,
+    /** Default reply-to shown to recipients — improves trust signals and inbox placement. */
+    private replyTo: string,
     private logger: Logger,
   ) {
     this.ready = this.init()
@@ -52,6 +54,7 @@ export class NodemailerEmailProvider implements IEmailProvider {
     await this.ready
     const start = Date.now()
     const maskedTo = msg.to.replace(/(.{3}).+@/, '$1***@')
+    const replyTo = msg.replyTo ?? this.replyTo
     this.logger.info({ to: maskedTo, subject: msg.subject }, 'SMTP: attempting sendMail')
     try {
       await this.transporter!.sendMail({
@@ -60,6 +63,8 @@ export class NodemailerEmailProvider implements IEmailProvider {
         subject: msg.subject,
         html: msg.html,
         text: msg.text,
+        replyTo,
+        headers: { 'List-Unsubscribe': `<mailto:${replyTo}>`, ...msg.headers },
       })
       this.logger.info({ to: maskedTo, subject: msg.subject, durationMs: Date.now() - start }, 'SMTP: email sent')
       return { success: true }

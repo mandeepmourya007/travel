@@ -1,8 +1,10 @@
 import type { NotificationType } from '@prisma/client'
 import { env } from '../config/env'
+import { DEFAULT_SUPPORT_EMAIL } from '../utils/constants'
 
 const APP_NAME = 'Safarnama'
 const CLIENT_URL = env.CLIENT_URL
+const SUPPORT_EMAIL = env.SUPPORT_EMAIL || DEFAULT_SUPPORT_EMAIL
 
 const BRAND_COLOR = '#0FBAB5'
 const BRAND_BG = '#E0FFFE'
@@ -28,7 +30,8 @@ function baseLayout(content: string, heroBlock = ''): string {
         </div>
       </div>
       <div style="text-align:center;padding:20px 0;color:#9aa5b1;font-size:12px;">
-        &copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.
+        &copy; ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.<br>
+        Need help? Contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color:#9aa5b1;">${SUPPORT_EMAIL}</a>
       </div>
     </td></tr>
   </table>
@@ -145,12 +148,12 @@ function tripRequestApproved(title: string, body: string, data: TemplateData): T
   const travelersLine = numTravelers > 1 ? ` for ${numTravelers} travelers` : ''
 
   return {
-    subject: `🎉 Your request for ${tripName} is approved — complete payment now`,
+    subject: `Your request for ${tripName} is approved — complete payment now`,
     html: baseLayout(
       heading('Great news — you\'re approved!') +
       `<p style="margin:0 0 16px;font-size:18px;font-weight:700;color:#1f2937;">${escapeAttr(tripName)}</p>` +
       paragraph(`Your request${travelersLine} has been approved by the organizer. Secure your spot before the window closes.`) +
-      highlight('⏰ You have <strong>48 hours</strong> to complete your payment — after that, the spot is released.') +
+      highlight('You have <strong>48 hours</strong> to complete your payment — after that, the spot is released.') +
       paragraph('Click the button below to go directly to the payment page:') +
       `<div style="margin:8px 0 24px;">${cta('Complete Payment Now', payUrl)}</div>` +
       `<p style="margin:0;font-size:13px;color:#9aa5b1;">If the button doesn't work, copy this link: <a href="${payUrl}" style="color:#0FBAB5;word-break:break-all;">${payUrl}</a></p>`,

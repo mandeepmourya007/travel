@@ -29,6 +29,10 @@ export const PAGINATION_DEFAULTS = {
   maxLimit: 50,
 } as const
 
+// Reply-To fallback when SUPPORT_EMAIL is unset — must be a real, monitored inbox
+// on the sending domain (never a free-mail address) to avoid hurting deliverability.
+export const DEFAULT_SUPPORT_EMAIL = 'support@safarnama.store'
+
 export const OTP_LENGTH = 4
 export const OTP_EXPIRY_MINUTES = 10
 export const OTP_MAX_ATTEMPTS = 5
