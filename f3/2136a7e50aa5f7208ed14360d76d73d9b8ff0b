@@ -1,0 +1,24 @@
+apps/api/tests/unit/services/admin.service.test.ts
+  s_9ac187d25bc95a::t_f6695943c30a1c 427-437
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "f32136a7e50aa5f7208ed14360d76d73d9b8ff0b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9ac187d25bc95a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e58f2cec-5dba-428a-b93f-f95bf43d77af",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
