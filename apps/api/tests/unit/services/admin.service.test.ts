@@ -424,6 +424,17 @@ describe('AdminService — Admin Bookings', () => {
     )
   })
 
+  it('filters by tripId', async () => {
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [makeBooking()], total: 1 })
+
+    await service.getBookings({ tripId: 'trip_1', page: 1, limit: 20 })
+
+    expect(mockBookingRepo.findAllAdmin).toHaveBeenCalledWith(
+      { status: undefined, search: undefined, tripId: 'trip_1' },
+      { skip: 0, take: 20 },
+    )
+  })
+
   it('caps limit at maxLimit (50) when a larger limit is requested', async () => {
     mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
 
