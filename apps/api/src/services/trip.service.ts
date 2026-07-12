@@ -19,7 +19,7 @@ import { areDocsComplete } from '@shared/utils/organizer-docs'
 import type { OrganizerDocuments } from '@shared/types/user.types'
 import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
-import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE, USER_ROLE } from '@shared/constants'
+import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE, USER_ROLE, REQUEST_BASED_BOOKING_ENABLED } from '@shared/constants'
 import type { ToggleBookingsDto, SetVisibilityDto } from '@shared/types/trip.types'
 import type { AdminTripFilters } from '@shared/types/admin.types'
 import { mapTripToSummary } from '../utils/trip-mapper'
@@ -291,6 +291,14 @@ export class TripService {
 
     if (trip.status !== TRIP_STATUS.DRAFT && trip.status !== TRIP_STATUS.ACTIVE) {
       throw new ValidationError('Only DRAFT or ACTIVE trips can be edited')
+    }
+
+    if (
+      !REQUEST_BASED_BOOKING_ENABLED &&
+      input.bookingMode === BOOKING_MODE.REQUEST_BASED &&
+      trip.bookingMode !== BOOKING_MODE.REQUEST_BASED
+    ) {
+      throw new ValidationError('Request-based booking is currently unavailable')
     }
 
     if (input.destinationId) {
