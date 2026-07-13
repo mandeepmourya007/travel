@@ -2,15 +2,18 @@ import { Logger } from 'pino'
 import { startTimer } from '../utils/perf-timer'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
+import type { BookingRepository } from '../repositories/booking.repository'
+import type { NotificationService } from './notification.service'
 import { PaymentError, ValidationError } from '../errors/app-error'
 import {
   CURRENCY,
   PAYMENT_TX_STATUS,
+  PAYMENT_TX_TYPE,
   WEBHOOK_SOURCE,
   WEBHOOK_STATUS,
   REFERENCE_MODEL,
 } from '../utils/constants'
-import { PAYMENT_PROVIDER } from '@shared/constants'
+import { BOOKING_STATUS, NOTIFICATION_TYPE, PAYMENT_PROVIDER } from '@shared/constants'
 import { NORMALIZED_EVENT_TYPE } from '../types/payment.types'
 import type { NormalizedWebhookEvent, PaymentProvider } from '../types/payment.types'
 import type { IPaymentGateway, CreateOrderParams } from '../providers/payment/payment-gateway.interface'
@@ -29,6 +32,9 @@ import type { StoredWebhookEvent } from '../types/razorpay.types'
  * All gateway I/O is delegated to IPaymentGateway implementations.
  */
 export class PaymentService {
+  private bookingRepo: BookingRepository | null = null
+  private notificationService: NotificationService | null = null
+
   constructor(
     /** Active gateway (new orders always use this) */
     private activeGateway: IPaymentGateway,
@@ -42,6 +48,16 @@ export class PaymentService {
     private webhookEventRepo: WebhookEventRepository,
     private logger: Logger,
   ) {}
+
+  /**
+   * Late-injects BookingRepository and NotificationService after construction.
+   * Called from dependencies.ts once both services are available (they depend on
+   * paymentService, so they cannot be constructor-injected without a cycle).
+   */
+  setPostConstruct(bookingRepo: BookingRepository, notificationService: NotificationService): void {
+    this.bookingRepo = bookingRepo
+    this.notificationService = notificationService
+  }
 
   // ─── Gateway I/O Delegation ─────────────────────────
 
@@ -445,10 +461,60 @@ export class PaymentService {
         gatewayRefundId: event.refundId ?? undefined,
       })
     } else {
-      this.logger.warn(
-        { bookingId: paymentTx.bookingId, gatewayRefundId: event.refundId },
-        'REFUND_PROCESSED: no INITIATED REFUND tx found — refund was likely triggered externally',
-      )
+      // Refund was triggered externally (e.g. via gateway dashboard) — create the REFUND tx
+      // so it appears in the user's payment history. Guard against duplicate webhooks by
+      // checking whether a REFUND tx already exists for this booking.
+      const allTxs = await this.paymentTxRepo.findByBookingId(paymentTx.bookingId)
+      const existingRefundTx = allTxs.find((tx) => tx.type === PAYMENT_TX_TYPE.REFUND)
+      if (existingRefundTx) {
+        this.logger.info(
+          { bookingId: paymentTx.bookingId, refundTxId: existingRefundTx.id },
+          'REFUND_PROCESSED: REFUND tx already exists (duplicate webhook or race) — skipping creation',
+        )
+      } else {
+        this.paymentTxRepo.create({
+          bookingId: paymentTx.bookingId,
+          type: PAYMENT_TX_TYPE.REFUND,
+          amount: paymentTx.amount,
+          status: PAYMENT_TX_STATUS.REFUNDED,
+          provider: paymentTx.provider ?? undefined,
+          gatewayRefundId: event.refundId ?? undefined,
+        })
+          .then(() => this.logger.info(
+            { bookingId: paymentTx.bookingId, gatewayRefundId: event.refundId },
+            'REFUND_PROCESSED: created REFUND tx for externally-triggered refund',
+          ))
+          .catch((err) => this.logger.warn(
+            { err, bookingId: paymentTx.bookingId },
+            'REFUND_PROCESSED: failed to create REFUND tx (duplicate webhook race or DB error)',
+          ))
+      }
+    }
+
+    // Transition booking status to REFUNDED, then notify the traveler.
+    // All fire-and-forget — a failure here does not invalidate the payment-transaction
+    // updates already committed above. One DB call (findById) drives both the status
+    // update and the notification to avoid a double round-trip.
+    const bookingRepo = this.bookingRepo
+    const notificationService = this.notificationService
+    if (bookingRepo) {
+      const refundAmount = refundTx?.amount ?? paymentTx.amount
+      bookingRepo.findById(paymentTx.bookingId)
+        .then((booking) => {
+          if (!booking) return
+          bookingRepo.updateStatus(booking.id, BOOKING_STATUS.REFUNDED)
+            .catch((err) => this.logger.error({ err, bookingId: booking.id }, 'REFUND_PROCESSED: failed to update booking status to REFUNDED'))
+          if (notificationService) {
+            notificationService.send({
+              userId: booking.userId,
+              type: NOTIFICATION_TYPE.REFUND_PROCESSED,
+              title: 'Refund Processed',
+              body: `Your refund of ₹${refundAmount} for ${booking.trip.title} has been processed and will appear in your account within 4–5 working days.`,
+              data: { bookingId: booking.id, tripId: booking.trip.id, tripSlug: booking.trip.slug, tripName: booking.trip.title, refundAmount },
+            }).catch((err) => this.logger.error({ err, bookingId: booking.id }, 'REFUND_PROCESSED: failed to send refund notification'))
+          }
+        })
+        .catch((err) => this.logger.error({ err, bookingId: paymentTx.bookingId }, 'REFUND_PROCESSED: failed to fetch booking for status update and notification'))
     }
   }
 
