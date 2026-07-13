@@ -1,0 +1,28 @@
+"docs/codebase/Payments & Webhooks.md"
+  s_8b79e83b47bc26::t_10a8a4621839a8 75
+  s_8b79e83b47bc26::t_75978db7d4b8d1 72-74
+  s_8b79e83b47bc26::t_f28124ce6f695a 62
+apps/api/tests/unit/services/payment.service.test.ts
+  s_8b79e83b47bc26::t_b6688e55cadf63 580-581,583,596,598-601
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "ca76cafe9a4df95890c0c19cdfffbb17ffb36320",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_8b79e83b47bc26": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f949c4c-de6a-441d-8dad-98fb999be8d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
