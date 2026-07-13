@@ -17,6 +17,7 @@ import { useToast } from '@/components/shared/toast'
 import { useAuthStore } from '@/store/auth.store'
 import { getErrorMessage } from '@/lib/api-client'
 import { loadRazorpayScript } from '@/lib/razorpay'
+import { loadCashfreeScript } from '@/lib/cashfree'
 import { bookingKeys } from '@/lib/query-keys'
 import { APP_NAME } from '@/lib/constants'
 import { PAYMENT_PROVIDER, BOOKING_STATUS } from '@shared/constants'
@@ -67,53 +68,63 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
         dropPointId: booking.dropPoint?.id,
       })
 
-      if (!result.razorpayKeyId) {
-        toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
-        setIsPaying(false)
-        return
-      }
-
       try {
-        const RazorpayClass = await loadRazorpayScript()
-        new RazorpayClass({
-          key: result.razorpayKeyId,
-          amount: result.amountInRupees * 100,
-          currency: 'INR',
-          order_id: result.razorpayOrderId ?? '',
-          name: APP_NAME,
-          description: `Booking for ${trip.title}`,
-          prefill: { name: user.name, email: user.email },
-          handler: async (response) => {
-            try {
-              await verifyPayment.mutateAsync({
-                bookingId: result.bookingId,
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                provider: PAYMENT_PROVIDER.RAZORPAY,
-                tripSlug: trip.slug,
-                tripId: trip.id,
-              })
-              queryClient.invalidateQueries({ queryKey: bookingKeys.all })
-              toast({ variant: 'success', title: 'Payment successful! Your booking is confirmed.' })
-            } catch {
-              toast({
-                variant: 'error',
-                title: 'Payment verification failed',
-                description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
-                duration: 15000,
-              })
-            } finally {
-              setIsPaying(false)
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
-              setIsPaying(false)
+        if (result.provider === PAYMENT_PROVIDER.CASHFREE) {
+          if (!result.paymentSessionId) {
+            toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
+            setIsPaying(false)
+            return
+          }
+          sessionStorage.setItem('cashfree_pending_booking_id', result.bookingId)
+          const cashfree = await loadCashfreeScript()
+          cashfree.checkout({ paymentSessionId: result.paymentSessionId, redirectTarget: '_self' })
+        } else {
+          if (!result.razorpayKeyId) {
+            toast({ variant: 'error', title: 'Payment not configured. Please contact support.' })
+            setIsPaying(false)
+            return
+          }
+          const RazorpayClass = await loadRazorpayScript()
+          new RazorpayClass({
+            key: result.razorpayKeyId,
+            amount: result.amountInRupees * 100,
+            currency: 'INR',
+            order_id: result.razorpayOrderId ?? '',
+            name: APP_NAME,
+            description: `Booking for ${trip.title}`,
+            prefill: { name: user.name, email: user.email },
+            handler: async (response) => {
+              try {
+                await verifyPayment.mutateAsync({
+                  bookingId: result.bookingId,
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  provider: PAYMENT_PROVIDER.RAZORPAY,
+                  tripSlug: trip.slug,
+                  tripId: trip.id,
+                })
+                queryClient.invalidateQueries({ queryKey: bookingKeys.all })
+                toast({ variant: 'success', title: 'Payment successful! Your booking is confirmed.' })
+              } catch {
+                toast({
+                  variant: 'error',
+                  title: 'Payment verification failed',
+                  description: `Keep your booking reference ${result.bookingRef}. If money was deducted, it will be refunded automatically. Contact support if it doesn't reflect within a few days.`,
+                  duration: 15000,
+                })
+              } finally {
+                setIsPaying(false)
+              }
             },
-          },
-        }).open()
+            modal: {
+              ondismiss: () => {
+                toast({ variant: 'warning', title: 'Payment cancelled. You can try again.' })
+                setIsPaying(false)
+              },
+            },
+          }).open()
+        }
       } catch {
         toast({
           variant: 'error',

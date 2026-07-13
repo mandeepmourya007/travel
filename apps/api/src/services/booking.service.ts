@@ -85,19 +85,26 @@ export class BookingService {
   private buildIdempotentResponse(
     existing: NonNullable<Awaited<ReturnType<BookingRepository['findActiveByUserAndTrip']>>>,
   ): CreateBookingResponse | null {
-    if (!existing.expiresAt) {
-      return null // PENDING_PAYMENT with no expiresAt — caller: expire + create fresh order
-    }
     const existingTx = existing.paymentTransactions[0]
     const provider = (existingTx?.provider as PaymentProviderConst | undefined) ?? PAYMENT_PROVIDER.RAZORPAY
+    if (!existing.expiresAt) {
+      // No expiresAt — cron can never reap this row. Caller must expire + create fresh order.
+      return null
+    }
+    // Cashfree payment_session_id is not stored in DB — cannot be recovered.
+    // Caller must expire the stale booking and create a fresh order with a new session.
+    if (provider === PAYMENT_PROVIDER.CASHFREE) {
+      return null
+    }
+    // Only Razorpay reaches here — Cashfree returned null above.
     const gatewayOrderId = existingTx?.gatewayOrderId ?? existingTx?.razorpayOrderId ?? ''
     return {
       bookingId: existing.id,
       bookingRef: existing.bookingRef,
       provider,
       gatewayOrderId,
-      razorpayOrderId: provider === PAYMENT_PROVIDER.RAZORPAY ? gatewayOrderId : undefined,
-      razorpayKeyId: provider === PAYMENT_PROVIDER.RAZORPAY ? (env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY) : undefined,
+      razorpayOrderId: gatewayOrderId,
+      razorpayKeyId: env.RAZORPAY_KEY_ID || RAZORPAY_MOCK_KEY,
       amountInRupees: existing.totalAmount,
       currency: CURRENCY,
       expiresAt: existing.expiresAt.toISOString(),
@@ -423,9 +430,16 @@ export class BookingService {
     if (earlyExisting && earlyExisting.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT) {
       const idempotent = this.buildIdempotentResponse(earlyExisting)
       if (idempotent) return idempotent
-      // null → PENDING_PAYMENT with no expiresAt; cron can never reap it, so expire + proceed
-      this.logger.warn({ bookingId: earlyExisting.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
+      // null → no expiresAt (cron-unreapable) or Cashfree (session not stored). Expire + retry.
+      this.logger.warn(
+        { bookingId: earlyExisting.id, provider: earlyExisting.paymentTransactions[0]?.provider ?? 'unknown' },
+        'Expiring stale PENDING_PAYMENT booking to issue a fresh payment order',
+      )
       await this.bookingRepo.updateStatus(earlyExisting.id, BOOKING_STATUS.EXPIRED)
+      if (this.vehicleService) {
+        this.vehicleService.releaseSeats(earlyExisting.id)
+          .catch((err: unknown) => this.logger.error({ err, bookingId: earlyExisting.id }, 'Failed to release seats on idempotency expiry'))
+      }
     }
 
     // 2. Distributed lock — serialises concurrent booking-creation for the same user+trip.
@@ -452,9 +466,16 @@ export class BookingService {
       if (existing && existing.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT) {
         const idempotent = this.buildIdempotentResponse(existing)
         if (idempotent) { bookingResponse = idempotent; return }
-        // null → PENDING_PAYMENT with no expiresAt; expire + proceed
-        this.logger.warn({ bookingId: existing.id }, 'PENDING_PAYMENT booking has no expiresAt — expiring it and creating a fresh order')
+        // null → no expiresAt (cron-unreapable) or Cashfree (session not stored). Expire + retry.
+        this.logger.warn(
+          { bookingId: existing.id, provider: existing.paymentTransactions[0]?.provider ?? 'unknown' },
+          'Expiring stale PENDING_PAYMENT booking to issue a fresh payment order',
+        )
         await this.bookingRepo.updateStatus(existing.id, BOOKING_STATUS.EXPIRED)
+        if (this.vehicleService) {
+          this.vehicleService.releaseSeats(existing.id)
+            .catch((err: unknown) => this.logger.error({ err, bookingId: existing.id }, 'Failed to release seats on idempotency expiry'))
+        }
       }
 
       // 3. Validations
