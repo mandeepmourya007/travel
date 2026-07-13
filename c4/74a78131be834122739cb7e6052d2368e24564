@@ -1,0 +1,26 @@
+"docs/codebase/Web Frontend.md"
+  s_9e28863432b2b7::t_545b892479719c 43
+"docs/codebase/API Backend.md"
+  s_9e28863432b2b7::t_cba5717055e1b1 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "c474a78131be834122739cb7e6052d2368e24564",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9e28863432b2b7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4ae453ed-d67b-460a-81aa-6a9c954ab3fc",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
