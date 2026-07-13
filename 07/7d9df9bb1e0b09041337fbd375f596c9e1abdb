@@ -1,0 +1,50 @@
+apps/api/src/config/dependencies.ts
+  s_fabd3515f04533::t_09138e7a1c73bf 94
+  s_fabd3515f04533::t_7759c91f0fa351 272
+  s_fabd3515f04533::t_10cb4c78eb3582 129
+  s_fabd3515f04533::t_4139f2039b849d 267-269
+  s_fabd3515f04533::t_5caded06ec8bf0 368
+  s_fabd3515f04533::t_c4aa3b3ee79eff 270-271,273-285,288-294
+  s_fabd3515f04533::t_d51d87d5ddca13 92
+  s_fabd3515f04533::t_cb5a5fe8984149 23
+  s_8b79e83b47bc26::t_391f006c7832c7 298-301
+  s_fabd3515f04533::t_22493de5cd5c3c 96
+  s_fabd3515f04533::t_00dcb3c116ebb4 82
+  s_fabd3515f04533::t_b8e7151fa10053 339-345
+  s_fabd3515f04533::t_8e908145ff90b8 4
+  s_fabd3515f04533::t_57ad74c8e81ee7 195-207
+  s_8b79e83b47bc26::t_19c5ec554985f6 302
+apps/api/src/services/notification.service.ts
+  s_fabd3515f04533::t_8439e1470210c6 11-27,29-30
+  s_fabd3515f04533::t_3fbc7ae209f70b 76-80
+  s_fabd3515f04533::t_77bc4195cdd521 81,84-85,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "077d9df9bb1e0b09041337fbd375f596c9e1abdb",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_8b79e83b47bc26": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f949c4c-de6a-441d-8dad-98fb999be8d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
