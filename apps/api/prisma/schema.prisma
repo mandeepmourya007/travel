@@ -78,6 +78,7 @@ enum NotificationChannel {
   SMS
   PUSH
   IN_APP
+  WHATSAPP
 }
 
 enum NotificationType {
@@ -203,6 +204,7 @@ model User {
   tripEdits          TripEditHistory[]
   wallet             Wallet?
   organizerInvitesSent OrganizerInvite[]
+  whatsappBroadcasts   WhatsappBroadcast[]
 
   @@index([role])
 }
@@ -900,4 +902,25 @@ model OrganizerInvite {
 
   @@index([acceptedAt])
   @@index([sentBy])
+}
+
+model WhatsappBroadcast {
+  id               String    @id @default(uuid(7))
+  createdByAdminId String
+  createdByAdmin   User      @relation(fields: [createdByAdminId], references: [id])
+  message          String
+  templateName     String
+  targetType       String
+  targetRole       String?
+  totalCount       Int       @default(0)
+  successCount     Int       @default(0)
+  failureCount     Int       @default(0)
+  status           String    @default("PENDING")
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([createdByAdminId])
+  @@index([status])
+  @@index([createdAt])
 }
