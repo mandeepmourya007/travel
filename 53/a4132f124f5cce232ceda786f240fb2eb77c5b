@@ -1,0 +1,27 @@
+packages/shared/src/constants/notification.ts
+  s_fabd3515f04533::t_6cae5486af31f9 29
+packages/shared/src/validators/admin.schema.ts
+  s_fabd3515f04533::t_c610f464ba31ef 95-126
+  s_fabd3515f04533::t_ae49ec6c9b4e84 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "53a4132f124f5cce232ceda786f240fb2eb77c5b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
