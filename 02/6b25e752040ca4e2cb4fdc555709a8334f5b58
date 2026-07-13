@@ -1,0 +1,42 @@
+apps/api/tests/unit/services/notification.service.test.ts
+  s_fabd3515f04533::t_51a752f9cc38f3 57-58,62-63,66
+  s_fabd3515f04533::t_5f7638dd426743 80-82,85
+  s_dbd6ac09d2aa7f::t_8d0e4984eefe2e 125,129-130,133,136,141-142
+apps/api/tests/unit/providers/msg91-whatsapp-otp.provider.test.ts
+  s_fabd3515f04533::t_e5c59087bd9e3d 1-75
+apps/api/tests/unit/providers/whatsapp-notification.provider.test.ts
+  s_fabd3515f04533::t_a70bb01ce41160 1-141
+apps/api/tests/unit/services/whatsapp-broadcast.service.test.ts
+  s_fabd3515f04533::t_b10ed31e307520 85
+  s_fabd3515f04533::t_1aba9ed15bec22 7
+  s_fabd3515f04533::t_9ef03de1319216 1-6,8-84,86-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "026b25e752040ca4e2cb4fdc555709a8334f5b58",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_dbd6ac09d2aa7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ae28afe6bcb6dc69d",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
