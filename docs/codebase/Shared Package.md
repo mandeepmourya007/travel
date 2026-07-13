@@ -34,7 +34,7 @@ tags:
 | `trip-types.ts` | ~~`DEFAULT_TRIP_TYPES`~~ *(deprecated — DB-driven via TripCategory)*, `BOOKING_MODES` (INSTANT/REQUEST_BASED), `CANCELLATION_POLICIES` (FLEXIBLE/MODERATE/STRICT), `TRANSFER_POINT_TYPE` (PICKUP/DROP), `TRIP_STATUSES` (DRAFT/ACTIVE/FULL/COMPLETED/CANCELLED), ==`REQUEST_BASED_BOOKING_ENABLED` = `false`== *(temporary feature flag — gates `REQUEST_BASED` mode off in `createTripSchema` refine, web trip-form radio, and `trip.service.ts#updateTrip` mode-switch guard; flip back to `true` to fully restore, no other code changes needed)* |
 | `verification-status.ts` | `VERIFICATION_STATUSES` (PENDING/APPROVED/REJECTED/REVISION_REQUIRED), `APPROVE_REJECT_ACTIONS` |
 | `wallet.ts` | `WALLET_REFERENCE_MODELS` (Booking/AdminAction/WalletTransaction), `WALLET_TX` (CASHBACK/REFUND/BOOKING_DEDUCTION/ADMIN_CREDIT/ADMIN_DEBIT/PROMOTIONAL_CREDIT/EXPIRY) — canonical array lives in `types/wallet.types.ts` |
-| `notification.ts` | `NOTIFICATION_TYPE` (==18 keys==), `NOTIFICATION_CHANNEL` (IN_APP/EMAIL/SMS/PUSH) |
+| `notification.ts` | `NOTIFICATION_TYPE` (==18 keys==), `NOTIFICATION_CHANNEL` (IN_APP/EMAIL/SMS/PUSH/WHATSAPP) |
 | `vehicle.ts` | `SEAT_CELL_TYPE` (SEAT/DRIVER/EMPTY/BLOCKED), `SEAT_STATUS` (AVAILABLE/HELD/BOOKED/BLOCKED), `VEHICLE_TYPES` (sedan…bus/custom), `VEHICLE_ICONS`, `MAX_VEHICLE_PHOTOS=4`, `VEHICLE_GRID` (2–15 rows, 1–8 cols) |
 | `upload.ts` | `MAX_UPLOAD_SIZE_BYTES` (5MB), `REQUIRED_DOC_COUNT=3`, `ALLOWED_UPLOAD_FOLDERS` (trips/itinerary-docs/vehicles/verification-docs), `DOC_TYPES` (aadhaarFront/aadhaarBack/panCard), `DOC_LABELS` |
 | `payment.ts` | `PAYMENT_PROVIDERS` (razorpay/cashfree), `PAYMENT_TYPES` (PAYMENT/REFUND/ESCROW_RELEASE), `PAYMENT_STATUSES` (INITIATED/AUTHORIZED/CAPTURED/REFUNDED/FAILED) |
@@ -62,7 +62,7 @@ tags:
 | `chat.schema.ts` | `CHAT_MAX_MESSAGE_LENGTH=2000`, `CHAT_MAX_FILE_SIZE=10MB`, `sendMessageSchema` (==`clientMsgId` idempotency==), cursor-paginated message filters |
 | `notification.schema.ts` | Filters (`unreadOnly` preprocess), mark-read params |
 | `vehicle.schema.ts` | Layout refines: ==exactly 1 driver + ≥1 seat==, grid-dimension consistency, driver-position bounds; `selectSeatsSchema` |
-| `admin.schema.ts` | Approval/booking/trip/cashback/review filters, doc review, invites |
+| `admin.schema.ts` | Approval/booking/trip/cashback/review filters, doc review, invites, `sendWhatsappPromotionSchema` (targetType superRefine), `broadcastHistoryFiltersSchema` |
 | `upload.schema.ts` | `uploadSignatureSchema` (folder enum) |
 
 ## Utils

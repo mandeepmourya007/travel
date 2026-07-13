@@ -26,11 +26,11 @@ Package **`@travel/api`** at `apps/api`. Express 4 + Prisma 6 (PostgreSQL) + Soc
 | Folder          | Contents                                                                                                                                                             |
 | :----------------| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `config/`       | `env.ts` (Zod-validated env), `dependencies.ts` (DI), `cors.ts`, `redis.ts`, `razorpay.ts`, `cashfree.ts`, `firebase.ts`                                             |
-| `controllers/`  | 18 files — admin, auth, booking, chat, destination, firebase-auth, notification, otp, payment-history, review, trip-category, trip, upload, vehicle, wallet, webhook |
+| `controllers/`  | 19 files — admin, auth, booking, chat, destination, firebase-auth, notification, otp, payment-history, review, trip-category, trip, upload, vehicle, wallet, webhook, whatsapp-broadcast |
 | `routes/`       | 16 route files → [[API Routes Reference]]                                                                                                                            |
-| `services/`     | 20 files + `trending/` — business logic (below)                                                                                                                      |
-| `repositories/` | 22 Prisma data-access files, one per aggregate                                                                                                                       |
-| `providers/`    | Pluggable adapters — OTP (msg91/mock), email (resend/nodemailer/mock), notification channels (in-app/email/sms/push), `payment/` gateways                            |
+| `services/`     | 21 files + `trending/` — business logic (below)                                                                                                                      |
+| `repositories/` | 23 Prisma data-access files, one per aggregate                                                                                                                       |
+| `providers/`    | Pluggable adapters — OTP (msg91-sms/msg91-whatsapp/mock), email (resend/nodemailer/mock), notification channels (in-app/email/sms/push/whatsapp), `payment/` gateways |
 | `middleware/`   | auth, role, validate, error-handler, rate-limit, webhook-verify, cache-control, pino-http                                                                            |
 | `socket/`       | Socket.IO server + chat/presence handlers → [[Background Jobs & Realtime]]                                                                                           |
 | `utils/`        | constants, cron-jobs, cache-keys, chat-filter, redis-lock, request-context, slugify, trip-mapper, async-handler, …                                                   |
@@ -79,7 +79,8 @@ graph TD
 | `review.service` | Create/update reviews, organizer replies, aggregate ratings |
 | `wallet.service` | Balance, transactions, admin credit/debit, cashback, credit expiry + reminders, `reconcile()` drift check |
 | `chat.service` | Conversations, messages, reactions, read receipts, unread counts, flagged messages |
-| `notification.service` | Multi-channel dispatcher with per-type default channel map |
+| `notification.service` | Multi-channel dispatcher with per-type default channel map (IN_APP + EMAIL + WHATSAPP for transactional types) |
+| `whatsapp-broadcast.service` | Admin promotional broadcast — resolves recipients (ALL_USERS/BY_ROLE/PHONE_LIST, capped at 501 rows to short-circuit the limit guard), rate-limited send loop (50ms delay, ~20 req/s), try/finally ensures `WhatsappBroadcast` record always moves from PROCESSING → COMPLETED or FAILED |
 | `admin.service` | Organizer approvals, doc review, platform stats, cashback issuance, review moderation |
 | `trip-category.service` | Category CRUD + trip-type request workflow |
 | `vehicle.service` | Vehicle/seat-layout CRUD, seat maps, hold/release, `expireHeldSeats` |
@@ -112,5 +113,8 @@ graph TD
 | `REFRESH_TOKEN_DAYS` | 7 |
 | `OTP` | 4 digits, 10m expiry, 5 attempts, dev code `0000` |
 | `CURRENCY` | INR |
+| `WHATSAPP_PROMO_MAX_RECIPIENTS` | 500 |
+| `WHATSAPP_PROMO_SEND_DELAY_MS` | 50 ms between each message in a broadcast loop (~20 req/s) |
+| `MSG91_WA_API_URL` | MSG91 WhatsApp outbound endpoint (single constant for all WA calls — OTP + notifications + promos) |
 
 Related: [[API Routes Reference]] · [[Database Schema]] · [[Payments & Webhooks]] · [[Background Jobs & Realtime]] · [[Auth & Security]]

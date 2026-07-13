@@ -30,7 +30,7 @@ Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_
 | PaymentType           | PAYMENT, REFUND, ESCROW_RELEASE                                                                                             |
 | PaymentStatus         | INITIATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED                                                                           |
 | Gender                | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY                                                                                      |
-| NotificationChannel   | EMAIL, SMS, PUSH, IN_APP                                                                                                    |
+| NotificationChannel   | EMAIL, SMS, PUSH, IN_APP, WHATSAPP                                                                                          |
 | NotificationType      | 20 values (BOOKING_CONFIRMED, PAYMENT_RECEIVED, TRIP_REMINDER, CHAT_MESSAGE, ORGANIZER_APPROVED, WALLET_CREDIT_EXPIRING, …) |
 | VerificationCodeType  | EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET                                                                          |
 | BookingMode           | INSTANT, REQUEST_BASED                                                                                                      |
@@ -73,7 +73,7 @@ erDiagram
 
 ### Identity & Organizer
 
-- **User** — `name`, `email?` *(unique)*, `phone?` *(unique)*, `passwordHash?`, `googleId?` *(unique)*, `role`, `avatarUrl?`, `aadhaarVerified`/`phoneVerified`/`emailVerified`. Relations: organizerProfile?, bookings[], reviews[], sentMessages[], conversations[] (as traveler), refreshTokens[], verificationCodes[], notifications[], cancelledBookings[] (as canceller), tripRequests[], tripEdits[], wallet?, organizerInvitesSent[].
+- **User** — `name`, `email?` *(unique)*, `phone?` *(unique)*, `passwordHash?`, `googleId?` *(unique)*, `role`, `avatarUrl?`, `aadhaarVerified`/`phoneVerified`/`emailVerified`. Relations: organizerProfile?, bookings[], reviews[], sentMessages[], conversations[] (as traveler), refreshTokens[], verificationCodes[], notifications[], cancelledBookings[] (as canceller), tripRequests[], tripEdits[], wallet?, organizerInvitesSent[], whatsappBroadcasts[].
 - **OrganizerProfile** — `userId` *(unique)*, `businessName`, `slug` *(unique)*, `description?`, `verificationStatus`, `documents (Json)?`, `rating`, `totalReviews`, `totalTripsCompleted`, `bankAccountLinked`, ==`commissionRate` (Decimal 5,2, default 10)==, `razorpayAccountId?`, `cashfreeVendorId?`. Relations: trips[], conversations[], tripTypeRequests[], documentReviews[], reviewComments[].
 - **DocumentReview** — `organizerId`, `docType` (aadhaarFront/aadhaarBack/panCard), `status`, `currentUrl?`, `reviewedAt?`, `reviewedBy?`. *Unique(organizerId, docType)*.
 - **DocumentReviewComment** — `organizerId`, `authorId`, `authorRole`, `docType?`, `comment`, `attachmentUrl?`.
@@ -108,6 +108,10 @@ erDiagram
 - **Conversation** — `type`, `status`, `tripId?`, `travelerId`, `organizerProfileId?`, `adminId?`, `lastMessageAt?/Preview?`, `unreadCountTraveler`/`unreadCountOrganizer`. *Unique(type, tripId, travelerId)* + raw partial unique for admin-support.
 - **Message** — `conversationId`, `senderId`, `type`, `content`, ==`clientMsgId?` (idempotency)==, `originalContent?`, `isFlagged`, `readAt?`, `fileUrl/Name/Size?`, `reactions (Json)`, `replyToId?` (self-relation). *Unique(conversationId, senderId, clientMsgId)*.
 - **Notification** — `userId`, `channel`, `type`, `title`, `body`, `data (Json)?`, `sentAt?`, `readAt?`, `failureReason?`.
+
+### WhatsApp
+
+- **WhatsappBroadcast** — `createdByAdminId` → User, `message`, `templateName`, `targetType` (ALL_USERS/BY_ROLE/PHONE_LIST), `targetRole?`, `totalCount`, `successCount`, `failureCount`, `status` (PENDING/PROCESSING/COMPLETED/FAILED), `completedAt?`. Indexes on `createdByAdminId`, `status`, `createdAt`.
 
 ### Auth & Audit
 

@@ -197,6 +197,8 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | DELETE | `/trip-categories/:id` | Delete category |
 | GET | `/trip-type-requests` | List trip-type requests |
 | PATCH | `/trip-type-requests/:id` | Review trip-type request |
+| POST | `/whatsapp/broadcast` | Send promotional WhatsApp broadcast *(adminRateLimit)* |
+| GET | `/whatsapp/broadcasts` | Paginated broadcast history |
 
 ## Trip Categories (public + organizer)
 
