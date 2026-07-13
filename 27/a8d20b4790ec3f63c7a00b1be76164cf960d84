@@ -1,0 +1,38 @@
+apps/api/src/controllers/whatsapp-broadcast.controller.ts
+  s_fabd3515f04533::t_511cfde2bd3b82 1-26
+apps/api/src/repositories/user.repository.ts
+  s_fabd3515f04533::t_1a532024ccdbe0 137-139,141-144,150,152,154-157
+  s_fabd3515f04533::t_cedf374564d46c 132-136,140,145-149,151,153
+apps/api/src/repositories/whatsapp-broadcast.repository.ts
+  s_fabd3515f04533::t_8a4bee1b270cce 1-59
+apps/api/src/routes/admin.routes.ts
+  s_fabd3515f04533::t_1bc4253418b342 6,22-23,32
+  s_fabd3515f04533::t_661d2cd034760a 159-173
+  s_fabd3515f04533::t_ca001246d45fab 174
+apps/api/src/services/whatsapp-broadcast.service.ts
+  s_fabd3515f04533::t_bb89dd9c7fc7ee 55-68,71-76,78-94
+  s_fabd3515f04533::t_3dcd0ad696b374 100
+  s_fabd3515f04533::t_b4fc5ad07aff07 119-122,124,129
+  s_fabd3515f04533::t_09df4206e2321d 1-54,69-70,77,95-99,101-118,123,125-128,130-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "27a8d20b4790ec3f63c7a00b1be76164cf960d84",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
