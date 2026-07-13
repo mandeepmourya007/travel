@@ -73,7 +73,7 @@ graph TD
 | `firebase-auth.service` | Verifies Firebase phone ID token → links/creates user → app JWTs |
 | `trip.service` | Trip CRUD, publish/duplicate/delete, search, edit history, public organizer profiles, request creation, participant/summary views, caching |
 | `trip-lifecycle.service` | Completes ended trips, releases SafePay escrow (with crash-recovery sweep) |
-| `booking.service` | Create booking (seat holds + wallet), confirm/cancel/expire, verify + sync payment, `recoverPaidBooking`, `confirmBooking` (webhook path) |
+| `booking.service` | Create booking (seat holds + wallet), confirm/cancel/expire, verify + sync payment, `recoverPaidBooking`, `confirmBooking` (webhook path). Idempotency: existing PENDING_PAYMENT Razorpay bookings are returned as-is; Cashfree bookings and no-expiresAt rows always expire + create a fresh order (payment_session_id not stored in DB). Both expiry paths fire-and-forget `vehicleService.releaseSeats` so held seats are freed immediately rather than waiting for the cron. |
 | `payment.service` | Provider-neutral orchestrator (Facade) → [[Payments & Webhooks]] |
 | `payment-history.service` | Read models for payment/payout history & summaries |
 | `review.service` | Create/update reviews, organizer replies, aggregate ratings |

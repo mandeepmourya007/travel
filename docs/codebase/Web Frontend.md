@@ -40,7 +40,7 @@ Feature folders, kebab-case filenames, PascalCase exports, tests co-located in `
 | `shared/` (38) | `auth-guard`, `role-guard`, toasts, modals, pagination, date/phone/email inputs, star ratings, `blur-image`, lightbox, loaders/overlays, `route-progress`, `server-down-banner`, `socket-connector`, `chunk-error-reload` (mounted in `Providers`; reloads once on a stale post-deploy webpack chunk error — `unhandledrejection` for "reading 'call'"/`ChunkLoadError`, session-guarded against reload loops; defers the reload while `queryClient.isMutating() > 0` so it never cancels an in-flight user-initiated mutation like Request to Book), `login-required-dialog`, `data-states`, `price-range-slider`, … |
 | `layout/` | `app-shell`, `header`, `footer`, `mobile-bottom-nav` |
 | `trips/` (24) | incl. `trip-form/` — 10-file multi-tab trip builder |
-| `booking/` (5) vs `bookings/` (7) | ==singular = booking flow, plural = my-bookings views== |
+| `booking/` (5) vs `bookings/` (7) | ==singular = booking flow, plural = my-bookings views==. `bookings/my-booking-card.tsx` handles both Razorpay (modal) and Cashfree (redirect) checkout from the "Pay Now" button on existing pending bookings. |
 | `chat/` (11), `vehicle/` (8) | both with `index.ts` barrels; vehicle = seat-map builder |
 | `admin/` (7) | recharts dashboards |
 | `dashboard/` (7 + `trip-users/` 6) | organizer views + participant management |
