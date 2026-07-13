@@ -54,14 +54,16 @@ describe('NotificationService.send', () => {
     body: 'Your booking was confirmed.',
   }
 
-  it('sends to default channels (IN_APP + EMAIL) for BOOKING_CONFIRMED', async () => {
-    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', email: 'test@example.com' })
+  it('sends to default channels (IN_APP + EMAIL + WHATSAPP) for BOOKING_CONFIRMED', async () => {
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', email: 'test@example.com', phone: '9000000001' })
 
     const results = await service.send(baseInput)
 
-    expect(results).toHaveLength(2)
+    // IN_APP, EMAIL, WHATSAPP — WHATSAPP has no provider registered so returns failure
+    expect(results).toHaveLength(3)
     expect(results[0]).toMatchObject({ channel: 'IN_APP', success: true })
     expect(results[1]).toMatchObject({ channel: 'EMAIL', success: true })
+    expect(results[2]).toMatchObject({ channel: 'WHATSAPP', success: false })
     expect(inAppProvider.send).toHaveBeenCalledOnce()
     expect(emailProvider.send).toHaveBeenCalledOnce()
   })
@@ -75,10 +77,12 @@ describe('NotificationService.send', () => {
     expect(emailPayload.email).toBe('resolved@example.com')
   })
 
-  it('does not resolve email when email is already provided', async () => {
+  it('does not resolve email when email is already provided (but still resolves phone for WHATSAPP)', async () => {
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', email: 'manual@example.com', phone: '9000000001' })
+
     await service.send({ ...baseInput, email: 'manual@example.com' })
 
-    expect(mockUserRepo.findById).not.toHaveBeenCalled()
+    // findById is called to resolve phone for WHATSAPP channel
     const emailPayload = (emailProvider.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as NotificationPayload
     expect(emailPayload.email).toBe('manual@example.com')
   })
@@ -118,22 +122,24 @@ describe('NotificationService.send', () => {
   it('continues other channels when one fails', async () => {
     const sendMock = inAppProvider.send as ReturnType<typeof vi.fn>
     sendMock.mockRejectedValue(new Error('fail'))
-    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', email: 'a@b.com' })
+    mockUserRepo.findById.mockResolvedValue({ id: 'user-1', email: 'a@b.com', phone: '9000000001' })
 
     const results = await service.send(baseInput)
 
-    expect(results).toHaveLength(2)
+    // IN_APP fails, EMAIL succeeds, WHATSAPP has no provider → failure
+    expect(results).toHaveLength(3)
     expect(results[0]).toMatchObject({ channel: 'IN_APP', success: false })
     expect(results[1]).toMatchObject({ channel: 'EMAIL', success: true })
+    expect(results[2]).toMatchObject({ channel: 'WHATSAPP', success: false })
   })
 
-  it('handles email resolution failure gracefully', async () => {
+  it('handles contact info resolution failure gracefully', async () => {
     mockUserRepo.findById.mockRejectedValue(new Error('DB error'))
 
     const results = await service.send(baseInput)
 
-    // Should still send — just without email on the payload
-    expect(results).toHaveLength(2)
+    // Should still send IN_APP + EMAIL + WHATSAPP — just without resolved email/phone
+    expect(results).toHaveLength(3)
     const emailPayload = (emailProvider.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as NotificationPayload
     expect(emailPayload.email).toBeUndefined()
   })
