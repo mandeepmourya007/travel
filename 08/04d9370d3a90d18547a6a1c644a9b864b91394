@@ -1,0 +1,26 @@
+apps/api/src/templates/index.ts
+  s_8b79e83b47bc26::t_f9433be477a13e 114-117,123-127,129-136,138-140,142-144
+  s_8b79e83b47bc26::t_0dc6899e1a5384 295
+  s_8b79e83b47bc26::t_687ffc0145a96e 137,141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "0804d9370d3a90d18547a6a1c644a9b864b91394",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_8b79e83b47bc26": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f949c4c-de6a-441d-8dad-98fb999be8d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
