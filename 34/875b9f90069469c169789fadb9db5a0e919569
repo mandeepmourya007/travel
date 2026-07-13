@@ -1,0 +1,31 @@
+apps/api/src/services/payment.service.ts
+  s_8b79e83b47bc26::t_75648531b93777 11
+  s_8b79e83b47bc26::t_2f755122688ab8 464-474,476-482,491
+  s_8b79e83b47bc26::t_370ac374b1c170 475,483-490,494-502,505-515,517
+  s_8b79e83b47bc26::t_ed3de4d56b89e3 35-37,52-60
+  s_8b79e83b47bc26::t_4444f3c6574a01 493,503-504,516
+  s_8b79e83b47bc26::t_5f06a64943db27 5-6,16
+  s_8b79e83b47bc26::t_ad11765a19bfe4 61
+  s_8b79e83b47bc26::t_58f5bf87a3848f 492
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "34875b9f90069469c169789fadb9db5a0e919569",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_8b79e83b47bc26": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4f949c4c-de6a-441d-8dad-98fb999be8d2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
