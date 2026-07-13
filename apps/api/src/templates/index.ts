@@ -111,14 +111,37 @@ function bookingConfirmed(title: string, body: string, data: TemplateData): Temp
 
 function bookingCancelled(title: string, body: string, data: TemplateData): TemplateResult {
   const tripName = (data?.tripName as string) || 'your trip'
+  const refundAmount = data?.refundAmount as number | undefined
+  const refundPercent = data?.refundPercent as number | undefined
+  const policyUrl = `${CLIENT_URL}/cancellation-policy`
+  const hasRefund = refundAmount != null && refundAmount > 0
   return {
     subject: `Booking Cancelled — ${tripName}`,
     html: baseLayout(
       heading('Booking Cancelled') +
       paragraph(body) +
-      paragraph('If eligible, your refund will be processed according to the cancellation policy.'),
+      (hasRefund
+        ? highlight(`Refund of ₹${refundAmount?.toLocaleString('en-IN')}${refundPercent != null ? ` (${refundPercent}%)` : ''} will be credited to your original payment method within <strong>4–5 working days</strong>.`)
+        : paragraph('No refund is applicable as per the cancellation policy.')) +
+      paragraph(`View our <a href="${policyUrl}" style="color:${BRAND_COLOR};text-decoration:underline;">Refund &amp; Cancellation Policy</a> for details.`) +
+      cta('View My Bookings', `${CLIENT_URL}/my-bookings`),
     ),
-    text: `${title}\n\n${body}`,
+    text: `${title}\n\n${body}\n\n${hasRefund ? `Refund of ₹${refundAmount} will be credited within 4–5 working days.` : 'No refund applicable.'}\n\nRefund & Cancellation Policy: ${policyUrl}`,
+  }
+}
+
+function refundProcessed(title: string, body: string, data: TemplateData): TemplateResult {
+  const tripName = (data?.tripName as string) || 'your trip'
+  const refundAmount = data?.refundAmount as number | undefined
+  return {
+    subject: `Refund Processed — ${tripName}`,
+    html: baseLayout(
+      heading('Refund Processed') +
+      paragraph(body) +
+      (refundAmount != null ? highlight(`₹${refundAmount.toLocaleString('en-IN')} will appear in your account within 4–5 working days. Processing times may vary by bank.`) : '') +
+      cta('View My Payments', `${CLIENT_URL}/my-payments`),
+    ),
+    text: `${title}\n\n${body}\n\nProcessing time: 4–5 working days.`,
   }
 }
 
@@ -269,6 +292,7 @@ const templateMap: Partial<Record<NotificationType, (title: string, body: string
   BOOKING_CONFIRMED: bookingConfirmed,
   BOOKING_CANCELLED: bookingCancelled,
   PAYMENT_RECEIVED: paymentReceived,
+  REFUND_PROCESSED: refundProcessed,
   TRIP_REQUEST_APPROVED: tripRequestApproved,
   ORGANIZER_APPROVED: organizerApproved,
   ORGANIZER_REJECTED: organizerRejected,
