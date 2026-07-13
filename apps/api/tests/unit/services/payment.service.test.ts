@@ -577,7 +577,10 @@ describe('PaymentService', () => {
       })
       mockPaymentTxRepo.findByGatewayPaymentId.mockResolvedValue(paymentTx)
       mockPaymentTxRepo.findInitiatedRefundByBookingId.mockResolvedValue(null)
+      // No existing REFUND tx for this booking — triggers create path
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([paymentTx])
       mockPaymentTxRepo.updateStatus.mockResolvedValue({})
+      mockPaymentTxRepo.create.mockResolvedValue({})
 
       const event = createNormalizedEvent(NORMALIZED_EVENT_TYPE.REFUND_PROCESSED, {
         paymentId: 'pay_test456',
@@ -590,9 +593,12 @@ describe('PaymentService', () => {
         'ptx-1', 'REFUNDED',
         expect.objectContaining({ gatewayRefundId: 'rfnd_ext' }),
       )
-      // Only one updateStatus call — no REFUND tx to update
+      // Only one updateStatus call — new REFUND tx is created via create(), not updateStatus()
       expect(mockPaymentTxRepo.updateStatus).toHaveBeenCalledTimes(1)
-      expect(mockLogger.warn).toHaveBeenCalled()
+      // Creates a REFUND tx so the user can see it in their payment history
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'REFUND', status: 'REFUNDED', gatewayRefundId: 'rfnd_ext' }),
+      )
     })
 
     it('should return early when both paymentId and orderId are missing (no lookup key)', async () => {

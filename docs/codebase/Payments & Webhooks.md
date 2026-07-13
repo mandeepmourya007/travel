@@ -59,6 +59,7 @@ Manual reconciliation: `POST /bookings/:id/sync-payment` polls the gateway and r
   1. `paymentService.handleWebhook` — verify signature, record [[Database Schema#Auth & Audit|WebhookEvent]], idempotency via *unique(source, externalEventId)* (duplicates skipped).
   2. `processWebhookEvent` — dispatch by normalized event type.
   3. On `PAYMENT_AUTHORIZED` / `ORDER_PAID`: resolve booking from order id → `bookingService.confirmBooking`.
+  4. On `REFUND_PROCESSED`: mark both the PAYMENT and REFUND `PaymentTransaction` rows as `REFUNDED`, transition `Booking.bookingStatus` → `REFUNDED`, and fire a `REFUND_PROCESSED` notification (IN_APP + EMAIL + WHATSAPP) to the traveler.
 
 > [!tip] No Queue System
 > There is **no BullMQ** — webhook processing is `setImmediate` async. Idempotency + the sync-payment endpoint + recovery crons are the safety net.
@@ -68,6 +69,10 @@ Manual reconciliation: `POST /bookings/:id/sync-payment` polls the gateway and r
 - Refund percent from [[Product Domain#Refund Policy Matrix|cancellation policy matrix]] (`@travel/shared` `calculateRefundPercent`).
 - A refund creates a single `REFUND` PaymentTransaction — enforced by a ==DB partial-unique index== (one REFUND per booking).
 - Cashfree refunds reverse splits pro-rata; Razorpay refunds via API.
+- When the `REFUND_PROCESSED` webhook fires, `PaymentService.handleRefundProcessed` (via `setPostConstruct`-injected `BookingRepository` and `NotificationService`) also: (1) sets `Booking.bookingStatus = REFUNDED`; (2) sends a `REFUND_PROCESSED` notification (email + in-app + WhatsApp) to the traveler with the refund amount and trip title; (3) if no `REFUND` tx exists for the booking (externally-triggered refund via gateway dashboard), creates one with `status = REFUNDED` so the traveler can see it in their payment history.
+- The `BOOKING_CANCELLED` email includes the refund amount, a "4–5 working days" processing-time note, and a link to `/cancellation-policy`.
+- The `REFUND_PROCESSED` email uses a dedicated HTML template (not the generic fallback) showing the refund amount and a link to `/my-payments`.
+- `PaymentService.setPostConstruct(bookingRepo, notificationService)` is called in `dependencies.ts` after `notificationService` is instantiated — this late-bind avoids the `paymentService ↔ bookingService ↔ notificationService` construction cycle.
 
 ## Frontend Side
 
