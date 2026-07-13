@@ -129,6 +129,32 @@ export class UserRepository {
     })
   }
 
+  /**
+   * All active users with a verified phone, capped at limit rows.
+   * Caller checks length against WHATSAPP_PROMO_MAX_RECIPIENTS before proceeding.
+   */
+  async findAllWithVerifiedPhone(limit?: number): Promise<Array<{ id: string; phone: string }>> {
+    const rows = await this.prisma.user.findMany({
+      where: { phone: { not: null }, phoneVerified: true, isActive: true, isDeleted: false },
+      select: { id: true, phone: true },
+      ...(limit !== undefined ? { take: limit } : {}),
+    })
+    return rows.filter((r): r is { id: string; phone: string } => r.phone !== null)
+  }
+
+  /**
+   * Active users of a given role with a verified phone, capped at limit rows.
+   * Caller checks length against WHATSAPP_PROMO_MAX_RECIPIENTS before proceeding.
+   */
+  async findByRoleWithVerifiedPhone(role: UserRole, limit?: number): Promise<Array<{ id: string; phone: string }>> {
+    const rows = await this.prisma.user.findMany({
+      where: { role, phone: { not: null }, phoneVerified: true, isActive: true, isDeleted: false },
+      select: { id: true, phone: true },
+      ...(limit !== undefined ? { take: limit } : {}),
+    })
+    return rows.filter((r): r is { id: string; phone: string } => r.phone !== null)
+  }
+
   /** Soft-delete a user by id. Intercepted by Prisma extension → sets isDeleted=true. */
   async deleteById(id: string) {
     return this.prisma.user.delete({ where: { id } })
