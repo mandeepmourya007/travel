@@ -124,7 +124,7 @@ export class OtpService {
 
     this.logger.info({ phone: `****${phone.slice(-4)}`, channel: sendResult.channel }, 'OTP sent')
 
-    return { message: 'OTP sent', retryAfter: OTP_RESEND_COOLDOWN_SECONDS }
+    return { message: 'OTP sent', retryAfter: OTP_RESEND_COOLDOWN_SECONDS, channel: sendResult.channel }
   }
 
   /**
