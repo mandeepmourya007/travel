@@ -1,0 +1,40 @@
+"docs/codebase/Database Schema.md"
+  s_fabd3515f04533::t_3546a2c0fb7e95 76
+  s_fabd3515f04533::t_22fbc62c858a81 112-114
+  s_fabd3515f04533::t_1804b96750fae7 33
+  s_fabd3515f04533::t_b1df799a385fde 115
+"docs/codebase/API Backend.md"
+  s_fabd3515f04533::t_d0730ff49252d3 116
+  s_fabd3515f04533::t_d57a33fe4491ae 82
+  s_fabd3515f04533::t_521c7d800fea4c 83
+  s_fabd3515f04533::t_7cf2e44caff6b4 117-118
+  s_fabd3515f04533::t_3305faba481518 29,31-33
+"docs/codebase/Environment & Deployment.md"
+  s_fabd3515f04533::t_4f523d094a7f00 26
+"docs/codebase/API Routes Reference.md"
+  s_fabd3515f04533::t_eedfcbbee3263f 200-201
+"docs/codebase/Shared Package.md"
+  s_fabd3515f04533::t_e367102814fe61 37
+  s_fabd3515f04533::t_97889c2acd602b 65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "5505399849b23a926073bb04bf14285be01b8e0e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
