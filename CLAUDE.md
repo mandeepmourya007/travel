@@ -1,3 +1,15 @@
+## Mandatory Task Workflow
+
+**Before writing or editing any code in `apps/api`, `apps/web`, or `packages/shared`:**
+
+1. **Read the relevant `docs/codebase/` note(s) first** — use the "Change → note mapping" table under "Docs Sync" below to find which note(s) cover the area you're touching, and read them before exploring source files. Skip only for trivial one-line fixes where no note plausibly applies.
+2. **Dispatch to the matching specialized agent** from the roster below via the `Agent` tool rather than implementing directly in the main loop, whenever the task matches one of the roster's decision rules (new feature, API/UI change, tests, security-sensitive code, infra/CI, docs sync). Only implement directly in the main loop for trivial edits (typo fixes, config tweaks, one-liners) that don't warrant spinning up an agent.
+3. **Match relevant skills** (e.g. Cashfree skills for payment work) as described in their trigger conditions further below, before writing integration code.
+
+This is a hard requirement, not a suggestion — do not skip straight to code without doing step 1 and considering step 2.
+
+---
+
 ## Project Coding Rules
 
 ### Constants — No Magic Strings
