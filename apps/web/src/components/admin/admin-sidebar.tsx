@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BarChart3,
-  Users,
+  ShieldCheck,
+  UsersRound,
   Package,
   CreditCard,
   Gift,
@@ -25,7 +26,8 @@ interface NavItem {
 
 const ADMIN_NAV: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/admin', icon: BarChart3 },
-  { id: 'organizers', label: 'Organizers', href: '/admin/organizers', icon: Users },
+  { id: 'organizers', label: 'Organizer Approvals', href: '/admin/organizers', icon: ShieldCheck },
+  { id: 'users', label: 'Users', href: '/admin/users', icon: UsersRound },
   { id: 'bookings', label: 'Bookings', href: '/admin/bookings', icon: Package },
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
