@@ -1,0 +1,49 @@
+apps/web/src/app/admin/users/organizers/[organizerId]/page.tsx
+  s_3de6fe6366394c::t_f3221007bac52f 87-99
+  s_3de6fe6366394c::t_6ddc266648a9ee 8,22,24-32,36-41
+  s_3de6fe6366394c::t_5c590c44bfab0b 1-7,9-21,23,33-35,42-86,100,108-184
+  s_3de6fe6366394c::t_b8ac785457fcef 101-107
+apps/web/src/app/admin/users/travellers/[travellerId]/page.tsx
+  s_3de6fe6366394c::t_257d01d0d5fcf8 87
+  s_3de6fe6366394c::t_150044624029b1 8,23,25-34,38-43
+  s_3de6fe6366394c::t_542a58cc9a9d7a 106-112
+  s_3de6fe6366394c::t_77f660dfe3929b 168-178
+  s_3de6fe6366394c::t_f9d521548805f8 3,19,37
+  s_3de6fe6366394c::t_b129b05e552184 1-2,4-7,9-18,20-22,24,35-36,44-86,88-91,105,113-167,179-249
+  s_3de6fe6366394c::t_bf183881b02e3b 92-104
+apps/web/src/app/admin/users/page.tsx
+  s_3de6fe6366394c::t_c03264480a2857 9,26-42
+  s_3de6fe6366394c::t_b0213e014b2db8 352-391
+  s_3de6fe6366394c::t_de46dd0834df5e 81,99
+  s_3de6fe6366394c::t_69c5eafa82e1da 209,227
+  s_3de6fe6366394c::t_f8b78747db66ec 248-255
+  s_3de6fe6366394c::t_90a0a4e1796a20 120-127
+  s_3de6fe6366394c::t_69aa12737ac8b5 1-8,10-25,43-80,82-98,100-119,128-208,210-226,228-247,256-351,392-420
+apps/web/src/app/admin/users/error.tsx
+  s_3de6fe6366394c::t_bf843537faa2fa 1-25
+apps/web/src/app/admin/users/travellers/[travellerId]/error.tsx
+  s_3de6fe6366394c::t_ee03ddd6531978 1-25
+apps/web/src/app/admin/users/organizers/[organizerId]/error.tsx
+  s_3de6fe6366394c::t_25d1136347d56d 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "39f960bb59e2fd64aab03ff979d8be139c04ef3d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3de6fe6366394c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9e2755df-2d1c-4c78-9d03-e1c05c0d200d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
