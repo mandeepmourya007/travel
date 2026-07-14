@@ -1,0 +1,37 @@
+apps/api/tests/unit/services/admin.service.test.ts
+  s_3de6fe6366394c::t_059f6194a6aabb 19-20,36
+  s_3de6fe6366394c::t_5534747a14b151 1306-1318
+  s_3de6fe6366394c::t_e24ea7bf72bf4b 204,213,1380,1385,1407,1417,1428,1440,1475,1480,1500,1535,1543,1554
+  s_3de6fe6366394c::t_0ab5cdf28883d7 12
+  s_3de6fe6366394c::t_8be74d2be2c5b9 1240
+  s_3de6fe6366394c::t_ca3b463118b4bb 1146-1193,1195-1196,1198-1239,1241-1270,1272-1305,1330-1379,1381-1384,1386-1406,1408-1416,1418-1427,1429-1439,1441-1457,1459-1474,1476-1479,1481-1499,1501-1508,1532-1534,1536-1539,1541-1542,1544-1553,1555-1563
+  s_3de6fe6366394c::t_5e986551482267 1458
+  s_3de6fe6366394c::t_5c9304ec931b6d 72
+  s_3de6fe6366394c::t_e46d84eeed79f8 1509-1531
+  s_3de6fe6366394c::t_6fb7ecd02c60f3 1271
+  s_3de6fe6366394c::t_f094b05f9ca3da 1540
+  s_3de6fe6366394c::t_930ea9066a2360 1194,1197
+  s_3de6fe6366394c::t_8936f78d1cd6c4 1319-1329
+  s_3de6fe6366394c::t_45c6af25e2aa8f 1564
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "d98a6386bf6ab3d16bd4566e7c7c787ef2caf164",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3de6fe6366394c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9e2755df-2d1c-4c78-9d03-e1c05c0d200d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
