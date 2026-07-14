@@ -1,0 +1,39 @@
+"docs/codebase/Shared Package.md"
+  s_3de6fe6366394c::t_0fb1c6dd4f4a0a 47
+  s_3de6fe6366394c::t_1e44d45a151598 43
+  s_3de6fe6366394c::t_11df4660857892 53
+  s_3de6fe6366394c::t_d49cb11463948d 65
+"docs/codebase/API Routes Reference.md"
+  s_3de6fe6366394c::t_6ea6c66a5fa3f1 196
+  s_3de6fe6366394c::t_8d8f20e09e45ff 194
+  s_3de6fe6366394c::t_50d50e82c2e7fe 197
+  s_3de6fe6366394c::t_ca020dcd68da04 195
+"docs/codebase/Data Fetching & State.md"
+  s_3de6fe6366394c::t_fc580d6403a978 47
+  s_3de6fe6366394c::t_10a4a510320e2c 35
+"docs/codebase/Frontend Routes Reference.md"
+  s_3de6fe6366394c::t_b07f0bd1bf0efa 77-79
+"docs/codebase/API Backend.md"
+  s_3de6fe6366394c::t_8b820baacba198 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "cedae84a6b0cff3fdb98bce0320763a65d8bbda6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3de6fe6366394c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9e2755df-2d1c-4c78-9d03-e1c05c0d200d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
