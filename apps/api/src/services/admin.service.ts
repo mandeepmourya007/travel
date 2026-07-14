@@ -15,6 +15,7 @@ import type {
   OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
   ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminReviewFilters,
+  AdminTravellerFilters, AdminOrganizerDirectoryFilters,
 } from '@shared/types/admin.types'
 import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
@@ -58,7 +59,7 @@ export class AdminService {
   }
 
   /** Single organizer profile detail for admin review. */
-  async getOrganizerDetail(profileId: string) {
+  async getOrganizerApprovalDetail(profileId: string) {
     const profile = await this.organizerProfileRepo.findByIdAdmin(profileId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
     return profile
@@ -467,5 +468,130 @@ export class AdminService {
       { skip: pg.skip, take: pg.take },
     )
     return { data, pagination: pg.meta(total) }
+  }
+
+  // ─── Admin User Directory ──────────────────────────────
+
+  /**
+   * Paginated traveller directory for admin.
+   * Search covers name/email/phone (ILIKE). bookingsCount excludes soft-deleted bookings.
+   * Edge case: empty result returns { data: [], pagination: {..., total: 0 } }.
+   */
+  async getTravellerList(filters: AdminTravellerFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.userRepo.findAllAdmin(
+      filters,
+      { skip: pg.skip, take: pg.take },
+    )
+    const mapped = data.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      bookingsCount: u._count.bookings,
+      joinedAt: u.createdAt.toISOString(),
+    }))
+    return { data: mapped, pagination: pg.meta(total) }
+  }
+
+  /**
+   * Traveller detail: user profile + booked trips + reviews written.
+   * Booked trips reuse the admin booking list scoped to this user, with an optional bookingStatus filter;
+   * reviews reuse ReviewRepository.findAllByUserId (default newest-first).
+   * @throws NotFoundError if the user doesn't exist or is soft-deleted.
+   */
+  async getTravellerDetail(
+    travellerId: string,
+    tripsFilters: { status?: string; page?: number; limit?: number },
+  ) {
+    const user = await this.userRepo.findByIdAdmin(travellerId)
+    if (!user) throw new NotFoundError('User')
+
+    const pg = paginate(tripsFilters)
+    const [tripsResult, reviewsResult] = await Promise.all([
+      this.bookingRepo.findAllAdmin(
+        { userId: travellerId, status: tripsFilters.status },
+        { skip: pg.skip, take: pg.take },
+      ),
+      this.reviewRepo.findAllByUserId(travellerId, {}, { skip: 0, take: 50 }),
+    ])
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        bookingsCount: user._count.bookings,
+        createdAt: user.createdAt.toISOString(),
+      },
+      trips: { data: tripsResult.data, pagination: pg.meta(tripsResult.total) },
+      reviews: {
+        data: reviewsResult.data.map((r) => ({
+          id: r.id,
+          overallRating: r.overallRating,
+          comment: r.comment,
+          createdAt: r.createdAt.toISOString(),
+          trip: { title: r.trip.title, slug: r.trip.slug },
+        })),
+        total: reviewsResult.total,
+      },
+    }
+  }
+
+  /**
+   * Paginated organizer directory for admin.
+   * Search covers user name/email + businessName (ILIKE). Optional verificationStatus filter.
+   * tripsCount excludes soft-deleted trips.
+   */
+  async getOrganizer(filters: AdminOrganizerDirectoryFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.organizerProfileRepo.findAllDirectory(
+      filters,
+      { skip: pg.skip, take: pg.take },
+    )
+    const mapped = data.map((o) => ({
+      id: o.id,
+      name: o.user.name,
+      email: o.user.email,
+      phone: o.user.phone,
+      businessName: o.businessName,
+      tripsCount: o._count.trips,
+      joinedAt: o.createdAt.toISOString(),
+    }))
+    return { data: mapped, pagination: pg.meta(total) }
+  }
+
+  /**
+   * Organizer detail: profile summary + paginated trips they created, with an optional trip status filter.
+   * @throws NotFoundError if the organizer profile doesn't exist or is soft-deleted.
+   */
+  async getOrganizerDetail(
+    organizerId: string,
+    tripsFilters: { status?: string; page?: number; limit?: number },
+  ) {
+    const profile = await this.organizerProfileRepo.findByIdAdmin(organizerId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const pg = paginate(tripsFilters)
+    const { data, total } = await this.tripRepo.findByOrganizerIdPaginated(
+      organizerId,
+      tripsFilters.status,
+      { offset: pg.skip, limit: pg.take },
+    )
+
+    return {
+      organizer: {
+        id: profile.id,
+        businessName: profile.businessName,
+        email: profile.user.email,
+        phone: profile.user.phone,
+        verificationStatus: profile.verificationStatus,
+        tripsCount: profile._count.trips,
+        createdAt: profile.createdAt.toISOString(),
+      },
+      trips: { data, pagination: pg.meta(total) },
+    }
   }
 }

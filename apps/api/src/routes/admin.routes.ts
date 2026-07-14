@@ -18,9 +18,13 @@ import {
   docTypeParamSchema,
   addDocCommentSchema,
   organizerInviteFiltersSchema,
+  adminTravellerFiltersSchema,
+  adminOrganizerDirectoryFiltersSchema,
+  adminTravellerDetailFiltersSchema,
+  adminOrganizerDetailFiltersSchema,
 } from '@shared/validators/admin.schema'
 import { adminToggleBookingsSchema, adminSetVisibilitySchema } from '@shared/validators/trip.schema'
-import { cuidParamSchema } from '@shared/validators/common.schema'
+import { cuidParamSchema, travellerIdParamSchema, organizerIdParamSchema } from '@shared/validators/common.schema'
 
 export function createAdminRoutes(
   adminController: AdminController,
@@ -41,7 +45,7 @@ export function createAdminRoutes(
 
   router.get(
     '/organizers/:id',
-    adminController.getOrganizerDetail,
+    adminController.getOrganizerApprovalDetail,
   )
 
   router.patch(
@@ -150,6 +154,33 @@ export function createAdminRoutes(
     adminRateLimit,
     validate(adminReviewFiltersSchema, 'query'),
     adminController.getAdminReviews,
+  )
+
+  // ─── User Directory ─────────────────────────────────
+  router.get(
+    '/users/travellers',
+    validate(adminTravellerFiltersSchema, 'query'),
+    adminController.getTravellerList,
+  )
+
+  router.get(
+    '/users/travellers/:travellerId',
+    validate(travellerIdParamSchema, 'params'),
+    validate(adminTravellerDetailFiltersSchema, 'query'),
+    adminController.getTravellerDetail,
+  )
+
+  router.get(
+    '/users/organizers',
+    validate(adminOrganizerDirectoryFiltersSchema, 'query'),
+    adminController.getOrganizer,
+  )
+
+  router.get(
+    '/users/organizers/:organizerId',
+    validate(organizerIdParamSchema, 'params'),
+    validate(adminOrganizerDetailFiltersSchema, 'query'),
+    adminController.getOrganizerDetail,
   )
 
   return router
