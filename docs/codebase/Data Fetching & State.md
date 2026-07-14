@@ -32,7 +32,7 @@ Server-side fetching via `src/lib/api-server.ts` — `fetchApi`, `fetchApiWithPa
 | `chatKeys` | conversations / conversationList / messages / messageSearch / unreadCount / flagged |
 | `vehicleKeys` | seatMap / organizerSeatMap / vehicle / vehicleList |
 | `tripCategoryKeys` | active / admin / requests / myRequests |
-| `adminKeys` | stats / organizers* / bookings* / cashback* / invites / trips / reviews / docReviewDetail |
+| `adminKeys` | stats / organizers* / bookings* / cashback* / invites / trips / reviews / docReviewDetail / travellers* / organizerDirectory* |
 | `notificationKeys`, `profileKeys`, `organizerKeys`, `uploadKeys`, `docReviewKeys` | list/unreadCount · me · stats/publicProfile · signature · comments |
 
 > [!tip] Project Rule
@@ -44,7 +44,7 @@ Server-side fetching via `src/lib/api-server.ts` — `fetchApi`, `fetchApiWithPa
 - **Bookings**: `use-create-booking`, `use-cancel-booking`, `use-my-bookings`, `use-my-booking-summary`, `use-my-trip-booking-status`, `use-my-pending-requests`, `use-all-pending-requests`
 - **Payments/Wallet**: `use-payments`, `use-sync-payment`, `use-verify-payment`, `use-wallet`
 - **Auth**: `use-google-auth`, `use-firebase-phone-auth`, `use-email-otp`, `use-otp`, `use-logout`
-- **Admin**: `use-admin-bookings`, `use-admin-cashback`, `use-admin-chat`, `use-admin-invites`, `use-admin-organizers`, `use-admin-reviews`, `use-admin-stats`, `use-admin-trips`, `use-admin-set-trip-visibility`, `use-admin-toggle-trip-bookings`
+- **Admin**: `use-admin-bookings`, `use-admin-cashback`, `use-admin-chat`, `use-admin-invites`, `use-admin-organizers`, `use-admin-reviews`, `use-admin-stats`, `use-admin-trips`, `use-admin-set-trip-visibility`, `use-admin-toggle-trip-bookings`, `use-admin-travellers` (traveller directory + detail), `use-admin-organizer-directory` (organizer directory + trips-created detail)
 - **Misc domain**: `use-destinations`, `use-destination-detail`, `use-organizer-public-profile`, `use-organizer-stats`, `use-reviews`, `use-profile`, `use-doc-review`, `use-chat`, `use-notifications`, `use-vehicle`, `use-sync-vehicles`, `use-cloudinary-upload`, `use-upload-signature`
 - **Utilities**: `use-debounce`, `use-is-mobile`, `use-blocking-mutation`, `use-log-error`, `use-search-combobox`
 

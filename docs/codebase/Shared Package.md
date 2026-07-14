@@ -40,17 +40,17 @@ tags:
 | `payment.ts` | `PAYMENT_PROVIDERS` (razorpay/cashfree), `PAYMENT_TYPES` (PAYMENT/REFUND/ESCROW_RELEASE), `PAYMENT_STATUSES` (INITIATED/AUTHORIZED/CAPTURED/REFUNDED/FAILED) |
 | `chat.ts` | `CHAT_SENDER_ROLES` (traveler/organizer/admin) |
 | `sort.ts` | `SORT_ORDER` (asc/desc), `SORT_FIELD` (createdAt/status/amount) |
-| `admin.ts` | `ADMIN_REVIEW_SORT_BY` (createdAt/overallRating/organizerName) + tuple |
+| `admin.ts` | `ADMIN_REVIEW_SORT_BY` (createdAt/overallRating/organizerName), `ADMIN_BOOKING_SORT_BY`, `ADMIN_TRIP_SORT_BY`, `ADMIN_TRAVELLER_SORT` (name/bookingsCount/joinedAt), `ADMIN_ORGANIZER_SORT` (name/tripsCount/joinedAt), `ADMIN_TRAVELLER_STATUS` (active/inactive, maps to `User.isActive`) — each with a `*_SORTS`/`*_BYS`/`*_STATUSES` tuple for `z.enum()` |
 
 ## Types
 
-18 files: `api-response.types` (==`ApiResponse<T>` envelope==, `ApiError` code/subCode, `PaginationMeta`), `auth.types` (DTOs, `JwtPayload`), `user.types` (profiles, `OrganizerDocuments`, bank DTOs), `trip.types` (`TripSummary`/`TripDetail`, itinerary, transfer points, filters, DTOs, `OrganizerStats`), `booking.types`, `trip-request.types` (derives `TripRequestTraveler` from a validator — ==types↔validators cross-wired==), `destination.types`, `notification.types`, `review.types` (5 rating dimensions), `payment.types`, `wallet.types` (canonical `WALLET_TRANSACTION_TYPES`, `CREDIT_TYPES`/`DEBIT_TYPES`), `chat.types` (incl. full `ChatSocketEvents` map + runtime consts `CONVERSATION_TYPE`, `MESSAGE_TYPE`, `CONVERSATION_STATUS`), `admin.types` (doc review, approvals, platform stats, cashback, invites), `organizer.types` (public profile — ==not in the barrel==), `vehicle.types` (layout/seat-map/templates), `trip-category.types`, `upload.types` (`CloudinarySignature`).
+18 files: `api-response.types` (==`ApiResponse<T>` envelope==, `ApiError` code/subCode, `PaginationMeta`), `auth.types` (DTOs, `JwtPayload`), `user.types` (profiles, `OrganizerDocuments`, bank DTOs), `trip.types` (`TripSummary`/`TripDetail`, itinerary, transfer points, filters, DTOs, `OrganizerStats`), `booking.types`, `trip-request.types` (derives `TripRequestTraveler` from a validator — ==types↔validators cross-wired==), `destination.types`, `notification.types`, `review.types` (5 rating dimensions), `payment.types`, `wallet.types` (canonical `WALLET_TRANSACTION_TYPES`, `CREDIT_TYPES`/`DEBIT_TYPES`), `chat.types` (incl. full `ChatSocketEvents` map + runtime consts `CONVERSATION_TYPE`, `MESSAGE_TYPE`, `CONVERSATION_STATUS`), `admin.types` (doc review, approvals, platform stats, cashback, invites, traveller/organizer directory list + detail), `organizer.types` (public profile — ==not in the barrel==), `vehicle.types` (layout/seat-map/templates), `trip-category.types`, `upload.types` (`CloudinarySignature`).
 
 ## Validators (Zod)
 
 | File | Highlights |
 | :--- | :--- |
-| `common.schema.ts` | ==`idSchema` accepts cuid AND UUIDv7== (never `z.string().uuid()`), param schemas, `paginationSchema` (page ≥1, limit 1–50 default 20) |
+| `common.schema.ts` | ==`idSchema` accepts cuid AND UUIDv7== (never `z.string().uuid()`), param schemas (incl. `travellerIdParamSchema`, `organizerIdParamSchema`), `paginationSchema` (page ≥1, limit 1–50 default 20) |
 | `auth.schema.ts` | `INDIAN_PHONE_REGEX`, signup (password complexity), login, OTP (4-digit), Firebase verify, Google, organizer docs/profile, `connectBankAccountSchema` (IFSC + PAN regex), invites |
 | `booking.schema.ts` | `travelerDetailSchema`, create booking/trip-request, filters, cancel, `verifyPaymentSchema` |
 | `trip.schema.ts` | create/update trip with ==cross-field refines== (end>start, max≥min group, early-bird price/deadline), itinerary/activity/transfer-point nesting, `datetimeString`, visibility/toggle schemas, filters |
@@ -62,7 +62,7 @@ tags:
 | `chat.schema.ts` | `CHAT_MAX_MESSAGE_LENGTH=2000`, `CHAT_MAX_FILE_SIZE=10MB`, `sendMessageSchema` (==`clientMsgId` idempotency==), cursor-paginated message filters |
 | `notification.schema.ts` | Filters (`unreadOnly` preprocess), mark-read params |
 | `vehicle.schema.ts` | Layout refines: ==exactly 1 driver + ≥1 seat==, grid-dimension consistency, driver-position bounds; `selectSeatsSchema` |
-| `admin.schema.ts` | Approval/booking/trip/cashback/review filters, doc review, invites |
+| `admin.schema.ts` | Approval/booking/trip/cashback/review filters, doc review, invites, `adminTravellerFiltersSchema`, `adminOrganizerDirectoryFiltersSchema` (search/sort/status, defaults `sortBy=joinedAt` `sortOrder=desc`) |
 | `upload.schema.ts` | `uploadSignatureSchema` (folder enum) |
 
 ## Utils

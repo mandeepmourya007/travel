@@ -74,6 +74,9 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | `/admin/reviews` | Review moderation |
 | `/admin/trip-types` | Category management |
 | `/admin/trips` | Trip visibility/booking toggles |
+| `/admin/users` | Tabbed traveller/organizer directory (`?tab=travellers\|organizers`), read-only |
+| `/admin/users/travellers/[travellerId]` | Traveller detail — booked trips + reviews given |
+| `/admin/users/organizers/[organizerId]` | Organizer detail — trips created summary + paginated list |
 
 ## `/dashboard` — layout `<AuthGuard>` + `<RoleGuard roles={['ORGANIZER']}>`, *noindex*, sidebar + mobile nav
 

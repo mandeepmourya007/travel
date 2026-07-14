@@ -191,6 +191,10 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | PATCH | `/trips/:id/bookings` | Admin pause/resume bookings |
 | PATCH | `/trips/:id/visibility` | Admin hide/show trip |
 | GET | `/reviews` | Review list *(adminRateLimit)* |
+| GET | `/users/travellers` | Paginated traveller directory (search/sort by name, bookingsCount, joinedAt; optional status filter — active/inactive, maps to `User.isActive`) |
+| GET | `/users/travellers/:travellerId` | Traveller detail — profile + booked trips (optional bookingStatus filter) + reviews written |
+| GET | `/users/organizers` | Paginated organizer directory (search/sort by name, tripsCount, joinedAt; optional verificationStatus filter) |
+| GET | `/users/organizers/:organizerId` | Organizer directory detail — profile summary (tripsCount = unfiltered total) + paginated trips created (optional trip status filter) |
 | GET | `/trip-categories` | List categories |
 | POST | `/trip-categories` | Create category |
 | PUT | `/trip-categories/:id` | Update category |

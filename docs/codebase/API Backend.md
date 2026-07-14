@@ -80,7 +80,7 @@ graph TD
 | `wallet.service` | Balance, transactions, admin credit/debit, cashback, credit expiry + reminders, `reconcile()` drift check |
 | `chat.service` | Conversations, messages, reactions, read receipts, unread counts, flagged messages |
 | `notification.service` | Multi-channel dispatcher with per-type default channel map |
-| `admin.service` | Organizer approvals, doc review, platform stats, cashback issuance, review moderation |
+| `admin.service` | Organizer approvals, doc review, platform stats, cashback issuance, review moderation, traveller/organizer directory (list + detail) |
 | `trip-category.service` | Category CRUD + trip-type request workflow |
 | `vehicle.service` | Vehicle/seat-layout CRUD, seat maps, hold/release, `expireHeldSeats` |
 | `upload.service` | Cloudinary signed-upload signatures |
