@@ -15,18 +15,28 @@ import { VehicleTab } from './vehicle-tab'
 import { ReviewTab } from './review-tab'
 import { Alert } from '@/components/shared/alert'
 import { Modal } from '@/components/shared/modal'
+import { cn } from '@/lib/utils'
 import type { TripFormTabId } from './tab-navigation'
 import type { CreateTripDto } from '@shared/types/trip.types'
 import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 
+export const TRIP_SUBMIT_INTENT = { DRAFT: 'draft', PUBLISH: 'publish' } as const
+export type TripSubmitIntent = (typeof TRIP_SUBMIT_INTENT)[keyof typeof TRIP_SUBMIT_INTENT]
+
+const publishActions: Array<{ intent: TripSubmitIntent; label: string; className: string }> = [
+  { intent: TRIP_SUBMIT_INTENT.DRAFT, label: 'Save as draft', className: 'btn-outline' },
+  { intent: TRIP_SUBMIT_INTENT.PUBLISH, label: 'Publish now', className: 'btn-primary' },
+]
+
 interface TripFormProps {
   defaultValues?: Partial<CreateTripDto>
-  onSubmit: (data: CreateTripDto, vehicleData?: CreateVehicleDto[]) => void
+  onSubmit: (data: CreateTripDto, vehicleData: CreateVehicleDto[] | undefined, intent: TripSubmitIntent) => void
   isSubmitting?: boolean
   submitError?: string | null
   submitLabel?: string
   storageKey?: string
   initialVehicleData?: CreateVehicleDto[] | null
+  allowPublish?: boolean
 }
 
 const STORAGE_DEBOUNCE_MS = 500
@@ -101,6 +111,7 @@ export function TripForm({
   submitLabel = 'Create Trip',
   storageKey = 'trip-form-draft',
   initialVehicleData,
+  allowPublish = false,
 }: TripFormProps) {
   const draft = loadDraft(storageKey)
   const initialVehicle = initialVehicleData ?? loadVehicleDraft(storageKey)
@@ -121,6 +132,7 @@ export function TripForm({
   const { handleSubmit, formState: { errors }, watch } = methods
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [pendingIntent, setPendingIntent] = useState<TripSubmitIntent | null>(null)
   const pendingDataRef = useRef<CreateTripDto | null>(null)
   const vehicleDataRef = useRef<CreateVehicleDto[] | null>(initialVehicle)
 
@@ -157,14 +169,21 @@ export function TripForm({
     [],
   )
 
-  const handleConfirmedSubmit = useCallback(() => {
+  const handleConfirmedSubmit = useCallback((intent: TripSubmitIntent) => {
     if (!pendingDataRef.current) return
+    setPendingIntent(intent)
     setShowConfirm(false)
     clearTimeout(timerRef.current)
     clearTripDraft(storageKey)
-    onSubmit(pendingDataRef.current, vehicleDataRef.current ?? undefined)
+    onSubmit(pendingDataRef.current, vehicleDataRef.current ?? undefined, intent)
     pendingDataRef.current = null
   }, [onSubmit, storageKey])
+
+  // Clear the pending intent once the submission settles so a future open doesn't
+  // show a stale spinner on the wrong button.
+  useEffect(() => {
+    if (!isSubmitting) setPendingIntent(null)
+  }, [isSubmitting])
 
   const tabIndex = TRIP_FORM_TABS.findIndex((t) => t.id === activeTab)
   const isFirstTab = tabIndex === 0
@@ -287,24 +306,51 @@ export function TripForm({
             <button
               type="button"
               onClick={() => setShowConfirm(false)}
-              className="btn-outline"
+              className={cn('btn-outline whitespace-nowrap', allowPublish && 'px-4 py-2 text-sm')}
             >
               Go back &amp; review
             </button>
-            <button
-              type="button"
-              onClick={handleConfirmedSubmit}
-              disabled={isSubmitting}
-              className="btn-primary flex items-center gap-2"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {submitLabel}
-            </button>
+            {allowPublish ? (
+              <>
+                {publishActions.map(({ intent, label, className }) => (
+                  <button
+                    key={intent}
+                    type="button"
+                    onClick={() => handleConfirmedSubmit(intent)}
+                    disabled={isSubmitting}
+                    className={cn('flex items-center gap-1.5 whitespace-nowrap px-4 py-2 text-sm', className)}
+                  >
+                    {isSubmitting && pendingIntent === intent ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
+                    {label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleConfirmedSubmit(TRIP_SUBMIT_INTENT.DRAFT)}
+                disabled={isSubmitting}
+                className="btn-primary flex items-center gap-2"
+              >
+                {isSubmitting && pendingIntent === TRIP_SUBMIT_INTENT.DRAFT ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {submitLabel}
+              </button>
+            )}
           </>
         }
       >
         <p className="text-sm text-neutral-500">
-          Once created, the trip will be saved as a draft. You can edit details and publish it when ready.
+          {allowPublish
+            ? 'Save it as a draft to finish later, or publish it now to make it live and bookable.'
+            : 'Once created, the trip will be saved as a draft. You can edit details and publish it when ready.'}
         </p>
       </Modal>
     </FormProvider>
