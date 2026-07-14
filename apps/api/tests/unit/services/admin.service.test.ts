@@ -9,12 +9,15 @@ const mockOrganizerProfileRepo = {
   findById: vi.fn(),
   update: vi.fn(),
   countPending: vi.fn(),
+  findAllDirectory: vi.fn(),
 }
 
 const mockUserRepo = {
   countAll: vi.fn(),
   countByRole: vi.fn(),
   findByIds: vi.fn(),
+  findAllAdmin: vi.fn(),
+  findByIdAdmin: vi.fn(),
 }
 
 const mockBookingRepo = {
@@ -30,6 +33,7 @@ const mockTripRepo = {
   countByType: vi.fn(),
   findById: vi.fn(),
   findCompletedTripsForCashback: vi.fn(),
+  findByOrganizerIdPaginated: vi.fn(),
 }
 
 const mockPaymentTxRepo = {
@@ -65,6 +69,7 @@ const mockDocReviewRepo = {
 
 const mockReviewRepo = {
   findAllAdmin: vi.fn(),
+  findAllByUserId: vi.fn(),
 }
 
 let service: AdminService
@@ -196,7 +201,7 @@ describe('AdminService — Organizer Detail', () => {
     const profile = makeOrganizerProfile()
     mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(profile)
 
-    const result = await service.getOrganizerDetail('org_1')
+    const result = await service.getOrganizerApprovalDetail('org_1')
 
     expect(mockOrganizerProfileRepo.findByIdAdmin).toHaveBeenCalledWith('org_1')
     expect(result.businessName).toBe('TripVibes Adventures')
@@ -205,7 +210,7 @@ describe('AdminService — Organizer Detail', () => {
   it('throws NotFoundError for non-existent profile', async () => {
     mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(null)
 
-    await expect(service.getOrganizerDetail('nonexistent')).rejects.toThrow('OrganizerProfile not found')
+    await expect(service.getOrganizerApprovalDetail('nonexistent')).rejects.toThrow('OrganizerProfile not found')
   })
 })
 
@@ -1137,6 +1142,425 @@ function makeAdminReview(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// ADMIN USER DIRECTORY — Traveller List
+// ═══════════════════════════════════════════════════════
+
+function makeAdminUser(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'user_1',
+    name: 'Rahul Sharma',
+    email: 'rahul@test.com',
+    phone: '9876543210',
+    createdAt: new Date('2026-05-05'),
+    _count: { bookings: 3 },
+    ...overrides,
+  }
+}
+
+describe('AdminService — getTravellerList', () => {
+  it('should return mapped paginated traveller list when travellers exist', async () => {
+    const users = [makeAdminUser(), makeAdminUser({ id: 'user_2', name: 'Priya', _count: { bookings: 1 } })]
+    mockUserRepo.findAllAdmin.mockResolvedValue({ data: users, total: 2 })
+
+    const result = await service.getTravellerList({ page: 1, limit: 20 })
+
+    expect(mockUserRepo.findAllAdmin).toHaveBeenCalledWith(
+      { page: 1, limit: 20 },
+      { skip: 0, take: 20 },
+    )
+    expect(result.data).toHaveLength(2)
+    expect(result.data[0]).toEqual({
+      id: 'user_1',
+      name: 'Rahul Sharma',
+      email: 'rahul@test.com',
+      phone: '9876543210',
+      bookingsCount: 3,
+      joinedAt: '2026-05-05T00:00:00.000Z',
+    })
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 2, totalPages: 1 })
+  })
+
+  it('should return empty list with correct pagination when no travellers match', async () => {
+    mockUserRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getTravellerList({ page: 1, limit: 20 })
+
+    expect(result.data).toEqual([])
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('should pass search, status, sortBy and sortOrder filters through to the repository', async () => {
+    mockUserRepo.findAllAdmin.mockResolvedValue({ data: [makeAdminUser()], total: 1 })
+
+    const filters = { search: 'rahul', status: 'active', sortBy: 'name', sortOrder: 'asc', page: 1, limit: 20 }
+    await service.getTravellerList(filters as any)
+
+    expect(mockUserRepo.findAllAdmin).toHaveBeenCalledWith(
+      filters,
+      { skip: 0, take: 20 },
+    )
+  })
+
+  it('should compute correct skip and totalPages for page 2', async () => {
+    mockUserRepo.findAllAdmin.mockResolvedValue({ data: [], total: 25 })
+
+    const result = await service.getTravellerList({ page: 2, limit: 10 })
+
+    expect(mockUserRepo.findAllAdmin).toHaveBeenCalledWith(
+      { page: 2, limit: 10 },
+      { skip: 10, take: 10 },
+    )
+    expect(result.pagination.totalPages).toBe(3)
+  })
+
+  it('should cap limit at maxLimit (50) when a larger limit is requested', async () => {
+    mockUserRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getTravellerList({ page: 1, limit: 200 })
+
+    const call = mockUserRepo.findAllAdmin.mock.calls[0]
+    expect(call[1].take).toBe(50)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// ADMIN USER DIRECTORY — Traveller Detail
+// ═══════════════════════════════════════════════════════
+
+function makeAdminUserDetail(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'user_1',
+    name: 'Rahul Sharma',
+    email: 'rahul@test.com',
+    phone: '9876543210',
+    avatarUrl: null,
+    createdAt: new Date('2026-05-05'),
+    _count: { bookings: 1 },
+    ...overrides,
+  }
+}
+
+function makeReview(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'review_1',
+    overallRating: 4,
+    comment: 'Great trip!',
+    createdAt: new Date('2026-05-10'),
+    trip: { title: 'Goa Beach Getaway', slug: 'goa-beach-getaway' },
+    ...overrides,
+  }
+}
+
+describe('AdminService — getTravellerDetail', () => {
+  it('should return traveller profile with booked trips and reviews when traveller exists', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail())
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [makeBooking()], total: 1 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [makeReview()], total: 1 })
+
+    const result = await service.getTravellerDetail('user_1', { page: 1, limit: 20 })
+
+    expect(mockUserRepo.findByIdAdmin).toHaveBeenCalledWith('user_1')
+    expect(result.user).toEqual({
+      id: 'user_1',
+      name: 'Rahul Sharma',
+      email: 'rahul@test.com',
+      phone: '9876543210',
+      avatarUrl: null,
+      bookingsCount: 1,
+      createdAt: '2026-05-05T00:00:00.000Z',
+    })
+    expect(result.trips.data).toHaveLength(1)
+    expect(result.trips.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 })
+    expect(result.reviews.data).toEqual([
+      {
+        id: 'review_1',
+        overallRating: 4,
+        comment: 'Great trip!',
+        createdAt: '2026-05-10T00:00:00.000Z',
+        trip: { title: 'Goa Beach Getaway', slug: 'goa-beach-getaway' },
+      },
+    ])
+    expect(result.reviews.total).toBe(1)
+  })
+
+  it('should call bookingRepo and reviewRepo with correctly scoped and capped params', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail())
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getTravellerDetail('user_1', { page: 1, limit: 10 })
+
+    expect(mockBookingRepo.findAllAdmin).toHaveBeenCalledWith(
+      { userId: 'user_1' },
+      { skip: 0, take: 10 },
+    )
+    expect(mockReviewRepo.findAllByUserId).toHaveBeenCalledWith(
+      'user_1',
+      {},
+      { skip: 0, take: 50 },
+    )
+  })
+
+  it('should pass the bookingStatus filter through to bookingRepo.findAllAdmin', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail())
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getTravellerDetail('user_1', { status: 'CONFIRMED', page: 1, limit: 10 })
+
+    expect(mockBookingRepo.findAllAdmin).toHaveBeenCalledWith(
+      { userId: 'user_1', status: 'CONFIRMED' },
+      { skip: 0, take: 10 },
+    )
+  })
+
+  it('should report bookingsCount from the unfiltered user total, not the filtered trips result', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail({ _count: { bookings: 4 } }))
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [makeBooking()], total: 1 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getTravellerDetail('user_1', { status: 'CANCELLED', page: 1, limit: 20 })
+
+    expect(result.user.bookingsCount).toBe(4)
+    expect(result.trips.pagination.total).toBe(1)
+  })
+
+  it('should throw NotFoundError when traveller does not exist', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(null)
+
+    await expect(service.getTravellerDetail('nonexistent', { page: 1, limit: 20 }))
+      .rejects.toThrow('User not found')
+  })
+
+  it('should return empty trips and reviews when traveller has none', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail())
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 0 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getTravellerDetail('user_1', { page: 1, limit: 20 })
+
+    expect(result.trips.data).toEqual([])
+    expect(result.trips.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+    expect(result.reviews.data).toEqual([])
+    expect(result.reviews.total).toBe(0)
+  })
+
+  it('should compute correct skip and totalPages for trips pagination on page 2', async () => {
+    mockUserRepo.findByIdAdmin.mockResolvedValue(makeAdminUserDetail())
+    mockBookingRepo.findAllAdmin.mockResolvedValue({ data: [], total: 15 })
+    mockReviewRepo.findAllByUserId.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getTravellerDetail('user_1', { page: 2, limit: 10 })
+
+    expect(mockBookingRepo.findAllAdmin).toHaveBeenCalledWith(
+      { userId: 'user_1' },
+      { skip: 10, take: 10 },
+    )
+    expect(result.trips.pagination.totalPages).toBe(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// ADMIN ORGANIZER DIRECTORY
+// ═══════════════════════════════════════════════════════
+
+function makeDirectoryOrganizer(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'org_1',
+    businessName: 'TripVibes Adventures',
+    createdAt: new Date('2026-05-05'),
+    user: { id: 'user_1', name: 'Rahul Sharma', email: 'rahul@test.com', phone: '9876543210' },
+    _count: { trips: 5 },
+    ...overrides,
+  }
+}
+
+describe('AdminService — getOrganizer', () => {
+  it('should return mapped paginated organizer directory when organizers exist', async () => {
+    const organizers = [makeDirectoryOrganizer(), makeDirectoryOrganizer({ id: 'org_2', businessName: 'Wild Trails', _count: { trips: 2 } })]
+    mockOrganizerProfileRepo.findAllDirectory.mockResolvedValue({ data: organizers, total: 2 })
+
+    const result = await service.getOrganizer({ page: 1, limit: 20 })
+
+    expect(mockOrganizerProfileRepo.findAllDirectory).toHaveBeenCalledWith(
+      { page: 1, limit: 20 },
+      { skip: 0, take: 20 },
+    )
+    expect(result.data).toHaveLength(2)
+    expect(result.data[0]).toEqual({
+      id: 'org_1',
+      name: 'Rahul Sharma',
+      email: 'rahul@test.com',
+      phone: '9876543210',
+      businessName: 'TripVibes Adventures',
+      tripsCount: 5,
+      joinedAt: '2026-05-05T00:00:00.000Z',
+    })
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 2, totalPages: 1 })
+  })
+
+  it('should return empty list with correct pagination when no organizers match', async () => {
+    mockOrganizerProfileRepo.findAllDirectory.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getOrganizer({ page: 1, limit: 20 })
+
+    expect(result.data).toEqual([])
+    expect(result.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('should pass search, status, sortBy and sortOrder filters through to the repository', async () => {
+    mockOrganizerProfileRepo.findAllDirectory.mockResolvedValue({ data: [makeDirectoryOrganizer()], total: 1 })
+
+    const filters = { search: 'TripVibes', status: 'APPROVED', sortBy: 'businessName', sortOrder: 'asc', page: 1, limit: 20 }
+    await service.getOrganizer(filters as any)
+
+    expect(mockOrganizerProfileRepo.findAllDirectory).toHaveBeenCalledWith(
+      filters,
+      { skip: 0, take: 20 },
+    )
+  })
+
+  it('should compute correct skip and totalPages for page 3', async () => {
+    mockOrganizerProfileRepo.findAllDirectory.mockResolvedValue({ data: [], total: 55 })
+
+    const result = await service.getOrganizer({ page: 3, limit: 20 })
+
+    expect(mockOrganizerProfileRepo.findAllDirectory).toHaveBeenCalledWith(
+      { page: 3, limit: 20 },
+      { skip: 40, take: 20 },
+    )
+    expect(result.pagination.totalPages).toBe(3)
+  })
+
+  it('should cap limit at maxLimit (50) when a larger limit is requested', async () => {
+    mockOrganizerProfileRepo.findAllDirectory.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getOrganizer({ page: 1, limit: 200 })
+
+    const call = mockOrganizerProfileRepo.findAllDirectory.mock.calls[0]
+    expect(call[1].take).toBe(50)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// ADMIN ORGANIZER DIRECTORY DETAIL
+// ═══════════════════════════════════════════════════════
+
+function makeDirectoryOrganizerDetail(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'org_1',
+    businessName: 'TripVibes Adventures',
+    verificationStatus: 'APPROVED',
+    createdAt: new Date('2026-05-05'),
+    user: { id: 'user_1', email: 'rahul@test.com', phone: '9876543210' },
+    _count: { trips: 1 },
+    ...overrides,
+  }
+}
+
+function makeOrganizerTrip(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'trip_1',
+    title: 'Goa Beach Getaway',
+    slug: 'goa-beach-getaway',
+    status: 'ACTIVE',
+    startDate: new Date('2026-12-06'),
+    endDate: new Date('2026-12-08'),
+    ...overrides,
+  }
+}
+
+describe('AdminService — getOrganizerDetail', () => {
+  it('should return organizer profile with paginated trips when organizer exists', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail())
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [makeOrganizerTrip()], total: 1 })
+
+    const result = await service.getOrganizerDetail('org_1', { page: 1, limit: 20 })
+
+    expect(mockOrganizerProfileRepo.findByIdAdmin).toHaveBeenCalledWith('org_1')
+    expect(result.organizer).toEqual({
+      id: 'org_1',
+      businessName: 'TripVibes Adventures',
+      email: 'rahul@test.com',
+      phone: '9876543210',
+      verificationStatus: 'APPROVED',
+      tripsCount: 1,
+      createdAt: '2026-05-05T00:00:00.000Z',
+    })
+    expect(result.trips.data).toHaveLength(1)
+    expect(result.trips.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 })
+  })
+
+  it('should call tripRepo.findByOrganizerIdPaginated with correctly transformed pagination args', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail())
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getOrganizerDetail('org_1', { page: 2, limit: 10 })
+
+    expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
+      'org_1',
+      undefined,
+      { offset: 10, limit: 10 },
+    )
+  })
+
+  it('should pass the trip status filter through to tripRepo.findByOrganizerIdPaginated', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail())
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [], total: 0 })
+
+    await service.getOrganizerDetail('org_1', { status: 'ACTIVE', page: 1, limit: 20 })
+
+    expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
+      'org_1',
+      'ACTIVE',
+      { offset: 0, limit: 20 },
+    )
+  })
+
+  it('should report tripsCount from the unfiltered profile total, not the filtered trips result', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail({ _count: { trips: 12 } }))
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [makeOrganizerTrip()], total: 1 })
+
+    const result = await service.getOrganizerDetail('org_1', { status: 'DRAFT', page: 1, limit: 20 })
+
+    expect(result.organizer.tripsCount).toBe(12)
+    expect(result.trips.pagination.total).toBe(1)
+  })
+
+  it('should throw NotFoundError when organizer does not exist', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(null)
+
+    await expect(service.getOrganizerDetail('nonexistent', { page: 1, limit: 20 }))
+      .rejects.toThrow('OrganizerProfile not found')
+  })
+
+  it('should return empty trips list with tripsCount 0 when organizer has no trips', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail({ _count: { trips: 0 } }))
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [], total: 0 })
+
+    const result = await service.getOrganizerDetail('org_1', { page: 1, limit: 20 })
+
+    expect(result.organizer.tripsCount).toBe(0)
+    expect(result.trips.data).toEqual([])
+    expect(result.trips.pagination).toEqual({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  })
+
+  it('should compute correct offset and totalPages for page 3', async () => {
+    mockOrganizerProfileRepo.findByIdAdmin.mockResolvedValue(makeDirectoryOrganizerDetail())
+    mockTripRepo.findByOrganizerIdPaginated.mockResolvedValue({ data: [], total: 45 })
+
+    const result = await service.getOrganizerDetail('org_1', { page: 3, limit: 20 })
+
+    expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
+      'org_1',
+      undefined,
+      { offset: 40, limit: 20 },
+    )
+    expect(result.trips.pagination.totalPages).toBe(3)
+  })
+})
 
 describe('getAdminReviews', () => {
   it('should return paginated reviews with default filters', async () => {
