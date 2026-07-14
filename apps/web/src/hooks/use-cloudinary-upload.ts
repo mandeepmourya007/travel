@@ -18,7 +18,7 @@ export function useCloudinaryUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
-  const upload = useCallback(
+  const uploadFile = useCallback(
     async (file: File, folder: UploadFolder = 'trips'): Promise<string> => {
       const sig = await getSignature(folder)
 
@@ -46,6 +46,19 @@ export function useCloudinaryUpload() {
     [getSignature],
   )
 
+  // Wraps uploadFile with isUploading so single-file callers (e.g. verification docs) get a loader too.
+  const upload = useCallback(
+    async (file: File, folder: UploadFolder = 'trips'): Promise<string> => {
+      setIsUploading(true)
+      try {
+        return await uploadFile(file, folder)
+      } finally {
+        setIsUploading(false)
+      }
+    },
+    [uploadFile],
+  )
+
   const uploadMany = useCallback(
     async (files: File[], folder: UploadFolder = 'trips'): Promise<string[]> => {
       setIsUploading(true)
@@ -54,7 +67,7 @@ export function useCloudinaryUpload() {
 
       try {
         for (let i = 0; i < files.length; i++) {
-          const url = await upload(files[i], folder)
+          const url = await uploadFile(files[i], folder)
           urls.push(url)
           setUploadProgress(Math.round(((i + 1) / files.length) * 100))
         }
@@ -65,7 +78,7 @@ export function useCloudinaryUpload() {
 
       return urls
     },
-    [upload],
+    [uploadFile],
   )
 
   return { upload, uploadMany, isUploading, uploadProgress }
