@@ -1,0 +1,37 @@
+apps/web/src/lib/query-keys.ts
+  s_3de6fe6366394c::t_58aba67b389326 226-228,231-233
+  s_3de6fe6366394c::t_690a65ea7fd1f4 229-230,234-235
+  s_3de6fe6366394c::t_a063287a6c3d15 8
+  s_3de6fe6366394c::t_0493865fc9bd3b 50-51
+apps/web/src/hooks/use-admin-travellers.ts
+  s_3de6fe6366394c::t_a858fc463b09cd 5
+  s_3de6fe6366394c::t_0649259dbf6f8d 47
+  s_3de6fe6366394c::t_f335247d45aa1f 1-4,6-31,34-35,37,39-41,43-46,48-49
+  s_3de6fe6366394c::t_3604d993f5d0dc 32-33,36,38,42
+apps/web/src/hooks/use-admin-organizer-directory.ts
+  s_3de6fe6366394c::t_077cedea5f43e7 51
+  s_3de6fe6366394c::t_4812e58c152d2e 1-8,10-35,38-39,41,43-45,47-50,52-53
+  s_3de6fe6366394c::t_9ee42ee048e03a 9
+  s_3de6fe6366394c::t_9c4dacc3d4c436 36-37,40,42,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "67cd12cce181ffecd420069f7ef3acf3e1f2b23f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3de6fe6366394c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9e2755df-2d1c-4c78-9d03-e1c05c0d200d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
