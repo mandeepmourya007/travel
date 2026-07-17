@@ -1,0 +1,39 @@
+apps/web/src/components/trips/trip-form/transfer-points-tab.tsx
+  s_e79b5aa8603554::t_8c89a37f967b34 176
+  s_77652738625012::t_fbbb68cd72268d 92
+apps/web/src/components/trips/trip-form/trip-form.tsx
+  s_e79b5aa8603554::t_40891253ee586e 95-96,102-103
+apps/web/src/components/trips/trip-form/__tests__/trip-form.test.tsx
+  s_e79b5aa8603554::t_79ffde1e486cdf 151
+  s_e79b5aa8603554::t_8814f1e0529104 135-150,152,154-155,157-158
+  s_e79b5aa8603554::t_eb84fd8ae8efd1 153,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ba1a1da5829490ac413468b750cd0a6852353a46",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_77652738625012": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a7cf523ed56788804",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_e79b5aa8603554": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "52ad6bcf-6357-4466-8606-acc455dfe45e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
