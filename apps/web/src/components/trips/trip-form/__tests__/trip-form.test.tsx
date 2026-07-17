@@ -132,3 +132,27 @@ describe('TripForm confirmation modal', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 })
+
+describe('TripForm default values do not stick on clear', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('clearing Min Group Size leaves the input empty instead of reverting to a hardcoded default', async () => {
+    const user = userEvent.setup()
+    // No `defaultValues` override here — we're exercising the component's own
+    // internal DEFAULT_VALUES, which previously hardcoded minGroupSize to 2.
+    renderWithQuery(
+      <TripForm storageKey={`trip-form-test-${Math.random()}`} onSubmit={vi.fn()} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /next/i })) // basic -> dates
+
+    const input = screen.getByPlaceholderText('e.g. 5')
+    await user.type(input, '5')
+    expect(input).toHaveValue('5')
+
+    await user.clear(input)
+    expect(input).toHaveValue('')
+  })
+})

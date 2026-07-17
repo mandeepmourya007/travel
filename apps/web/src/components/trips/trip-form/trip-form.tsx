@@ -92,15 +92,15 @@ const DEFAULT_VALUES: Partial<CreateTripDto> = {
   startDate: '',
   endDate: '',
   pricePerPerson: undefined,
-  minGroupSize: 2,
-  maxGroupSize: 20,
+  minGroupSize: undefined,
+  maxGroupSize: undefined,
   cancellationPolicy: 'FLEXIBLE',
   inclusions: [],
   exclusions: [],
   itinerary: [],
   photos: [],
-  pickupPoints: [{ label: '', extraCharge: 0 }],
-  dropPoints: [{ label: '', extraCharge: 0 }],
+  pickupPoints: [{ label: '', extraCharge: undefined }],
+  dropPoints: [{ label: '', extraCharge: undefined }],
 }
 
 export function TripForm({
