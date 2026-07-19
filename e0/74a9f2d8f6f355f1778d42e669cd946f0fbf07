@@ -1,0 +1,83 @@
+apps/web/src/app/trips/layout.tsx
+  s_bd7a5821035275::t_80add318d98080 7-8,16-17
+  s_bd7a5821035275::t_8a6d4e364d503a 19
+  s_bd7a5821035275::t_3295c01b0368fe 10
+apps/web/src/app/layout.tsx
+  s_bd7a5821035275::t_e67e8bf4582ac4 60
+  s_bd7a5821035275::t_f7e8df784b0d19 31-32,45-47,57-58
+  s_bd7a5821035275::t_92f94464648fd1 34
+apps/web/src/lib/structured-data.ts
+  s_bd7a5821035275::t_5e71a6ef449c00 138
+  s_bd7a5821035275::t_7be267112d86a0 168-169
+  s_bd7a5821035275::t_3d14f804acf436 203-204
+  s_bd7a5821035275::t_f1f7bc586e7a59 136-137
+  s_bd7a5821035275::t_6de812f0d05c91 205
+  s_bd7a5821035275::t_75025623de1f42 238
+  s_bd7a5821035275::t_3a286239960b8c 170
+  s_bd7a5821035275::t_c51a7e06fda1bc 236-237
+  s_bd7a5821035275::t_1e50cb7b3ef91c 257-258
+apps/web/src/app/page.tsx
+  s_bd7a5821035275::t_783c04b7818637 20
+  s_bd7a5821035275::t_a73e738e4e6bc0 17-18,26-27
+  s_bd7a5821035275::t_bca824d1318a5b 29
+apps/web/src/app/manifest.ts
+  s_bd7a5821035275::t_bde946e5679006 10
+  s_bd7a5821035275::t_228cb3af9350bd 8-9
+apps/web/src/app/(public)/about/page.tsx
+  s_bd7a5821035275::t_8d26cd42d6088f 74
+  s_bd7a5821035275::t_2ffa88c56bc06f 84
+  s_bd7a5821035275::t_9b70f660e9422d 9-10
+  s_bd7a5821035275::t_307d4e4c4b3c99 11
+  s_bd7a5821035275::t_71c8acd0586aa5 65-71,76-81,88-100
+apps/web/src/app/(public)/faq/page.tsx
+  s_bd7a5821035275::t_922efacf14b2e3 10-11,18-19
+  s_bd7a5821035275::t_8afa7793967116 12,20
+apps/web/src/app/(public)/how-it-works/page.tsx
+  s_bd7a5821035275::t_3e965e66075e31 126
+  s_bd7a5821035275::t_89e46c35a2488a 6,10-11,18-19,32-38
+  s_bd7a5821035275::t_099f7d534a1c26 79-83
+  s_bd7a5821035275::t_57a2fb567374f9 85
+  s_bd7a5821035275::t_8b6880a2efee20 12,20
+  s_bd7a5821035275::t_f47a99a330b745 121-125
+apps/web/src/lib/home-content.ts
+  s_bd7a5821035275::t_318bebfeaf2194 57,73
+  s_bd7a5821035275::t_1e71d64f2e5405 9
+  s_bd7a5821035275::t_26ff765f1e3881 89-99
+  s_bd7a5821035275::t_6beabf979d5947 121
+  s_bd7a5821035275::t_7b19670111a42e 128-135
+  s_bd7a5821035275::t_d3de19fcf04646 53-54,61-62,71-72
+  s_bd7a5821035275::t_c681bfc78f49d7 119-120
+apps/web/src/app/trips/organizers/[slug]/page.tsx
+  s_bd7a5821035275::t_a1979d7fa397c2 52
+  s_bd7a5821035275::t_b22e03f05dc3da 49-50
+apps/web/src/components/layout/footer.tsx
+  s_bd7a5821035275::t_6799222227b4d7 12-16
+  s_bd7a5821035275::t_4c8db35015b154 18
+apps/web/src/app/trips/[slug]/page.tsx
+  s_bd7a5821035275::t_669c8dd98b8ea6 31-32
+  s_bd7a5821035275::t_319e3575cf175e 34
+apps/web/src/app/destinations/page.tsx
+  s_bd7a5821035275::t_9347e126456850 20
+  s_bd7a5821035275::t_9319d3938307b6 18-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e074a9f2d8f6f355f1778d42e669cd946f0fbf07",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bd7a5821035275": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "89568790-90ec-4ba2-a04b-92626eb23150",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
