@@ -73,12 +73,17 @@ export class AuthService {
       phone: dto.phone,
       passwordHash,
       role: dto.role || USER_ROLE.TRAVELER,
+      // Server-stamped, never client-supplied — Zod's acceptedTerms literal(true) already
+      // rejected the request if this weren't checked.
+      tncAcceptedAt: new Date(),
     })
 
     // Auto-create OrganizerProfile for ORGANIZER signups (same transaction prevents orphans)
     if (user.role === USER_ROLE.ORGANIZER) {
       try {
-        await this.createOrganizerProfileWithSlug(user.id, user.name)
+        // Server-stamped, never client-supplied — Zod's superRefine already rejected
+        // the request if acceptedOrganizerAgreement weren't checked for this role.
+        await this.createOrganizerProfileWithSlug(user.id, user.name, new Date())
         this.logger.info({ userId: user.id }, 'OrganizerProfile auto-created')
       } catch (err) {
         this.logger.error({ userId: user.id, err }, 'Failed to create OrganizerProfile, rolling back user')
@@ -246,7 +251,7 @@ export class AuthService {
    */
   async updateProfile(
     userId: string,
-    dto: { name?: string; role?: SignupRole },
+    dto: { name?: string; role?: SignupRole; acceptedOrganizerAgreement?: boolean },
   ): Promise<{ id: string; name: string; role: string; accessToken?: string }> {
     const user = await this.userRepo.findById(userId)
     if (!user) throw new NotFoundError('User')
@@ -261,7 +266,9 @@ export class AuthService {
     if (dto.role === USER_ROLE.ORGANIZER && user.role !== USER_ROLE.ORGANIZER) {
       const existing = await this.organizerProfileRepo.findByUserId(userId)
       if (!existing) {
-        await this.createOrganizerProfileWithSlug(userId, dto.name || user.name)
+        // Server-stamped, never client-supplied — Zod's superRefine already rejected
+        // the request if acceptedOrganizerAgreement weren't checked for this role.
+        await this.createOrganizerProfileWithSlug(userId, dto.name || user.name, new Date())
         this.logger.info({ userId }, 'OrganizerProfile auto-created via onboarding')
       }
     }
@@ -482,7 +489,7 @@ export class AuthService {
    * @throws {AuthError} Invalid/unverified Google token, deactivated account, Google not configured
    */
   async googleAuth(
-    dto: { idToken: string },
+    dto: { idToken: string; acceptedTerms?: boolean },
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string; isNewUser: boolean }> {
     const google = await this.verifyGoogleToken(dto.idToken)
@@ -505,7 +512,13 @@ export class AuthService {
       return { ...(await this.issueTokens(user, meta)), isNewUser: false }
     }
 
-    // Case C: new user — always TRAVELER, onboarding handles role
+    // Case C: new user — always TRAVELER, onboarding handles role.
+    // acceptedTerms isn't a Zod literal(true) on googleAuthSchema (the same
+    // endpoint also serves existing-user login), so it's enforced here instead —
+    // only for the new-user branch.
+    if (!dto.acceptedTerms) {
+      throw new ValidationError('You must accept the Terms of Service and Privacy Policy')
+    }
     try {
       user = await this.userRepo.create({
         name: google.name,
@@ -513,6 +526,8 @@ export class AuthService {
         googleId: google.sub,
         role: USER_ROLE.TRAVELER,
         avatarUrl: google.picture,
+        // Server-stamped, never client-supplied — gated on the acceptedTerms check above.
+        tncAcceptedAt: new Date(),
       })
     } catch (err: unknown) {
       if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
@@ -535,13 +550,18 @@ export class AuthService {
    * Creates an OrganizerProfile with a unique slug, retrying on P2002 (slug collision).
    * Handles the TOCTOU race between uniqueSlug check and DB insert.
    */
-  private async createOrganizerProfileWithSlug(userId: string, businessName: string): Promise<void> {
+  private async createOrganizerProfileWithSlug(
+    userId: string,
+    businessName: string,
+    organizerTncAcceptedAt?: Date,
+  ): Promise<void> {
     const slug = await uniqueSlug(businessName, (s) => this.organizerProfileRepo.slugExists(s))
     try {
       await this.organizerProfileRepo.create({
         user: { connect: { id: userId } },
         businessName,
         slug,
+        organizerTncAcceptedAt,
       })
     } catch (err: unknown) {
       if (this.isPrismaUniqueViolation(err)) {
@@ -550,6 +570,7 @@ export class AuthService {
           user: { connect: { id: userId } },
           businessName,
           slug: fallbackSlug,
+          organizerTncAcceptedAt,
         })
       } else {
         throw err
@@ -665,7 +686,7 @@ export class AuthService {
 
   async organizerSignup(
     token: string,
-    dto: { password: string; name?: string; phone?: string },
+    dto: { password: string; name?: string; phone?: string; acceptedOrganizerAgreement: true },
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const { email } = this.verifyOrganizerInviteToken(token)
@@ -693,7 +714,9 @@ export class AuthService {
     }
 
     try {
-      await this.createOrganizerProfileWithSlug(user.id, user.name)
+      // Server-stamped, never client-supplied — Zod's acceptedOrganizerAgreement
+      // literal(true) already rejected the request if this weren't checked.
+      await this.createOrganizerProfileWithSlug(user.id, user.name, new Date())
       this.logger.info({ userId: user.id }, 'OrganizerProfile auto-created via invite')
     } catch (err) {
       this.logger.error({ userId: user.id, err }, 'Failed to create OrganizerProfile, rolling back user')

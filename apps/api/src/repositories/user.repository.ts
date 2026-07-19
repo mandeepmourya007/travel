@@ -42,6 +42,7 @@ export class UserRepository {
     avatarUrl?: string
     phoneVerified?: boolean
     emailVerified?: boolean
+    tncAcceptedAt?: Date
   }) {
     return this.prisma.user.create({ data })
   }
