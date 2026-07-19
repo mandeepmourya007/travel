@@ -1,0 +1,48 @@
+docs/rnd/2026-07-19-market-organizer-working-capital-refund.md
+  s_9652b5d063fcb1::t_c737d320eda78e 1-52
+"docs/codebase/Background Jobs & Realtime.md"
+  s_9652b5d063fcb1::t_b416e5fb9b2c89 29
+  s_9652b5d063fcb1::t_c1dd7964325fef 37-38
+  s_9652b5d063fcb1::t_3996127d6bb7e0 39
+"docs/codebase/Product Domain.md"
+  s_9652b5d063fcb1::t_cfd5e8f1e493e8 52,54,56-57,60-67
+  s_9652b5d063fcb1::t_57b9bd8595f161 68
+"docs/codebase/Database Schema.md"
+  h_b3232c20134322 23
+  s_9652b5d063fcb1::t_707585cb165ffa 12
+  s_9652b5d063fcb1::t_5cdad1b0362642 30
+  s_9652b5d063fcb1::t_43effff09315ed 101
+  s_9652b5d063fcb1::t_425ae48391cb28 31-33
+  s_9652b5d063fcb1::t_e39f90c98e3f9b 22,24-29,34-44
+"docs/codebase/Payments & Webhooks.md"
+  s_9652b5d063fcb1::t_84cca6c3a43086 77-84
+"docs/codebase/Shared Package.md"
+  s_9652b5d063fcb1::t_72be92226811fc 73
+  s_9652b5d063fcb1::t_68e56a9c321a56 40
+  s_9652b5d063fcb1::t_fb5d93d2722318 12
+  s_9652b5d063fcb1::t_6ecad9835a91d9 72
+  s_9652b5d063fcb1::t_77d4e4ec86b495 24
+  h_b3232c20134322 53,57-68
+  s_9652b5d063fcb1::t_34ee3260ad13be 52,54-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0552adc1c5dd8668ee216e1b1abce179d971e480",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_9652b5d063fcb1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dc696bf2-5c18-4297-9a8b-90886d325282",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
