@@ -51,6 +51,24 @@ export const TRENDING_SCORE_THRESHOLD = 20
 export const ESCROW_SAFETY_BUFFER_DAYS = 90
 export const TRIP_COMPLETION_BATCH_SIZE = 50
 
+// ─── Payout (Deposit/Balance Split) Events ──────────
+// Fixed structured-logging event tags for payout.service.ts and the booking.service.ts
+// deposit-attachment step — see docs/codebase/Payments & Webhooks.md.
+export const PAYOUT_EVENT = {
+  DEPOSIT_ATTACHED: 'payout.deposit.attached',
+  DEPOSIT_SETTLED: 'payout.deposit.settled',
+  DEPOSIT_FAILED: 'payout.deposit.failed',
+  DEPOSIT_SKIPPED_DUPLICATE: 'payout.deposit.skipped_duplicate',
+  BALANCE_SCHEDULED: 'payout.balance.scheduled',
+  BALANCE_TRANSFERRED: 'payout.balance.transferred',
+  BALANCE_FAILED: 'payout.balance.failed',
+  BALANCE_SKIPPED_DUPLICATE: 'payout.balance.skipped_duplicate',
+  REFUND_INITIATED: 'payout.refund.initiated',
+  REFUND_NO_CLAWBACK: 'payout.refund.no_clawback',
+  INVARIANT_VIOLATED: 'payout.invariant.violated',
+} as const
+export type PayoutEvent = (typeof PAYOUT_EVENT)[keyof typeof PAYOUT_EVENT]
+
 // ─── Sitemap ─────────────────────────────────────────
 // Hard cap on trips returned for sitemap generation.
 // Prevents loading 100k+ rows into memory on large datasets.

@@ -68,6 +68,7 @@ import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
 import { createChatRoutes } from '../routes/chat.routes'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
+import { PayoutService } from '../services/payout.service'
 import { NotificationRepository } from '../repositories/notification.repository'
 import { AdminService } from '../services/admin.service'
 import { AdminController } from '../controllers/admin.controller'
@@ -265,6 +266,8 @@ const tripLifecycleService = new TripLifecycleService(
   notificationService, walletService, bookingRepo,
 )
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
+// Deposit/balance payout orchestration (Cashfree only) — see services/payout.service.ts.
+export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger)
 const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo)
 const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
@@ -351,9 +354,11 @@ export const cronDeps = {
   refreshTokenRepo,
   verifCodeRepo,
   webhookEventRepo,
+  paymentTxRepo,
   paymentService,
   bookingService,
   tripLifecycleService,
+  payoutService,
   vehicleService,
   walletService,
   notificationService,

@@ -45,6 +45,13 @@ const envSchema = z.object({
   CASHFREE_SECRET_KEY: z.string().optional(),
   CASHFREE_WEBHOOK_SECRET: z.string().optional(),
   CASHFREE_ENV: z.enum([CASHFREE_ENVIRONMENT.SANDBOX, CASHFREE_ENVIRONMENT.PRODUCTION]).default(CASHFREE_ENVIRONMENT.SANDBOX),
+  // Enables Cashfree Easy Split order_splits[]/vendor-transfer testing in sandbox,
+  // where vendor bank-account verification never completes (see cashfree.gateway.ts
+  // createPayoutAccount) so splits are normally skipped outside production. This flag
+  // does not move any real money — it only relaxes the production-only gates in
+  // booking.service.ts and cashfree.gateway.ts so the deposit/balance flow can be
+  // exercised end-to-end against Cashfree's sandbox.
+  CASHFREE_ENABLE_SANDBOX_SPLIT: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   // ── Sentry (optional — no-op when absent) ─────────
   SENTRY_DSN: z.string().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
