@@ -62,6 +62,14 @@ export class UserRepository {
   }
 
   /**
+   * Flips isReseller=true. Idempotent — a no-op update if already true.
+   * Used by: ResellerService.generateMainLink (the resellerEmail match flips this flag).
+   */
+  async setResellerFlag(userId: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { isReseller: true } })
+  }
+
+  /**
    * Links a Google account to an existing user by setting their googleId.
    * Optionally sets avatarUrl if provided (used when user has no existing avatar).
    * Used by: AuthService.googleAuth (Case B — email match, no googleId yet)

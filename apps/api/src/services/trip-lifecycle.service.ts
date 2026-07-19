@@ -197,6 +197,7 @@ export class TripLifecycleService {
       razorpayPaymentId: string | null
       booking: {
         totalAmount: number
+        markupAmount: number
         trip: { organizer: { commissionRate: Prisma.Decimal | null } }
       }
     },
@@ -220,10 +221,14 @@ export class TripLifecycleService {
         return 'failed'
       }
 
-      // Calculate actual transfer amount (organizer's share)
+      // Calculate actual transfer amount (organizer's share).
+      // Base-only: reseller markup (booking.markupAmount) is track-only and must
+      // never enter the escrow-release ledger — it's 0 for non-reseller bookings,
+      // so this is byte-identical to the pre-markup calculation in that case.
       const rawRate = payment.booking.trip.organizer.commissionRate
       const commissionRate = rawRate != null ? Number(rawRate) : PLATFORM_COMMISSION_PERCENT
-      const transferAmount = Math.round(payment.booking.totalAmount * (1 - commissionRate / 100))
+      const baseAmount = payment.booking.totalAmount - payment.booking.markupAmount
+      const transferAmount = Math.round(baseAmount * (1 - commissionRate / 100))
 
       // Record ESCROW_RELEASE BEFORE calling Razorpay.
       // The partial unique index on PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'
@@ -311,9 +316,12 @@ export class TripLifecycleService {
         }
 
         // ── Auto-cashback (config-gated) ──────────────────
+        // Base-only: reseller markup must never fund cashback — markupAmount is 0
+        // for non-reseller bookings, so this is byte-identical to before for them.
         if (autoCashbackEnabled && this.walletService && booking.cashbackIssued === null) {
-          const rawAmount = Math.round(booking.totalAmount * WALLET_AUTO_CASHBACK_PERCENT / 100)
-          const amount = Math.min(rawAmount, WALLET_AUTO_CASHBACK_CAP, booking.totalAmount)
+          const cashbackBasis = booking.totalAmount - booking.markupAmount
+          const rawAmount = Math.round(cashbackBasis * WALLET_AUTO_CASHBACK_PERCENT / 100)
+          const amount = Math.min(rawAmount, WALLET_AUTO_CASHBACK_CAP, cashbackBasis)
           if (amount <= 0) return
 
           const expiresAt = new Date()

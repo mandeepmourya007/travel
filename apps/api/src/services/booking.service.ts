@@ -9,13 +9,14 @@ import { TripRepository } from '../repositories/trip.repository'
 import { TripRequestRepository } from '../repositories/trip-request.repository'
 import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { UserRepository } from '../repositories/user.repository'
+import type { ResellerRepository } from '../repositories/reseller.repository'
 import { PaymentService } from './payment.service'
 import type { NotificationService } from './notification.service'
 import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT, RAZORPAY_ORDER_STATUS, NORMALIZED_ORDER_STATUS, CASHFREE_ENVIRONMENT } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, PAYMENT_PROVIDER } from '@shared/constants'
 import type { PaymentProviderConst } from '@shared/constants'
 import { calculateRefundPercent } from '@shared/utils/refund'
@@ -55,6 +56,7 @@ export class BookingService {
     private vehicleService: VehicleService | null = null,
     private cache: CacheService | null = null,
     private userRepo: UserRepository | null = null,
+    private resellerRepo: ResellerRepository | null = null,
   ) {}
 
   /** Invalidate trip search + detail caches after booking mutations. */
@@ -418,6 +420,8 @@ export class BookingService {
       // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
       travelers?: Array<{ name: string; phone?: string; age?: number; gender?: 'MALE' | 'FEMALE' | 'OTHER'; isPrimary: boolean }>
       seatIds?: string[]
+      // Reseller feature — opaque token only, never a price. See markup resolution below.
+      sublinkToken?: string
     },
   ): Promise<CreateBookingResponse> {
     const timer = startTimer()
@@ -547,10 +551,33 @@ export class BookingService {
         dropExtraCharge = point.extraCharge ?? 0
       }
 
-      // 5. Calculate price (base + transfer point extra charges)
+      // 5. Resolve reseller markup (opaque token, never a client-sent price):
+      //    (a) explicit sublinkToken in body → active sublink whose tripId matches; else
+      //    (b) a prior SublinkAttribution for this user+trip (survives across devices); else
+      //    (c) no markup — byte-identical to the pre-reseller pricing path.
+      let sublink: { id: string; markupAmount: number; tripId: string } | null = null
+      if (input.sublinkToken && this.resellerRepo) {
+        const resolved = await this.resellerRepo.findActiveByToken(input.sublinkToken, 'sublink')
+        if (resolved && resolved.tripId === input.tripId) {
+          sublink = resolved
+        }
+        // Mismatched/invalid token is ignored (not thrown) — the booking still proceeds
+        // at base price rather than failing a real purchase over a bad ref link.
+      }
+      if (!sublink && this.resellerRepo) {
+        const attribution = await this.resellerRepo.findAttributionByUserAndTrip(userId, input.tripId)
+        if (attribution?.sublink && attribution.sublink.isActive && !attribution.sublink.isDeleted) {
+          sublink = attribution.sublink
+        }
+      }
+      const markupPerPerson = sublink?.markupAmount ?? 0
+
+      // 6. Calculate price (base + transfer point extra charges; markup on top)
       const isEarlyBird = trip.earlyBirdPrice && trip.earlyBirdDeadline && new Date(trip.earlyBirdDeadline) > new Date()
       const pricePerPerson = isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
-      const totalAmount = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
+      const baseTotal = (pricePerPerson + pickupExtraCharge + dropExtraCharge) * input.numTravelers
+      const markupTotal = markupPerPerson * input.numTravelers
+      const totalAmount = baseTotal + markupTotal
       const amountInPaise = totalAmount * 100
 
       // Pre-check seat availability (optimistic — atomic hold happens after booking creation)
@@ -561,17 +588,21 @@ export class BookingService {
         }
       }
 
-      // 6. Create payment order. Cashfree Easy Split wires vendor payout at order creation.
+      // 7. Create payment order. Cashfree Easy Split wires vendor payout at order creation.
       // Razorpay Route is not enabled — full payment collected into platform account.
+      // Commission split is computed on BASE ONLY — the reseller markup is track-only
+      // (no payout counterpart), so folding it into the split would over-pay the organizer.
+      // When markup=0 this is byte-identical to the pre-reseller calculation.
+      const baseAmountInPaise = baseTotal * 100
       const commissionRate = Number(trip.organizer?.commissionRate ?? PLATFORM_COMMISSION_PERCENT)
-      const vendorAmountPaise = Math.round(amountInPaise * (1 - commissionRate / 100))
+      const vendorAmountPaise = Math.round(baseAmountInPaise * (1 - commissionRate / 100))
       const holdUntilEpochSec = Math.floor(
         new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
       )
       // Cashfree Easy Split only works with KYC-verified vendors (production only).
       // In sandbox, vendor verification never completes, so splits are skipped.
       const cashfreeVendorId =
-        gatewayProvider === PAYMENT_PROVIDER.CASHFREE && env.CASHFREE_ENV === 'production'
+        gatewayProvider === PAYMENT_PROVIDER.CASHFREE && env.CASHFREE_ENV === CASHFREE_ENVIRONMENT.PRODUCTION
           ? (trip.organizer?.cashfreeVendorId ?? null)
           : null
 
@@ -598,7 +629,7 @@ export class BookingService {
       // 8. Create Booking + PaymentTransaction atomically — prevents the crash window
       // where booking exists but has no PaymentTransaction, making webhook lookup fail.
       const expiresAt = new Date(Date.now() + BOOKING_EXPIRY_MINUTES * 60 * 1000)
-      let booking: Awaited<ReturnType<typeof this.bookingRepo.createWithPaymentTx>>
+      let booking: Awaited<ReturnType<BookingRepository['createWithPaymentTx']>>
       try {
         booking = await this.bookingRepo.createWithPaymentTx(
           {
@@ -610,6 +641,8 @@ export class BookingService {
             pickupPointId: input.pickupPointId,
             dropPointId: input.dropPointId,
             // [TravelerDetail] travelers: input.travelers,
+            sublinkId: sublink?.id,
+            markupAmount: markupTotal,
           },
           // Service owns these business decisions — type=PAYMENT, status=INITIATED
           {
@@ -620,6 +653,11 @@ export class BookingService {
             type: PAYMENT_TX_TYPE.PAYMENT,
             status: PAYMENT_TX_STATUS.INITIATED,
           },
+          // Explicit sublinkToken resolved to a real sublink → record/refresh the
+          // last-wins attribution in the SAME transaction as the booking create.
+          sublink && input.sublinkToken
+            ? { userId, sublinkId: sublink.id, tripId: input.tripId }
+            : undefined,
         )
       } catch (err) {
         // The partial unique index on Booking(userId, tripId) is the hard backstop for the
@@ -993,8 +1031,8 @@ export class BookingService {
     // 'attempted' → Razorpay authorized but not yet captured (deferred-capture mode; webhook missed).
     //               recoverPaidBooking will fetch the cf_payment_id / razorpay payment ID and
     //               call capturePayment, which performs the actual capture for Razorpay.
-    const isRecoverable = orderStatus === 'paid' ||
-      (orderStatus === 'attempted' && txProvider === PAYMENT_PROVIDER.RAZORPAY)
+    const isRecoverable = orderStatus === NORMALIZED_ORDER_STATUS.PAID ||
+      (orderStatus === RAZORPAY_ORDER_STATUS.ATTEMPTED && txProvider === PAYMENT_PROVIDER.RAZORPAY)
 
     if (!isRecoverable) {
       throw new ValidationError(`Payment not completed yet — order status is "${orderStatus}". Please complete payment or try again.`)
@@ -1056,34 +1094,47 @@ export class BookingService {
 
     type PendingRequest = Awaited<ReturnType<TripRequestRepository['findPendingPaymentForUser']>>[number]
 
-    return requests.map((r: PendingRequest) => ({
-      id: r.id,
-      tripId: r.tripId,
-      numTravelers: r.numTravelers,
-      message: r.message,
-      status: r.status,
-      approvalExpiresAt: r.approvalExpiresAt?.toISOString() ?? null,
-      createdAt: r.createdAt.toISOString(),
-      canPay: r.status === TRIP_REQUEST_STATUS.APPROVED,
-      travelerDetails: r.travelerDetails?.length ? r.travelerDetails : null,
-      trip: {
-        id: r.trip.id,
-        title: r.trip.title,
-        slug: r.trip.slug,
-        startDate: r.trip.startDate.toISOString(),
-        endDate: r.trip.endDate.toISOString(),
-        photos: r.trip.photos,
-        pricePerPerson: (r.trip.earlyBirdPrice && r.trip.earlyBirdDeadline && new Date(r.trip.earlyBirdDeadline) > new Date())
-          ? r.trip.earlyBirdPrice
-          : r.trip.pricePerPerson,
-        destination: r.trip.destination,
-        organizer: {
-          id: r.trip.organizer.id,
-          businessName: r.trip.organizer.businessName,
-          verified: r.trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
+    // Reseller feature (display-only): if this user has an active-sublink attribution
+    // for the trip, mirror the base+markup price here so the figure they see matches
+    // what createBooking will actually charge once they pay. The authoritative charge
+    // still happens in createBooking — this never affects any stored amount.
+    const markupByTripId = this.resellerRepo
+      ? await this.resellerRepo.findAttributionsForTrips(userId, requests.map((r: PendingRequest) => r.tripId))
+      : new Map<string, number>()
+
+    return requests.map((r: PendingRequest) => {
+      const basePricePerPerson = (r.trip.earlyBirdPrice && r.trip.earlyBirdDeadline && new Date(r.trip.earlyBirdDeadline) > new Date())
+        ? r.trip.earlyBirdPrice
+        : r.trip.pricePerPerson
+      const markupPerPerson = markupByTripId.get(r.tripId) ?? 0
+
+      return {
+        id: r.id,
+        tripId: r.tripId,
+        numTravelers: r.numTravelers,
+        message: r.message,
+        status: r.status,
+        approvalExpiresAt: r.approvalExpiresAt?.toISOString() ?? null,
+        createdAt: r.createdAt.toISOString(),
+        canPay: r.status === TRIP_REQUEST_STATUS.APPROVED,
+        travelerDetails: r.travelerDetails?.length ? r.travelerDetails : null,
+        trip: {
+          id: r.trip.id,
+          title: r.trip.title,
+          slug: r.trip.slug,
+          startDate: r.trip.startDate.toISOString(),
+          endDate: r.trip.endDate.toISOString(),
+          photos: r.trip.photos,
+          pricePerPerson: basePricePerPerson + markupPerPerson,
+          destination: r.trip.destination,
+          organizer: {
+            id: r.trip.organizer.id,
+            businessName: r.trip.organizer.businessName,
+            verified: r.trip.organizer.verificationStatus === VERIFICATION_STATUS.APPROVED,
+          },
         },
-      },
-    }))
+      }
+    })
   }
 
   /**
