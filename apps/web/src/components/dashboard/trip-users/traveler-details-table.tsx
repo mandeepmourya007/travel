@@ -24,7 +24,7 @@ export function TravelerDetailsTable({ travelers }: TravelerDetailsTableProps) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">Travelers</p>
-      <div className="overflow-x-auto rounded-lg border border-neutral-200">
+      <div className="max-h-[70vh] overflow-auto rounded-lg border border-neutral-200">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">

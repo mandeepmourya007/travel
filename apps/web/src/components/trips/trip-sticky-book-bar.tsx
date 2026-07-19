@@ -6,9 +6,11 @@ import type { TripDetail } from '@shared/types/trip.types'
 
 interface TripStickyBookBarProps {
   trip: TripDetail
+  /** Reseller sublink markup, per person */
+  markupAmount?: number
 }
 
-export function TripStickyBookBar({ trip }: TripStickyBookBarProps) {
+export function TripStickyBookBar({ trip, markupAmount = 0 }: TripStickyBookBarProps) {
   const isFull = getSeatsLeft(trip.maxGroupSize, trip.currentBookings) === 0
 
   return (
@@ -19,7 +21,7 @@ export function TripStickyBookBar({ trip }: TripStickyBookBarProps) {
           {trip.earlyBirdPrice ? (
             <div className="flex items-baseline gap-1.5">
               <span className="text-lg font-bold text-accent-500">
-                {formatCurrency(trip.earlyBirdPrice)}
+                {formatCurrency(trip.earlyBirdPrice + markupAmount)}
               </span>
               <span className="text-xs text-neutral-400 line-through">
                 {formatCurrency(trip.pricePerPerson)}
@@ -27,7 +29,7 @@ export function TripStickyBookBar({ trip }: TripStickyBookBarProps) {
             </div>
           ) : (
             <span className="text-lg font-bold text-accent-500">
-              {formatCurrency(trip.pricePerPerson)}
+              {formatCurrency(trip.pricePerPerson + markupAmount)}
             </span>
           )}
           <span className="text-xs text-neutral-500">/person</span>
