@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { fetchApi, fetchApiWithPagination } from '@/lib/api-server'
 import { AppShell } from '@/components/layout/app-shell'
-import { HeroSection } from '@/components/home/hero-section'
+import { HeroSearchForm } from '@/components/home/hero-search-form'
+import { WelcomeModal } from '@/components/home/welcome-modal'
 import { HowItWorks } from '@/components/home/how-it-works'
 import { PopularDestinations } from '@/components/home/popular-destinations'
 import { TrendingTrips } from '@/components/home/trending-trips'
@@ -53,11 +54,16 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
       />
-      <HeroSection />
-      <HowItWorks />
-      <PopularDestinations initialData={destinations} />
+      <WelcomeModal />
+      <section className="bg-white py-10 sm:py-14">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6">
+          <HeroSearchForm />
+        </div>
+      </section>
       <TrendingTrips initialData={trendingTrips} />
+      <PopularDestinations initialData={destinations} />
       <WhyBookSection />
+      <HowItWorks />
     </AppShell>
   )
 }

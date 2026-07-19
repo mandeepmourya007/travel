@@ -16,7 +16,7 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | File | Purpose |
 | :--- | :--- |
 | `layout.tsx` | Root layout — fonts, global metadata, `<Providers>` |
-| `page.tsx` | **Home `/`** — SSR popular destinations + trending trips; WebSite + Organization JSON-LD |
+| `page.tsx` | **Home `/`** — top-to-bottom section order: standalone search bar (`HeroSearchForm`) → `TrendingTrips` → `PopularDestinations` → `WhyBookSection` → `HowItWorks`, plus a once-per-session `WelcomeModal` overlay carrying the old hero marketing copy. SSR popular destinations + trending trips; WebSite + Organization JSON-LD |
 | `providers.tsx` | React Query, Google OAuth, toasts, socket, loaders, compare-queue |
 | `robots.ts` / `sitemap.ts` / `manifest.ts` / `apple-icon.tsx` | SEO/PWA → [[Web Frontend#SEO]] |
 | `not-found.tsx` / `global-error.tsx` / `loading.tsx` | Error/loading boundaries |
