@@ -643,21 +643,21 @@ LOGIN:
 
 ## 5. Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Frontend** | Next.js 14 + Tailwind CSS | SSR for SEO, fast, modern React |
-| **UI Components** | shadcn/ui | Beautiful, accessible, customizable |
-| **Backend** | Express + TypeScript (separate `apps/api`) | Clean separation, independent deploy, Socket.IO support |
-| **Database** | PostgreSQL (via Supabase or Neon) | Relational data, scalable, free tier |
-| **ORM** | Prisma | Type-safe, great DX |
-| **Auth** | JWT (access + refresh) + bcrypt + Google OAuth | Lightweight, no vendor lock-in, httpOnly cookies |
-| **Payments** | Razorpay (SafePay mode) | Indian payments, SafePay built-in |
-| **File Storage** | Cloudinary | Trip photos, user avatars, CDN built-in |
-| **Chat** | Socket.IO | Real-time in-app messaging with anti-leakage filters |
-| **Hosting** | Vercel (FE) + Railway/Render (BE) | Free tiers, independent scaling |
-| **Search** | ILIKE free-text on title/description/destination (MVP) — FTS tsvector next | Hero search now submits `?q=`; Algolia later |
-| **Cache** | Redis (ioredis) | Rate limiting, session cache, Socket.IO adapter |
-| **Logging** | Pino | Structured JSON logging, fastest Node.js logger |
+| Layer             | Technology                                                                 | Why                                                     |
+| -------------------| ----------------------------------------------------------------------------| ---------------------------------------------------------|
+| **Frontend**      | Next.js 14 + Tailwind CSS                                                  | SSR for SEO, fast, modern React                         |
+| **UI Components** | shadcn/ui                                                                  | Beautiful, accessible, customizable                     |
+| **Backend**       | Express + TypeScript (separate `apps/api`)                                 | Clean separation, independent deploy, Socket.IO support |
+| **Database**      | PostgreSQL (via Supabase or Neon)                                          | Relational data, scalable, free tier                    |
+| **ORM**           | Prisma                                                                     | Type-safe, great DX                                     |
+| **Auth**          | JWT (access + refresh) + bcrypt + Google OAuth                             | Lightweight, no vendor lock-in, httpOnly cookies        |
+| **Payments**      | Razorpay (SafePay mode)                                                    | Indian payments, SafePay built-in                       |
+| **File Storage**  | Cloudinary                                                                 | Trip photos, user avatars, CDN built-in                 |
+| **Chat**          | Socket.IO                                                                  | Real-time in-app messaging with anti-leakage filters    |
+| **Hosting**       | Vercel (FE) + Railway/Render (BE)                                          | Free tiers, independent scaling                         |
+| **Search**        | ILIKE free-text on title/description/destination (MVP) — FTS tsvector next | Hero search now submits `?q=`; Algolia later            |
+| **Cache**         | Redis (ioredis)                                                            | Rate limiting, session cache, Socket.IO adapter         |
+| **Logging**       | Pino                                                                       | Structured JSON logging, fastest Node.js logger         |
 
 > **Note:** Full architecture details, folder structure, and design patterns are in [`docs/engineering/tech-stack.md`](../engineering/tech-stack.md).
 
@@ -787,16 +787,16 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ## 7. Third-Party Integrations
 
-| Service | Purpose | Cost |
-|---------|---------|------|
-| **Razorpay** | Payments + SafePay | 2% per transaction |
-| **Google OAuth** | Social login | Free |
-| **Cloudinary** | Image hosting + optimization | Free tier (25K transforms/mo) |
-| **Resend or Nodemailer** | Transactional emails (booking confirmation) | Free tier |
-| **MSG91 or Twilio** | OTP / SMS notifications | ~₹0.15-0.25 per SMS |
-| **Google Analytics** | Traffic tracking | Free |
-| **Vercel** | Hosting | Free tier (hobby) |
-| **Supabase** | DB + Realtime (for chat) | Free tier (500MB, 50K requests) |
+| Service                  | Purpose                                     | Cost                            |
+| --------------------------| ---------------------------------------------| ---------------------------------|
+| **Razorpay**             | Payments + SafePay                          | 2% per transaction              |
+| **Google OAuth**         | Social login                                | Free                            |
+| **Cloudinary**           | Image hosting + optimization                | Free tier (25K transforms/mo)   |
+| **Resend or Nodemailer** | Transactional emails (booking confirmation) | Free tier                       |
+| **MSG91 or Twilio**      | OTP / SMS notifications                     | ~₹0.15-0.25 per SMS             |
+| **Google Analytics**     | Traffic tracking                            | Free                            |
+| **Vercel**               | Hosting                                     | Free tier (hobby)               |
+| **Supabase**             | DB + Realtime (for chat)                    | Free tier (500MB, 50K requests) |
 
 **Estimated monthly cost (MVP): ₹0-2,000/month** (mostly free tiers)
 
@@ -822,13 +822,13 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 
 ## 9. Anti-Leakage Features in MVP
 
-| Feature | Implementation |
-|---------|---------------|
-| Masked contact info | Organizer phone/Instagram never shown publicly |
+| Feature              | Implementation                                                 |
+| ----------------------| ----------------------------------------------------------------|
+| Masked contact info  | Organizer phone/Instagram never shown publicly                 |
 | Chat content filters | Regex detection for phone numbers, UPI IDs, @instagram handles |
-| SafePay payments | Razorpay Route/SafePay — money held until trip completion |
-| Booking-only reviews | Review button only appears for completed bookings |
-| Price match promise | Manual for now — user reports, admin verifies |
+| SafePay payments     | Razorpay Route/SafePay — money held until trip completion      |
+| Booking-only reviews | Review button only appears for completed bookings              |
+| Price match promise  | Manual for now — user reports, admin verifies                  |
 
 ---
 
@@ -839,7 +839,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 | **Week 1-2**   | Project setup, auth, DB schema, basic UI shell             | ✅ Done                                                                        |
 | **Week 3-4**   | Trip CRUD (organizer), trip listing/search (traveler)      | ✅ Done                                                                        |
 | **Week 5-6**   | Trip detail page, comparison feature, SEO setup            | ✅ Done                                                                        |
-| **Week 7-8**   | Razorpay integration, booking flow, SafePay                 | ✅ Done                                                                        |
+| **Week 7-8**   | Razorpay integration, booking flow, SafePay                | ✅ Done                                                                        |
 | **Week 9-10**  | OTP auth, organizer dashboard, wallet, payments, cron jobs | ✅ Done                                                                        |
 | **Week 11-12** | Admin panel, chat system, review system, deploy            | ✅ Done (chat ✅, reviews ✅, SEO ✅, lifecycle ✅, admin ✅, constants refactor ✅) |
 

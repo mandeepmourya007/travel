@@ -122,13 +122,13 @@ This is called **disintermediation** and it kills marketplaces. Here's how real 
 
 ### How Others Solved It
 
-| Company | What They "Own" | Why Users Can't Leave |
-|---------|----------------|----------------------|
-| **Swiggy/Zomato** | Delivery fleet | Restaurant can't deliver without them |
-| **Urban Company** | Trained & certified professionals | UC-trained pros ARE the product |
-| **Airbnb** | Insurance + SafePay + reviews | Off-platform = no protection, no review history |
-| **BlaBlaCar** | Mandatory online payment | No cash option = transaction stays on platform |
-| **Viator** | Traffic + Google ranking | Operators can't match Viator's SEO/SEM spend |
+| Company           | What They "Own"                   | Why Users Can't Leave                           |
+| -------------------| -----------------------------------| -------------------------------------------------|
+| **Swiggy/Zomato** | Delivery fleet                    | Restaurant can't deliver without them           |
+| **Urban Company** | Trained & certified professionals | UC-trained pros ARE the product                 |
+| **Airbnb**        | Insurance + SafePay + reviews     | Off-platform = no protection, no review history |
+| **BlaBlaCar**     | Mandatory online payment          | No cash option = transaction stays on platform  |
+| **Viator**        | Traffic + Google ranking          | Operators can't match Viator's SEO/SEM spend    |
 
 ### 5 Clever Solutions For Your Platform
 
@@ -156,12 +156,12 @@ This is called **disintermediation** and it kills marketplaces. Here's how real 
 #### Solution 4: **Own the Guarantee (Trip Protection)**
 This is your **"delivery fleet" equivalent** — the thing only YOUR platform provides:
 
-| Guarantee | What It Covers | Cost to You |
-|-----------|---------------|-------------|
-| **Cancellation protection** | Full refund if organizer cancels <48hrs before trip | Funded by non-refundable organizer deposit |
-| **Trip mismatch guarantee** | Refund/credit if trip doesn't match listing (e.g., listed "AC bus" but got non-AC) | Funded by SafePay hold |
-| **Safety SOS** | Emergency contact + live location sharing during trip | Tech cost only |
-| **Rain check credit** | If trip cancelled due to weather, user gets platform credit | Cost of retention |
+| Guarantee                   | What It Covers                                                                     | Cost to You                                |
+| -----------------------------| ------------------------------------------------------------------------------------| --------------------------------------------|
+| **Cancellation protection** | Full refund if organizer cancels <48hrs before trip                                | Funded by non-refundable organizer deposit |
+| **Trip mismatch guarantee** | Refund/credit if trip doesn't match listing (e.g., listed "AC bus" but got non-AC) | Funded by SafePay hold                     |
+| **Safety SOS**              | Emergency contact + live location sharing during trip                              | Tech cost only                             |
+| **Rain check credit**       | If trip cancelled due to weather, user gets platform credit                        | Cost of retention                          |
 
 - **Why this prevents leakage:** None of this exists when you book via Instagram DM. Your platform becomes the "insurance" layer. Users pay a small premium (or organizers absorb it) for peace of mind.
 
