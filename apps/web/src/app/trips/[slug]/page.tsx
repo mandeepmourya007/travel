@@ -28,8 +28,10 @@ export async function generateMetadata({ params }: TripDetailPageProps): Promise
   }
 
   const title = `${trip.title} — ${trip.destination.name} | ${APP_NAME}`
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original fallback: `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with SafePay protection.`
   const raw = trip.description
-    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with SafePay protection.`
+    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with secure payments.`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw

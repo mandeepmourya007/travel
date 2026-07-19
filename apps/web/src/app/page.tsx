@@ -14,15 +14,19 @@ import type { Destination } from '@shared/types/destination.types'
 
 export const metadata: Metadata = {
   title: `${APP_NAME} — India's #1 Group Travel Aggregator | Compare & Book Group Trips`,
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: `Compare and book curated group trips across India. Weekend getaways from Pune & Mumbai, Himalayan treks, Goa beach trips, Ladakh tours & more — all with SafePay-protected payments and verified organizers. 75+ trips, 14+ destinations.`
   description:
-    `Compare and book curated group trips across India. Weekend getaways from Pune & Mumbai, Himalayan treks, Goa beach trips, Ladakh tours & more — all with SafePay-protected payments and verified organizers. 75+ trips, 14+ destinations.`,
+    `Compare and book curated group trips across India. Weekend getaways from Pune & Mumbai, Himalayan treks, Goa beach trips, Ladakh tours & more — all with secure payments and verified organizers. 75+ trips, 14+ destinations.`,
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `India's group travel aggregator. Compare 75+ group trips from verified organizers across Goa, Manali, Ladakh, Spiti & more. SafePay-protected payments. Weekend getaways from Pune, Mumbai & Bangalore.`
     description:
-      `India's group travel aggregator. Compare 75+ group trips from verified organizers across Goa, Manali, Ladakh, Spiti & more. SafePay-protected payments. Weekend getaways from Pune, Mumbai & Bangalore.`,
+      `India's group travel aggregator. Compare 75+ group trips from verified organizers across Goa, Manali, Ladakh, Spiti & more. Secure payments. Weekend getaways from Pune, Mumbai & Bangalore.`,
     type: 'website',
     url: '/',
     siteName: APP_NAME,

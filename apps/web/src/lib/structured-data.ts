@@ -133,7 +133,9 @@ export function buildWebsiteJsonLd(siteUrl: string, appName: string) {
     '@type': 'WebSite',
     name: appName,
     url: siteUrl,
-    description: `India's group travel aggregator — compare group trips from verified organizers, book with SafePay-protected payments, and travel with confidence.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `India's group travel aggregator — compare group trips from verified organizers, book with SafePay-protected payments, and travel with confidence.`
+    description: `India's group travel aggregator — compare group trips from verified organizers, book with secure payments, and travel with confidence.`,
     dateModified: new Date().toISOString(),
     inLanguage: 'en-IN',
     potentialAction: {
@@ -163,7 +165,9 @@ export function buildDestinationJsonLd(
     '@context': 'https://schema.org',
     '@type': 'TouristDestination',
     name: destination.name,
-    description: destination.description || `Group trips to ${destination.name}, ${destination.state}, India. Compare packages, read verified traveler reviews, and book with SafePay protection.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original fallback: `Group trips to ${destination.name}, ${destination.state}, India. Compare packages, read verified traveler reviews, and book with SafePay protection.`
+    description: destination.description || `Group trips to ${destination.name}, ${destination.state}, India. Compare packages, read verified traveler reviews, and book with secure payments.`,
     ...(destination.photoUrl && { image: destination.photoUrl }),
     url: `${siteUrl}/destinations/${slug}`,
     dateModified: new Date().toISOString(),
@@ -196,7 +200,9 @@ export function buildOrganizerProfileJsonLd(
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: organizer.businessName,
-    description: organizer.description || `Verified group trip organizer on ${appName}. KYC-verified, SafePay-protected payouts.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original fallback: `Verified group trip organizer on ${appName}. KYC-verified, SafePay-protected payouts.`
+    description: organizer.description || `Verified group trip organizer on ${appName}. KYC-verified, secure payouts.`,
     url: `${siteUrl}/trips/organizers/${organizerSlug}`,
     dateModified: new Date().toISOString(),
     areaServed: {
@@ -227,7 +233,9 @@ export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
     name: appName,
     url: siteUrl,
     logo: `${siteUrl}/icon-512.png`,
-    description: `India's group travel aggregator. Compare group trips from verified organizers, book with SafePay-protected payments, and travel with confidence across 14+ destinations.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `India's group travel aggregator. Compare group trips from verified organizers, book with SafePay-protected payments, and travel with confidence across 14+ destinations.`
+    description: `India's group travel aggregator. Compare group trips from verified organizers, book with secure payments, and travel with confidence across 14+ destinations.`,
     foundingDate: '2024',
     inLanguage: 'en-IN',
     areaServed: {
@@ -246,7 +254,8 @@ export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
       'Weekend Trips from Pune',
       'Adventure Trekking India',
       'Himalayan Group Treks',
-      'SafePay Travel Payments',
+      // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+      // 'SafePay Travel Payments',
     ],
   }
 }

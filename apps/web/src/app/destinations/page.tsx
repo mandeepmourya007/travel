@@ -15,7 +15,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: `Group Trip Destinations India — Goa, Manali, Ladakh, Spiti & More | ${APP_NAME}`,
-    description: `14+ group travel destinations across India. Weekend escapes, Himalayan treks, beach trips & heritage tours. Compare packages, read real reviews & book with SafePay protection.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `14+ group travel destinations across India. Weekend escapes, Himalayan treks, beach trips & heritage tours. Compare packages, read real reviews & book with SafePay protection.`
+    description: `14+ group travel destinations across India. Weekend escapes, Himalayan treks, beach trips & heritage tours. Compare packages, read real reviews & book with secure payments.`,
     type: 'website',
     url: '/destinations',
     locale: 'en_IN',

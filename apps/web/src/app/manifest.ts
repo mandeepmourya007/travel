@@ -5,7 +5,9 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${APP_NAME} — India's Group Travel Aggregator`,
     short_name: APP_NAME,
-    description: 'Compare group trips from verified organizers. SafePay-protected payments. Weekend getaways, treks & adventure tours across India.',
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: 'Compare group trips from verified organizers. SafePay-protected payments. Weekend getaways, treks & adventure tours across India.'
+    description: 'Compare group trips from verified organizers. Secure payments. Weekend getaways, treks & adventure tours across India.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
