@@ -1,0 +1,26 @@
+apps/web/src/components/home/__tests__/welcome-modal.test.tsx
+  s_bd7a5821035275::t_706dcf189091c3 1-72
+apps/web/src/components/home/welcome-modal.tsx
+  s_bd7a5821035275::t_eaf0c617a0d2f7 30-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "971f6320bb7f510f1881b5915aa817682daabed4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bd7a5821035275": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "89568790-90ec-4ba2-a04b-92626eb23150",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
