@@ -45,6 +45,19 @@ sortBy?: MySort
 
 ---
 
+### Tables — Always Paginate
+
+**Rule:** Every table/list view backed by a query that can return more rows than fit on one screen MUST have pagination — no exceptions for "it probably won't have many rows." This applies to every role (admin, organizer, reseller, traveler) and every new table added to the app, not just the reseller feature.
+
+**How:**
+- Backend: list endpoints accept `page`/`limit` query params validated against the shared `paginationSchema` (`packages/shared/src/validators/common.schema.ts`), return `{ data, pagination: { page, limit, total } }`.
+- Frontend: reuse the existing `Pagination` component (`apps/web/src/components/shared/pagination.tsx`) — it supports both callback (`onPageChange`) and URL-based (`buildHref`) modes, plus an opt-in page-size selector (`limit`/`limitOptions`/`onLimitChange`). Never hand-roll a new pager.
+- Before adding a new table, check whether its data hook is already capped to a hardcoded `limit` with no `page` state exposed to the UI — that's a bug, not a shortcut. Always wire `page` state in the component and pass `pagination`/`onPageChange` through to the rendered list.
+
+**Before shipping any new list/table component:** confirm it has (1) a paginated backend query, (2) page state in the component, (3) the `Pagination` component rendered when `totalPages > 1`.
+
+---
+
 ### Docs Sync — Keep `docs/codebase/` Up To Date
 
 **Rule:** `docs/codebase/` is the Obsidian-flavored reference vault for this codebase (entry point: `docs/codebase/Codebase Overview.md`). Whenever a code change alters something those notes describe, update the matching note(s) **in the same task** — before declaring the work done.
