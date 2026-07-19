@@ -1,0 +1,47 @@
+apps/web/src/hooks/use-create-booking.ts
+  s_65b35fc0dcf5e7::t_d23ecc55ef3bb9 20-21
+apps/web/src/hooks/use-reseller.ts
+  s_65b35fc0dcf5e7::t_3a49bec9749734 8-9
+  s_65b35fc0dcf5e7::t_d5a26c8f81c3b1 86-106
+  s_65b35fc0dcf5e7::t_71aeb18e453b8f 34
+  s_65b35fc0dcf5e7::t_cd76a6240a46e0 1-7,10-16,18-33,36-85,107-184,192-199,201-235
+  s_65b35fc0dcf5e7::t_6f79a57d18c576 35
+  s_65b35fc0dcf5e7::t_91336e9c432776 185-191,200
+  s_65b35fc0dcf5e7::t_3e935de5f4b525 17
+apps/web/src/hooks/use-search-combobox.ts
+  s_65b35fc0dcf5e7::t_dd069cad60667d 1,4-18,22,26-43,47,51-53,62-65,71-105
+apps/web/src/lib/query-keys.ts
+  s_65b35fc0dcf5e7::t_f6918298196255 53-58
+  s_65b35fc0dcf5e7::t_f1dd55e2b3a18f 249-252,255-274
+  s_65b35fc0dcf5e7::t_59303bac4e4c8d 253-254
+  s_65b35fc0dcf5e7::t_b1353deb440e8e 9
+apps/web/src/lib/reseller-cookie.ts
+  s_65b35fc0dcf5e7::t_2d3095d811e358 1-23
+apps/web/src/lib/api-server.ts
+  s_65b35fc0dcf5e7::t_7ed47f0342d209 86-102
+apps/web/src/hooks/use-resellers.ts
+  s_65b35fc0dcf5e7::t_f16e0d047ce527 1-49
+apps/web/src/lib/trip-utils.ts
+  s_65b35fc0dcf5e7::t_08160bdd52c469 15-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "099c3005e58c626eff9c87f243353291997c6adc",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
