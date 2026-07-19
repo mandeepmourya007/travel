@@ -5,7 +5,7 @@ import { DateRangePicker } from '@/components/shared/date-range-picker'
 const TYPE_LABELS: Record<string, string> = {
   PAYMENT: 'Payment',
   REFUND: 'Refund',
-  ESCROW_RELEASE: 'SafePay Release',
+  ESCROW_RELEASE: 'Payout Release',
 }
 
 /** Human-readable labels for payment status dropdown */

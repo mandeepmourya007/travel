@@ -27,7 +27,7 @@ describe('PaymentFilters', () => {
     expect(typeSelect).toHaveTextContent('All Types')
     expect(typeSelect).toHaveTextContent('Payment')
     expect(typeSelect).toHaveTextContent('Refund')
-    expect(typeSelect).toHaveTextContent('SafePay Release')
+    expect(typeSelect).toHaveTextContent('Payout Release')
   })
 
   it('should show all statuses with human-readable labels', () => {
