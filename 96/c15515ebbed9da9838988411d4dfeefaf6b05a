@@ -1,0 +1,27 @@
+docs/mvp/mvp-plan.md
+  h_b3232c20134322 647,791,826
+  s_eec354199679a2::t_48fd79efdd86d6 646,648-660,790,792-799,825,827,829-831,842
+docs/rnd/group-travel-market-research.md
+  h_b3232c20134322 125-127,160,162-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "96c15515ebbed9da9838988411d4dfeefaf6b05a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_eec354199679a2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-aadf1b39fa52e6166",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
