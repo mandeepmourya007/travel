@@ -1,0 +1,65 @@
+apps/api/tests/unit/services/trip-lifecycle.service.test.ts
+  s_65b35fc0dcf5e7::t_49995cbdb82c32 317,442-504
+  s_65b35fc0dcf5e7::t_bf23aa7ff20e89 6-14
+  s_65b35fc0dcf5e7::t_c44d8bfe4fa574 261,277-316
+  s_65b35fc0dcf5e7::t_4cae68be08d68c 63
+  s_65b35fc0dcf5e7::t_09e19f2b7f2128 425
+  s_65b35fc0dcf5e7::t_3ba4c302ce6a99 404
+  s_65b35fc0dcf5e7::t_d564547c1dc293 380
+  s_65b35fc0dcf5e7::t_5f3e8aaa59f6d6 15
+  s_65b35fc0dcf5e7::t_4804ad3a87605e 505
+apps/api/tests/unit/repositories/reseller.repository.test.ts
+  s_65b35fc0dcf5e7::t_0650ce84f1121e 23-24
+  s_65b35fc0dcf5e7::t_a35c2b7484e607 164-233
+  s_65b35fc0dcf5e7::t_fe891c7b112d24 125-135,137-163,234
+  s_65b35fc0dcf5e7::t_139c06c88ba09e 1-17,25-124,296
+  s_65b35fc0dcf5e7::t_423f309b4b9235 235-295
+  s_65b35fc0dcf5e7::t_e76f0f69e626e7 136
+  s_65b35fc0dcf5e7::t_ed15e07e43ea1a 18-22
+apps/api/tests/unit/services/reseller.service.test.ts
+  s_65b35fc0dcf5e7::t_1b0b66357b680b 134-189
+  s_65b35fc0dcf5e7::t_4e4807991f1e86 357,359,362,370,373,379,382,391,393-424
+  s_65b35fc0dcf5e7::t_479bff32f3e0c1 62
+  s_65b35fc0dcf5e7::t_a0ac57535dea89 192-219,221-235,237-245
+  s_65b35fc0dcf5e7::t_9bf4f825bed3fa 429,438-439,441,443-445
+  s_65b35fc0dcf5e7::t_75521c6e412cf1 22
+  s_65b35fc0dcf5e7::t_2964cce39fc75b 1-21,23-24,26-61,63-133,190-191,246-294,296-313,428,430-437,440,442,446-460,492-508
+  s_65b35fc0dcf5e7::t_26cfe05c11519a 295
+  s_65b35fc0dcf5e7::t_1ba2fbbf2f1169 25
+  s_65b35fc0dcf5e7::t_8fb7a9982fc70d 358,360-361,363-369,371-372,374-378,380-381,383-390,392,425-427
+  s_65b35fc0dcf5e7::t_3aa03cc41f79e2 220,236
+  s_65b35fc0dcf5e7::t_b16e05992d049d 314-356
+  s_65b35fc0dcf5e7::t_c5cc3b6d7a6a34 461-491
+apps/api/tests/unit/services/booking.service.test.ts
+  s_65b35fc0dcf5e7::t_5f57ec7dcbcddc 1202-1343
+  s_65b35fc0dcf5e7::t_4ca14c306a16a8 950-951,953,955
+  s_65b35fc0dcf5e7::t_51adfd7f696854 1201
+apps/api/tests/unit/routes/reseller.routes.test.ts
+  s_65b35fc0dcf5e7::t_06598b1ac6ced2 16
+  s_65b35fc0dcf5e7::t_cbea61a40f587c 1-15,17-65
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_65b35fc0dcf5e7::t_7ae619eef7179a 540,545,586,616,637,663,703,727,748,753,772
+apps/api/tests/unit/services/auth.service.test.ts
+  s_65b35fc0dcf5e7::t_74f4a520e144be 751-766
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "4999a174da66632fb0ac4f8cfb546f10aae3db9e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
