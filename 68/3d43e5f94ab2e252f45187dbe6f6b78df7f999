@@ -1,0 +1,47 @@
+apps/api/tests/unit/services/organizer-lifecycle.test.ts
+  s_f76a6f3bcc6bf2::t_c92d1505867d81 280,289,296,308
+  s_f76a6f3bcc6bf2::t_080ba615750289 220,237,250,506
+apps/api/tests/integration/auth.routes.test.ts
+  s_f76a6f3bcc6bf2::t_d3896fed5755b4 87
+  s_f76a6f3bcc6bf2::t_5e0237c70cc4cf 130-215
+apps/api/tests/unit/services/organizer-invite.service.test.ts
+  s_f76a6f3bcc6bf2::t_1d336be0f69685 340,349,355,361,368,379,389,401,413,418,465
+apps/api/tests/unit/validators/auth.schema.test.ts
+  s_f76a6f3bcc6bf2::t_953e751f78d20e 12
+  s_f76a6f3bcc6bf2::t_7fc9ee1b8c244c 130,260-263,273-292
+  s_f76a6f3bcc6bf2::t_222a038210054c 21
+  s_f76a6f3bcc6bf2::t_7004799eb3c2ef 131-164
+  s_f76a6f3bcc6bf2::t_23c8ca83482118 30-34
+  s_f76a6f3bcc6bf2::t_fc6b495c9ff4ad 104-108,113-117,120-129
+  s_f76a6f3bcc6bf2::t_360daf37832d03 167-187
+  s_f76a6f3bcc6bf2::t_b1c07e48aa1a30 165-166
+apps/api/tests/unit/services/auth.service.test.ts
+  s_f76a6f3bcc6bf2::t_dd6d103125da4d 504,510,514-523
+  s_f76a6f3bcc6bf2::t_e08ed6da50d29a 140,156
+  s_f76a6f3bcc6bf2::t_e80627c2b60f51 208-223,524,656
+  s_f76a6f3bcc6bf2::t_51506611fcbba1 558
+  s_f76a6f3bcc6bf2::t_2f54f45a2e178c 636,644,649-655,698,710,722
+  s_f76a6f3bcc6bf2::t_70e4a21401e8b5 525
+  s_f76a6f3bcc6bf2::t_3681d71392f7cb 657
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "683d43e5f94ab2e252f45187dbe6f6b78df7f999",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f76a6f3bcc6bf2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82dab4cf-652d-4012-ae64-056da91fba81",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
