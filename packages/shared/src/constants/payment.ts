@@ -10,13 +10,31 @@ export const PAYMENT_PROVIDER = Object.fromEntries(
 
 // ─── Payment Transaction Types ────────────────────────
 // ESCROW_RELEASE is stored in the DB and cannot be renamed without a data migration.
-export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE'] as const
+// DEPOSIT_RELEASE / BALANCE_RELEASE back the Cashfree deposit/balance payout split
+// (see utils/payout.ts) — ESCROW_RELEASE remains the Razorpay-only SafePay path.
+export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE', 'DEPOSIT_RELEASE', 'BALANCE_RELEASE'] as const
 export type PaymentTypeConst = (typeof PAYMENT_TYPES)[number]
 
 /** Object form for dot-access: PAYMENT_TYPE.PAYMENT — derived from array */
 export const PAYMENT_TYPE = Object.fromEntries(
   PAYMENT_TYPES.map((s) => [s, s]),
 ) as { readonly [K in PaymentTypeConst]: K }
+
+// ─── Deposit / Balance Payout Tunables ────────────────
+// Single source of truth for the Cashfree deposit/balance payout split (utils/payout.ts)
+// and the refund-cliff policy (utils/refund.ts). These two values are chosen so that
+// ORGANIZER_DEPOSIT_PERCENT <= (100 - MAX_REFUND_PERCENT) always — i.e. the platform
+// never releases more to the organizer than the guaranteed-non-refundable share.
+// MAX_REFUND_PERCENT is derived (not hand-duplicated) so the invariant can't silently drift.
+
+/** Percent of organizer entitlement released as a non-refundable deposit at booking time. */
+export const ORGANIZER_DEPOSIT_PERCENT = 50
+
+/** Refund window: >= this many days before trip start, cancellation refunds MAX_REFUND_PERCENT; else 0%. */
+export const REFUND_CLIFF_DAYS = 7
+
+/** Maximum refund percent once inside the refund window — derived from ORGANIZER_DEPOSIT_PERCENT. */
+export const MAX_REFUND_PERCENT = 100 - ORGANIZER_DEPOSIT_PERCENT
 
 // ─── Payment Transaction Statuses ─────────────────────
 
