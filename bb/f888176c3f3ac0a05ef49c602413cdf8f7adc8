@@ -1,0 +1,66 @@
+apps/web/src/components/trips/__tests__/trip-booking-card.test.tsx
+  s_65b35fc0dcf5e7::t_176fc5f90a2588 3-4,12-27,29-37,39-58,60-69
+  s_65b35fc0dcf5e7::t_7d9f40e6a07e35 2,6-11
+  s_65b35fc0dcf5e7::t_b6bbd55668fcef 1,5
+  s_65b35fc0dcf5e7::t_4648eb46dcf8f0 28,38,59
+apps/web/src/app/reseller/__tests__/page.test.tsx
+  s_65b35fc0dcf5e7::t_84129e3449da9a 156-158,161,165-168,172,174,178
+  s_65b35fc0dcf5e7::t_e00f9d5da2ca28 1
+  s_65b35fc0dcf5e7::t_81bb16c496d37f 92
+  s_65b35fc0dcf5e7::t_42401ef737b0b5 2,51,54-57,69,71,84,89,104-106,109-121,124-136,139,144,146-147,149-153,155,162-163
+  s_65b35fc0dcf5e7::t_6fcd36ebada00d 4-8,10-41,62-68,70,72,75,85-87,181-182
+  s_65b35fc0dcf5e7::t_19dd90d9315ffb 58,60
+  s_65b35fc0dcf5e7::t_8bdada61337990 9,45,50,52-53,73-74,76-83,88,90-91,93-94,97,107-108,122-123,137-138,140-143,145,148,154,159-160,164,170-171,173,175-177,179-180
+  s_65b35fc0dcf5e7::t_777a92696d2e55 169
+  s_65b35fc0dcf5e7::t_8d82b0ec29652c 3
+  s_65b35fc0dcf5e7::t_9bc5e3438e360e 42-44,46-49,59,61,95-96,98-103
+apps/web/src/hooks/__tests__/use-reseller.test.tsx
+  s_65b35fc0dcf5e7::t_26f8cdb1fc774c 10
+  s_65b35fc0dcf5e7::t_34b28d0cb152c3 1-4,6-9,11-12,14-17,20-39,41-43,77-85,87-106,108-124,126-157,195-240
+  s_65b35fc0dcf5e7::t_8d09cebaadf2c1 13,18
+  s_65b35fc0dcf5e7::t_370a2b3c835da6 5,40,86,107,125
+  s_65b35fc0dcf5e7::t_8207d425e343b0 44-76
+  s_65b35fc0dcf5e7::t_8b0e00bcbf77f0 19
+  s_65b35fc0dcf5e7::t_37e5527ea6d2b5 158-194
+apps/web/src/hooks/__tests__/use-resellers.test.tsx
+  s_65b35fc0dcf5e7::t_80633db51398ec 1-75
+apps/web/src/components/shared/__tests__/reseller-search-combobox.test.tsx
+  s_65b35fc0dcf5e7::t_9e8aaa981f4aa3 2-65,104-126
+  s_65b35fc0dcf5e7::t_0248aeaa4e10ba 66-103
+  s_65b35fc0dcf5e7::t_09dd4588d626da 1
+apps/web/src/components/booking/__tests__/price-summary.test.tsx
+  s_65b35fc0dcf5e7::t_d7d444a88f69b7 222-255
+apps/web/src/test/factories/profile.factory.ts
+  s_65b35fc0dcf5e7::t_69202f94cc9365 30
+apps/web/src/components/shared/__tests__/pagination.test.tsx
+  s_65b35fc0dcf5e7::t_88fdabd0516533 132-197
+apps/web/src/test/factories/reseller.factory.ts
+  s_65b35fc0dcf5e7::t_1db6016e80c9f3 32-33
+  s_65b35fc0dcf5e7::t_0b19d144f9b065 3
+  s_65b35fc0dcf5e7::t_b47f6648f40575 1-2,4-31,34-37,51-79,81-84,86-114
+  s_65b35fc0dcf5e7::t_52730fe35b3ac9 85
+  s_65b35fc0dcf5e7::t_f155ede99adbc1 80
+  s_65b35fc0dcf5e7::t_9cab0ede17f97e 38-40,42,44-45,47-50
+  s_65b35fc0dcf5e7::t_08d4fb96f806ed 41,43,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bbf888176c3f3ac0a05ef49c602413cdf8f7adc8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
