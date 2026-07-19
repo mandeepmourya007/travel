@@ -1,0 +1,63 @@
+apps/web/src/app/dashboard/reseller-links/page.tsx
+  s_65b35fc0dcf5e7::t_66017f4dc3c74c 122
+  s_65b35fc0dcf5e7::t_f9c5358e908f5a 4,7,11,22,29,74,77,82-88,92
+  s_65b35fc0dcf5e7::t_1bba95b5c47b22 1-3,5-6,8-10,12-18,21,23,26,28,30-33,36,41-42,44-51,53,56-73,75-76,78-80,93-94,96-106,109-111,113-121,123-125,127-130,132-133,136-137,139-144
+  s_65b35fc0dcf5e7::t_6d897297821739 89-91
+  s_65b35fc0dcf5e7::t_3e066e1e214db9 81
+  s_65b35fc0dcf5e7::t_490da951d00877 95
+  s_65b35fc0dcf5e7::t_e89b9d41034ce4 19-20,34-35,37-40,43,52,54-55,107-108,112,126,131,134-135,138
+  s_65b35fc0dcf5e7::t_285c647e7776a2 24-25,27
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_65b35fc0dcf5e7::t_c7f083a4653784 64-71,76
+  s_65b35fc0dcf5e7::t_d1632de012f397 474
+  s_65b35fc0dcf5e7::t_1a377f73820573 16-17
+  s_65b35fc0dcf5e7::t_e4dbed5366dde6 492
+  s_65b35fc0dcf5e7::t_12e669398a53b2 503
+  s_65b35fc0dcf5e7::t_8410f16a97467c 72-75
+  s_65b35fc0dcf5e7::t_abb04aa3bfb731 176
+apps/web/src/app/reseller/page.tsx
+  s_65b35fc0dcf5e7::t_e17f4d60108f34 58
+  s_65b35fc0dcf5e7::t_48925eac0a4c6b 34,64,108
+  s_65b35fc0dcf5e7::t_6bcf8356fcee11 3,31,36,44,57,74,82-86,109
+  s_65b35fc0dcf5e7::t_bdb529d486f212 4,7,9-11,14,28-30,32-33,50-52,54-55,59-63,77-81,87-107,110-121,123
+  s_65b35fc0dcf5e7::t_a7c11c0af16451 6,12,66-73,75-76,122
+  s_65b35fc0dcf5e7::t_4d2dc6ae28121a 1-2,5,8,13,15-27,35,37-43,45-48,53,56,65,124-126
+  s_65b35fc0dcf5e7::t_d39f832fd2713e 49
+apps/web/src/app/trips/[slug]/page.tsx
+  s_65b35fc0dcf5e7::t_489291bf424da9 4
+  s_65b35fc0dcf5e7::t_4a5d180414a221 12
+  s_65b35fc0dcf5e7::t_bbfdd2e845786e 98
+  s_65b35fc0dcf5e7::t_43b5d60d729227 66,68,75-79
+  s_65b35fc0dcf5e7::t_382f28773d50bc 80
+apps/web/src/app/reseller/layout.tsx
+  s_65b35fc0dcf5e7::t_ec74ee2e5acd6d 1-17
+apps/web/src/app/admin/reseller-links/page.tsx
+  s_65b35fc0dcf5e7::t_dc24a037ef63bf 6-9,17-18,23,58-64,68-69,71-80
+  s_65b35fc0dcf5e7::t_35ec186d253ecd 70
+  s_65b35fc0dcf5e7::t_0fac429b9faae8 1-2,4-5,11-16,24-26,28-31,33-47,49-50,52-53,55-57,81-83
+  s_65b35fc0dcf5e7::t_ee2b493a95fe21 65-67
+  s_65b35fc0dcf5e7::t_69c154fddea8c1 3,10,32,48,51,54
+  s_65b35fc0dcf5e7::t_7086f653fdf11a 21,27
+  s_65b35fc0dcf5e7::t_14c870367c0aa4 19-20,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "3628dfea3a0c99c0786b8a4c7ceab0fbc29a8f26",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
