@@ -170,6 +170,23 @@ export class PaymentService {
     return gateway.releaseTransferHold(transferId, ctx)
   }
 
+  /**
+   * Transfers the held balance tranche to a vendor account, on demand.
+   * Cashfree-only — routes to whichever gateway created the transaction; Razorpay
+   * throws PaymentError('unsupported') since it has no deposit/balance split.
+   *
+   * @throws PaymentError — gateway API failure, or unsupported on this gateway
+   */
+  async transferToVendor(
+    vendorId: string,
+    amountPaise: number,
+    ctx: { orderId: string; idempotencyKey: string; notes?: Record<string, unknown> },
+    provider?: PaymentProvider,
+  ): Promise<{ transferId: string; raw: unknown }> {
+    const gateway = this.resolveGateway(provider)
+    return gateway.transferToVendor(vendorId, amountPaise, ctx)
+  }
+
   // ─── Webhook Handling ──────────────────────────────────
 
   /**
