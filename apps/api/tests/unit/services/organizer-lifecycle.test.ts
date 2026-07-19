@@ -217,7 +217,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       refreshTokenRepo.create.mockResolvedValue({})
 
       const result = await authService.signup(
-        { email: 'organizer@example.com', password: 'Password1' },
+        { email: 'organizer@example.com', password: 'Password1', acceptedTerms: true as const },
         meta,
       )
 
@@ -234,7 +234,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       refreshTokenRepo.create.mockResolvedValue({})
 
       await authService.signup(
-        { email: 'organizer@example.com', password: 'Password1' },
+        { email: 'organizer@example.com', password: 'Password1', acceptedTerms: true as const },
         meta,
       )
 
@@ -247,7 +247,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       refreshTokenRepo.create.mockResolvedValue({})
 
       await authService.signup(
-        { email: 'organizer@example.com', password: 'Password1' },
+        { email: 'organizer@example.com', password: 'Password1', acceptedTerms: true as const },
         meta,
       )
 
@@ -277,7 +277,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       expect(decoded.role).toBe('ORGANIZER')
     })
 
-    it('auto-creates OrganizerProfile with PENDING status', async () => {
+    it('auto-creates OrganizerProfile with PENDING status and stamps organizerTncAcceptedAt', async () => {
       userRepo.findById.mockResolvedValue(TRAVELER_USER)
       userRepo.updateProfile.mockResolvedValue(ORGANIZER_USER)
       organizerProfileRepo.findByUserId.mockResolvedValue(null)
@@ -286,12 +286,14 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       await authService.updateProfile('user-org-1', {
         name: 'Rahul Sharma',
         role: 'ORGANIZER',
+        acceptedOrganizerAgreement: true,
       })
 
       expect(organizerProfileRepo.create).toHaveBeenCalledWith({
         user: { connect: { id: 'user-org-1' } },
         businessName: 'Rahul Sharma',
         slug: 'rahul-sharma',
+        organizerTncAcceptedAt: expect.any(Date),
       })
     })
 
@@ -303,6 +305,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       await authService.updateProfile('user-org-1', {
         name: 'Rahul Sharma',
         role: 'ORGANIZER',
+        acceptedOrganizerAgreement: true,
       })
 
       expect(organizerProfileRepo.create).not.toHaveBeenCalled()
@@ -500,7 +503,7 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       userRepo.emailExists.mockResolvedValue(true)
 
       await expect(
-        authService.signup({ email: 'organizer@example.com', password: 'Password1' }, meta),
+        authService.signup({ email: 'organizer@example.com', password: 'Password1', acceptedTerms: true as const }, meta),
       ).rejects.toThrow(ConflictError)
     })
   })
