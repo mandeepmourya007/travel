@@ -1,34 +1,32 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react'
+import { Check, ChevronsUpDown, Loader2, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface SearchComboboxOption {
   id: string
   label: string
-  /** Secondary descriptor shown to the right of the label (e.g. destination name) */
+  /** Secondary descriptor shown to the right of the label (e.g. destination name). Never PII (e.g. email). */
   meta?: string
-}
-
-export interface SearchComboboxPagination {
-  page: number
-  totalPages: number
-  total: number
-  onPageChange: (page: number) => void
 }
 
 export interface SearchComboboxProps {
   /** Currently selected option id */
   value: string | undefined
   onChange: (id: string | undefined) => void
-  /** Flat list of options to render in the dropdown */
+  /** Full accumulated list of options fetched so far */
   options: SearchComboboxOption[]
   /** Controlled search input value */
   query: string
   onQueryChange: (q: string) => void
   isLoading?: boolean
-  pagination?: SearchComboboxPagination
+  /** Whether another page of results is available to fetch */
+  hasMore?: boolean
+  /** Called when the results list is scrolled near the bottom and more results can be loaded */
+  onLoadMore?: () => void
+  /** True while a subsequent page (not the first) is being fetched — shows a bottom-of-list spinner */
+  isLoadingMore?: boolean
   /** Text shown on the trigger when nothing is selected */
   placeholder?: string
   /** Placeholder inside the search input */
@@ -43,10 +41,10 @@ export interface SearchComboboxProps {
 }
 
 /**
- * Generic search-with-pagination combobox.
+ * Generic search-with-infinite-scroll combobox.
  *
- * Manages only UI state (open/close, selectedLabel persistence).
- * All data concerns (fetching, debouncing, pagination state) live in the
+ * Manages only UI state (open/close, selectedLabel persistence, scroll-to-load-more).
+ * All data concerns (fetching, debouncing, page accumulation) live in the
  * parent — wire via useSearchCombobox() + any data hook.
  *
  * Usage:
@@ -61,7 +59,9 @@ export function SearchCombobox({
   query,
   onQueryChange,
   isLoading = false,
-  pagination,
+  hasMore = false,
+  onLoadMore,
+  isLoadingMore = false,
   placeholder = 'Select…',
   searchPlaceholder = 'Search…',
   allOptionLabel = 'All',
@@ -112,7 +112,15 @@ export function SearchCombobox({
   }
 
   const displayLabel = value ? (selectedLabel ?? placeholder) : placeholder
-  const showAllOption = allOptionLabel != null && (pagination == null || pagination.page === 1)
+  const showAllOption = allOptionLabel != null
+
+  function handleResultsScroll(e: React.UIEvent<HTMLUListElement>) {
+    if (!hasMore || isLoadingMore || !onLoadMore) return
+    const el = e.currentTarget
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 40) {
+      onLoadMore()
+    }
+  }
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
@@ -150,7 +158,7 @@ export function SearchCombobox({
           </div>
 
           {/* Results */}
-          <ul role="listbox" className="max-h-64 overflow-y-auto py-1">
+          <ul role="listbox" className="max-h-64 overflow-y-auto py-1" onScroll={handleResultsScroll}>
             {showAllOption && (
               <li
                 role="option"
@@ -188,36 +196,13 @@ export function SearchCombobox({
                 {option.meta && <span className="shrink-0 text-xs text-neutral-400">{option.meta}</span>}
               </li>
             ))}
-          </ul>
 
-          {/* Pagination */}
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-neutral-100 px-3 py-2">
-              <span className="text-xs text-neutral-400">
-                {pagination.total} results · {pagination.page}/{pagination.totalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => pagination.onPageChange(Math.max(1, pagination.page - 1))}
-                  disabled={pagination.page <= 1}
-                  className="rounded p-1 text-neutral-400 hover:bg-neutral-100 disabled:opacity-30"
-                  aria-label="Previous page"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => pagination.onPageChange(Math.min(pagination.totalPages, pagination.page + 1))}
-                  disabled={pagination.page >= pagination.totalPages}
-                  className="rounded p-1 text-neutral-400 hover:bg-neutral-100 disabled:opacity-30"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
+            {isLoadingMore && (
+              <li className="flex justify-center py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-400" />
+              </li>
+            )}
+          </ul>
         </div>
       )}
     </div>

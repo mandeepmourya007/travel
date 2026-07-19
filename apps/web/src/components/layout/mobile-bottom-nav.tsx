@@ -13,6 +13,7 @@ import {
   Compass,
   LogIn,
   Wallet,
+  Gift,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth.store'
@@ -63,12 +64,15 @@ export function MobileBottomNav() {
   // Organizer-specific: check approval + bank status for badge
   const orgProfile = profile?.organizerProfile
   const bankLinked = orgProfile?.bankAccountLinked ?? true
+  const isReseller = !!profile?.isReseller
 
   let navItems: NavItem[]
   if (!_hasHydrated || !isAuthenticated) {
     navItems = GUEST_NAV
   } else if (isOrganizer) {
     navItems = ORGANIZER_NAV
+  } else if (isReseller) {
+    navItems = [...TRAVELER_NAV, { id: 'reseller', label: 'Reseller', href: '/reseller', icon: Gift }]
   } else {
     navItems = TRAVELER_NAV
   }

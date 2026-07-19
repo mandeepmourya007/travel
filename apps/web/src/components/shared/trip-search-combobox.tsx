@@ -13,12 +13,14 @@ interface TripComboboxProps {
   className?: string
 }
 
-function useTripComboboxUI(data: ReturnType<typeof useMyTripsSearch>['data'], isFetching: boolean, setPage: (p: number) => void) {
-  const options = (data?.data ?? []).map((t) => ({ id: t.id, label: t.title, meta: t.destination.name }))
-  const pagination = data?.pagination
-    ? { page: data.pagination.page, totalPages: data.pagination.totalPages, total: data.pagination.total, onPageChange: setPage }
-    : undefined
-  return { options, pagination, isFetching }
+function useTripComboboxUI(
+  data: ReturnType<typeof useMyTripsSearch>['data'],
+  isFetching: boolean,
+  accumulate: ReturnType<typeof useSearchCombobox>['accumulate'],
+) {
+  const items = data?.data?.map((t) => ({ id: t.id, label: t.title, meta: t.destination.name }))
+  const { options, hasMore, isLoadingMore } = accumulate(items, data?.pagination, isFetching)
+  return { options, hasMore, isLoadingMore, isFetching }
 }
 
 /**
@@ -26,15 +28,15 @@ function useTripComboboxUI(data: ReturnType<typeof useMyTripsSearch>['data'], is
  * Data: GET /trips/my/search (ORGANIZER role required)
  */
 export function TripSearchCombobox({ value, onChange, placeholder = 'All Trips', className }: TripComboboxProps) {
-  const { query, debouncedQuery, page, setPage, handleQueryChange } = useSearchCombobox()
+  const { query, debouncedQuery, page, loadMore, handleQueryChange, accumulate } = useSearchCombobox()
   const { data, isFetching } = useMyTripsSearch(debouncedQuery, page, PAGE_SIZE)
-  const { options, pagination } = useTripComboboxUI(data, isFetching, setPage)
+  const { options, hasMore, isLoadingMore } = useTripComboboxUI(data, isFetching, accumulate)
 
   return (
     <SearchCombobox
       value={value} onChange={onChange}
       options={options} query={query} onQueryChange={handleQueryChange}
-      isLoading={isFetching} pagination={pagination}
+      isLoading={isFetching && page === 1} hasMore={hasMore} onLoadMore={loadMore} isLoadingMore={isLoadingMore}
       placeholder={placeholder} searchPlaceholder="Search trips…" allOptionLabel="All Trips"
       className={className}
     />
@@ -46,15 +48,15 @@ export function TripSearchCombobox({ value, onChange, placeholder = 'All Trips',
  * Data: GET /trips/my/booked-search (TRAVELER / ADMIN role required)
  */
 export function TravelerTripSearchCombobox({ value, onChange, placeholder = 'All Trips', className }: TripComboboxProps) {
-  const { query, debouncedQuery, page, setPage, handleQueryChange } = useSearchCombobox()
+  const { query, debouncedQuery, page, loadMore, handleQueryChange, accumulate } = useSearchCombobox()
   const { data, isFetching } = useTravelerTripsSearch(debouncedQuery, page, PAGE_SIZE)
-  const { options, pagination } = useTripComboboxUI(data, isFetching, setPage)
+  const { options, hasMore, isLoadingMore } = useTripComboboxUI(data, isFetching, accumulate)
 
   return (
     <SearchCombobox
       value={value} onChange={onChange}
       options={options} query={query} onQueryChange={handleQueryChange}
-      isLoading={isFetching} pagination={pagination}
+      isLoading={isFetching && page === 1} hasMore={hasMore} onLoadMore={loadMore} isLoadingMore={isLoadingMore}
       placeholder={placeholder} searchPlaceholder="Search trips…" allOptionLabel="All Trips"
       className={className}
     />
@@ -66,15 +68,15 @@ export function TravelerTripSearchCombobox({ value, onChange, placeholder = 'All
  * Data: GET /trips/admin/search (ADMIN role required)
  */
 export function AdminTripSearchCombobox({ value, onChange, placeholder = 'All Trips', className }: TripComboboxProps) {
-  const { query, debouncedQuery, page, setPage, handleQueryChange } = useSearchCombobox()
+  const { query, debouncedQuery, page, loadMore, handleQueryChange, accumulate } = useSearchCombobox()
   const { data, isFetching } = useAdminTripsSearch(debouncedQuery, page, PAGE_SIZE)
-  const { options, pagination } = useTripComboboxUI(data, isFetching, setPage)
+  const { options, hasMore, isLoadingMore } = useTripComboboxUI(data, isFetching, accumulate)
 
   return (
     <SearchCombobox
       value={value} onChange={onChange}
       options={options} query={query} onQueryChange={handleQueryChange}
-      isLoading={isFetching} pagination={pagination}
+      isLoading={isFetching && page === 1} hasMore={hasMore} onLoadMore={loadMore} isLoadingMore={isLoadingMore}
       placeholder={placeholder} searchPlaceholder="Search trips…" allOptionLabel="All Trips"
       className={className}
     />
