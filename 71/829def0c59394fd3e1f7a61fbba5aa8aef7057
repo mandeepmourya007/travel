@@ -1,0 +1,33 @@
+apps/api/prisma/schema.prisma
+  s_65b35fc0dcf5e7::t_db9b2be9f97d03 245
+  s_65b35fc0dcf5e7::t_710db92ac771bd 186-189,210-212
+  s_65b35fc0dcf5e7::t_5863cade78cc47 353-354
+  s_65b35fc0dcf5e7::t_ee3ac381102cc3 394-401,424
+  s_65b35fc0dcf5e7::t_daada3da902b95 923-952,956-1003
+  s_65b35fc0dcf5e7::t_edcf9ea3721861 953-955
+apps/api/prisma/migrations/20260718000001_add_reseller_feature/migration.sql
+  s_65b35fc0dcf5e7::t_5037b34e319108 1-114
+apps/api/prisma/migrations/20260719000001_add_reseller_main_link_unique/migration.sql
+  s_65b35fc0dcf5e7::t_2ce28d6d84c251 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "71829def0c59394fd3e1f7a61fbba5aa8aef7057",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
