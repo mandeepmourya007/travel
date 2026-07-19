@@ -1,0 +1,78 @@
+apps/api/src/controllers/reseller.controller.ts
+  s_65b35fc0dcf5e7::t_525ea4604869ea 72
+  s_65b35fc0dcf5e7::t_f975509bec3c7b 31-32
+  s_65b35fc0dcf5e7::t_1c13c214215d63 116,118,124-125
+  s_65b35fc0dcf5e7::t_b1ed0761fb788e 42-49
+  s_65b35fc0dcf5e7::t_4267e1878a8a14 73-80
+  s_65b35fc0dcf5e7::t_34e80e3b472380 9
+  s_65b35fc0dcf5e7::t_81c76216124ba7 1-8,10-30,33-41,50-71,81-115,117,119-123,126-128
+apps/api/src/services/reseller.service.ts
+  s_65b35fc0dcf5e7::t_b5177213d460da 320-326,328,330,338-346
+  s_65b35fc0dcf5e7::t_1b5d5f5bba7ef0 165-170,173-178
+  s_65b35fc0dcf5e7::t_8f7feac019714a 5,13
+  s_65b35fc0dcf5e7::t_6d819e42efee8e 224
+  s_65b35fc0dcf5e7::t_291fda65732c56 185-215,217-223,225-232
+  s_65b35fc0dcf5e7::t_4f009ae20dad1e 156-157
+  s_65b35fc0dcf5e7::t_9b0ad9bac12587 327,329,331-333,336-337,347
+  s_65b35fc0dcf5e7::t_38939b6e3dbb6c 384-388
+  s_65b35fc0dcf5e7::t_dc986ff8d79d75 46-56,76-97,100-102,104-109,122-124
+  s_65b35fc0dcf5e7::t_530c542c15fa4e 216
+  s_65b35fc0dcf5e7::t_fd1e0c22a27c55 2
+  s_65b35fc0dcf5e7::t_66249d9a6e857f 1,3-4,6-12,14-45,57-75,98-99,103,110-121,125-155,158-164,171-172,179-184,233-319,334-335,348-383,389-445
+apps/api/src/repositories/reseller.repository.ts
+  s_65b35fc0dcf5e7::t_a57651ee2ff322 408,412-419,423,437,439
+  s_65b35fc0dcf5e7::t_39bbf1d2c1d420 371
+  s_65b35fc0dcf5e7::t_e53a7a124d95f2 201
+  s_65b35fc0dcf5e7::t_6b15e94d36cfd9 390-396
+  s_65b35fc0dcf5e7::t_87cd6d41a93775 153
+  s_65b35fc0dcf5e7::t_08aba13e751316 89-106,118,128-134,136-152,154-169
+  s_65b35fc0dcf5e7::t_7470fd4a6f5990 9
+  s_65b35fc0dcf5e7::t_e1f912131f96c8 228-231,235
+  s_65b35fc0dcf5e7::t_00fb5a92c224d0 387
+  s_65b35fc0dcf5e7::t_a7b91b3247bfe2 431
+  s_65b35fc0dcf5e7::t_64005cfedc8405 436
+  s_65b35fc0dcf5e7::t_53671a5c8cae40 1-8,22-47,49-88,107-117,119-127,135,170-171,214-227,232-234,236-258,266-298,300-327,346-370,372-375,378-386,389,397-405,407,409-411,420-422,424-430,432-435,438,440-458,521-606
+  s_65b35fc0dcf5e7::t_267e1ea6557cc0 406
+  s_65b35fc0dcf5e7::t_c5ee717c6cc35f 207,209
+  s_65b35fc0dcf5e7::t_a56cc64a57eb0a 172-200,202-206,208,210-213
+  s_65b35fc0dcf5e7::t_4e333528f6ff4d 299
+  s_65b35fc0dcf5e7::t_ae83134a63019f 328-345
+  s_65b35fc0dcf5e7::t_930c6acea97304 12-13
+  s_65b35fc0dcf5e7::t_9bf0c18f213fb5 11,14-21
+  s_65b35fc0dcf5e7::t_0faf0dcc3e6556 10
+  s_65b35fc0dcf5e7::t_e3f0e23f587f30 376-377
+  s_65b35fc0dcf5e7::t_d4018f16afa19b 470-474,477-489,491,493-496,499,506,511,518
+  s_65b35fc0dcf5e7::t_5509235abac0cf 48
+  s_65b35fc0dcf5e7::t_1e44e21f0ce298 388
+  s_65b35fc0dcf5e7::t_83dcd7e8a30386 459-469,475-476,497-498,500-505,507-510,512-517,519-520
+  s_65b35fc0dcf5e7::t_935ee7663c8cc3 490,492
+  s_65b35fc0dcf5e7::t_511be9adc497ec 259-265
+apps/api/src/routes/reseller.routes.ts
+  s_65b35fc0dcf5e7::t_86383bd3d12533 1-16,18-32,34-64,78-82,84-112,117-119,121-171
+  s_65b35fc0dcf5e7::t_8f1d9eeaa64093 33
+  s_65b35fc0dcf5e7::t_fd8d54751cba16 113-116,120
+  s_65b35fc0dcf5e7::t_a07e7f0bff66ae 65-77
+  s_65b35fc0dcf5e7::t_afb79819b49191 17
+  s_65b35fc0dcf5e7::t_73245adc83a06b 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e8de92f8d684059b14d52c557b03a6c4b32bc915",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
