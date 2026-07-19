@@ -1,0 +1,56 @@
+apps/web/src/components/reseller/reseller-booking-list.tsx
+  s_65b35fc0dcf5e7::t_da7345bc5eadd9 7
+  s_65b35fc0dcf5e7::t_f7ff383b5245b0 73-76
+  s_65b35fc0dcf5e7::t_da5f9215a3f42b 92
+  s_65b35fc0dcf5e7::t_8486861d7b44c6 23-26
+  s_65b35fc0dcf5e7::t_5767a3941a1f45 21-22,27-29
+  s_65b35fc0dcf5e7::t_7d7da8f424f481 84
+  s_65b35fc0dcf5e7::t_96ccd90f56cfb7 105-110
+  s_65b35fc0dcf5e7::t_e48bd21be5bf3d 77
+  s_65b35fc0dcf5e7::t_2743409a29db06 1-6,8-20,30-72,78-83,85-91,93-104,111-127
+apps/web/src/components/reseller/reseller-trip-card.tsx
+  s_65b35fc0dcf5e7::t_3644b538d16f4e 1-80
+apps/web/src/components/reseller/reseller-leads-table.tsx
+  s_65b35fc0dcf5e7::t_f6f2c806b3f6aa 1-3,5,7-26,33-47,51-74,129-130,133,135,153-155
+  s_65b35fc0dcf5e7::t_8e842c8ad604cc 4
+  s_65b35fc0dcf5e7::t_27944a1c975e13 99-103,106-108,110-112
+  s_65b35fc0dcf5e7::t_107bafbe26f02e 6,27-32,48-50,75-98,104-105,109,113-128,131-132,134,136-152
+apps/web/src/components/reseller/reseller-sublinks-drilldown.tsx
+  s_65b35fc0dcf5e7::t_94abb4b3e0f4aa 1-6,8-73,78-93,105-116,118-149,153-311,313-332,338-340,342-343,348-371
+  s_65b35fc0dcf5e7::t_de1b49897ec71a 117
+  s_65b35fc0dcf5e7::t_c696d8c4d7c721 94-104
+  s_65b35fc0dcf5e7::t_2be5aff8429fef 333-337,341,344-347
+  s_65b35fc0dcf5e7::t_7c15bf24836e20 7
+  s_65b35fc0dcf5e7::t_e117e5b0944bce 74-77
+  s_65b35fc0dcf5e7::t_a2df41ce270387 312
+  s_65b35fc0dcf5e7::t_db414f0afb4ced 150-152
+apps/web/src/components/reseller/__tests__/reseller-booking-list.test.tsx
+  s_65b35fc0dcf5e7::t_1bc2c54944fbfb 1-66
+apps/web/src/components/reseller/__tests__/reseller-leads-table.test.tsx
+  s_65b35fc0dcf5e7::t_82a38d4c4526fa 1,3,14-16,27-32,37-38,42,49-50,53,66-67,71-73,80,84-86,88-100,102-103
+  s_65b35fc0dcf5e7::t_0cd2a0cd3b26a3 69-70,74-79,81-83,87,101
+  s_65b35fc0dcf5e7::t_f9df85bc557390 2,4-13,17-26,33-36,39-41,43-48,51-52,54,57-65,104-105
+  s_65b35fc0dcf5e7::t_a06bb6a22b4e26 55-56
+  s_65b35fc0dcf5e7::t_729db20420b645 68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "7c61596c9649ce31da54ef6ddc7e265887f0fae8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
