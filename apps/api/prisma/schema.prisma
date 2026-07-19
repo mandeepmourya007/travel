@@ -56,6 +56,10 @@ enum PaymentType {
   PAYMENT
   REFUND
   ESCROW_RELEASE
+  // Cashfree deposit/balance payout split (see utils/payout.ts) — ESCROW_RELEASE
+  // above remains the Razorpay-only SafePay path and is unaffected by these.
+  DEPOSIT_RELEASE
+  BALANCE_RELEASE
 }
 
 enum PaymentStatus {
@@ -564,17 +568,30 @@ model PaymentTransaction {
   updatedAt DateTime @updatedAt
 
   @@index([bookingId])
+  @@index([bookingId, type])
   @@index([provider])
+  // Supports findBalanceReleaseEligibleBookings' outer filter
+  // (type = 'DEPOSIT_RELEASE' AND provider = 'cashfree') as a direct index scan
+  // instead of an index scan on provider + in-memory filter on type.
+  @@index([type, provider])
   @@index([gatewayOrderId])
   @@index([gatewayPaymentId])
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
   @@index([status])
   @@index([status, type])
-  // Partial unique index (not expressible in Prisma SDL — lives in raw migration):
+  // Partial unique indexes (not expressible in Prisma SDL — live in raw migrations):
   //   CREATE UNIQUE INDEX "payment_transaction_booking_refund_unique"
   //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'REFUND'
   // Ensures at most one REFUND row per booking — DB-level backstop against double-refund.
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_escrow_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'ESCROW_RELEASE'
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_deposit_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'DEPOSIT_RELEASE'
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_balance_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'BALANCE_RELEASE'
+  // Same reasoning as ESCROW_RELEASE: at most one DEPOSIT_RELEASE / BALANCE_RELEASE
+  // row per booking — the hard DB backstop against a duplicate gateway payout call.
 }
 
 model Review {
