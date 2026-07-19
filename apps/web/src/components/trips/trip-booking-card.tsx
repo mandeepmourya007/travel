@@ -1,4 +1,4 @@
-import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
+import { Check, X as XIcon, MapPin } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
 import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import { TripCtaButton } from './trip-cta-button'
@@ -139,11 +139,16 @@ export function TripBookingCard({ trip, markupAmount = 0 }: TripBookingCardProps
       {/* CTA */}
       <TripCtaButton trip={trip} variant="card" />
 
-      {/* SafePay trust badge */}
-      <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
-        <Shield className="h-4 w-4 text-primary-500" />
-        Payment held safely via SafePay until trip completion
-      </div>
+      {/*
+        Commented out — restore (and re-add the `Shield` import from 'lucide-react') if SafePay
+        escrow-hold-until-trip-done is accurately implemented for all payment providers.
+
+        SafePay trust badge
+        <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
+          <Shield className="h-4 w-4 text-primary-500" />
+          Payment held safely via SafePay until trip completion
+        </div>
+      */}
 
       {/* Cancellation */}
       {trip.cancellationPolicy && (

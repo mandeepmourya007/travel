@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, Shield } from 'lucide-react'
+import { CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, formatDateRange } from '@/lib/format'
 
@@ -39,11 +39,16 @@ export function BookingSuccess({
           </p>
         </div>
 
-        {/* SafePay badge */}
-        <div className="inline-flex items-center gap-2 bg-success-50 text-success-700 px-4 py-2 rounded-full text-sm">
-          <Shield className="h-4 w-4" />
-          Payment held safely via SafePay
-        </div>
+        {/*
+          Commented out — restore (and re-add `Shield` to the lucide-react import) if SafePay
+          escrow-hold-until-trip-done is accurately implemented for all payment providers.
+
+          SafePay badge
+          <div className="inline-flex items-center gap-2 bg-success-50 text-success-700 px-4 py-2 rounded-full text-sm">
+            <Shield className="h-4 w-4" />
+            Payment held safely via SafePay
+          </div>
+        */}
 
         {/* What's next */}
         <div className="text-left bg-neutral-50 rounded-lg p-4">
@@ -51,7 +56,12 @@ export function BookingSuccess({
           <ol className="list-decimal list-inside space-y-1 text-sm text-neutral-600">
             <li>You&apos;ll receive a confirmation email shortly</li>
             <li>The organizer will share trip details before departure</li>
-            <li>Your payment is safely held safely via SafePay until trip completion</li>
+            {/*
+              Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented
+              for all payment providers.
+              Original: "Your payment is safely held safely via SafePay until trip completion" (note: typo in original)
+            */}
+            <li>Your payment has been processed securely</li>
           </ol>
         </div>
 

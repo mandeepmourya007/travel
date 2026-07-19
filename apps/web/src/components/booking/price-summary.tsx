@@ -16,8 +16,9 @@ interface PriceSummaryProps {
 }
 
 const TRUST_BADGES = [
-  'Your money is held safely via SafePay',
-  'Released to organizer after trip completion',
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // 'Your money is held safely via SafePay',
+  // 'Released to organizer after trip completion',
   'Full refund if organizer cancels',
 ] as const
 
