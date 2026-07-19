@@ -49,13 +49,22 @@ Free to list for organizers (zero upfront cost, no lock-in). Platform takes ==10
 
 ## Refund Policy Matrix
 
-Implemented in `packages/shared/src/utils/refund.ts` (`calculateRefundPercent`):
+Implemented in `packages/shared/src/utils/refund.ts` (`calculateRefundPercent`). ==Day-based cliff (replaces the old 48h/100-50-0 tiers)==: the refund window closes `REFUND_CLIFF_DAYS` (7 days) before trip start, deliberately aligned with the organizer deposit/balance payout split below so no refund issued under this policy can ever require a clawback from the organizer.
 
-| Policy | ≥ 48h before trip | < 48h before trip |
+| Policy | ≥ 7 days before trip | < 7 days before trip |
 | :--- | :---: | :---: |
-| FLEXIBLE | 100% | 50% |
-| MODERATE | 50% | 0% |
+| FLEXIBLE | `MAX_REFUND_PERCENT` (50%) | 0% |
+| MODERATE | `MAX_REFUND_PERCENT` (50%) | 0% |
 | STRICT | 0% | 0% |
+
+Unrecognised/missing policy also resolves to 0% (fail-safe default).
+
+## Organizer Deposit / Balance Payout
+
+- **Non-refundable deposit at booking time.** For Cashfree bookings, the organizer's commission-adjusted entitlement (`E = round(baseAmount * (1 - commissionRate/100))`) is split into a **deposit** (`ORGANIZER_DEPOSIT_PERCENT` = 50% of entitlement, released immediately, non-refundable) and a **balance** (the remaining 50%, held in escrow). Implemented by `calculatePayoutSplit` in [[Shared Package#Utils|shared payout utils]].
+- **Balance released at the refund cliff or on a 0%-refund cancellation.** The held balance is released to the organizer once the trip's 7-day refund cliff passes (booking is `CONFIRMED`/`COMPLETED`), or immediately for a `CANCELLED` booking where no refund was ever issued (the 0%-refund case under the matrix above) — since that money was never promised back to the traveler. A `CANCELLED` booking that *did* get a refund never releases its balance; that portion stays held permanently. See the `release-cashfree-balances` cron in [[Background Jobs & Realtime]] and the money-flow detail in [[Payments & Webhooks]].
+- **Safety invariant**: `ORGANIZER_DEPOSIT_PERCENT <= 100 - MAX_REFUND_PERCENT` always, asserted at booking time by `assertPayoutSafe` — the platform never releases more to the organizer than the guaranteed-non-refundable share, so a cancellation refund can never need a clawback.
+- Razorpay bookings are unaffected — this deposit/balance split is Cashfree-only (Razorpay keeps the existing SafePay `ESCROW_RELEASE` all-at-once-on-completion model).
 
 ## Reseller Markup Links
 

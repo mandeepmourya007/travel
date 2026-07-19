@@ -9,7 +9,7 @@ tags:
 
 # Database Schema
 
-Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 36 migrations in `apps/api/prisma/migrations/` (latest: `20260719000001_add_reseller_main_link_unique`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
+Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 38 migrations in `apps/api/prisma/migrations/` (latest: `20260719165627_add_deposit_balance_release_unique_index`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
 
 > [!important] ID Strategy
 > Every model uses ==`@id @default(uuid(7))` (UUIDv7)==. Legacy rows may hold cuid v1 — validators accept **both** (`idSchema` in [[Shared Package#Validators (Zod)|shared validators]]; never bare `z.string().uuid()`, it rejects v7).
@@ -19,29 +19,29 @@ Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_
 
 ## Enums
 
-| Enum                  | Values                                                                                                                      |
-| :----------------------| :----------------------------------------------------------------------------------------------------------------------------|
-| UserRole              | TRAVELER, ORGANIZER, ADMIN                                                                                                  |
-| VerificationStatus    | PENDING, APPROVED, REJECTED, REVISION_REQUIRED                                                                              |
-| DocumentReviewStatus  | PENDING, APPROVED, REJECTED                                                                                                 |
-| TripStatus            | DRAFT, ACTIVE, FULL, COMPLETED, CANCELLED                                                                                   |
-| CancellationPolicy    | FLEXIBLE, MODERATE, STRICT                                                                                                  |
-| BookingStatus         | PENDING_PAYMENT, CONFIRMED, CANCELLED, COMPLETED, REFUNDED, EXPIRED                                                         |
-| PaymentType           | PAYMENT, REFUND, ESCROW_RELEASE                                                                                             |
-| PaymentStatus         | INITIATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED                                                                           |
-| Gender                | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY                                                                                      |
-| NotificationChannel   | EMAIL, SMS, PUSH, IN_APP                                                                                                    |
-| NotificationType      | 20 values (BOOKING_CONFIRMED, PAYMENT_RECEIVED, TRIP_REMINDER, CHAT_MESSAGE, ORGANIZER_APPROVED, WALLET_CREDIT_EXPIRING, …) |
-| VerificationCodeType  | EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET                                                                          |
-| BookingMode           | INSTANT, REQUEST_BASED                                                                                                      |
-| TripRequestStatus     | PENDING, APPROVED, REJECTED, EXPIRED, CONVERTED                                                                             |
-| TransferPointType     | PICKUP, DROP                                                                                                                |
-| ConversationType      | TRIP_CHAT, ADMIN_SUPPORT                                                                                                    |
-| MessageType           | TEXT, IMAGE, FILE, SYSTEM                                                                                                   |
-| ConversationStatus    | ACTIVE, ARCHIVED, CLOSED                                                                                                    |
-| TripTypeRequestStatus | PENDING, APPROVED, REJECTED                                                                                                 |
-| SeatStatus            | AVAILABLE, HELD, BOOKED, BLOCKED                                                                                            |
-| WalletTransactionType | REFUND, CASHBACK, BOOKING_DEDUCTION, ADMIN_CREDIT, ADMIN_DEBIT, PROMOTIONAL_CREDIT, EXPIRY                                  |
+| Enum                  | Values                                                                                                                                                                                            |
+| :----------------------| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| UserRole              | TRAVELER, ORGANIZER, ADMIN                                                                                                                                                                        |
+| VerificationStatus    | PENDING, APPROVED, REJECTED, REVISION_REQUIRED                                                                                                                                                    |
+| DocumentReviewStatus  | PENDING, APPROVED, REJECTED                                                                                                                                                                       |
+| TripStatus            | DRAFT, ACTIVE, FULL, COMPLETED, CANCELLED                                                                                                                                                         |
+| CancellationPolicy    | FLEXIBLE, MODERATE, STRICT                                                                                                                                                                        |
+| BookingStatus         | PENDING_PAYMENT, CONFIRMED, CANCELLED, COMPLETED, REFUNDED, EXPIRED                                                                                                                               |
+| PaymentType           | PAYMENT, REFUND, ESCROW_RELEASE, ==DEPOSIT_RELEASE, BALANCE_RELEASE== (Cashfree deposit/balance payout split, see [[Payments & Webhooks]]; ESCROW_RELEASE remains the Razorpay-only SafePay path) |
+| PaymentStatus         | INITIATED, AUTHORIZED, CAPTURED, FAILED, REFUNDED                                                                                                                                                 |
+| Gender                | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY                                                                                                                                                            |
+| NotificationChannel   | EMAIL, SMS, PUSH, IN_APP                                                                                                                                                                          |
+| NotificationType      | 20 values (BOOKING_CONFIRMED, PAYMENT_RECEIVED, TRIP_REMINDER, CHAT_MESSAGE, ORGANIZER_APPROVED, WALLET_CREDIT_EXPIRING, …)                                                                       |
+| VerificationCodeType  | EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET                                                                                                                                                |
+| BookingMode           | INSTANT, REQUEST_BASED                                                                                                                                                                            |
+| TripRequestStatus     | PENDING, APPROVED, REJECTED, EXPIRED, CONVERTED                                                                                                                                                   |
+| TransferPointType     | PICKUP, DROP                                                                                                                                                                                      |
+| ConversationType      | TRIP_CHAT, ADMIN_SUPPORT                                                                                                                                                                          |
+| MessageType           | TEXT, IMAGE, FILE, SYSTEM                                                                                                                                                                         |
+| ConversationStatus    | ACTIVE, ARCHIVED, CLOSED                                                                                                                                                                          |
+| TripTypeRequestStatus | PENDING, APPROVED, REJECTED                                                                                                                                                                       |
+| SeatStatus            | AVAILABLE, HELD, BOOKED, BLOCKED                                                                                                                                                                  |
+| WalletTransactionType | REFUND, CASHBACK, BOOKING_DEDUCTION, ADMIN_CREDIT, ADMIN_DEBIT, PROMOTIONAL_CREDIT, EXPIRY                                                                                                        |
 
 ## Entity Relationships (core)
 
@@ -98,7 +98,7 @@ erDiagram
 
 ### Money
 
-- **PaymentTransaction** — `bookingId`, `type` (PaymentType), `amount (Int)`, `currency`, `provider` (razorpay/cashfree), provider-neutral `gatewayOrderId/PaymentId/RefundId/TransferId` + legacy `razorpay*` columns, `status`, `failureReason?`, `metadata (Json)?`. Raw partial-unique: ==one REFUND per booking==.
+- **PaymentTransaction** — `bookingId`, `type` (PaymentType), `amount (Int)`, `currency`, `provider` (razorpay/cashfree), provider-neutral `gatewayOrderId/PaymentId/RefundId/TransferId` + legacy `razorpay*` columns, `status`, `failureReason?`, `metadata (Json)?`. Raw partial-unique: ==one REFUND per booking==, plus ==one DEPOSIT_RELEASE per booking== and ==one BALANCE_RELEASE per booking== (`PaymentTransaction_bookingId_deposit_release_unique` / `PaymentTransaction_bookingId_balance_release_unique`, mirroring the pre-existing `PaymentTransaction_bookingId_escrow_release_unique`) — DB-level idempotency backstop against a duplicate deposit/balance gateway payout call. For Cashfree bookings, the `DEPOSIT_RELEASE` row's `metadata.computedSplit` carries `{ entitlement, deposit, balance, baseAmount, commissionRate, hoursUntilTrip }` plus a frozen `startDate` (ISO string) snapshot of the trip's start date *as of deposit-release time* — see [[Payments & Webhooks]] for why the frozen snapshot exists (prevents a later trip reschedule from manufacturing refund eligibility). Composite `@@index([bookingId, type])` (migration `20260719180000_add_payment_transaction_booking_id_type_index`) backs `PaymentTransactionRepository.findBalanceReleaseEligibleBookings`'s `paymentTransactions: { none: { type: ... } }` relation filters — a correlated NOT EXISTS scoped to `bookingId`+`type`, replacing two prior unbounded full-table scans. Composite `@@index([type, provider])` (migration `20260720000000_add_payment_transaction_type_provider_index`) backs the same query's outer filter (`type = 'DEPOSIT_RELEASE' AND provider = 'cashfree'`) — verified via `EXPLAIN ANALYZE` that without it, Postgres falls back to an index scan on `provider` alone plus an in-memory `Filter` on `type`, which grows linearly with the cashfree-`PAYMENT`-row count as the table scales.
 - **Wallet** — `userId` *(unique)*, `balance (Int)`, `currency`. Raw ==CHECK constraint `balance >= 0`==.
 - **WalletTransaction** — `walletId`, `amount (Int)`, `type`, `referenceModel?`/`referenceId?` (polymorphic), `description`, `balanceBefore`/`balanceAfter`, `expiresAt?`, `expiryReminderSentAt?`. *Unique(type, referenceModel, referenceId)* — idempotency guard.
 
