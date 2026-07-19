@@ -1,0 +1,51 @@
+apps/web/src/components/trips/transfer-points-table.tsx
+  s_65b35fc0dcf5e7::t_7a33e62c234933 27
+apps/web/src/components/booking/price-summary.tsx
+  s_65b35fc0dcf5e7::t_07a06d84aa0318 14-15
+  s_65b35fc0dcf5e7::t_3d347c0522f31d 24
+  s_65b35fc0dcf5e7::t_eac949d95a5644 30-32
+apps/web/src/components/trips/trip-comparison-table.tsx
+  s_65b35fc0dcf5e7::t_039c79677f7753 105
+apps/web/src/components/dashboard/trip-users/traveler-details-table.tsx
+  s_65b35fc0dcf5e7::t_6b53f5439e469e 27
+apps/web/src/components/bookings/traveler-details-accordion.tsx
+  s_65b35fc0dcf5e7::t_7d06e1bce3ca4e 55
+apps/web/src/components/trips/trip-detail-client.tsx
+  s_65b35fc0dcf5e7::t_df63aade4c6efb 8
+  s_65b35fc0dcf5e7::t_4c466d9276c7ce 104-108,131,136
+  s_65b35fc0dcf5e7::t_ecdaa7e439fe37 4,6-7,9,21,26-29,32-37,39-68
+apps/web/src/components/booking/traveler-form.tsx
+  s_65b35fc0dcf5e7::t_11f4385d474e52 32-33
+  s_65b35fc0dcf5e7::t_c78ad9a57b63c8 48
+  s_65b35fc0dcf5e7::t_e74cb5e7bdb202 80
+apps/web/src/components/payments/payment-transaction-list.tsx
+  s_65b35fc0dcf5e7::t_d118de92b0a881 61
+apps/web/src/components/trips/trip-sticky-book-bar.tsx
+  s_65b35fc0dcf5e7::t_0f7386ff94037e 9-10,13,24,32
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_65b35fc0dcf5e7::t_d27b52c433ea21 32-33,36
+  s_65b35fc0dcf5e7::t_1b9444cce8b844 64,72
+apps/web/src/components/wallet/wallet-transaction-list.tsx
+  s_65b35fc0dcf5e7::t_36088e20a06ae3 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e9f9e4e5c8380e20e3fda66d2dd7017933fbbec9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
