@@ -191,6 +191,10 @@ model User {
   // organizer names them (by email) on a ResellerMainLink. Gates reseller-only
   // endpoints/UI; requireRole() can't express this, so services check it explicitly.
   isReseller      Boolean   @default(false)
+  // Explicit consent timestamp (server-stamped, never client-supplied). No
+  // versioning/re-consent flow — initial acceptance only. Organizer Agreement
+  // acceptance lives on OrganizerProfile, not here — see that model.
+  tncAcceptedAt DateTime? // Terms of Service + Privacy Policy, set for every user on signup
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -234,6 +238,9 @@ model OrganizerProfile {
   commissionRate      Decimal            @default(10.0) @db.Decimal(5, 2)
   razorpayAccountId   String?
   cashfreeVendorId    String?   // Cashfree Easy Split vendor ID (equivalent of razorpayAccountId)
+  // Server-stamped, never client-supplied. No versioning/re-consent flow —
+  // initial acceptance only, captured when organizer registration completes.
+  organizerTncAcceptedAt DateTime? // Organizer Agreement acceptance
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
