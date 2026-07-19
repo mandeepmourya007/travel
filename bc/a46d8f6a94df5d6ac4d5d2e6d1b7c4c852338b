@@ -1,0 +1,90 @@
+"docs/codebase/Web Frontend.md"
+  s_65b35fc0dcf5e7::t_16bf40868f4dc6 73-74
+  s_65b35fc0dcf5e7::t_26942f7164fecb 42-43
+  s_65b35fc0dcf5e7::t_059418da517f3b 47
+  s_65b35fc0dcf5e7::t_5207fee6f4aa99 41
+  s_65b35fc0dcf5e7::t_a16f34f36aa32b 40
+CLAUDE.md
+  s_65b35fc0dcf5e7::t_6c11440f82d4be 48-60
+"docs/codebase/Auth & Security.md"
+  s_65b35fc0dcf5e7::t_be6c38d693b361 39-40
+  s_65b35fc0dcf5e7::t_17566af70ebea8 35-36,41
+  s_65b35fc0dcf5e7::t_9f4d9a9f552caa 37-38
+"docs/codebase/API Routes Reference.md"
+  s_65b35fc0dcf5e7::t_64df9dea644653 213-216,220-221,226,228-229,233-235
+  s_65b35fc0dcf5e7::t_cf67abf4a0267b 217,219,222-224,236
+  s_65b35fc0dcf5e7::t_0ae90e6bf4f3fb 225
+  s_65b35fc0dcf5e7::t_cc03bb7ec36659 230
+  s_65b35fc0dcf5e7::t_fc12f7767b4a3a 218
+  s_65b35fc0dcf5e7::t_69afee7dc53ceb 15
+  s_65b35fc0dcf5e7::t_06a44e356c319c 231
+  s_65b35fc0dcf5e7::t_0cfd7890f93f93 227,232
+  s_65b35fc0dcf5e7::t_de1ce47dd2c5f4 237
+"docs/codebase/API Backend.md"
+  s_65b35fc0dcf5e7::t_047d004ba9a365 29-32
+  s_65b35fc0dcf5e7::t_90bdf3ca0e36ae 84
+  h_b3232c20134322 70,72,74,76,78,80,82-83,85-90
+  s_0e816523f2c91b::t_fdd340943134fe 69,71,73,75,77,79,81
+"docs/codebase/Product Domain.md"
+  s_65b35fc0dcf5e7::t_b3ee722ed1384e 72
+  s_65b35fc0dcf5e7::t_10c2db8725dc1f 71
+  s_65b35fc0dcf5e7::t_32410242c86779 73
+  s_65b35fc0dcf5e7::t_e07b9e666a636d 60-62,68-70,74
+  s_65b35fc0dcf5e7::t_e9869fdee46924 23
+  s_65b35fc0dcf5e7::t_d7977c5a6762f5 63-67
+  s_65b35fc0dcf5e7::t_a2dd3caba6b691 75
+"docs/codebase/Data Fetching & State.md"
+  s_65b35fc0dcf5e7::t_19567020f67e2f 37
+  s_65b35fc0dcf5e7::t_f1bf88476b1d31 38
+  s_65b35fc0dcf5e7::t_6fa249f1956879 52
+  s_65b35fc0dcf5e7::t_671237d5ce4ca8 21
+"docs/codebase/Database Schema.md"
+  s_65b35fc0dcf5e7::t_dc9bffa1754544 112-113,115-118
+  s_65b35fc0dcf5e7::t_911b7f8edd1ec8 72
+  s_65b35fc0dcf5e7::t_b3738900a1e679 114
+  s_65b35fc0dcf5e7::t_64f66a230bff1e 93
+  s_65b35fc0dcf5e7::t_ece747ead2b125 12
+  s_65b35fc0dcf5e7::t_f70b34d4ca39a9 76
+  s_65b35fc0dcf5e7::t_0e295dcb5d352d 119
+"docs/codebase/Shared Package.md"
+  s_65b35fc0dcf5e7::t_0f3029c520f1b3 44
+  s_65b35fc0dcf5e7::t_546c3bada81b60 57
+  s_65b35fc0dcf5e7::t_609bbea0debb76 54,56
+  s_65b35fc0dcf5e7::t_8823ea88a28f33 21-23
+  s_65b35fc0dcf5e7::t_c8356190179b93 48
+"docs/codebase/Frontend Routes Reference.md"
+  h_b3232c20134322 66-67,69-70,72-73,75-76,78,80,85
+  s_65b35fc0dcf5e7::t_b93a98bd18671d 74
+  s_65b35fc0dcf5e7::t_b157155b26d07b 93
+  s_65b35fc0dcf5e7::t_eac312323c9bde 105
+  s_65b35fc0dcf5e7::t_f5dac3dc90e950 48-54,65,68,71,77,79,84,86-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bca46d8f6a94df5d6ac4d5d2e6d1b7c4c852338b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_0e816523f2c91b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-aa5c8e3b51b0f7848",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
