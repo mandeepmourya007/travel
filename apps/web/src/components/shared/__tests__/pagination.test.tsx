@@ -129,6 +129,72 @@ describe('Pagination', () => {
     })
   })
 
+  describe('page-size selector (opt-in limit/onLimitChange)', () => {
+    it('should not render a limit select when limit/onLimitChange are not provided', () => {
+      render(
+        <Pagination currentPage={1} totalPages={5} onPageChange={vi.fn()} />,
+      )
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    })
+
+    it('should not render a limit select when only one of limit/onLimitChange is provided', () => {
+      render(
+        <Pagination currentPage={1} totalPages={5} onPageChange={vi.fn()} limit={25} />,
+      )
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    })
+
+    it('should render a limit select with default options when both are provided', () => {
+      render(
+        <Pagination currentPage={1} totalPages={5} onPageChange={vi.fn()} limit={25} onLimitChange={vi.fn()} />,
+      )
+      const select = screen.getByRole('combobox')
+      expect(select).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: '10 per page' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: '25 per page' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: '50 per page' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: '100 per page' })).toBeInTheDocument()
+    })
+
+    it('should render custom limitOptions when provided', () => {
+      render(
+        <Pagination
+          currentPage={1}
+          totalPages={5}
+          onPageChange={vi.fn()}
+          limit={5}
+          limitOptions={[5, 15]}
+          onLimitChange={vi.fn()}
+        />,
+      )
+      expect(screen.getByRole('option', { name: '5 per page' })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: '15 per page' })).toBeInTheDocument()
+      expect(screen.queryByRole('option', { name: '10 per page' })).not.toBeInTheDocument()
+    })
+
+    it('should call onLimitChange with the new limit when changed', async () => {
+      const onLimitChange = vi.fn()
+      render(
+        <Pagination currentPage={1} totalPages={5} onPageChange={vi.fn()} limit={10} onLimitChange={onLimitChange} />,
+      )
+      await userEvent.selectOptions(screen.getByRole('combobox'), '50')
+      expect(onLimitChange).toHaveBeenCalledWith(50)
+    })
+
+    it('should not render a limit select in link mode (buildHref) even if limit/onLimitChange are passed', () => {
+      render(
+        <Pagination
+          currentPage={2}
+          totalPages={5}
+          buildHref={(p) => `?page=${p}`}
+          limit={10}
+          onLimitChange={vi.fn()}
+        />,
+      )
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    })
+  })
+
   describe('ellipsis logic', () => {
     it('should show left ellipsis when current is far from start', () => {
       render(
