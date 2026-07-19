@@ -1,0 +1,35 @@
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_bd7a5821035275::t_eb739943a1e145 1
+  s_bd7a5821035275::t_769953d9a2b464 142-151
+apps/web/src/app/payment-complete/page.tsx
+  s_bd7a5821035275::t_e5901b68f31803 5
+  s_bd7a5821035275::t_25c599457ff674 146-154,161-165
+  s_bd7a5821035275::t_6c832908c133f2 166
+apps/web/src/components/booking/booking-success.tsx
+  s_bd7a5821035275::t_01fc822e1d9c2e 42-51,59-63
+  s_bd7a5821035275::t_bf3f1e1c94c629 64
+  s_bd7a5821035275::t_278258a99a2932 3
+apps/web/src/components/booking/price-summary.tsx
+  s_bd7a5821035275::t_b93218b789e95d 19-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e410e2f18398e42b7f845d37a65abe1c5214430e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_bd7a5821035275": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "89568790-90ec-4ba2-a04b-92626eb23150",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
