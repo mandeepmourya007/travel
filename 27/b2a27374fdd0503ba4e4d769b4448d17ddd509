@@ -1,0 +1,57 @@
+apps/web/src/components/shared/trip-search-combobox.tsx
+  s_65b35fc0dcf5e7::t_a29fa2ee8bb95a 16-23,31,33,39,51,53,59,71,73,79
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_65b35fc0dcf5e7::t_6b71618fedf948 17
+  s_65b35fc0dcf5e7::t_b60b941d7926a8 40,43
+apps/web/src/components/ui/table.tsx
+  s_65b35fc0dcf5e7::t_6f4c6e84646c1d 24
+apps/web/src/components/dashboard/dashboard-sidebar.tsx
+  s_65b35fc0dcf5e7::t_5ba4020af7f8e5 32
+  s_65b35fc0dcf5e7::t_899a81eb47af12 15
+apps/web/src/components/layout/header.tsx
+  s_65b35fc0dcf5e7::t_689a0125805dab 79-80
+  s_65b35fc0dcf5e7::t_04305e61a6a5dd 22,25
+  s_65b35fc0dcf5e7::t_84c160d9ec0dba 111,113
+  s_65b35fc0dcf5e7::t_1be594bef3ca55 41-42,51
+apps/web/src/components/shared/pagination.tsx
+  s_65b35fc0dcf5e7::t_e74c492ad09283 92-101,104-111
+  s_65b35fc0dcf5e7::t_2cf20aea66df51 11-19,34
+  s_65b35fc0dcf5e7::t_b1dca6ef0e3728 197-214
+  s_65b35fc0dcf5e7::t_881d0fec975079 35
+  s_65b35fc0dcf5e7::t_ab6fd613e4b851 112
+apps/web/src/components/shared/search-combobox.tsx
+  s_65b35fc0dcf5e7::t_21647f0564aee7 161
+  s_65b35fc0dcf5e7::t_71c71e1c1e8ae7 44,46-47
+  s_65b35fc0dcf5e7::t_104ca78c4afa05 115-123
+  s_65b35fc0dcf5e7::t_d13db6baa57c31 62-64
+  s_65b35fc0dcf5e7::t_ad0efbe8a242bb 4,10,18,24-29
+  s_65b35fc0dcf5e7::t_851aeeee5bf890 200-205
+apps/web/src/components/shared/reseller-search-combobox.tsx
+  s_65b35fc0dcf5e7::t_682242e9d3e607 22,25-27,33,45,48-50,56
+  s_65b35fc0dcf5e7::t_89e6eb9e287cbf 1-21,23-24,28-32,34-44,46-47,51-55,57-61
+apps/web/src/components/layout/mobile-bottom-nav.tsx
+  s_65b35fc0dcf5e7::t_e760924238b3b3 16
+  s_65b35fc0dcf5e7::t_11500abd36bfce 75
+  s_65b35fc0dcf5e7::t_90836b2508eb5b 67,74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "27b2a27374fdd0503ba4e4d769b4448d17ddd509",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
