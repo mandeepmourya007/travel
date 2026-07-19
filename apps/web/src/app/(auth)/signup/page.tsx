@@ -10,6 +10,9 @@ import { signupSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { EmailInput } from '@/components/shared/email-input'
 import { useLoadingStore } from '@/store/loading.store'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -18,7 +21,7 @@ export default function SignupPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const completedOnboarding = useAuthStore((s) => s.completedOnboarding)
   const hasHydrated = useAuthStore((s) => s._hasHydrated)
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({ email: '', password: '', acceptedTerms: false })
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -112,20 +115,69 @@ export default function SignupPage() {
               )}
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full disabled:opacity-50"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="spinner spinner-sm" /> Creating account...
-                </span>
-              ) : 'Create account'}
-            </button>
+            <div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="acceptedTerms"
+                  checked={form.acceptedTerms}
+                  onCheckedChange={(checked) =>
+                    setForm((f) => ({ ...f, acceptedTerms: checked === true }))
+                  }
+                  className="mt-0.5"
+                />
+                <label htmlFor="acceptedTerms" className="text-sm text-neutral-700">
+                  I agree to the{' '}
+                  <Link href="/terms" className="font-medium text-primary-600 hover:text-primary-700">
+                    Terms of Service
+                  </Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="font-medium text-primary-600 hover:text-primary-700">
+                    Privacy Policy
+                  </Link>
+                </label>
+              </div>
+              {getFieldError('acceptedTerms') && (
+                <p className="mt-1 text-xs text-error-500">{getFieldError('acceptedTerms')}</p>
+              )}
+            </div>
+
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* Wrapper span, not the <button> itself, is the actual hover/focus trigger —
+                      a native disabled button doesn't reliably fire pointer/hover events in all
+                      browsers. Only needs to be a tab stop while the button underneath can't be
+                      one itself (i.e. while disabled) — otherwise it'd add a second, redundant
+                      tab stop next to the button's own native focusability. */}
+                  <span tabIndex={!form.acceptedTerms ? 0 : undefined} className="block w-full">
+                    <button
+                      type="submit"
+                      disabled={loading || !form.acceptedTerms}
+                      className={cn(
+                        'btn-primary w-full disabled:opacity-50',
+                        !form.acceptedTerms && 'pointer-events-none',
+                      )}
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <span className="spinner spinner-sm" /> Creating account...
+                        </span>
+                      ) : 'Create account'}
+                    </button>
+                  </span>
+                </TooltipTrigger>
+                {!form.acceptedTerms && (
+                  <TooltipContent>
+                    Accept the Terms of Service and Privacy Policy to continue
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           </form>
 
           <GoogleAuthSection
+            disabled={!form.acceptedTerms}
+            disabledHint="Accept the Terms of Service and Privacy Policy above to continue with Google"
             onSuccess={(isNewUser) => {
               useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
