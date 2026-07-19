@@ -11,7 +11,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
   openGraph: {
     title: `Terms of Service | ${APP_NAME}`,
-    description: `Terms governing your use of ${APP_NAME}, India's SafePay-protected group travel platform.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `Terms governing your use of ${APP_NAME}, India's SafePay-protected group travel platform.`
+    description: `Terms governing your use of ${APP_NAME}, India's group travel platform.`,
     type: 'website',
     url: '/terms',
   },
