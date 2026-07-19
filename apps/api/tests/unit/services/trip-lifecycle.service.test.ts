@@ -1,8 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Prisma } from '@prisma/client'
-import { TripLifecycleService } from '../../../src/services/trip-lifecycle.service'
 import { logger } from '../../../src/utils/logger'
+
+// Auto-cashback is env-gated (WALLET_AUTO_CASHBACK_PERCENT/CAP default to 0 in test
+// env, which would make the cashback path a permanent no-op). Enable it for this
+// suite only, keeping every other constant real.
+vi.mock('../../../src/utils/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../src/utils/constants')>()
+  return { ...actual, WALLET_AUTO_CASHBACK_PERCENT: 5, WALLET_AUTO_CASHBACK_CAP: 5000 }
+})
+
+const { TripLifecycleService } = await import('../../../src/services/trip-lifecycle.service')
 
 // ── Mock Repositories ─────────────────────────────────
 const mockTx = {
@@ -51,6 +60,7 @@ function createMockCapturedPayment(overrides: Record<string, unknown> = {}) {
     razorpayPaymentId: 'pay_abc123',
     booking: {
       totalAmount: 9000,
+      markupAmount: 0,
       tripId: 'trip-1',
       trip: {
         organizer: { commissionRate: 10 },
@@ -248,6 +258,7 @@ describe('TripLifecycleService', () => {
       const payment = createMockCapturedPayment({
         booking: {
           totalAmount: 10000,
+          markupAmount: 0,
           tripId: 'trip-1',
           trip: { organizer: { commissionRate: 15 } },
         },
@@ -261,6 +272,47 @@ describe('TripLifecycleService', () => {
 
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         amount: 8500, // 10000 * (1 - 15/100) = 8500
+      }))
+    })
+
+    it('computes the transfer amount from the base amount only — reseller markup never enters the escrow-release ledger', async () => {
+      // totalAmount includes a 2000 markup on top of an 8000 base; only the base
+      // may be transferred/recorded, matching the booking-time commission split.
+      const payment = createMockCapturedPayment({
+        booking: {
+          totalAmount: 10000,
+          markupAmount: 2000,
+          tripId: 'trip-1',
+          trip: { organizer: { commissionRate: 10 } },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
+      mockPaymentTxRepo.create.mockResolvedValue({})
+
+      await service.releaseSafePayForTrip('trip-1')
+
+      // base = 10000 - 2000 = 8000; 8000 * (1 - 10/100) = 7200
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        amount: 7200,
+      }))
+    })
+
+    it('is byte-identical to a non-reseller booking when markupAmount is 0', async () => {
+      const paymentNoMarkup = createMockCapturedPayment({
+        booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([paymentNoMarkup])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
+      mockPaymentTxRepo.create.mockResolvedValue({})
+
+      await service.releaseSafePayForTrip('trip-1')
+
+      // totalAmount - 0 === totalAmount — same result as pre-markup calculation
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
+        amount: 9000, // 10000 * (1 - 10/100) = 9000
       }))
     })
   })
@@ -325,6 +377,7 @@ describe('TripLifecycleService', () => {
       const payment = createMockCapturedPayment({
         booking: {
           totalAmount: 10000,
+          markupAmount: 0,
           tripId: 'trip-1',
           trip: {
             organizer: {
@@ -348,6 +401,7 @@ describe('TripLifecycleService', () => {
       const payment = createMockCapturedPayment({
         booking: {
           totalAmount: 10000,
+          markupAmount: 0,
           tripId: 'trip-1',
           trip: {
             organizer: { commissionRate: null },
@@ -368,6 +422,7 @@ describe('TripLifecycleService', () => {
       const payment = createMockCapturedPayment({
         booking: {
           totalAmount: 9999,
+          markupAmount: 0,
           tripId: 'trip-1',
           trip: {
             organizer: { commissionRate: new Prisma.Decimal('12.50') },
@@ -381,6 +436,70 @@ describe('TripLifecycleService', () => {
       // 9999 * (1 - 0.125) = 9999 * 0.875 = 8749.125 → Math.round → 8749
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 8749 }),
+      )
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // Auto-cashback — base-only (reseller markup must never fund cashback)
+  // ═══════════════════════════════════════════════════
+  describe('sendPostCompletionSideEffects — auto-cashback base-only', () => {
+    const mockNotificationService = { send: vi.fn().mockResolvedValue(undefined) }
+    const mockWalletService = { credit: vi.fn().mockResolvedValue(undefined) }
+    const mockBookingRepo = { findConfirmedByTripForCashback: vi.fn() }
+
+    let cashbackService: InstanceType<typeof TripLifecycleService>
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([])
+      mockTripRepo.findTripsToComplete.mockResolvedValue([])
+      cashbackService = new TripLifecycleService(
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        mockNotificationService as any,
+        mockWalletService as any,
+        mockBookingRepo as any,
+      )
+    })
+
+    it('credits cashback from the base amount only when markupAmount > 0', async () => {
+      mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+        {
+          bookingId: 'booking-1',
+          userId: 'user-1',
+          totalAmount: 10000,
+          markupAmount: 2000,
+          cashbackIssued: null,
+        },
+      ])
+
+      await (cashbackService as any).sendPostCompletionSideEffects('trip-1', 'goa-trip', 'Goa Trip')
+
+      // base = 10000 - 2000 = 8000; 5% of 8000 = 400
+      expect(mockWalletService.credit).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-1', amount: 400 }),
+      )
+    })
+
+    it('is byte-identical to a non-reseller booking when markupAmount is 0', async () => {
+      mockBookingRepo.findConfirmedByTripForCashback.mockResolvedValue([
+        {
+          bookingId: 'booking-2',
+          userId: 'user-2',
+          totalAmount: 10000,
+          markupAmount: 0,
+          cashbackIssued: null,
+        },
+      ])
+
+      await (cashbackService as any).sendPostCompletionSideEffects('trip-1', 'goa-trip', 'Goa Trip')
+
+      // totalAmount - 0 === totalAmount; 5% of 10000 = 500 — same as pre-markup calculation
+      expect(mockWalletService.credit).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-2', amount: 500 }),
       )
     })
   })

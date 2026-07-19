@@ -537,12 +537,12 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     const payment1 = {
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     const payment2 = {
       id: 'ptx-2', bookingId: 'b2', amount: 15000,
       razorpayTransferId: 'trf_002', razorpayPaymentId: 'pay_002',
-      booking: { totalAmount: 15000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 15000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment1, payment2])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set()) // No prior releases
@@ -583,7 +583,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([{
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     // ESCROW_RELEASE DB row is written first (P2002-guard ordering), then Razorpay is called
@@ -613,7 +613,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([{
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
     // b1 was already released — skip it
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set(['b1']))
@@ -634,7 +634,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([{
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: null, razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.fetchTransferId.mockResolvedValue('trf_lazy_fetched')
@@ -660,7 +660,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([{
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: null, razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.fetchTransferId.mockResolvedValue(null) // Cannot fetch
@@ -700,7 +700,7 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([{
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_001', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: null } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: null } } },
     }])
     mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
@@ -724,7 +724,7 @@ describe('Flow 4: Crash Recovery — Unreleased SafePay Sweep', () => {
     const unreleased = {
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_orphan', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased])
     mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
@@ -745,12 +745,12 @@ describe('Flow 4: Crash Recovery — Unreleased SafePay Sweep', () => {
     const unreleased1 = {
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: 'trf_fail', razorpayPaymentId: 'pay_001',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     const unreleased2 = {
       id: 'ptx-2', bookingId: 'b2', amount: 8000,
       razorpayTransferId: 'trf_ok', razorpayPaymentId: 'pay_002',
-      booking: { totalAmount: 8000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 8000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased1, unreleased2])
     mockPaymentService.releaseTransferHold
@@ -769,7 +769,7 @@ describe('Flow 4: Crash Recovery — Unreleased SafePay Sweep', () => {
     const unreleased = {
       id: 'ptx-1', bookingId: 'b1', amount: 10000,
       razorpayTransferId: null, razorpayPaymentId: 'pay_orphan',
-      booking: { totalAmount: 10000, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+      booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
     }
     mockPaymentTxRepo.findUnreleasedSafePays.mockResolvedValue([unreleased])
     mockPaymentService.fetchTransferId.mockResolvedValue('trf_recovered')
