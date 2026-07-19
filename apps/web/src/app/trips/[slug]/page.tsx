@@ -1,7 +1,7 @@
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import { fetchApi, getPopularTripsForStaticParams } from '@/lib/api-server'
+import { fetchApi, getPopularTripsForStaticParams, resolveSublinkTokenSSR } from '@/lib/api-server'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildTripJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { TripDetailClient } from '@/components/trips/trip-detail-client'
@@ -9,6 +9,7 @@ import type { TripDetail } from '@shared/types/trip.types'
 
 interface TripDetailPageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ ref?: string }>
 }
 
 const getTrip = cache(async (slug: string): Promise<TripDetail | null> => {
@@ -62,13 +63,20 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function TripDetailPage({ params }: TripDetailPageProps) {
+export default async function TripDetailPage({ params, searchParams }: TripDetailPageProps) {
   const { slug } = await params
+  const { ref } = await searchParams
   const trip = await getTrip(slug)
 
   if (!trip) {
     notFound()
   }
+
+  // Reseller feature — resolve the `?ref` sublink token server-side so the
+  // marked-up price renders on first paint (no client flash of the base price).
+  // Cookie fallback (when `?ref` is absent, e.g. after nav/refresh) is handled
+  // client-side in TripDetailClient since cookies aren't read here.
+  const resolvedSublink = ref ? await resolveSublinkTokenSSR(ref) : null
 
   const tripJsonLd = buildTripJsonLd(trip, SITE_URL)
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
@@ -87,7 +95,7 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <TripDetailClient trip={trip} slug={slug} />
+      <TripDetailClient trip={trip} slug={slug} initialSublinkToken={ref} initialResolvedSublink={resolvedSublink} />
     </>
   )
 }
