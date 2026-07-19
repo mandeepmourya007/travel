@@ -436,6 +436,9 @@ export class BookingRepository {
       pickupPointId?: string
       dropPointId?: string
       // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
+      // Reseller feature — both optional/defaulted so existing callers/tests are unaffected.
+      sublinkId?: string
+      markupAmount?: number
     },
     paymentTxData: {
       amount: number
@@ -447,6 +450,10 @@ export class BookingRepository {
       // Legacy Razorpay (kept during expand phase)
       razorpayOrderId?: string
     },
+    // Reseller feature — when a sublinkToken resolved to a real sublink, the
+    // attribution (last-wins upsert) is written in the SAME transaction as the
+    // booking create, so a crash between the two can't leave one without the other.
+    attribution?: { userId: string; sublinkId: string; tripId: string },
   ) {
     const bookingRef = this.generateBookingRef()
     return this.prisma.$transaction(async (tx) => {
@@ -461,6 +468,8 @@ export class BookingRepository {
           bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
           pickupPointId: bookingData.pickupPointId ?? null,
           dropPointId: bookingData.dropPointId ?? null,
+          sublinkId: bookingData.sublinkId ?? null,
+          markupAmount: bookingData.markupAmount ?? 0,
           // [TravelerDetail] travelerDetails: { create: bookingData.travelers },
         },
         include: { travelerDetails: true },
@@ -476,6 +485,13 @@ export class BookingRepository {
           status: paymentTxData.status,
         },
       })
+      if (attribution) {
+        await tx.sublinkAttribution.upsert({
+          where: { userId_tripId: { userId: attribution.userId, tripId: attribution.tripId } },
+          create: attribution,
+          update: { sublinkId: attribution.sublinkId },
+        })
+      }
       return booking
     })
   }
@@ -821,6 +837,7 @@ export class BookingRepository {
         id: true,
         userId: true,
         totalAmount: true,
+        markupAmount: true,
         numTravelers: true,
         user: {
           select: { id: true, name: true, email: true },
@@ -858,6 +875,7 @@ export class BookingRepository {
         userName: b.user.name,
         email: b.user.email,
         totalAmount: b.totalAmount,
+        markupAmount: b.markupAmount,
         numTravelers: b.numTravelers,
         cashbackIssued: cb?.amount ?? null,
         issuedAt: cb?.issuedAt?.toISOString() ?? null,

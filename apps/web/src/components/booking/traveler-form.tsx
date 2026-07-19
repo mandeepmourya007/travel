@@ -29,6 +29,8 @@ interface TravelerFormProps {
   onSubmit: () => void
   isPending: boolean
   lockedTravelers?: boolean
+  /** Reseller sublink markup, per person */
+  markupAmount?: number
 }
 
 export function TravelerForm({
@@ -43,6 +45,7 @@ export function TravelerForm({
   onSubmit,
   isPending,
   lockedTravelers = false,
+  markupAmount = 0,
 }: TravelerFormProps) {
   const seatsLeft = Math.max(0, trip.maxGroupSize - trip.currentBookings)
   const maxTravelers = Math.min(seatsLeft, 10)
@@ -74,7 +77,7 @@ export function TravelerForm({
     onSubmit()
   }
 
-  const totalPrice = (getEffectivePrice(trip) + transferExtra) * numTravelers
+  const totalPrice = (getEffectivePrice(trip) + markupAmount + transferExtra) * numTravelers
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

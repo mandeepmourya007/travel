@@ -317,6 +317,7 @@ export class AuthService {
       phoneVerified: user.phoneVerified,
       createdAt: user.createdAt.toISOString(),
       organizerProfile: orgProfile,
+      isReseller: user.isReseller,
     }
   }
 

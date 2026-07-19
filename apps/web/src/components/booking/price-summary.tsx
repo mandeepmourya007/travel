@@ -11,6 +11,8 @@ interface PriceSummaryProps {
   numTravelers: number
   selectedPickupPoint?: TransferPoint
   selectedDropPoint?: TransferPoint
+  /** Reseller sublink markup, per person — added on top of the base/early-bird price. */
+  markupAmount?: number
 }
 
 const TRUST_BADGES = [
@@ -19,13 +21,15 @@ const TRUST_BADGES = [
   'Full refund if organizer cancels',
 ] as const
 
-export function PriceSummary({ trip, numTravelers, selectedPickupPoint, selectedDropPoint }: PriceSummaryProps) {
+export function PriceSummary({ trip, numTravelers, selectedPickupPoint, selectedDropPoint, markupAmount = 0 }: PriceSummaryProps) {
   const isEarlyBird =
     trip.earlyBirdPrice &&
     trip.earlyBirdDeadline &&
     new Date(trip.earlyBirdDeadline) > new Date()
 
-  const basePerPerson = getEffectivePrice(trip)
+  // Reseller markup (if any) is folded invisibly into the per-person price below —
+  // the traveler must never see a separate markup/reseller-fee line item.
+  const basePerPerson = getEffectivePrice(trip) + markupAmount
   const baseTotal = basePerPerson * numTravelers
 
   const pickupCharge = selectedPickupPoint?.extraCharge ?? 0

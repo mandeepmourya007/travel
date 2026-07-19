@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { SIGNUP_ROLES } from '../constants/roles'
+import { CASHFREE_ACCOUNT_TYPES } from '../constants/payment'
 
 /** 10-digit Indian phone number starting with 6-9. Shared across FE + BE. */
 export const INDIAN_PHONE_REGEX = /^[6-9]\d{9}$/
@@ -97,7 +98,7 @@ export const connectBankAccountSchema = z.object({
   accountNumber: z.string().trim().min(9, 'Account number too short').max(18, 'Account number too long').regex(/^\d+$/, 'Account number must be numeric'),
   beneficiaryName: z.string().trim().min(2, 'Beneficiary name is required').max(120),
   pan: z.string().trim().toUpperCase().regex(PAN_REGEX, 'Invalid PAN (e.g. ABCDE1234F)').optional(),
-  accountType: z.enum(['INDIVIDUAL', 'BUSINESS']).optional(),
+  accountType: z.enum(CASHFREE_ACCOUNT_TYPES).optional(),
 })
 
 export const organizerInviteSchema = z.object({

@@ -748,6 +748,22 @@ describe('AuthService', () => {
       await expect(service.getFullProfile('nonexistent'))
         .rejects.toThrow(NotFoundError)
     })
+
+    it('should return isReseller=true when the user has been flagged as a reseller', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue({ ...travelerWithProfile, isReseller: true })
+
+      const result = await service.getFullProfile('user-123')
+
+      expect(result.isReseller).toBe(true)
+    })
+
+    it('should return isReseller=false for a normal (non-reseller) traveler', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue({ ...travelerWithProfile, isReseller: false })
+
+      const result = await service.getFullProfile('user-123')
+
+      expect(result.isReseller).toBe(false)
+    })
   })
 
   // ── updateOrganizerProfile ──────────────────────────

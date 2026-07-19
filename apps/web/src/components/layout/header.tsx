@@ -19,8 +19,10 @@ import {
   UserCircle,
   MessageSquare,
   Star,
+  Gift,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
+import { useProfile } from '@/hooks/use-profile'
 import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -36,6 +38,8 @@ interface NavLink {
   hideForRoles?: UserRole[]
   requiresAuth?: boolean
   variant?: 'primary'
+  /** Shown only when the logged-in traveler's profile has isReseller=true */
+  resellerOnly?: boolean
 }
 
 const NAV_LINKS: NavLink[] = [
@@ -44,6 +48,7 @@ const NAV_LINKS: NavLink[] = [
   { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/my-reviews', label: 'My Reviews', icon: Star, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  { href: '/reseller', label: 'Reseller', icon: Gift, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN], resellerOnly: true },
   { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
@@ -71,6 +76,8 @@ export function Header() {
   const user = useAuthStore((s) => s.user)
   const _hasHydrated = useAuthStore((s) => s._hasHydrated)
   const { logout: handleLogout, loggingOut } = useLogout()
+  const { data: profile } = useProfile()
+  const isReseller = !!profile?.isReseller
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -101,9 +108,9 @@ export function Header() {
 
   const visibleLinks = useMemo(
     () => _hasHydrated
-      ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated))
+      ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated) && (!link.resellerOnly || isReseller))
       : NAV_LINKS.filter((link) => link.href === '/trips'),
-    [_hasHydrated, user?.role, isAuthenticated],
+    [_hasHydrated, user?.role, isAuthenticated, isReseller],
   )
 
   return (

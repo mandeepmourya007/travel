@@ -29,9 +29,11 @@ function PointsList({ title, iconColor, points }: { title: string; iconColor: st
 
 interface TripBookingCardProps {
   trip: TripDetail
+  /** Reseller sublink markup, per person — added on top of the base/early-bird price when the trip was opened via a `?ref=` link. */
+  markupAmount?: number
 }
 
-export function TripBookingCard({ trip }: TripBookingCardProps) {
+export function TripBookingCard({ trip, markupAmount = 0 }: TripBookingCardProps) {
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
 
@@ -59,7 +61,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
         {trip.earlyBirdPrice ? (
           <>
             <span className="text-2xl font-bold text-accent-500">
-              {formatCurrency(trip.earlyBirdPrice)}
+              {formatCurrency(trip.earlyBirdPrice + markupAmount)}
             </span>
             <span className="text-sm text-neutral-400 line-through ml-2">
               {formatCurrency(trip.pricePerPerson)}
@@ -67,7 +69,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
           </>
         ) : (
           <span className="text-2xl font-bold text-accent-500">
-            {formatCurrency(trip.pricePerPerson)}
+            {formatCurrency(trip.pricePerPerson + markupAmount)}
           </span>
         )}
         <span className="text-neutral-500 text-sm ml-1">/person</span>

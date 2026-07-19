@@ -8,6 +8,15 @@ interface PaginationBaseProps {
   currentPage: number
   totalPages: number
   total?: number
+  /**
+   * Opt-in page-size selector — only meaningful alongside `onPageChange` (callback
+   * variant). Pass both `limit` and `onLimitChange` to render a "X per page" <select>.
+   * `Pagination` does not own page state: the caller's `onLimitChange` handler is
+   * responsible for resetting the current page back to 1 when the limit changes.
+   */
+  limit?: number
+  limitOptions?: number[]
+  onLimitChange?: (limit: number) => void
 }
 
 interface PaginationWithCallback extends PaginationBaseProps {
@@ -21,6 +30,8 @@ interface PaginationWithLinks extends PaginationBaseProps {
 }
 
 type PaginationProps = PaginationWithCallback | PaginationWithLinks
+
+const DEFAULT_LIMIT_OPTIONS = [10, 25, 50, 100]
 
 /**
  * Generates the page numbers to display with ellipsis.
@@ -78,8 +89,26 @@ const pageBtnClass = (isActive: boolean) =>
       : 'bg-neutral-100 text-neutral-600 font-medium hover:bg-neutral-200',
   )
 
-export function Pagination({ currentPage, totalPages, total, onPageChange, buildHref }: PaginationProps) {
+export function Pagination({
+  currentPage,
+  totalPages,
+  total,
+  onPageChange,
+  buildHref,
+  limit,
+  limitOptions,
+  onLimitChange,
+}: PaginationProps) {
   if (totalPages <= 1) return null
+
+  const showLimitSelector = limit != null && !!onLimitChange
+  if (showLimitSelector && buildHref && process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'Pagination: `limit`/`onLimitChange` are only supported with the `onPageChange` (callback) variant — ' +
+        'ignoring the page-size selector for this `buildHref` (URL-based) usage.',
+    )
+  }
 
   const hasPrev = currentPage > 1
   const hasNext = currentPage < totalPages
@@ -165,6 +194,24 @@ export function Pagination({ currentPage, totalPages, total, onPageChange, build
           </button>
         )}
       </div>
+
+      {showLimitSelector && !buildHref && (
+        <div className="flex items-center gap-1.5">
+          <label htmlFor="pagination-limit" className="text-sm text-neutral-500">
+            Show
+          </label>
+          <select
+            id="pagination-limit"
+            value={limit}
+            onChange={(e) => onLimitChange?.(Number(e.target.value))}
+            className="input w-auto py-1.5 text-sm"
+          >
+            {(limitOptions ?? DEFAULT_LIMIT_OPTIONS).map((opt) => (
+              <option key={opt} value={opt}>{opt} per page</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   )
 }

@@ -32,6 +32,13 @@ tags:
 
 `requireRole(...roles)` middleware — roles from [[Shared Package#Constants]] (`USER_ROLE`): TRAVELER, ORGANIZER, ADMIN. `TRAVELER_ROLES = [TRAVELER, ADMIN]` lets admins hit traveler endpoints. Full per-endpoint guard map: [[API Routes Reference]].
 
+> [!warning] Flag-on-role gating (isReseller) is NOT expressible by requireRole
+> Reseller is not a role — it's `User.isReseller=true` on a TRAVELER. All `/api/v1/reseller/sublinks*` routes use `requireRole('TRAVELER','ADMIN')` at the route layer, then `ResellerService` explicitly checks `caller.isReseller === true` **and** that the caller is the reseller named on the specific main link/sublink (`mainLink.resellerId === callerId || mainLink.resellerEmail === caller.email`), throwing `ForbiddenError` otherwise. Never assume `requireRole` alone is sufficient when a permission is a flag rather than a role — check the service layer.
+>
+> Same principle applies to admin bypass on ownership-scoped reads: `requireRole('TRAVELER','ADMIN')` makes an admin a valid *caller* but not the resource *owner*. `ResellerService.getMainLinkBookings` and `getSublinkBookings` both take an explicit `isAdmin: boolean` param (computed in `ResellerController` from `req.user!.role === USER_ROLE.ADMIN`) and skip the ownership check (`mainLink.organizerId`/`sublink.resellerId` match) only when `isAdmin` is true — the `NotFoundError` check for a missing entity still runs unconditionally, even for admins. Each service method needs its own explicit bypass; there is no blanket admin-skips-ownership mechanism.
+>
+> `getSublinkBookings` additionally takes an `isOrganizer: boolean` (also computed in the controller from `req.user!.role`), since its route guard is `requireRole('TRAVELER','ORGANIZER','ADMIN')` — the shared "Views" UI calls this sublink-level endpoint for the reseller, the trip's organizer, and admin alike. When `isOrganizer` is true (and `isAdmin` is false), the service resolves the caller's `OrganizerProfile` and checks it against the sublink's `mainLink.organizerId` (same shape as `getMainLinkBookings`'s organizer-ownership check) instead of the reseller-ownership check — a route guard covering multiple roles is not itself an ownership check, the service still has to branch on which role is calling and apply the matching ownership rule.
+
 ## Frontend Session Model
 
 `apps/web/src/store/auth.store.ts` (zustand + `persist`, key `travel-auth`):

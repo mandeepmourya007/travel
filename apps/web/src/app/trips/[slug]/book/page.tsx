@@ -13,6 +13,8 @@ import { ErrorState } from '@/components/shared/data-states'
 import { useToast } from '@/components/shared/toast'
 import { useTripDetail } from '@/hooks/use-trip-detail'
 import { useCreateBooking } from '@/hooks/use-create-booking'
+import { useSublinkResolve } from '@/hooks/use-reseller'
+import { getResellerRefCookie } from '@/lib/reseller-cookie'
 import { getErrorMessage } from '@/lib/api-client'
 import { getBookingConflictKind } from '@/lib/booking-errors'
 import { vehicleKeys } from '@/lib/query-keys'
@@ -58,6 +60,19 @@ export default function BookingPage() {
   const prefillCount = Number(searchParams.get('numTravelers')) || 1
   const lockedTravelers = !!requestId
   const [numTravelers, setNumTravelers] = useState(prefillCount)
+
+  // Reseller feature — `?ref` wins; otherwise fall back to the `reseller_ref` cookie
+  // written on trip-detail (survives the AuthGuard login redirect losing the query param).
+  const refParam = searchParams.get('ref')
+  const [sublinkToken, setSublinkToken] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    setSublinkToken(refParam ?? getResellerRefCookie())
+  }, [refParam])
+  const sublinkResolve = useSublinkResolve(sublinkToken)
+  // Resolve DTO only carries the merged `effectivePrice` (no basePrice/markupAmount —
+  // see ResolvedSublinkDto). Derive the per-person markup locally from the same
+  // base-price logic the backend used (getEffectivePrice) purely for display.
+  const markupAmount = trip && sublinkResolve.data ? sublinkResolve.data.effectivePrice - getEffectivePrice(trip) : 0
 
   // [TravelerDetail] Load traveler details from sessionStorage (stashed by handlePayNow)
   // [TravelerDetail] const savedTravelers = useMemo<TripRequestTraveler[] | null>(() => {
@@ -158,6 +173,7 @@ export default function BookingPage() {
         dropPointId: effectiveDropId,
         // [TravelerDetail] travelers,
         seatIds: selectedSeatIds.length > 0 ? selectedSeatIds : undefined,
+        sublinkToken,
       })
 
       // Seats are now held — surface the payment deadline to the user (P1-1)
@@ -455,7 +471,7 @@ export default function BookingPage() {
                           Processing...
                         </>
                       ) : (
-                        `Continue to Payment — ${formatCurrency((getEffectivePrice(trip) + transferExtra) * numTravelers)}`
+                        `Continue to Payment — ${formatCurrency((getEffectivePrice(trip) + markupAmount + transferExtra) * numTravelers)}`
                       )}
                     </button>
                   </div>
@@ -473,6 +489,7 @@ export default function BookingPage() {
                     onSubmit={handleTravelerFormSubmit}
                     isPending={isProcessing}
                     lockedTravelers={lockedTravelers}
+                    markupAmount={markupAmount}
                   />
                 )}
               </div>
@@ -483,6 +500,7 @@ export default function BookingPage() {
                   numTravelers={numTravelers}
                   selectedPickupPoint={selectedPickupPoint}
                   selectedDropPoint={selectedDropPoint}
+                  markupAmount={markupAmount}
                 />
               </div>
               {/* [TravelerDetail] )} */}

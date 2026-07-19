@@ -155,6 +155,11 @@ export const NORMALIZED_ORDER_STATUS = {
   PAID: 'paid',
 } as const
 
+export const CASHFREE_ENVIRONMENT = {
+  SANDBOX: 'sandbox',
+  PRODUCTION: 'production',
+} as const
+
 // ─── Misc ────────────────────────────────────────────
 export const CURRENCY = 'INR'
 export const RAZORPAY_MOCK_KEY = 'rzp_mock_dev_key'

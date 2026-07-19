@@ -27,3 +27,14 @@ export type PaymentStatusConst = (typeof PAYMENT_STATUSES)[number]
 export const PAYMENT_STATUS = Object.fromEntries(
   PAYMENT_STATUSES.map((s) => [s, s]),
 ) as { readonly [K in PaymentStatusConst]: K }
+
+// ─── Cashfree Vendor/Beneficiary Account Types ────────
+// Required for Cashfree Easy Split vendor KYC; ignored by Razorpay Route.
+
+export const CASHFREE_ACCOUNT_TYPES = ['INDIVIDUAL', 'BUSINESS'] as const
+export type CashfreeAccountTypeConst = (typeof CASHFREE_ACCOUNT_TYPES)[number]
+
+/** Object form for dot-access: CASHFREE_ACCOUNT_TYPE.INDIVIDUAL — derived from array */
+export const CASHFREE_ACCOUNT_TYPE = Object.fromEntries(
+  CASHFREE_ACCOUNT_TYPES.map((s) => [s, s]),
+) as { readonly [K in CashfreeAccountTypeConst]: K }

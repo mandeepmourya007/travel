@@ -9,7 +9,7 @@ tags:
 
 # Database Schema
 
-Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 34 migrations in `apps/api/prisma/migrations/`; scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
+Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 36 migrations in `apps/api/prisma/migrations/` (latest: `20260719000001_add_reseller_main_link_unique`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
 
 > [!important] ID Strategy
 > Every model uses ==`@id @default(uuid(7))` (UUIDv7)==. Legacy rows may hold cuid v1 — validators accept **both** (`idSchema` in [[Shared Package#Validators (Zod)|shared validators]]; never bare `z.string().uuid()`, it rejects v7).
@@ -69,11 +69,11 @@ erDiagram
     Conversation ||--o{ Message : contains
 ```
 
-## Models (26)
+## Models (29)
 
 ### Identity & Organizer
 
-- **User** — `name`, `email?` *(unique)*, `phone?` *(unique)*, `passwordHash?`, `googleId?` *(unique)*, `role`, `avatarUrl?`, `aadhaarVerified`/`phoneVerified`/`emailVerified`. Relations: organizerProfile?, bookings[], reviews[], sentMessages[], conversations[] (as traveler), refreshTokens[], verificationCodes[], notifications[], cancelledBookings[] (as canceller), tripRequests[], tripEdits[], wallet?, organizerInvitesSent[].
+- **User** — `name`, `email?` *(unique)*, `phone?` *(unique)*, `passwordHash?`, `googleId?` *(unique)*, `role`, `avatarUrl?`, `aadhaarVerified`/`phoneVerified`/`emailVerified`, ==`isReseller` (Boolean, default false)== — flipped true by `ResellerService.generateMainLink` when an organizer names this user's email; NOT a role, just a flag on a TRAVELER. Relations: organizerProfile?, bookings[], reviews[], sentMessages[], conversations[] (as traveler), refreshTokens[], verificationCodes[], notifications[], cancelledBookings[] (as canceller), tripRequests[], tripEdits[], wallet?, organizerInvitesSent[], resellerMainLinks[] (as reseller), resellerSublinks[] (as reseller), sublinkAttributions[].
 - **OrganizerProfile** — `userId` *(unique)*, `businessName`, `slug` *(unique)*, `description?`, `verificationStatus`, `documents (Json)?`, `rating`, `totalReviews`, `totalTripsCompleted`, `bankAccountLinked`, ==`commissionRate` (Decimal 5,2, default 10)==, `razorpayAccountId?`, `cashfreeVendorId?`. Relations: trips[], conversations[], tripTypeRequests[], documentReviews[], reviewComments[].
 - **DocumentReview** — `organizerId`, `docType` (aadhaarFront/aadhaarBack/panCard), `status`, `currentUrl?`, `reviewedAt?`, `reviewedBy?`. *Unique(organizerId, docType)*.
 - **DocumentReviewComment** — `organizerId`, `authorId`, `authorRole`, `docType?`, `comment`, `attachmentUrl?`.
@@ -90,7 +90,7 @@ erDiagram
 
 ### Bookings & Seats
 
-- **Booking** — `bookingRef` *(unique)*, `tripId`, `userId`, `numTravelers`, `totalAmount`, `walletAmount`, `tripProtection`, `bookingStatus`, `expiresAt?`, `cancellationReason/At/ById`, `pickupPointId?`/`dropPointId?` → TripTransferPoint, `tripReminderSentAt?`. Raw partial-unique: ==one active booking per (user, trip)==.
+- **Booking** — `bookingRef` *(unique)*, `tripId`, `userId`, `numTravelers`, `totalAmount`, `walletAmount`, `tripProtection`, `bookingStatus`, `expiresAt?`, `cancellationReason/At/ById`, `pickupPointId?`/`dropPointId?` → TripTransferPoint, `tripReminderSentAt?`, ==`sublinkId?` → ResellerSublink== (nullable — non-reseller bookings unaffected), ==`markupAmount` (Int, default 0)== — frozen snapshot (`markupPerPerson × numTravelers`) at booking time, never recomputed later. Raw partial-unique: ==one active booking per (user, trip)==.
 - **TripRequest** — `tripId`, `userId`, `numTravelers`, `message?`, travelerDetails[], `status`, `respondedAt?`, `responseNote?`, `approvalExpiresAt?`, `bookingId?` *(unique)*. *Unique(tripId, userId)*.
 - **TravelerDetail** — `bookingId?` | `tripRequestId?`, `name`, `phone?`, `age?`, `gender?`, `isPrimary`, `emergencyContactName/Phone?`. Relation: assignedSeat? (VehicleSeat).
 - **TripVehicle** — `tripId`, `label`, `vehicleType`, `sortOrder`, grid (`rows`/`cols`/`aisleAfterCol?`/`driverRow`/`driverCol`), `layout (Json)`, `photos (String[])`.
@@ -108,6 +108,14 @@ erDiagram
 - **Conversation** — `type`, `status`, `tripId?`, `travelerId`, `organizerProfileId?`, `adminId?`, `lastMessageAt?/Preview?`, `unreadCountTraveler`/`unreadCountOrganizer`. *Unique(type, tripId, travelerId)* + raw partial unique for admin-support.
 - **Message** — `conversationId`, `senderId`, `type`, `content`, ==`clientMsgId?` (idempotency)==, `originalContent?`, `isFlagged`, `readAt?`, `fileUrl/Name/Size?`, `reactions (Json)`, `replyToId?` (self-relation). *Unique(conversationId, senderId, clientMsgId)*.
 - **Notification** — `userId`, `channel`, `type`, `title`, `body`, `data (Json)?`, `sentAt?`, `readAt?`, `failureReason?`.
+
+### Reseller
+
+- **ResellerMainLink** — `token` *(unique, opaque)*, `tripId` → Trip, `organizerId` → OrganizerProfile, `resellerId` → User, `resellerEmail` (match/display key), `isActive`. ==`@@unique([tripId, resellerId])`== — one main link per (trip, reseller) pairing; re-inviting the same reseller for the same trip is a no-op at the service layer (`ResellerService.generateMainLink` returns the existing link) rather than a new row or an error. This row is purely internal linking/plumbing — never rendered to any role as a token, a "link", or a listable entity (see [[Product Domain]]). Indexes: `[organizerId]`, `[tripId]`, `[resellerId]`.
+- **ResellerSublink** — `token` *(unique, opaque — the `?ref=` value)*, `mainLinkId` → ResellerMainLink, `resellerId` → User *(denormalized)*, `tripId` → Trip *(denormalized, for single-row price resolve)*, `markupAmount` (Int, default 0, rupees **per person**), `label?`, `isActive`. Indexes: `[mainLinkId]`, `[resellerId]`, `[tripId]`.
+- **SublinkAttribution** — `userId` → User, `sublinkId` → ResellerSublink, `tripId` *(denormalized)*. ==`@@unique([userId, tripId])`==, written via upsert (**last-wins**: a newer sublink for the same user+trip overwrites the earlier attribution). Index `[sublinkId]`.
+
+Both models use `crypto.randomBytes(32).toString('base64url')` for `token` — same opaque-token pattern as `OrganizerInvite`.
 
 ### Auth & Audit
 

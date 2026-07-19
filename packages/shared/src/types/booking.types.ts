@@ -1,5 +1,6 @@
 import type { TripRequestStatus } from './trip-request.types'
 import type { CancellationPolicy } from './trip.types'
+import type { MyBookingTabConst } from '../constants/booking-status'
 
 export type BookingStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'REFUNDED' | 'EXPIRED'
 
@@ -96,8 +97,8 @@ export interface TripBookingSummary {
 
 // ─── Traveler "My Bookings" View ────────────────────
 
-/** Tab filter values for the My Bookings page */
-export type MyBookingTab = 'all' | 'upcoming' | 'payment_pending' | 'completed' | 'cancelled'
+/** Tab filter values for the My Bookings page — derived from MY_BOOKINGS_TABS */
+export type MyBookingTab = MyBookingTabConst
 
 /** Traveler's booking list item — shown on the "My Bookings" page */
 export interface MyBookingListItem {

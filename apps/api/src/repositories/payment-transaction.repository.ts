@@ -517,6 +517,7 @@ export class PaymentTransactionRepository {
         booking: {
           select: {
             totalAmount: true,
+            markupAmount: true,
             trip: {
               select: {
                 organizer: {
@@ -568,6 +569,7 @@ export class PaymentTransactionRepository {
           select: {
             tripId: true,
             totalAmount: true,
+            markupAmount: true,
             trip: {
               select: {
                 organizer: {

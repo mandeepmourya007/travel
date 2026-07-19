@@ -12,6 +12,7 @@ import {
   Plus,
   ShieldCheck,
   Wallet,
+  Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useProfile } from '@/hooks/use-profile'
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { id: 'trips', label: 'My Trips', href: '/dashboard/trips', icon: Map },
   { id: 'payments', label: 'Payments', href: '/dashboard/payments', icon: Wallet },
+  { id: 'reseller-links', label: 'Reseller Links', href: '/dashboard/reseller-links', icon: Share2 },
   { id: 'messages', label: 'Messages', href: '/messages', icon: MessageSquare },
   { id: 'reviews', label: 'Reviews', href: '/dashboard/reviews', icon: Star },
   { id: 'verification', label: 'Verification', href: '/dashboard/settings/verification', icon: ShieldCheck },

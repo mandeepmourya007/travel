@@ -102,7 +102,7 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
       </div>
 
       {/* ── Comparison table (Smartprix-style) ── */}
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 max-h-[70vh] overflow-auto">
         <table className="w-full border-collapse">
           <tbody>
             {/* Rating */}

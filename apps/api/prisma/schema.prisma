@@ -183,6 +183,10 @@ model User {
   aadhaarVerified Boolean   @default(false)
   phoneVerified   Boolean   @default(false)
   emailVerified   Boolean   @default(false)
+  // Reseller feature: NOT a new role — a normal TRAVELER flipped true when an
+  // organizer names them (by email) on a ResellerMainLink. Gates reseller-only
+  // endpoints/UI; requireRole() can't express this, so services check it explicitly.
+  isReseller      Boolean   @default(false)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -203,6 +207,9 @@ model User {
   tripEdits          TripEditHistory[]
   wallet             Wallet?
   organizerInvitesSent OrganizerInvite[]
+  resellerMainLinks    ResellerMainLink[]
+  resellerSublinks     ResellerSublink[]
+  sublinkAttributions  SublinkAttribution[]
 
   @@index([role])
 }
@@ -235,6 +242,7 @@ model OrganizerProfile {
   tripTypeRequests  TripTypeRequest[]
   documentReviews   DocumentReview[]
   reviewComments    DocumentReviewComment[]
+  resellerMainLinks ResellerMainLink[]
 
   @@index([verificationStatus])
 }
@@ -342,6 +350,8 @@ model Trip {
   editHistory      TripEditHistory[]
   transferPoints   TripTransferPoint[]
   vehicles         TripVehicle[]
+  resellerMainLinks ResellerMainLink[]
+  resellerSublinks  ResellerSublink[]
 
   @@index([destinationId, startDate, status])
   @@index([slug])
@@ -381,6 +391,14 @@ model Booking {
   dropPointId   String?
   dropPoint     TripTransferPoint? @relation("dropPoint", fields: [dropPointId], references: [id])
 
+  // Reseller feature: nullable — non-reseller bookings are entirely unaffected.
+  // sublinkId is the resolved sublink (explicit token or SublinkAttribution) at
+  // booking time; markupAmount is a frozen snapshot (markupPerPerson * numTravelers),
+  // never recomputed later even if the sublink's markup is edited afterwards.
+  sublinkId    String?
+  sublink      ResellerSublink? @relation(fields: [sublinkId], references: [id])
+  markupAmount Int              @default(0)
+
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
@@ -403,6 +421,7 @@ model Booking {
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])
   @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
+  @@index([sublinkId])
   // Partial unique index (not expressible in Prisma DSL — see migration 20260621000001):
   // CREATE UNIQUE INDEX "Booking_active_user_trip_unique" ON "Booking" ("userId", "tripId")
   // WHERE "bookingStatus" IN ('PENDING_PAYMENT', 'CONFIRMED') AND "isDeleted" = false
@@ -900,4 +919,85 @@ model OrganizerInvite {
 
   @@index([acceptedAt])
   @@index([sentBy])
+}
+
+// ─── Reseller feature ───────────────────────────────────────────────────
+// Reseller is NOT a new role — a normal TRAVELER with User.isReseller flipped
+// true. Organizer generates a main link per (trip, reseller); the reseller
+// generates multiple sublinks off that main link, each with its own markup.
+// Traveler books via a sublink and pays base+markup; markup is track-only
+// (never paid out, never folded into the organizer commission split).
+
+model ResellerMainLink {
+  id          String @id @default(uuid(7))
+  token       String @unique // opaque, crypto.randomBytes(32).toString('base64url') — never id-in-URL
+  tripId      String
+  trip        Trip             @relation(fields: [tripId], references: [id])
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  // resellerId/resellerEmail: v1 requires the named user to already exist at
+  // creation time (NotFoundError otherwise) — see ResellerService.generateMainLink.
+  // resellerEmail is retained as the display/match key even after resellerId is set.
+  resellerId    String
+  reseller      User   @relation(fields: [resellerId], references: [id])
+  resellerEmail String
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  sublinks ResellerSublink[]
+
+  // One main link per (trip, reseller) — re-inviting the same reseller for the
+  // same trip is a no-op (see ResellerService.generateMainLink), not a new row.
+  @@unique([tripId, resellerId])
+  @@index([organizerId])
+  @@index([tripId])
+  @@index([resellerId])
+}
+
+model ResellerSublink {
+  id         String @id @default(uuid(7))
+  token      String @unique // opaque — the `?ref=` value shared with travelers
+  mainLinkId String
+  mainLink   ResellerMainLink @relation(fields: [mainLinkId], references: [id])
+  resellerId String // denormalized from mainLink.resellerId for ownership checks
+  reseller   User   @relation(fields: [resellerId], references: [id])
+  tripId     String // denormalized from mainLink.tripId for single-row price resolve
+  trip       Trip   @relation(fields: [tripId], references: [id])
+
+  markupAmount Int     @default(0) // rupees, PER PERSON — same unit as Trip.pricePerPerson
+  label        String?
+  isActive     Boolean @default(true)
+
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookings     Booking[]
+  attributions SublinkAttribution[]
+
+  @@index([mainLinkId])
+  @@index([resellerId])
+  @@index([tripId])
+}
+
+model SublinkAttribution {
+  id        String          @id @default(uuid(7))
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  sublinkId String
+  sublink   ResellerSublink @relation(fields: [sublinkId], references: [id])
+  tripId    String // denormalized — one attribution per user per trip
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Last-wins: newer sublink for the same user+trip overwrites the earlier
+  // attribution via upsert on this unique constraint.
+  @@unique([userId, tripId])
+  @@index([sublinkId])
 }

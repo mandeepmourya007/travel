@@ -947,9 +947,12 @@ describe('BookingService', () => {
 
       expect(result.bookingId).toBe('booking-new')
       expect(result.razorpayOrderId).toBe('order_abc')
+      // Reseller regression: no sublinkToken + no attribution → markupAmount=0,
+      // sublinkId=undefined, totalAmount unchanged, no attribution arg passed.
       expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
-        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2 }),
+        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2, totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
         expect.objectContaining({ provider: 'razorpay', gatewayOrderId: 'order_abc', amount: 8000, type: 'PAYMENT', status: 'INITIATED' }),
+        undefined,
       )
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         expect.objectContaining({ amountPaise: expect.any(Number), receipt: expect.any(String), notes: expect.any(Object) }),
@@ -1195,6 +1198,149 @@ describe('BookingService', () => {
         service.createBooking('user-1', { ...validInput, numTravelers: 3 }),
       ).rejects.toThrow('traveler')
     })
+
+  // ═══════════════════════════════════════════════════
+  // createBooking — reseller markup resolution
+  //
+  // mockTrip: pricePerPerson=5000, earlyBirdPrice=4000, earlyBirdDeadline in the
+  // future → isEarlyBird=true, so baseTotal for numTravelers=2 with no transfer
+  // points is (4000+0+0)*2 = 8000 (matches the no-markup regression assertion
+  // in "should create booking and Razorpay order for INSTANT trip" above).
+  // ═══════════════════════════════════════════════════
+  describe('createBooking — reseller markup resolution', () => {
+    const mockResellerRepo = {
+      findActiveByToken: vi.fn(),
+      findAttributionByUserAndTrip: vi.fn(),
+    }
+    let resellerService: BookingService
+
+    beforeEach(() => {
+      mockResellerRepo.findActiveByToken.mockReset()
+      mockResellerRepo.findAttributionByUserAndTrip.mockReset()
+      resellerService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        null,
+        null,
+        null,
+        mockResellerRepo as any,
+      )
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_abc',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_abc', razorpayKeyId: 'rzp_test_key' },
+      })
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+        id: 'booking-new',
+        bookingRef: 'TRP-2025-0001',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+    })
+
+    it('markup>0 happy path: sublinkToken resolves to an active sublink on the same trip', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-1', markupAmount: 300, tripId: 'trip-1' })
+
+      const result = await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-A' })
+
+      expect(mockResellerRepo.findActiveByToken).toHaveBeenCalledWith('tok-A', 'sublink')
+      // baseTotal = 4000*2 = 8000, markupTotal = 300*2 = 600 → totalAmount = 8600
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8600, sublinkId: 'sub-1', markupAmount: 600 }),
+        expect.any(Object),
+        { userId: 'user-1', sublinkId: 'sub-1', tripId: 'trip-1' },
+      )
+      // Commission split computed on BASE only: baseAmountInPaise=800000, commission 10% → vendorAmountPaise unaffected by markup.
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ amountPaise: 860000 }),
+      )
+      expect(result.amountInRupees).toBe(8600)
+    })
+
+    it('attribution fallback: no sublinkToken but an existing SublinkAttribution for (userId, tripId) applies its markup', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-2', markupAmount: 200, tripId: 'trip-1', isActive: true, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockResellerRepo.findActiveByToken).not.toHaveBeenCalled()
+      expect(mockResellerRepo.findAttributionByUserAndTrip).toHaveBeenCalledWith('user-1', 'trip-1')
+      // baseTotal=8000, markupTotal = 200*2=400 → totalAmount=8400. No sublinkToken → no attribution write.
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8400, sublinkId: 'sub-2', markupAmount: 400 }),
+        expect.any(Object),
+        undefined,
+      )
+    })
+
+    it('ignores an inactive/deleted attributed sublink and falls back to markup=0', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-dead', markupAmount: 999, tripId: 'trip-1', isActive: false, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+      )
+    })
+
+    it('mismatched token (sublink.tripId !== booking tripId) is ignored, not an error — proceeds at markup=0', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-3', markupAmount: 500, tripId: 'trip-OTHER' })
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue(null)
+
+      await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-mismatch' })
+
+      // Falls through to the attribution check since the token didn't resolve to a usable sublink.
+      expect(mockResellerRepo.findAttributionByUserAndTrip).toHaveBeenCalledWith('user-1', 'trip-1')
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+      )
+    })
+
+    it('last-wins: an explicit sublinkToken for a NEW sublink overrides a prior attribution to a different sublink', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-B', markupAmount: 700, tripId: 'trip-1' })
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-A', markupAmount: 100, tripId: 'trip-1', isActive: true, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-B' })
+
+      // The token short-circuits the attribution lookup entirely — sub-A is never even read.
+      expect(mockResellerRepo.findAttributionByUserAndTrip).not.toHaveBeenCalled()
+      // baseTotal=8000, markupTotal = 700*2=1400 → totalAmount=9400, attribution write refreshes to sub-B.
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 9400, sublinkId: 'sub-B', markupAmount: 1400 }),
+        expect.any(Object),
+        { userId: 'user-1', sublinkId: 'sub-B', tripId: 'trip-1' },
+      )
+    })
+
+    it('markup=0 regression: byte-identical totalAmount/vendorAmountPaise when resellerRepo is wired but returns nothing', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue(null)
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2, totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+      )
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(expect.objectContaining({ amountPaise: 800000 }))
+    })
+  })
   })
 
   // ═══════════════════════════════════════════════════

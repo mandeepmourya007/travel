@@ -14,6 +14,7 @@ import {
   Mail,
   Map,
   Star,
+  Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -36,8 +37,10 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
   { id: 'invites', label: 'Invites', href: '/admin/invites', icon: Mail },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },
+  { id: 'reseller-links', label: 'Reseller Links', href: '/admin/reseller-links', icon: Share2 },
 ]
 
+// Reseller Links intentionally omitted — MOBILE_NAV is capped at 4 primary items.
 const MOBILE_NAV: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/admin', icon: BarChart3 },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },

@@ -219,4 +219,38 @@ describe('PriceSummary', () => {
 
     expect(screen.queryByText(/·/)).not.toBeInTheDocument()
   })
+
+  // ── 7. Reseller markup — must never leak as a separate line item ──
+  // Hard product/security requirement: a traveler booking via a reseller
+  // sublink pays base+markup, but must only ever see ONE merged per-person
+  // price and ONE merged total — never a "markup"/"reseller fee" row, and
+  // never two separate price figures for the same trip.
+
+  it('folds markupAmount invisibly into the base price row — no separate markup line item', () => {
+    render(<PriceSummary trip={baseTrip} numTravelers={2} markupAmount={500} />)
+
+    // Merged per-person price: 5000 + 500 = 5500, shown once in the base row.
+    expect(screen.getByText(/₹5,500 × 2/)).toBeInTheDocument()
+    // The raw, un-marked-up price must not appear anywhere as a second figure.
+    expect(screen.queryByText(/₹5,000 × 2/)).not.toBeInTheDocument()
+
+    const pageText = document.body.textContent ?? ''
+    expect(pageText.toLowerCase()).not.toMatch(/markup|reseller fee|extra commission/)
+  })
+
+  it('rolls the markup into the grand Total — total reflects base+markup, not base alone', () => {
+    render(<PriceSummary trip={baseTrip} numTravelers={2} markupAmount={500} />)
+
+    // Total: (5000+500) × 2 = 11000 — not the base-only 10000.
+    const totalRow = screen.getByText('Total').closest('div')
+    expect(totalRow?.textContent).toContain('₹11,000')
+    expect(totalRow?.textContent).not.toContain('₹10,000')
+  })
+
+  it('is byte-identical to the non-reseller total when markupAmount is 0 (regression)', () => {
+    render(<PriceSummary trip={baseTrip} numTravelers={2} markupAmount={0} />)
+
+    const totalRow = screen.getByText('Total').closest('div')
+    expect(totalRow?.textContent).toContain('₹10,000')
+  })
 })

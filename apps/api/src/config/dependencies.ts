@@ -96,6 +96,10 @@ import { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 import { SitemapService } from '../services/sitemap.service'
 import { BookingVelocityStrategy } from '../services/trending/booking-velocity.strategy'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
+import { ResellerRepository } from '../repositories/reseller.repository'
+import { ResellerService } from '../services/reseller.service'
+import { ResellerController } from '../controllers/reseller.controller'
+import { createResellerRoutes } from '../routes/reseller.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -121,6 +125,7 @@ const vehicleRepo = new VehicleRepository(prisma)
 const docReviewRepo = new DocumentReviewRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
 const organizerInviteRepo = new OrganizerInviteRepository(prisma)
+const resellerRepo = new ResellerRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
@@ -260,7 +265,8 @@ const tripLifecycleService = new TripLifecycleService(
   notificationService, walletService, bookingRepo,
 )
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo)
+const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
@@ -290,6 +296,7 @@ const adminController = new AdminController(adminService, tripService)
 const vehicleController = new VehicleController(vehicleService)
 const tripCategoryController = new TripCategoryController(tripCategoryService)
 const webhookController = new WebhookController(paymentService, bookingService)
+const resellerController = new ResellerController(resellerService)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)
@@ -317,6 +324,7 @@ export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddlewa
 export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCategoryController)
 export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)
 export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
+export const resellerRoutes = createResellerRoutes(resellerController, authMiddleware, requireRole)
 export const webhookRoutes = (() => {
   if (!webhookController) return null
   const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''
