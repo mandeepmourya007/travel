@@ -3,7 +3,7 @@
  * Gateways map their proprietary shapes into these; PaymentService operates only on these.
  */
 
-import { PAYMENT_PROVIDERS } from '@shared/constants'
+import { PAYMENT_PROVIDERS, type CashfreeAccountTypeConst } from '@shared/constants'
 
 // ─── Provider Identifier ──────────────────────────────
 // Single source of truth: PAYMENT_PROVIDERS array in packages/shared/src/constants/payment.ts
@@ -150,7 +150,7 @@ export interface CreatePayoutAccountParams {
   /** Required for Cashfree vendor KYC and Razorpay Route linked-account legal_info.pan */
   pan?: string
   /** Required for Cashfree vendor KYC; ignored by Razorpay */
-  accountType?: 'INDIVIDUAL' | 'BUSINESS'
+  accountType?: CashfreeAccountTypeConst
   bank: {
     accountNumber: string
     ifsc: string
