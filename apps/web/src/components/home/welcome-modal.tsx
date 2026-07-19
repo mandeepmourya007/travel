@@ -27,8 +27,12 @@ export function WelcomeModal() {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={HERO_COPY.eyebrow}>
-      <h2 className="font-display text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-3xl">
+    <Modal open={open} onClose={handleClose} title="Welcome">
+      <span className="inline-block rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
+        {HERO_COPY.eyebrow}
+      </span>
+
+      <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-3xl">
         {HERO_COPY.headlinePart1}{' '}
         <span className="text-primary-600">{HERO_COPY.headlinePart2}</span>
       </h2>
