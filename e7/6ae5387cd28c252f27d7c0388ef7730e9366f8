@@ -1,0 +1,76 @@
+packages/shared/src/types/booking.types.ts
+  s_65b35fc0dcf5e7::t_4b2655224dc14b 3
+  s_65b35fc0dcf5e7::t_67a70b2c742adf 100-101
+packages/shared/src/types/reseller.types.ts
+  s_65b35fc0dcf5e7::t_11c28bdcc707e0 31-39,42-49
+  s_65b35fc0dcf5e7::t_01524bdd4c1b8b 130
+  s_65b35fc0dcf5e7::t_32a70d1902668e 18-21
+  s_65b35fc0dcf5e7::t_173aed6c253e7a 89
+  s_65b35fc0dcf5e7::t_7f25b0d3ac931f 27-28,71-72,104-105,166-167
+  s_65b35fc0dcf5e7::t_826bf8e4fdd160 84
+  s_65b35fc0dcf5e7::t_2a1f2f12cd4aa4 40-41
+  s_65b35fc0dcf5e7::t_fae6fce65122b3 2-17,22-26,29-30,50-70,73-83,85-88,91,93-101,103,106-107,133-134,142-165,168
+  s_65b35fc0dcf5e7::t_e99c64331b58e6 1
+  s_65b35fc0dcf5e7::t_167e5e92af7232 90,92
+  s_65b35fc0dcf5e7::t_f2c74716bb26ca 102
+  s_65b35fc0dcf5e7::t_9391659b515aba 108-129,131-132
+  s_65b35fc0dcf5e7::t_7da2424c114f81 135-141
+packages/shared/src/validators/common.schema.ts
+  s_65b35fc0dcf5e7::t_b8dcce468e49f2 52-59
+packages/shared/src/validators/auth.schema.ts
+  s_65b35fc0dcf5e7::t_4009bd8bd5f2d0 101
+  s_65b35fc0dcf5e7::t_308ec5b145cde4 3
+packages/shared/src/constants/booking-status.ts
+  s_65b35fc0dcf5e7::t_72c77e18cc516d 29-33,41-45
+  s_65b35fc0dcf5e7::t_63e594f3dc6f40 34-40,46-53
+packages/shared/src/validators/reseller.schema.ts
+  s_65b35fc0dcf5e7::t_2b31cf88098c02 1-16,22-49,51-72
+  s_65b35fc0dcf5e7::t_78086bce7aaadf 50
+  s_65b35fc0dcf5e7::t_d639fff697b7c8 17-21
+packages/shared/src/types/index.ts
+  s_65b35fc0dcf5e7::t_75eaf7a2c4bc62 17
+packages/shared/src/constants/payment.ts
+  s_65b35fc0dcf5e7::t_e271b4faa103d7 30-40
+packages/shared/src/validators/booking.schema.ts
+  s_65b35fc0dcf5e7::t_a0b0073a32dea9 94
+  s_65b35fc0dcf5e7::t_cb099735dc820d 82
+  s_65b35fc0dcf5e7::t_f7cd4cea5ec26a 4-5
+  s_65b35fc0dcf5e7::t_eddce78d1bab4a 26-28
+  s_65b35fc0dcf5e7::t_e9213f47364531 43-44
+  s_65b35fc0dcf5e7::t_e452f10e5db503 54
+  s_65b35fc0dcf5e7::t_626443ca732739 65
+packages/shared/src/constants/reseller.ts
+  s_65b35fc0dcf5e7::t_bfcfd08822c544 1-14
+  s_65b35fc0dcf5e7::t_f61f2097051ffb 15-27
+packages/shared/src/types/user.types.ts
+  s_65b35fc0dcf5e7::t_d45727c7bfca64 95
+  s_65b35fc0dcf5e7::t_eba512ab7a2214 41-42,46
+  s_65b35fc0dcf5e7::t_56a5d5bc537926 43-45
+  s_65b35fc0dcf5e7::t_7bbd1ae9236500 3
+  s_65b35fc0dcf5e7::t_d592559be8ff21 47
+packages/shared/src/constants/index.ts
+  s_65b35fc0dcf5e7::t_7165f23489db31 14
+packages/shared/src/validators/index.ts
+  s_65b35fc0dcf5e7::t_7a4a7ebcdec827 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "e76ae5387cd28c252f27d7c0388ef7730e9366f8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_65b35fc0dcf5e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a6c236c-5e68-417f-a245-88ce2a88c763",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
