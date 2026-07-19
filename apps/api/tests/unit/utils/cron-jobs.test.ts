@@ -57,6 +57,14 @@ const mockBookingService = {
   recoverPaidBooking: vi.fn().mockResolvedValue(undefined),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
+const mockPaymentTxRepo = {
+  findBalanceReleaseEligibleBookings: vi.fn().mockResolvedValue([]),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const mockPayoutService = {
+  releaseBalance: vi.fn().mockResolvedValue('skipped'),
+} as any // eslint-disable-line @typescript-eslint/no-explicit-any
+
 const FIVE_MINUTES = 5 * 60 * 1000
 const ONE_DAY = 24 * 60 * 60 * 1000
 
@@ -68,9 +76,11 @@ function createDeps(paymentService = mockPaymentService as any) {
     refreshTokenRepo: mockRefreshTokenRepo,
     verifCodeRepo: mockVerifCodeRepo,
     webhookEventRepo: mockWebhookEventRepo,
+    paymentTxRepo: mockPaymentTxRepo,
     paymentService,
     bookingService: mockBookingService,
     tripLifecycleService: mockTripLifecycleService,
+    payoutService: mockPayoutService,
     vehicleService: mockVehicleService,
     walletService: mockWalletService,
     notificationService: mockNotificationService,
@@ -86,6 +96,8 @@ beforeEach(() => {
   mockTripRequestRepo.expireApprovedRequests.mockResolvedValue({ count: 0 })
   mockVerifCodeRepo.deleteExpired.mockResolvedValue({ count: 0 })
   mockRefreshTokenRepo.deleteExpired.mockResolvedValue({ count: 0 })
+  mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([])
+  mockPayoutService.releaseBalance.mockResolvedValue('skipped')
 })
 
 afterEach(() => {
@@ -228,5 +240,68 @@ describe('startCronJobs', () => {
     // Tick past the 24-hour mark — cleanup fires once
     await vi.advanceTimersByTimeAsync(2)
     expect(mockWebhookEventRepo.deleteOldTerminalEvents).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ── releaseCashfreeBalances (S3-S5: balance-release cron) ──
+
+describe('releaseCashfreeBalances (via cron)', () => {
+  it('S5: should do nothing when no eligible bookings exist', async () => {
+    mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([])
+    stopCrons = startCronJobs(createDeps(null))
+
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+    expect(mockPayoutService.releaseBalance).not.toHaveBeenCalled()
+  })
+
+  it('S3: should call payoutService.releaseBalance for each eligible booking', async () => {
+    mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([
+      { bookingId: 'booking-1' },
+      { bookingId: 'booking-2' },
+    ])
+    mockPayoutService.releaseBalance.mockResolvedValue('transferred')
+    stopCrons = startCronJobs(createDeps(null))
+
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+    expect(mockPayoutService.releaseBalance).toHaveBeenCalledWith('booking-1')
+    expect(mockPayoutService.releaseBalance).toHaveBeenCalledWith('booking-2')
+    expect(mockPayoutService.releaseBalance).toHaveBeenCalledTimes(2)
+  })
+
+  it('S4: should not stop the batch when one booking release throws unexpectedly', async () => {
+    mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([
+      { bookingId: 'booking-1' },
+      { bookingId: 'booking-2' },
+    ])
+    mockPayoutService.releaseBalance
+      .mockRejectedValueOnce(new Error('unexpected gateway error'))
+      .mockResolvedValueOnce('transferred')
+    stopCrons = startCronJobs(createDeps(null))
+
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+    // Second booking is still processed despite the first one throwing —
+    // per-booking try/catch isolation (releaseBalance is documented never to throw,
+    // but this is the last-resort guard for an unexpected error).
+    expect(mockPayoutService.releaseBalance).toHaveBeenCalledTimes(2)
+    expect(mockPayoutService.releaseBalance).toHaveBeenCalledWith('booking-2')
+  })
+
+  it('S5: should query with a cutoff date REFUND_CLIFF_DAYS ahead of now', async () => {
+    mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([])
+    const before = Date.now()
+    stopCrons = startCronJobs(createDeps(null))
+
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+    expect(mockPaymentTxRepo.findBalanceReleaseEligibleBookings).toHaveBeenCalledTimes(1)
+    const cutoffArg: Date = mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mock.calls[0][0]
+    const REFUND_CLIFF_DAYS = 7
+    const expectedCutoff = before + REFUND_CLIFF_DAYS * 24 * 60 * 60 * 1000
+    // Allow small slack for the fake-timer advance + a fresh Date.now() call inside the cron.
+    expect(cutoffArg.getTime()).toBeGreaterThanOrEqual(expectedCutoff)
+    expect(cutoffArg.getTime()).toBeLessThan(expectedCutoff + 30 * 60 * 1000 + 5000)
   })
 })

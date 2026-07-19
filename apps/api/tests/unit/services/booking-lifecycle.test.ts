@@ -438,18 +438,19 @@ describe('Flow 2: Cancel Confirmed Booking → Seat Decrement → FULL Revert', 
   })
 
   it('should calculate correct refund amounts per cancellation policy', async () => {
-    // FLEXIBLE, >=48h → 100%
+    // FLEXIBLE, >=168h (7d) → 50% (futureTrip is 5d out, i.e. within the cliff → 0%,
+    // so this test overrides startDate to be safely beyond the 7-day cliff).
     const flexibleBooking = makeBooking({
       bookingStatus: 'CONFIRMED',
       totalAmount: 10000,
-      trip: { ...futureTrip, cancellationPolicy: 'FLEXIBLE' },
+      trip: { ...futureTrip, cancellationPolicy: 'FLEXIBLE', startDate: new Date(NOW + 10 * DAY) },
     })
     mockBookingRepo.findById.mockResolvedValue(flexibleBooking)
 
     const result = await bookingService.cancelBooking('user-1', 'booking-1', 'reason')
 
-    expect(result.refundPercent).toBe(100)
-    expect(result.refundAmount).toBe(10000)
+    expect(result.refundPercent).toBe(50)
+    expect(result.refundAmount).toBe(5000)
   })
 
   it('should give 0% refund for STRICT policy regardless of timing', async () => {
