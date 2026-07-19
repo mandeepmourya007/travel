@@ -1,0 +1,29 @@
+"docs/codebase/Auth & Security.md"
+  s_f76a6f3bcc6bf2::t_684cd7445666ae 35-36
+  s_f76a6f3bcc6bf2::t_6ad89b7ee62f85 31,37
+  s_f76a6f3bcc6bf2::t_2e3a56c9cbe820 32-34
+"docs/codebase/Database Schema.md"
+  s_f76a6f3bcc6bf2::t_8c222e111bbf0e 12
+  s_f76a6f3bcc6bf2::t_ca49fb53eb67fc 76-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "803296640f9ca1457ce1c48b7de4fe476a2485ee",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f76a6f3bcc6bf2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "82dab4cf-652d-4012-ae64-056da91fba81",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
