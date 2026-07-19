@@ -318,6 +318,18 @@ export class RazorpayGateway implements IPaymentGateway {
   }
 
   /**
+   * Razorpay has no on-demand vendor transfer API — SafePay uses a single escrow hold
+   * per payment (transfers[] on_hold at order creation), released in full post-completion
+   * via releaseTransferHold. There is no deposit/balance split on this gateway, so this
+   * always throws; the balance-release cron only ever targets Cashfree bookings.
+   *
+   * @throws PaymentError — always, this operation is unsupported on Razorpay
+   */
+  async transferToVendor(): Promise<{ transferId: string; raw: unknown }> {
+    throw new PaymentError('transferToVendor is not supported by RazorpayGateway — Razorpay uses a single SafePay escrow hold released via releaseTransferHold, not a deposit/balance split')
+  }
+
+  /**
    * Verifies the Razorpay webhook HMAC-SHA256 signature, then parses and normalizes the event.
    *
    * Scheme: HMAC-SHA256(rawBody, webhookSecret) → hex → compare x-razorpay-signature.

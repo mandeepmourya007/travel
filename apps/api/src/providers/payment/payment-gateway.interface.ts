@@ -90,7 +90,12 @@ export interface IPaymentGateway {
   /**
    * Initiates a refund.
    * Razorpay: reverse_all:1 (reverses organizer transfer too).
-   * Cashfree: pro-rata reversal is automatic on the split.
+   * Cashfree: refund_splits: [{ vendor_id, amount: 0 }] — the organizer never gets
+   * debited (no-clawback design, see utils/payout.ts): only the deposit was ever
+   * released, and the deposit is by construction always <= the platform-retained
+   * amount, so refunds are paid entirely out of the platform's share.
+   * Pass `notes.vendorAccountId` (Cashfree vendor_id) to force the zero-amount split;
+   * omit it for orders that were never split.
    *
    * @throws PaymentError — provider API failure
    */
@@ -99,6 +104,25 @@ export interface IPaymentGateway {
     amountPaise: number,
     notes?: Record<string, unknown>,
   ): Promise<{ refundId: string; raw: unknown }>
+
+  /**
+   * Transfers the held balance tranche to the organizer's vendor account, on demand,
+   * after the refund cliff has passed. Cashfree-only (Easy Split "on demand" transfer);
+   * Razorpay has no equivalent — it releases its single SafePay escrow hold instead via
+   * releaseTransferHold, so RazorpayGateway throws PaymentError('unsupported') here.
+   *
+   * Idempotency: callers MUST pass a deterministic `ctx.idempotencyKey` (e.g.
+   * `BALANCE_${orderId}`) so a retried call after a network timeout does not create a
+   * second transfer. Implementations must forward it to the gateway's own idempotency
+   * mechanism where one exists.
+   *
+   * @throws PaymentError — provider API failure, or unsupported on this gateway
+   */
+  transferToVendor(
+    vendorId: string,
+    amountPaise: number,
+    ctx: { orderId: string; idempotencyKey: string; notes?: Record<string, unknown> },
+  ): Promise<{ transferId: string; raw: unknown }>
 
   /**
    * Fetches the transfer/split identifier for a captured payment.
