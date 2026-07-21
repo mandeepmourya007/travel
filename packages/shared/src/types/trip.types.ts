@@ -199,10 +199,15 @@ export interface OrganizerTripListItem {
   updatedAt: string
 }
 
+export interface TripFieldChange {
+  field: string
+  previousValue: unknown
+}
+
 export interface TripEditHistoryItem {
   id: string
   editedBy: { id: string; name: string }
-  changedFields: string[]
+  changes: TripFieldChange[]
   editNote?: string | null
   createdAt: string
 }
