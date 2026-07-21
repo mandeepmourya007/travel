@@ -83,7 +83,11 @@ export function GoogleAuthSection({ onSuccess, onInitiate, onError, label = 'Or'
             onError={() => {
               onError?.()
             }}
-            width="100%"
+            // GSI's `width` option only accepts a pixel number/string (e.g. "384"),
+            // never a CSS percentage — passing "100%" is silently invalid and logs
+            // "[GSI_LOGGER]: Provided button width is invalid" while GSI falls back
+            // to its own default width. Omit it and let the `flex justify-center`
+            // wrapper center the (fixed-width) button instead.
             text="continue_with"
           />
         )}
