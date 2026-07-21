@@ -1,0 +1,28 @@
+apps/api/src/services/trip.service.ts
+  s_fa04f9f7a7448c::t_b8d0397ca3955b 545-553,557-559,567-570
+  s_fa04f9f7a7448c::t_5d84c352971bb2 554-556,560-566
+  s_fa04f9f7a7448c::t_5239a1902ac085 32-61
+  s_fa04f9f7a7448c::t_bc6ae27a9e09ee 380-390,394,400,406,412
+  s_fa04f9f7a7448c::t_ee8d3ea8e0ac1f 352,357-375
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4015427fd74ee1c3a84795059aca6ce6165e34a0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fa04f9f7a7448c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d1262a38-34b8-4fc1-894a-3a3f431efc14",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
