@@ -29,6 +29,36 @@ type TripRequestItem = NonNullable<Awaited<ReturnType<TripRequestRepository['fin
 
 type PublicOrganizerProfile = NonNullable<Awaited<ReturnType<OrganizerProfileRepository['findByIdPublic']>>>
 
+/** Structural equality for scalars/arrays/plain objects — used to diff trip update input against current values. */
+function isDeepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true
+  if (typeof a !== typeof b) return false
+  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false
+    return a.every((item, i) => isDeepEqual(item, b[i]))
+  }
+  const aObj = a as Record<string, unknown>
+  const bObj = b as Record<string, unknown>
+  const aKeys = Object.keys(aObj)
+  const bKeys = Object.keys(bObj)
+  if (aKeys.length !== bKeys.length) return false
+  return aKeys.every((key) => isDeepEqual(aObj[key], bObj[key]))
+}
+
+/** Normalizes transfer points (pickup/drop) for comparison — strips id/sortOrder, defaults optional fields. */
+function normalizeTransferPoints(
+  points: Array<{ label: string; address?: string | null; time?: string | null; extraCharge?: number | null }>,
+) {
+  return points.map((p) => ({
+    label: p.label,
+    address: p.address ?? null,
+    time: p.time ?? null,
+    extraCharge: p.extraCharge ?? 0,
+  }))
+}
+
 export class TripService {
   constructor(
     private tripRepo: TripRepository,
@@ -319,42 +349,67 @@ export class TripService {
       'itineraryDocUrl',
     ]
     for (const key of scalarFields) {
-      if (input[key] !== undefined) {
+      if (input[key] !== undefined && !isDeepEqual(input[key], trip[key as keyof TripWithDetail])) {
         updateData[key] = input[key]
         changedFields.push(key)
       }
     }
-    if (input.startDate) { updateData.startDate = new Date(input.startDate); changedFields.push('startDate') }
-    if (input.endDate) { updateData.endDate = new Date(input.endDate); changedFields.push('endDate') }
-    if (input.earlyBirdDeadline) { updateData.earlyBirdDeadline = new Date(input.earlyBirdDeadline); changedFields.push('earlyBirdDeadline') }
-    if (input.bookingDeadline) { updateData.bookingDeadline = new Date(input.bookingDeadline); changedFields.push('bookingDeadline') }
-    if (input.destinationId) {
+    if (input.startDate && new Date(input.startDate).getTime() !== trip.startDate.getTime()) {
+      updateData.startDate = new Date(input.startDate); changedFields.push('startDate')
+    }
+    if (input.endDate && new Date(input.endDate).getTime() !== trip.endDate.getTime()) {
+      updateData.endDate = new Date(input.endDate); changedFields.push('endDate')
+    }
+    if (
+      input.earlyBirdDeadline &&
+      new Date(input.earlyBirdDeadline).getTime() !== (trip.earlyBirdDeadline ? trip.earlyBirdDeadline.getTime() : NaN)
+    ) {
+      updateData.earlyBirdDeadline = new Date(input.earlyBirdDeadline); changedFields.push('earlyBirdDeadline')
+    }
+    if (
+      input.bookingDeadline &&
+      new Date(input.bookingDeadline).getTime() !== (trip.bookingDeadline ? trip.bookingDeadline.getTime() : NaN)
+    ) {
+      updateData.bookingDeadline = new Date(input.bookingDeadline); changedFields.push('bookingDeadline')
+    }
+    if (input.destinationId && input.destinationId !== trip.destinationId) {
       updateData.destination = { connect: { id: input.destinationId } }
       changedFields.push('destinationId')
     }
 
+    const currentPickupPoints = normalizeTransferPoints(
+      trip.transferPoints.filter((tp) => tp.type === TransferPointType.PICKUP),
+    )
+    const currentDropPoints = normalizeTransferPoints(
+      trip.transferPoints.filter((tp) => tp.type === TransferPointType.DROP),
+    )
+    const pickupPointsChanged =
+      input.pickupPoints && !isDeepEqual(normalizeTransferPoints(input.pickupPoints), currentPickupPoints)
+    const dropPointsChanged =
+      input.dropPoints && !isDeepEqual(normalizeTransferPoints(input.dropPoints), currentDropPoints)
+
     // Wrap scalar update + transfer point replacement in a single atomic transaction
     const updated = await this.tripRepo.withTransaction(async (tx) => {
       // Replace transfer points (soft-delete old + create new)
-      if (input.pickupPoints) {
+      if (pickupPointsChanged) {
         await tx.tripTransferPoint.updateMany({
           where: { tripId, type: TransferPointType.PICKUP, isDeleted: false },
           data: { isDeleted: true, isActive: false, deletedAt: new Date() },
         })
         await tx.tripTransferPoint.createMany({
-          data: input.pickupPoints.map((p, i) => ({
+          data: input.pickupPoints!.map((p, i) => ({
             ...p, tripId, type: TransferPointType.PICKUP, sortOrder: i,
           })),
         })
         changedFields.push('pickupPoints')
       }
-      if (input.dropPoints) {
+      if (dropPointsChanged) {
         await tx.tripTransferPoint.updateMany({
           where: { tripId, type: TransferPointType.DROP, isDeleted: false },
           data: { isDeleted: true, isActive: false, deletedAt: new Date() },
         })
         await tx.tripTransferPoint.createMany({
-          data: input.dropPoints.map((p, i) => ({
+          data: input.dropPoints!.map((p, i) => ({
             ...p, tripId, type: TransferPointType.DROP, sortOrder: i,
           })),
         })
@@ -487,13 +542,32 @@ export class TripService {
     const { data, total } = await this.editHistoryRepo.findByTripId(tripId, { offset, limit })
 
     return {
-      data: data.map((entry: { id: string; editedBy: { id: string; name: string }; changedFields: string[]; editNote: string | null; createdAt: Date }) => ({
-        id: entry.id,
-        editedBy: entry.editedBy,
-        changedFields: entry.changedFields,
-        editNote: entry.editNote,
-        createdAt: entry.createdAt,
-      })),
+      data: data.map((entry: {
+        id: string
+        editedBy: { id: string; name: string }
+        changedFields: string[]
+        editNote: string | null
+        createdAt: Date
+        snapshot: Prisma.JsonValue
+      }) => {
+        const snapshot = entry.snapshot as Record<string, unknown> | null
+        const snapshotTransferPoints = Array.isArray(snapshot?.transferPoints)
+          ? (snapshot!.transferPoints as Array<{ type: string }>)
+          : []
+        return {
+          id: entry.id,
+          editedBy: entry.editedBy,
+          changes: entry.changedFields.map((field) => {
+            if (field === 'pickupPoints' || field === 'dropPoints') {
+              const type = field === 'pickupPoints' ? 'PICKUP' : 'DROP'
+              return { field, previousValue: snapshotTransferPoints.filter((tp) => tp.type === type) }
+            }
+            return { field, previousValue: snapshot ? snapshot[field] ?? null : null }
+          }),
+          editNote: entry.editNote,
+          createdAt: entry.createdAt,
+        }
+      }),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     }
   }
