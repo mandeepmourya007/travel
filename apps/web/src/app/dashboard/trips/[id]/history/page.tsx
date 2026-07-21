@@ -8,7 +8,29 @@ import { apiClient } from '@/lib/api-client'
 import { tripKeys } from '@/lib/query-keys'
 import { Spinner } from '@/components/shared/spinner'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
-import type { TripEditHistoryItem } from '@shared/types/trip.types'
+import type { TripEditHistoryItem, TripFieldChange } from '@shared/types/trip.types'
+
+/** Formats a field's previous value into a short human-readable string for the history badge. */
+function formatPreviousValue(value: unknown): string {
+  if (value === null || value === undefined) return 'empty'
+  if (Array.isArray(value)) {
+    if (value.length === 0) return 'empty'
+    // Transfer points (pickupPoints/dropPoints) — show labels, they're the useful part of "what changed"
+    if (value.every((v) => v && typeof v === 'object' && typeof (v as Record<string, unknown>).label === 'string')) {
+      return value.map((v) => (v as { label: string }).label).join(', ')
+    }
+    if (value.length > 2 || value.some((v) => typeof v === 'object' && v !== null)) {
+      return `${value.length} item${value.length === 1 ? '' : 's'}`
+    }
+    return value.map((v) => String(v)).join(', ')
+  }
+  if (typeof value === 'object') return '(complex value)'
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    const date = new Date(value)
+    if (!Number.isNaN(date.getTime())) return date.toLocaleDateString()
+  }
+  return String(value)
+}
 
 export default function TripEditHistoryPage() {
   const { id } = useParams<{ id: string }>()
@@ -66,9 +88,12 @@ export default function TripEditHistoryPage() {
                 </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {entry.changedFields.map((field) => (
+                {entry.changes.map(({ field, previousValue }: TripFieldChange) => (
                   <span key={field} className="badge badge-info text-xs">
                     {field}
+                    <span className="ml-1 font-normal text-info-700">
+                      was: {formatPreviousValue(previousValue)}
+                    </span>
                   </span>
                 ))}
               </div>
