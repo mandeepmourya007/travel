@@ -86,6 +86,16 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
     iconBorder:  'border-primary-100',
     stepColor:   'text-primary-500',
   },
+  {
+    step:        '02',
+    icon:        CreditCard,
+    title:       'Book your seat securely',
+    description: 'Pay via Razorpay — UPI, card, or net banking. Get instant booking confirmation and track everything from your dashboard, no WhatsApp screenshots needed.',
+    iconColor:   'text-highlight-600',
+    iconBg:      'bg-highlight-50',
+    iconBorder:  'border-highlight-100',
+    stepColor:   'text-highlight-500',
+  },
   // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
   // {
   //   step:        '02',
