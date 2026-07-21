@@ -1,0 +1,32 @@
+apps/web/src/app/trips/[slug]/page.tsx
+  s_caf4ad8a50bae3::t_8a4a50b246e0f6 4
+  s_caf4ad8a50bae3::t_ef8c6f033ca77c 100
+  s_caf4ad8a50bae3::t_ad912f5bf949d8 67,75-82
+apps/web/src/components/trips/trip-detail-client.tsx
+  s_caf4ad8a50bae3::t_b8cb64246fbae9 4,37-44,47-48,52,54-55,57-58
+"docs/codebase/Frontend Routes Reference.md"
+  s_caf4ad8a50bae3::t_673e94884c70b7 51
+"docs/codebase/Product Domain.md"
+  s_caf4ad8a50bae3::t_5121a0e472a64e 81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2cfd8d864d10075cd7260c866d0a2e04bc412155",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_caf4ad8a50bae3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "af97a945-3e67-43ea-83e5-ef83bf6e26ca",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
