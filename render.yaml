@@ -71,77 +71,9 @@ services:
           name: safarnama-redis
           property: connectionString
 
-      # ── Auth ──────────────────────────────────────────
-      - key: JWT_SECRET
-        sync: false   # openssl rand -hex 32
-      - key: CLIENT_URL
-        sync: false   # https://safarnama.store
-      - key: ALLOWED_ORIGINS
-        sync: false   # comma-separated extra origins e.g. https://www.safarnama.in,https://safarnama.in
-
-      # ── Google OAuth ──────────────────────────────────
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-
-      # ── Razorpay ──────────────────────────────────────
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
-        sync: false
-
-      # ── Cloudinary ────────────────────────────────────
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
-
-      # ── Resend (email) ────────────────────────────────
-      - key: RESEND_API_KEY
-        sync: false
-      - key: RESEND_FROM
-        value: Safarnama <onboarding@resend.dev>
-
-      # ── SMTP (fallback, unused on free tier) ──────────
-      - key: SMTP_HOST
-        sync: false
-      - key: SMTP_PORT
-        value: "587"
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
-      - key: SMTP_FROM
-        value: noreply@safarnama.in
-
-      # ── MSG91 (SMS OTP) ───────────────────────────────
-      - key: MSG91_AUTH_KEY
-        sync: false
-      - key: MSG91_TEMPLATE_ID
-        sync: false
-
-      # ── Firebase ──────────────────────────────────────
-      - key: FIREBASE_PROJECT_ID
-        sync: false
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
-        sync: false
-
       # ── Logging ───────────────────────────────────────
       - key: LOG_LEVEL
         value: info
-
-      # ── Sentry (optional — omit DSN to disable) ───────
-      - key: SENTRY_DSN
-        sync: false   # paste your Sentry project DSN from sentry.io
-      - key: SENTRY_TRACES_SAMPLE_RATE
-        value: "0.2"  # 20% of requests traced; raise to 1.0 for local testing
 
   # ── 2. Frontend Web ────────────────────────────────────
   - type: web
