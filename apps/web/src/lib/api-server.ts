@@ -83,23 +83,6 @@ export const getPopularTripsForStaticParams = cache(
   },
 )
 
-/**
- * SSR-side resolve of a reseller sublink token — reads price-display fields only
- * (never a raw price the client could tamper with; the booking mutation re-resolves
- * server-side from the same token). Returns null on any failure (invalid/expired/
- * inactive token) so callers can render the trip at its normal price instead of erroring.
- */
-export async function resolveSublinkTokenSSR(token: string): Promise<import('@shared/types/reseller.types').ResolvedSublinkDto | null> {
-  try {
-    return await fetchApi<import('@shared/types/reseller.types').ResolvedSublinkDto>(
-      `/reseller/sublinks/resolve/${encodeURIComponent(token)}`,
-      { revalidate: 0 },
-    )
-  } catch {
-    return null
-  }
-}
-
 export async function fetchApiWithPagination<T>(
   path: string,
   options: FetchApiOptions = {},

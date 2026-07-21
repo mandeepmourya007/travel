@@ -48,7 +48,7 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | Route                      | Purpose                                                         |
 | :---------------------------| :----------------------------------------------------------------|
 | `/trips`                   | Listing/search/filters                                          |
-| `/trips/[slug]`            | Trip detail — SSR + `generateStaticParams`, TouristTrip JSON-LD |
+| `/trips/[slug]`            | Trip detail — SSG/ISR via `generateStaticParams` (10-min revalidate), TouristTrip JSON-LD. Does **not** read `searchParams` server-side (reading a dynamic API in a statically-generated route with no Suspense boundary around it throws an uncaught `DYNAMIC_SERVER_USAGE` bailout and 500s the whole route) — the `?ref` reseller-sublink token is resolved entirely client-side in `TripDetailClient` via `useSearchParams()` + `useSublinkResolve` instead. |
 | `/trips/[slug]/book`       | Booking flow (seats, travelers, payment)                        |
 | `/trips/compare`           | Side-by-side comparison (max 3)                                 |
 | `/trips/organizers/[slug]` | Public organizer profile, Organization JSON-LD                  |

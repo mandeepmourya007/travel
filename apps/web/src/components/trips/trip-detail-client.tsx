@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useTripDetail } from '@/hooks/use-trip-detail'
 import { useSublinkResolve, useRecordAttribution } from '@/hooks/use-reseller'
@@ -18,45 +19,43 @@ import { TripOrganizerCard } from '@/components/trips/trip-organizer-card'
 import { ChatWithOrganizerButton } from '@/components/chat'
 import { ArrowLeft } from 'lucide-react'
 import type { TripDetail } from '@shared/types/trip.types'
-import type { ResolvedSublinkDto } from '@shared/types/reseller.types'
 
 interface TripDetailClientProps {
   trip: TripDetail
   slug: string
-  /** `?ref` query param read server-side, if present on first load */
-  initialSublinkToken?: string
-  /** Server-resolved price-display fields for `initialSublinkToken`, if resolvable */
-  initialResolvedSublink?: ResolvedSublinkDto | null
 }
 
 export function TripDetailClient({
   trip: initialTrip,
   slug,
-  initialSublinkToken,
-  initialResolvedSublink,
 }: TripDetailClientProps) {
   const { data: trip, error, refetch } = useTripDetail(slug, initialTrip)
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const recordAttribution = useRecordAttribution()
   const attributedTokenRef = useRef<string | null>(null)
 
-  // Token resolution order (see plan §2): `?ref` (SSR-resolved) wins; otherwise fall
-  // back to the `reseller_ref` cookie written on a previous visit, resolved client-side.
+  // Reseller sublink token resolution is entirely client-side (this component is
+  // rendered inside a statically-generated/ISR page — see trips/[slug]/page.tsx —
+  // so it cannot read `searchParams` server-side without breaking that page's static
+  // rendering). Token resolution order (see plan §2): `?ref` in the URL wins;
+  // otherwise fall back to the `reseller_ref` cookie written on a previous visit.
+  const searchParams = useSearchParams()
+  const urlToken = searchParams.get('ref') ?? undefined
+
   const [cookieToken, setCookieToken] = useState<string | undefined>(undefined)
   useEffect(() => {
-    if (initialSublinkToken) {
-      setResellerRefCookie(initialSublinkToken)
+    if (urlToken) {
+      setResellerRefCookie(urlToken)
     } else {
       setCookieToken(getResellerRefCookie())
     }
-  }, [initialSublinkToken])
+  }, [urlToken])
 
-  const shouldResolveFromCookie = !initialSublinkToken && !!cookieToken
-  const cookieResolve = useSublinkResolve(shouldResolveFromCookie ? cookieToken : undefined)
+  const activeTokenCandidate = urlToken ?? cookieToken
+  const tokenResolve = useSublinkResolve(activeTokenCandidate)
 
-  const resolvedSublink: ResolvedSublinkDto | null | undefined =
-    initialSublinkToken ? initialResolvedSublink : cookieResolve.data
-  const activeToken = initialSublinkToken ?? (cookieResolve.data ? cookieToken : undefined)
+  const resolvedSublink = tokenResolve.data
+  const activeToken = tokenResolve.data ? activeTokenCandidate : undefined
 
   // Fire attribution once per token, only when authenticated — this is what makes the
   // price survive on another device with no URL/cookie (SublinkAttribution upsert).
