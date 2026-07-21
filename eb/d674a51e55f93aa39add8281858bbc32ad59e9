@@ -1,0 +1,27 @@
+apps/web/src/app/dashboard/trips/[id]/history/page.tsx
+  s_fa04f9f7a7448c::t_7da6f88cc0a39c 94
+  s_fa04f9f7a7448c::t_b7872f3eb98f42 11-17,22-33
+  s_fa04f9f7a7448c::t_57c8c32cef1e61 91,95-96
+  s_fa04f9f7a7448c::t_5a4d53a37f2f1e 18-21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ebd674a51e55f93aa39add8281858bbc32ad59e9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fa04f9f7a7448c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d1262a38-34b8-4fc1-894a-3a3f431efc14",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
