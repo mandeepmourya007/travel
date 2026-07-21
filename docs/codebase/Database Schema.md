@@ -9,7 +9,7 @@ tags:
 
 # Database Schema
 
-Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 41 migrations in `apps/api/prisma/migrations/` (latest: `20260720120000_add_tnc_acceptance_timestamps`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
+Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 42 migrations in `apps/api/prisma/migrations/` (latest: `20260721195050_add_trip_hidden_and_bookings_paused_fields`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
 
 > [!important] ID Strategy
 > Every model uses ==`@id @default(uuid(7))` (UUIDv7)==. Legacy rows may hold cuid v1 — validators accept **both** (`idSchema` in [[Shared Package#Validators (Zod)|shared validators]]; never bare `z.string().uuid()`, it rejects v7).
@@ -82,7 +82,7 @@ erDiagram
 ### Trips
 
 - **Destination** — `name`, `slug` *(unique)*, `state`, `photoUrl?`, `description?`, `tripCount`, `isPopular`.
-- **Trip** — `organizerId`, `destinationId`, `title`, `slug` *(unique)*, `tripType`, `description`, `itinerary (Json)`, `startDate`/`endDate`, `bookingDeadline?`, `pricePerPerson (Int)`, `earlyBirdPrice?`/`earlyBirdDeadline?`, `minGroupSize`/`maxGroupSize`, `currentBookings`, ==`trendingScore?` (Float, cron-recomputed)==, `version`, `inclusions`/`exclusions (Json)`, `cancellationPolicy`, `photos (String[])`, `itineraryDocUrl?`, `status`, `bookingMode`, `acceptingBookings` (+ pausedReason/By), `isHidden` (+ hiddenReason/By), `seatSelectionEnabled`. Heavy composite indexes for search/sort (incl. pg_trgm for review search per latest migration).
+- **Trip** — `organizerId`, `destinationId`, `title`, `slug` *(unique)*, `tripType`, `description`, `itinerary (Json)`, `startDate`/`endDate`, `bookingDeadline?`, `pricePerPerson (Int)`, `earlyBirdPrice?`/`earlyBirdDeadline?`, `minGroupSize`/`maxGroupSize`, `currentBookings`, ==`trendingScore?` (Float, cron-recomputed)==, `version`, `inclusions`/`exclusions (Json)`, `cancellationPolicy`, `photos (String[])`, `itineraryDocUrl?`, `status`, `bookingMode`, `acceptingBookings` (+ `bookingsPausedReason`/`bookingsPausedBy` — note: field names are `bookingsPaused*`, not `paused*`), `isHidden` (+ `hiddenReason`/`hiddenBy`), `seatSelectionEnabled`. Heavy composite indexes for search/sort (incl. pg_trgm for review search per latest migration). `isHidden`/`hiddenReason`/`hiddenBy`/`bookingsPausedReason`/`bookingsPausedBy` were added to schema.prisma in commit `9c30628` without a migration (dev DBs got them via `prisma db push`); the missing migration `20260721195050_add_trip_hidden_and_bookings_paused_fields` was generated after the fact to bring production in sync.
 - **TripTransferPoint** — `tripId`, `type` (PICKUP/DROP), `label`, `address?`, `time?`, `extraCharge`, `sortOrder`.
 - **TripEditHistory** — `tripId`, `editedById`, `snapshot (Json)`, `changedFields (String[])`, `editNote?`.
 - **TripCategory** — `value` *(unique)*, `label`, `icon?`, `isActive`, `sortOrder`.
