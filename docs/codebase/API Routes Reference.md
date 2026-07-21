@@ -73,7 +73,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | DELETE | `/:id` | Delete trip | ORGANIZER |
 | PATCH | `/:id/toggle-bookings` | Pause/resume bookings | ORGANIZER |
 | PATCH | `/:id/visibility` | Hide/show trip | ORGANIZER |
-| GET | `/:id/history` | Edit history | ORGANIZER |
+| GET | `/:id/history` | Edit history *(each entry's `changedFields` now reflects only fields whose value actually changed vs. the pre-edit trip, not just fields present in the PUT payload; response items carry `changes: { field, previousValue }[]` instead of a bare `changedFields: string[]`)* | ORGANIZER |
 | POST | `/:tripId/request` | Create trip request | TRAVELER |
 | GET | `/:tripId/bookings` | Participant/booking list | ORGANIZER |
 | GET | `/:tripId/requests` | Trip requests list | ORGANIZER |
