@@ -429,6 +429,68 @@ describe('TripService', () => {
 
       expect(result.title).toBe('Updated Title')
     })
+
+    it('should only record fields whose value actually changed in edit history', async () => {
+      const activeTrip = { ...mockTrip, status: 'ACTIVE' }
+      mockTripRepo.findById.mockResolvedValue(activeTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue({ ...activeTrip, title: 'Updated Title' })
+
+      await service.updateTrip('user-1', 'trip-1', {
+        title: 'Updated Title', // actually different
+        description: activeTrip.description, // resubmitted unchanged
+        inclusions: [...activeTrip.inclusions], // resubmitted unchanged (new array, same contents)
+      })
+
+      expect(mockEditHistoryRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ changedFields: ['title'] }),
+      )
+    })
+
+    it('should skip the edit history row entirely when no field actually changed', async () => {
+      const activeTrip = { ...mockTrip, status: 'ACTIVE' }
+      mockTripRepo.findById.mockResolvedValue(activeTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue(activeTrip)
+
+      await service.updateTrip('user-1', 'trip-1', {
+        title: activeTrip.title,
+        description: activeTrip.description,
+      })
+
+      expect(mockEditHistoryRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should not throw when the entire form is resubmitted with every field unchanged', async () => {
+      const activeTrip = { ...mockTrip, status: 'ACTIVE' }
+      mockTripRepo.findById.mockResolvedValue(activeTrip)
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue(mockOrganizer)
+      mockTx.trip.update.mockResolvedValue(activeTrip)
+
+      await expect(
+        service.updateTrip('user-1', 'trip-1', {
+          title: activeTrip.title,
+          description: activeTrip.description,
+          tripType: activeTrip.tripType,
+          bookingMode: activeTrip.bookingMode,
+          pricePerPerson: activeTrip.pricePerPerson,
+          minGroupSize: activeTrip.minGroupSize,
+          maxGroupSize: activeTrip.maxGroupSize,
+          cancellationPolicy: activeTrip.cancellationPolicy,
+          inclusions: [...activeTrip.inclusions],
+          exclusions: [...activeTrip.exclusions],
+          itinerary: JSON.parse(JSON.stringify(activeTrip.itinerary)),
+          photos: [...activeTrip.photos],
+          startDate: activeTrip.startDate.toISOString(),
+          endDate: activeTrip.endDate.toISOString(),
+        }),
+      ).resolves.not.toThrow()
+
+      expect(mockTx.trip.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: {} }),
+      )
+      expect(mockEditHistoryRepo.create).not.toHaveBeenCalled()
+    })
   })
 
   describe('publishTrip', () => {
@@ -838,6 +900,7 @@ describe('TripService', () => {
             changedFields: ['title', 'pricePerPerson'],
             editNote: null,
             createdAt: new Date('2025-06-01'),
+            snapshot: { title: 'Old Title', pricePerPerson: 5000 },
           },
         ],
         total: 1,
@@ -846,7 +909,10 @@ describe('TripService', () => {
       const result = await service.getTripEditHistory('user-1', 'trip-1', 1, 20)
 
       expect(result.data).toHaveLength(1)
-      expect(result.data[0].changedFields).toEqual(['title', 'pricePerPerson'])
+      expect(result.data[0].changes).toEqual([
+        { field: 'title', previousValue: 'Old Title' },
+        { field: 'pricePerPerson', previousValue: 5000 },
+      ])
       expect(result.pagination).toEqual({
         page: 1,
         limit: 20,
