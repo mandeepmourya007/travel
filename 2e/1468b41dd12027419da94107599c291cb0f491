@@ -1,0 +1,26 @@
+"docs/codebase/Environment & Deployment.md"
+  s_fa04f9f7a7448c::t_2431783ace57e3 62
+"docs/codebase/API Routes Reference.md"
+  s_fa04f9f7a7448c::t_0830035ee1aaa5 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "2e1468b41dd12027419da94107599c291cb0f491",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fa04f9f7a7448c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d1262a38-34b8-4fc1-894a-3a3f431efc14",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
