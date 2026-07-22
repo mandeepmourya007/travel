@@ -1,0 +1,30 @@
+apps/web/src/components/profile/edit-user-profile-form.tsx
+  s_19167362b78323::t_b33e20db8fa37a 5
+  s_19167362b78323::t_50d95b9ff68631 59-63
+apps/web/src/components/profile/__tests__/verify-phone-cta.test.tsx
+  s_19167362b78323::t_a9296ed2a85f79 1-74
+apps/web/src/components/profile/verify-phone-cta.tsx
+  s_19167362b78323::t_12bfdfaee50110 27
+  s_19167362b78323::t_dbcad2fbb0765e 1-26,28-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "37f48270878dd278a28a5dc63bf06321a3d4bb20",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
