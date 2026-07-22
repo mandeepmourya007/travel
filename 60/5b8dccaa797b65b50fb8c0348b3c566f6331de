@@ -1,0 +1,35 @@
+apps/api/tests/integration/auth.routes.test.ts
+  s_19167362b78323::t_64b68e265a7dd7 366-429,432-450
+  s_19167362b78323::t_a15207d9a3287b 430-431
+  s_19167362b78323::t_5c6620f401a7b6 51-72
+  s_19167362b78323::t_cb8a8be5677237 91,97-98
+apps/api/tests/unit/services/otp.service.test.ts
+  s_19167362b78323::t_21395018e7d0c3 4
+  s_19167362b78323::t_99d6766fa389c7 20
+  s_19167362b78323::t_94c64124e58fe3 367-471
+apps/api/tests/unit/routes/booking.routes.test.ts
+  s_19167362b78323::t_564cde9ff405ca 1-42
+apps/api/tests/unit/middleware/require-phone-verified.middleware.test.ts
+  s_19167362b78323::t_a9b00c0451eed5 1-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "605b8dccaa797b65b50fb8c0348b3c566f6331de",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
