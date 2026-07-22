@@ -33,6 +33,9 @@ tags:
 > [!info] Admin Impersonation
 > `TRAVELER_ROLES = [TRAVELER, ADMIN]` in [[Shared Package#Constants|shared constants]] — admins are allowed on traveler pages/endpoints.
 
+> [!important] Mandatory phone verification — every user, every role
+> Every authenticated user (TRAVELER, ORGANIZER, ADMIN alike) is expected to have a verified phone (`User.phoneVerified === true`) so the business can reach them on WhatsApp — no role exemptions, no grandfathering. Users who sign up via phone OTP or Firebase phone auth satisfy this by construction; everyone else (email/password, email OTP, Google, organizer invite) attaches + verifies a phone after the fact via the authenticated `POST /auth/otp/attach/send` + `/verify` pair. See [[Auth & Security#Mandatory Phone Verification (All Roles)]].
+
 ## Core Feature Areas
 
 - **Trips** — categories (admin-managed `TripCategory` + organizer `TripTypeRequest`), destinations, itineraries, transfer points (pickup/drop), early-bird pricing, trending scores.

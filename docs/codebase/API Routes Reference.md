@@ -38,6 +38,8 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | POST | `/otp/verify` | Verify phone OTP | — |
 | POST | `/otp/email/send` | Send email OTP | — |
 | POST | `/otp/email/verify` | Verify email OTP | — |
+| POST | `/otp/attach/send` | Send phone OTP to attach to the logged-in user's account *(otpRateLimit)* | auth |
+| POST | `/otp/attach/verify` | Verify + attach phone to the logged-in user — session-preserving, no tokens/cookie | auth |
 | POST | `/firebase/verify` | Verify Firebase phone ID token *(conditional mount)* | — |
 
 ## Destinations — `/api/v1/destinations`
@@ -53,32 +55,32 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 
 ## Trips — `/api/v1/trips`
 
-| Method | Path | Purpose | Guard |
-| :--- | :--- | :--- | :--- |
-| GET | `/my/list` | Organizer's trips | ORGANIZER |
-| GET | `/my/search` | Search organizer's trips | ORGANIZER |
-| GET | `/my/booked-search` | Search own booked trips | TRAVELER, ADMIN |
-| GET | `/admin/search` | Admin search all trips | ADMIN |
-| GET | `/organizer/stats` | Organizer dashboard stats | ORGANIZER |
-| GET | `/organizer/pending-requests` | All pending trip requests | ORGANIZER |
-| GET | `/` | Public trip search *(cache 60s)* | — |
-| GET | `/slug/:slug` | Trip by slug *(cache 300s)* | — |
-| GET | `/organizers/slug/:slug` | Public organizer profile by slug | — |
-| GET | `/organizers/:organizerId` | Public organizer profile by id | — |
-| GET | `/:id` | Trip by id | — |
-| POST | `/` | Create trip | ORGANIZER |
-| PUT | `/:id` | Update trip | ORGANIZER |
-| POST | `/:id/publish` | Publish trip | ORGANIZER |
-| POST | `/:id/duplicate` | Duplicate trip | ORGANIZER |
-| DELETE | `/:id` | Delete trip | ORGANIZER |
-| PATCH | `/:id/toggle-bookings` | Pause/resume bookings | ORGANIZER |
-| PATCH | `/:id/visibility` | Hide/show trip | ORGANIZER |
-| GET | `/:id/history` | Edit history *(each entry's `changedFields` now reflects only fields whose value actually changed vs. the pre-edit trip, not just fields present in the PUT payload; response items carry `changes: { field, previousValue }[]` instead of a bare `changedFields: string[]`)* | ORGANIZER |
-| POST | `/:tripId/request` | Create trip request | TRAVELER |
-| GET | `/:tripId/bookings` | Participant/booking list | ORGANIZER |
-| GET | `/:tripId/requests` | Trip requests list | ORGANIZER |
-| GET | `/:tripId/summary` | Booking summary | ORGANIZER |
-| PATCH | `/:tripId/requests/:requestId` | Approve/reject request | ORGANIZER |
+| Method | Path                           | Purpose                                                                                                                                                                                                                                                                       | Guard           |
+| :-------| :-------------------------------| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| :----------------|
+| GET    | `/my/list`                     | Organizer's trips                                                                                                                                                                                                                                                             | ORGANIZER       |
+| GET    | `/my/search`                   | Search organizer's trips                                                                                                                                                                                                                                                      | ORGANIZER       |
+| GET    | `/my/booked-search`            | Search own booked trips                                                                                                                                                                                                                                                       | TRAVELER, ADMIN |
+| GET    | `/admin/search`                | Admin search all trips                                                                                                                                                                                                                                                        | ADMIN           |
+| GET    | `/organizer/stats`             | Organizer dashboard stats                                                                                                                                                                                                                                                     | ORGANIZER       |
+| GET    | `/organizer/pending-requests`  | All pending trip requests                                                                                                                                                                                                                                                     | ORGANIZER       |
+| GET    | `/`                            | Public trip search *(cache 60s)*                                                                                                                                                                                                                                              | —               |
+| GET    | `/slug/:slug`                  | Trip by slug *(cache 300s)*                                                                                                                                                                                                                                                   | —               |
+| GET    | `/organizers/slug/:slug`       | Public organizer profile by slug                                                                                                                                                                                                                                              | —               |
+| GET    | `/organizers/:organizerId`     | Public organizer profile by id                                                                                                                                                                                                                                                | —               |
+| GET    | `/:id`                         | Trip by id                                                                                                                                                                                                                                                                    | —               |
+| POST   | `/`                            | Create trip                                                                                                                                                                                                                                                                   | ORGANIZER       |
+| PUT    | `/:id`                         | Update trip                                                                                                                                                                                                                                                                   | ORGANIZER       |
+| POST   | `/:id/publish`                 | Publish trip                                                                                                                                                                                                                                                                  | ORGANIZER       |
+| POST   | `/:id/duplicate`               | Duplicate trip                                                                                                                                                                                                                                                                | ORGANIZER       |
+| DELETE | `/:id`                         | Delete trip                                                                                                                                                                                                                                                                   | ORGANIZER       |
+| PATCH  | `/:id/toggle-bookings`         | Pause/resume bookings                                                                                                                                                                                                                                                         | ORGANIZER       |
+| PATCH  | `/:id/visibility`              | Hide/show trip                                                                                                                                                                                                                                                                | ORGANIZER       |
+| GET    | `/:id/history`                 | Edit history *(each entry's `changedFields` now reflects only fields whose value actually changed vs. the pre-edit trip, not just fields present in the PUT payload; response items carry `changes: { field, previousValue }[]` instead of a bare `changedFields: string[]`)* | ORGANIZER       |
+| POST   | `/:tripId/request`             | Create trip request                                                                                                                                                                                                                                                           | TRAVELER        |
+| GET    | `/:tripId/bookings`            | Participant/booking list                                                                                                                                                                                                                                                      | ORGANIZER       |
+| GET    | `/:tripId/requests`            | Trip requests list                                                                                                                                                                                                                                                            | ORGANIZER       |
+| GET    | `/:tripId/summary`             | Booking summary                                                                                                                                                                                                                                                               | ORGANIZER       |
+| PATCH  | `/:tripId/requests/:requestId` | Approve/reject request                                                                                                                                                                                                                                                        | ORGANIZER       |
 
 ### Vehicles (nested under `/api/v1/trips`)
 
@@ -96,7 +98,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 
 | Method | Path | Purpose | Guard |
 | :--- | :--- | :--- | :--- |
-| POST | `/` | Create booking | auth |
+| POST | `/` | Create booking (+ initiates payment order) | auth, requirePhoneVerified |
 | GET | `/my` | My bookings | auth |
 | GET | `/my/summary` | My booking summary | auth |
 | GET | `/my/pending-requests` | My pending trip requests | auth |
@@ -135,7 +137,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | Method | Path | Purpose | Guard |
 | :--- | :--- | :--- | :--- |
 | GET | `/trip/:tripId` | Public trip reviews | — |
-| POST | `/` | Create review | auth |
+| POST | `/` | Create review | auth, requirePhoneVerified |
 | GET | `/my/booking/:bookingId` | Own review for a booking | auth |
 | PUT | `/:id` | Update own review | auth |
 | POST | `/:id/reply` | Organizer reply | ORGANIZER |
@@ -152,7 +154,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | GET | `/conversations` | List my conversations | auth |
 | GET | `/conversations/:id/messages/search` | Search messages | auth |
 | GET | `/conversations/:id/messages` | Paginated messages | auth |
-| POST | `/conversations/:id/messages` | Send message (REST fallback) | auth |
+| POST | `/conversations/:id/messages` | Send message (REST fallback) | auth, requirePhoneVerified |
 | POST | `/conversations/:id/messages/:msgId/reactions` | Add reaction | auth |
 | DELETE | `/conversations/:id/messages/:msgId/reactions/:emoji` | Remove reaction | auth |
 | PATCH | `/conversations/:id/close` | Close conversation | ADMIN |

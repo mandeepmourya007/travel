@@ -35,6 +35,23 @@ tags:
 >
 > Two more call sites can create an `OrganizerProfile` and are gated the same way: `POST /auth/signup` (password signup, `signupSchema`) with `role: 'ORGANIZER'`, and `PATCH /auth/profile` (self-serve role switch, `updateProfileSchema`) with `role: 'ORGANIZER'`. Both schemas add a `.superRefine()` (`requireOrganizerAgreementForOrganizerRole` in `packages/shared/src/validators/auth.schema.ts`) that requires `acceptedOrganizerAgreement: true` whenever `role === 'ORGANIZER'` is submitted, reusing the same `ORGANIZER_AGREEMENT_ERROR` message as the invite flow. `AuthService.signup` and `AuthService.updateProfile` both now pass `new Date()` as the `organizerTncAcceptedAt` argument to the shared `createOrganizerProfileWithSlug` helper whenever they create an `OrganizerProfile` for these paths — the same mechanism `organizerSignup` (invite flow) already used, closing what was previously a gap where a direct API call could self-serve into ORGANIZER without ever accepting the Organizer Agreement. There is currently no role-picker UI in `apps/web` that reaches either of these two ORGANIZER branches (checked as of this note) — the backend gate holds regardless.
 
+## Mandatory Phone Verification (All Roles)
+
+**Policy:** every authenticated user — TRAVELER, ORGANIZER, ADMIN, existing or brand-new — is expected to eventually have `User.phoneVerified === true`. No role exemptions, no grandfathering. Users who signed up/logged in via phone OTP (`POST /auth/otp/verify`) or Firebase phone auth already satisfy this by construction (those flows set `phoneVerified: true` on creation). Users who signed up via email+password, email OTP, Google OAuth, or organizer-invite do **not** get a phone collected at signup and must attach one separately.
+
+**Attach flow — session-preserving, distinct from the public login OTP:**
+
+| Method | Path | Guard | Notes |
+| :--- | :--- | :--- | :--- |
+| Send attach OTP | `POST /auth/otp/attach/send` | auth + `otpRateLimit` | `OtpService.sendPhoneOtpForAttach(userId, phone)` — reuses `sendOtpSchema` |
+| Verify + attach | `POST /auth/otp/attach/verify` | auth + `otpRateLimit` | `OtpService.verifyPhoneOtpForAttach(userId, phone, otp)` — reuses `verifyOtpSchema` |
+
+- These are **not** the same as `POST /auth/otp/send` + `/verify` — those are public, look a user up *by phone*, and auto-signup/login as that phone's owner (replacing the session). The attach pair is authenticated, operates on `req.user!.userId` (never a body-supplied user id), and **never calls `issueTokens`, never sets the refresh cookie, never returns tokens** — the caller's existing session is untouched.
+- **Duplicate phone rejection:** if the phone is already linked to a different account, both `sendPhoneOtpForAttach` (pre-check via `UserRepository.findByPhone`) and `verifyPhoneOtpForAttach` (race-safety re-check + a P2002 unique-constraint catch on `UserRepository.setPhone`) reject with `ConflictError` (`code: CONFLICT`, `subCode: PHONE_TAKEN` — see `AUTH_ERROR_CODE` in `apps/api/src/utils/constants.ts`). `phone` stays `@unique` — no merge/hijack of another account.
+- `AuthService.issueTokens` and `AuthService.getMe` both include `phone`/`phoneVerified` on `AuthResponse['user']`, so every login path (signup, login, Google, phone/email OTP verify) surfaces the current verification state to the client without an extra round-trip.
+- **Client-side gate:** `apps/web`'s `AuthGuard` + `getPostAuthRoute` helper redirect an unverified user to `/verify-phone`.
+- **Server-side enforcement:** `requirePhoneVerified` middleware (`apps/api/src/middleware/require-phone-verified.middleware.ts`, factory `createRequirePhoneVerified(userRepo)`) does a fresh `UserRepository.findById` lookup (never trusts a `phoneVerified` JWT claim, since the 15-min access token isn't refreshed on phone attach) and throws `ForbiddenError` with `subCode: 'PHONE_NOT_VERIFIED'` when `phoneVerified !== true`, so the client can distinguish this from a generic 403 and route to `/verify-phone`. Wired (after `authMiddleware`, before `validate`) on the highest-risk mutation endpoints: `POST /bookings` (booking creation + payment-order initiation — the same endpoint), `POST /chat/conversations/:id/messages` (REST message send), and `POST /reviews` (review creation). Organizer-side mutations (trip/vehicle creation) are **not yet guarded** — lower priority per the audit, left as a follow-up since wiring them requires the same signature change across `trip.routes.ts`/`vehicle.routes.ts`.
+
 ## Roles & Guards (Backend)
 
 `requireRole(...roles)` middleware — roles from [[Shared Package#Constants]] (`USER_ROLE`): TRAVELER, ORGANIZER, ADMIN. `TRAVELER_ROLES = [TRAVELER, ADMIN]` lets admins hit traveler endpoints. Full per-endpoint guard map: [[API Routes Reference]].
@@ -55,14 +72,16 @@ tags:
 
 - **Hydration** (`onRehydrateStorage`): if previously authenticated, silently `POST /auth/refresh` (50s timeout for cold starts) *before* flipping `_hasHydrated`. Confirmed 401 → clear session; transient errors → stay logged in.
 - **401 flow** in the axios interceptor: mutex-guarded refresh, then session-expired overlay + redirect with sanitized `returnTo` → [[Data Fetching & State#API Client]].
-- Post-login routing: `getHomeRoute(role)` — ADMIN → `/admin`, ORGANIZER → `/dashboard`, else `/trips`.
+- Post-login routing: `getHomeRoute(role)` — ADMIN → `/admin`, ORGANIZER → `/dashboard`, else `/trips`. Every login/signup success handler (password, Google, phone OTP, email OTP, onboarding completion, organizer-invite signup) routes through `getPostAuthRoute({ isNewUser, user, returnTo })` (`apps/web/src/lib/constants.ts`) instead of calling `getHomeRoute` directly — it checks `user.phoneVerified` first (unverified → `VERIFY_PHONE_ROUTE = '/verify-phone'`, wins over everything else), then `isNewUser` (→ `ONBOARDING_ROUTE`), then falls back to `returnTo ?? getHomeRoute(role)`.
 
 ### Frontend Guards
 
 | Guard | Behavior |
 | :--- | :--- |
-| `components/shared/auth-guard.tsx` | Spinner until `_hasHydrated`; unauth → `/login/email`; optional `allowedRoles` (mismatch → `/`) |
+| `components/shared/auth-guard.tsx` | Spinner until `_hasHydrated`; unauth → `/login/email`; ==`phoneVerified === false` (explicit, not falsy) → `/verify-phone`, no role exemption==; optional `allowedRoles` (mismatch → `/`) |
 | `components/shared/role-guard.tsx` | Renders "Access Denied" for wrong role |
+
+The phone gate is a single choke point in `AuthGuard` — since `admin/layout.tsx` and `dashboard/layout.tsx` both wrap `AuthGuard`, and every other private page guards page-level with the same component, one change covers every role. `apps/web/src/app/(auth)/verify-phone/page.tsx` (the redirect target) lives in `(auth)`, which has **no** layout-level `AuthGuard`, avoiding a redirect loop. It re-derives truth from `useProfile()` to self-correct a stale-rehydrated session that thinks it's unverified when the server disagrees. The reusable `components/auth/phone-verification-flow.tsx` (phone → OTP step machine, wired to `use-attach-phone.ts`, never the public login OTP hooks) is shared by this route and the profile "Verify phone" CTA (`components/profile/verify-phone-cta.tsx`, shown in `edit-user-profile-form.tsx` whenever `!profile.phoneVerified`) — one implementation, two call sites.
 
 Layout-level: `admin/layout.tsx` (`AuthGuard allowedRoles={['ADMIN']}`), `dashboard/layout.tsx` (`AuthGuard` + `RoleGuard ORGANIZER`). All other private pages guard page-level. ==No `middleware.ts`== — protection is client-side only; SSR still returns 200 for private routes.
 
