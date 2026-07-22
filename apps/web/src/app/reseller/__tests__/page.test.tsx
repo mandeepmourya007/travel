@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
 // AuthGuard reads isAuthenticated/_hasHydrated/user.role from the Zustand store directly.
 const { mockAuthState } = vi.hoisted(() => {
   const mockAuthState = () => ({
-    user: { id: 'traveler-1', name: 'Traveler User', role: 'TRAVELER' },
+    user: { id: 'traveler-1', name: 'Traveler User', role: 'TRAVELER', phoneVerified: true },
     accessToken: 'test-jwt',
     isAuthenticated: true,
     _hasHydrated: true,
