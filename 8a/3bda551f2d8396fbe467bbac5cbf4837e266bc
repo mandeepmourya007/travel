@@ -1,0 +1,29 @@
+apps/web/src/components/auth/__tests__/name-input-form.test.tsx
+  s_19167362b78323::t_a3d6e459ebf235 78-85
+apps/web/src/components/auth/__tests__/phone-input-form.test.tsx
+  s_19167362b78323::t_b71d7a447de77a 56-63
+apps/web/src/components/profile/__tests__/profile-page.test.tsx
+  s_19167362b78323::t_b9cdb788e39a54 18
+  s_19167362b78323::t_88c12f1c61b00e 45,57-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8a3bda551f2d8396fbe467bbac5cbf4837e266bc",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
