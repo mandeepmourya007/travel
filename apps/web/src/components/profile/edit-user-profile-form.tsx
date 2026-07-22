@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useUpdateProfile } from '@/hooks/use-profile'
+import { VerifyPhoneCta } from '@/components/profile/verify-phone-cta'
 import type { UserProfileResponse } from '@shared/types/user.types'
 
 interface EditUserProfileFormProps {
@@ -55,6 +56,11 @@ export function EditUserProfileForm({ profile }: EditUserProfileFormProps) {
         <div>
           <p className="text-xs text-neutral-500">Phone</p>
           <p className="text-sm font-medium text-neutral-800">{profile.phone ?? '—'}</p>
+          {!profile.phoneVerified && (
+            <div className="mt-2">
+              <VerifyPhoneCta />
+            </div>
+          )}
         </div>
       </div>
 
