@@ -129,7 +129,7 @@ services:
       # All keys are optional. WhatsApp channel is silently skipped when not set.
       # Setup: register number on MSG91 dashboard → approve templates on Meta Business Manager
       - key: MSG91_WA_BUSINESS_NUMBER
-        sync: false   # 10-digit WA Business number (no country code)
+        sync: false   # exact value from MSG91 dashboard → WhatsApp (already includes its own country code — copy verbatim)
       - key: MSG91_WA_OTP_TEMPLATE
         sync: false   # Meta-approved OTP template name e.g. safarnama_otp
       - key: MSG91_WA_OTP_PREFER
