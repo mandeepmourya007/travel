@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PhoneInputForm } from '@/components/auth/phone-input-form'
@@ -8,7 +8,8 @@ import { OtpVerifyForm } from '@/components/auth/otp-verify-form'
 import { useSendOtp, useVerifyOtp } from '@/hooks/use-otp'
 import { useFirebasePhoneAuth } from '@/hooks/use-firebase-phone-auth'
 import { useAuthStore } from '@/store/auth.store'
-import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated'
+import { APP_NAME, getPostAuthRoute } from '@/lib/constants'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { useLoadingStore } from '@/store/loading.store'
 
@@ -17,8 +18,6 @@ const RECAPTCHA_CONTAINER_ID = 'recaptcha-container'
 
 export default function PhoneLoginPage() {
   const router = useRouter()
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
 
   const sendOtp = useSendOtp()
@@ -31,18 +30,14 @@ export default function PhoneLoginPage() {
 
   const formattedPhone = phone ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : ''
 
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
-  }, [hasHydrated, isAuthenticated, router])
+  // requireOnboarded: false — bounce an authenticated visitor away immediately
+  // (matches the original behavior: no completedOnboarding gate on this page).
+  useRedirectIfAuthenticated({ requireOnboarded: false })
 
   const handleVerified = (data: { isNewUser: boolean }) => {
     useLoadingStore.getState().show('Signing in...')
-    if (data.isNewUser) {
-      router.push('/onboarding')
-    } else {
-      markOnboardingComplete()
-      router.push(getHomeRoute(useAuthStore.getState().user?.role))
-    }
+    if (!data.isNewUser) markOnboardingComplete()
+    router.push(getPostAuthRoute({ isNewUser: data.isNewUser, user: useAuthStore.getState().user }))
   }
 
   const firebaseSubmit = PHONE_STRATEGY === 'firebase'
@@ -104,7 +99,7 @@ export default function PhoneLoginPage() {
               onSuccess={(isNewUser) => {
                 useLoadingStore.getState().show('Signing in...')
                 if (!isNewUser) markOnboardingComplete()
-                router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+                router.push(getPostAuthRoute({ isNewUser, user: useAuthStore.getState().user }))
               }}
             />
           )}

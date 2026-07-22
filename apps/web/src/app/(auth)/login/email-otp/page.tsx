@@ -1,21 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { EmailInputForm } from '@/components/auth/email-input-form'
 import { OtpVerifyForm } from '@/components/auth/otp-verify-form'
 import { useSendEmailOtp, useVerifyEmailOtp } from '@/hooks/use-email-otp'
 import { useAuthStore } from '@/store/auth.store'
-import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated'
+import { APP_NAME, getPostAuthRoute } from '@/lib/constants'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { useLoadingStore } from '@/store/loading.store'
 
 export default function EmailOtpLoginPage() {
   const router = useRouter()
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const completedOnboarding = useAuthStore((s) => s.completedOnboarding)
-  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
   const sendOtp = useSendEmailOtp()
   const verifyOtp = useVerifyEmailOtp()
@@ -23,18 +21,12 @@ export default function EmailOtpLoginPage() {
   const [step, setStep] = useState<'email' | 'otp'>('email')
   const [email, setEmail] = useState('')
 
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated && completedOnboarding) router.replace(getHomeRoute(useAuthStore.getState().user?.role))
-  }, [hasHydrated, isAuthenticated, completedOnboarding, router])
+  useRedirectIfAuthenticated()
 
   const handleVerified = (data: { isNewUser: boolean }) => {
     useLoadingStore.getState().show('Signing in...')
-    if (data.isNewUser) {
-      router.push('/onboarding')
-    } else {
-      markOnboardingComplete()
-      router.push(getHomeRoute(useAuthStore.getState().user?.role))
-    }
+    if (!data.isNewUser) markOnboardingComplete()
+    router.push(getPostAuthRoute({ isNewUser: data.isNewUser, user: useAuthStore.getState().user }))
   }
 
   return (
@@ -72,7 +64,7 @@ export default function EmailOtpLoginPage() {
               onSuccess={(isNewUser) => {
                 useLoadingStore.getState().show('Signing in...')
                 if (!isNewUser) markOnboardingComplete()
-                router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+                router.push(getPostAuthRoute({ isNewUser, user: useAuthStore.getState().user }))
               }}
             />
           )}

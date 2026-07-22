@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated'
 import { apiClient, isAppApiError } from '@/lib/api-client'
-import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { APP_NAME, getPostAuthRoute } from '@/lib/constants'
 import { signupSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { EmailInput } from '@/components/shared/email-input'
@@ -18,19 +19,12 @@ export default function SignupPage() {
   const router = useRouter()
   const setAuth = useAuthStore((s) => s.setAuth)
   const markOnboardingComplete = useAuthStore((s) => s.markOnboardingComplete)
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const completedOnboarding = useAuthStore((s) => s.completedOnboarding)
-  const hasHydrated = useAuthStore((s) => s._hasHydrated)
   const [form, setForm] = useState({ email: '', password: '', acceptedTerms: false })
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated && completedOnboarding) {
-      router.replace(getHomeRoute(useAuthStore.getState().user?.role))
-    }
-  }, [hasHydrated, isAuthenticated, completedOnboarding, router])
+  useRedirectIfAuthenticated()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -55,7 +49,7 @@ export default function SignupPage() {
       if (res.success) {
         useLoadingStore.getState().show('Creating account...')
         setAuth(res.data.user, res.data.tokens.accessToken)
-        router.push('/onboarding')
+        router.push(getPostAuthRoute({ isNewUser: true, user: res.data.user }))
       }
     } catch (err: unknown) {
       if (isAppApiError(err) && err.details) {
@@ -181,7 +175,7 @@ export default function SignupPage() {
             onSuccess={(isNewUser) => {
               useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
-              router.push(isNewUser ? '/onboarding' : getHomeRoute(useAuthStore.getState().user?.role))
+              router.push(getPostAuthRoute({ isNewUser, user: useAuthStore.getState().user }))
             }}
           />
 
