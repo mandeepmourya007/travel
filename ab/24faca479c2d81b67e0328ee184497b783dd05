@@ -1,0 +1,51 @@
+apps/web/src/app/(auth)/login/email-otp/page.tsx
+  s_19167362b78323::t_ae29336459d3ce 28-29
+  s_19167362b78323::t_dd586057835a26 11
+  s_19167362b78323::t_0689babb3f707b 3,10,24
+  s_19167362b78323::t_7872c567e1cee1 67
+apps/web/src/app/(auth)/signup/page.tsx
+  s_19167362b78323::t_5ce33caf09e561 3,7,27
+  s_19167362b78323::t_3626711e4897f0 9
+  s_19167362b78323::t_cae0026418d849 178
+  s_19167362b78323::t_1d0fcf3831b9e5 52
+apps/web/src/app/(auth)/login/phone/page.tsx
+  s_19167362b78323::t_adad0797fce477 102
+  s_19167362b78323::t_e9de0ef54bb861 3,11,33-35
+  s_19167362b78323::t_1531550b83235d 12
+  s_19167362b78323::t_b02acb2da9d1bb 39-40
+apps/web/src/app/(auth)/signup/organizer/[token]/page.tsx
+  s_19167362b78323::t_3ae8be46ce0b7f 66
+  s_19167362b78323::t_29ccc519f086b2 8,27-29
+  s_19167362b78323::t_bc2c45e6d1b250 10
+apps/web/src/hooks/__tests__/use-redirect-if-authenticated.test.ts
+  s_19167362b78323::t_99492390c620a5 1-92
+apps/web/src/app/(auth)/login/email/page.tsx
+  s_19167362b78323::t_25edbc5905ac4f 51
+  s_19167362b78323::t_0865de53fab2ce 173
+  s_19167362b78323::t_a5ba00e25f3166 91
+  s_19167362b78323::t_b99a2bface7e98 7
+  s_19167362b78323::t_20a659454b83d1 9
+apps/web/src/hooks/use-redirect-if-authenticated.ts
+  s_19167362b78323::t_4db1e6133c7b4d 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "ab24faca479c2d81b67e0328ee184497b783dd05",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
