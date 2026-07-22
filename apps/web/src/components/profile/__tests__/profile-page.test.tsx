@@ -15,7 +15,7 @@ vi.mock('next/navigation', () => ({
 const { mockUpdateUser, mockState } = vi.hoisted(() => {
   const mockUpdateUser = vi.fn()
   const mockState = () => ({
-    user: { id: 'u1', name: 'John Doe', role: 'TRAVELER' },
+    user: { id: 'u1', name: 'John Doe', role: 'TRAVELER', phoneVerified: true },
     accessToken: 'test-jwt',
     isAuthenticated: true,
     _hasHydrated: true,
@@ -42,7 +42,7 @@ describe('ProfilePage', () => {
 
   // ── Loading state ───────────────────────────────────
 
-  it('should show skeleton while loading', () => {
+  it('should show skeleton while loading', async () => {
     // Delay the response so skeleton stays visible
     server.use(
       http.get(`${API}/auth/profile`, async () => {
@@ -54,6 +54,13 @@ describe('ProfilePage', () => {
     renderWithQuery(<ProfilePage />)
 
     expect(document.querySelector('.skeleton')).toBeInTheDocument()
+
+    // Drain the delayed response before the test ends — otherwise the 200ms
+    // timer keeps running in the background (pool: 'forks' runs this whole
+    // file in one process) and its query resolution can land inside a LATER
+    // test in this file, causing an unmounted-component state update and
+    // stray console noise attributed to the wrong test.
+    await waitFor(() => expect(document.querySelector('.skeleton')).not.toBeInTheDocument())
   })
 
   // ── Error state ─────────────────────────────────────
