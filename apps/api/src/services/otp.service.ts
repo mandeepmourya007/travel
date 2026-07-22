@@ -1,12 +1,12 @@
 import crypto from 'crypto'
 import type { Logger } from 'pino'
-import type { AuthResponse } from '@shared/types/auth.types'
+import type { AuthResponse, AttachPhoneResponse } from '@shared/types/auth.types'
 import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { UserRepository } from '../repositories/user.repository'
 import { AuthService } from './auth.service'
 import type { IOtpProvider } from '../providers/otp-provider.interface'
 import type { IEmailProvider } from '../providers/email-provider.interface'
-import { ValidationError, AuthError, TooManyRequestsError, AppError } from '../errors/app-error'
+import { ValidationError, AuthError, TooManyRequestsError, AppError, ConflictError } from '../errors/app-error'
 import { normalizePhone } from '../utils/phone'
 import { normalizeEmail } from '../utils/email'
 import {
@@ -18,7 +18,7 @@ import {
   // DEV_OTP, // unused while the fixed dev-OTP shortcut in generateOtp() is disabled
   OTP_TYPE,
 } from '../utils/constants'
-import { USER_ROLE, DEFAULT_USER_NAME } from '@shared/constants'
+import { USER_ROLE, DEFAULT_USER_NAME, AUTH_ERROR_CODE } from '@shared/constants'
 
 type OtpType = typeof OTP_TYPE[keyof typeof OTP_TYPE]
 
@@ -108,6 +108,16 @@ export class OtpService {
     const phone = normalizePhone(rawPhone)
     if (!phone) throw new ValidationError('Invalid phone number')
 
+    return this.sendPhoneOtpMechanics(phone)
+  }
+
+  /**
+   * The actual send mechanics for a PHONE_OTP: cooldown/rate-limit checks, code
+   * generation + storage, delivery via the OTP provider. Assumes `phone` is
+   * already normalized. Shared by the public `sendOtp` and the authenticated
+   * `sendPhoneOtpForAttach` — no user-lookup/auto-signup logic lives here.
+   */
+  private async sendPhoneOtpMechanics(phone: string) {
     await this.checkCooldown(phone, OTP_TYPE.PHONE_OTP)
     await this.checkRateLimit(phone, OTP_TYPE.PHONE_OTP)
     await this.verifCodeRepo.invalidateExisting(phone, OTP_TYPE.PHONE_OTP)
@@ -260,5 +270,64 @@ export class OtpService {
     this.logger.info({ userId: user.id, isNewUser }, 'Email OTP verified')
 
     return { auth, refreshToken, isNewUser }
+  }
+
+  // ── Attach phone (authenticated) ──────────────────
+  // Lets an already-logged-in user (any auth method — email, Google, organizer
+  // invite) attach + verify a phone WITHOUT replacing their session. Distinct
+  // from the public sendOtp/verifyOtp, which auto-signup/login by phone.
+
+  /**
+   * Sends a PHONE_OTP to attach to the authenticated user's account.
+   * Rejects up-front if the phone already belongs to a different account.
+   * @throws {ValidationError} Invalid phone format after normalization
+   * @throws {ConflictError} Phone already linked to another account
+   * @throws {TooManyRequestsError} Resend cooldown or rate limit exceeded
+   */
+  async sendPhoneOtpForAttach(userId: string, rawPhone: string) {
+    const phone = normalizePhone(rawPhone)
+    if (!phone) throw new ValidationError('Invalid phone number')
+
+    const owner = await this.userRepo.findByPhone(phone)
+    if (owner && owner.id !== userId) {
+      throw new ConflictError('This phone number is already linked to another account', AUTH_ERROR_CODE.PHONE_TAKEN)
+    }
+
+    return this.sendPhoneOtpMechanics(phone)
+  }
+
+  /**
+   * Verifies a PHONE_OTP and attaches the phone to the authenticated user.
+   * Session-preserving — never issues tokens, never touches the refresh cookie.
+   * @throws {ValidationError} Invalid phone format after normalization
+   * @throws {AuthError} No OTP found, expired, max attempts exceeded, or wrong OTP
+   * @throws {ConflictError} Phone already linked to another account (race-safe)
+   */
+  async verifyPhoneOtpForAttach(userId: string, rawPhone: string, otp: string): Promise<AttachPhoneResponse> {
+    const phone = normalizePhone(rawPhone)
+    if (!phone) throw new ValidationError('Invalid phone number')
+
+    await this.verifyCode(phone, OTP_TYPE.PHONE_OTP, otp)
+
+    // Race-safety second check — another user may have claimed this phone
+    // between the send-side pre-check and this verify call.
+    const owner = await this.userRepo.findByPhone(phone)
+    if (owner && owner.id !== userId) {
+      throw new ConflictError('This phone number is already linked to another account', AUTH_ERROR_CODE.PHONE_TAKEN)
+    }
+
+    let updated
+    try {
+      updated = await this.userRepo.setPhone(userId, phone)
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+        throw new ConflictError('This phone number is already linked to another account', AUTH_ERROR_CODE.PHONE_TAKEN)
+      }
+      throw err
+    }
+
+    this.logger.info({ userId }, 'Phone attached and verified')
+
+    return { phone: updated.phone!, phoneVerified: updated.phoneVerified }
   }
 }

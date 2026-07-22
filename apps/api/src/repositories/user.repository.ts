@@ -82,6 +82,15 @@ export class UserRepository {
   }
 
   /**
+   * Attaches + verifies a phone number for an already-authenticated user of any auth
+   * method (email, Google, organizer-invite). Sets phoneVerified=true atomically.
+   * Used by: OtpService.verifyPhoneOtpForAttach
+   */
+  async setPhone(id: string, phone: string) {
+    return this.prisma.user.update({ where: { id }, data: { phone, phoneVerified: true } })
+  }
+
+  /**
    * Fetches user with organizer profile included (1-to-1 relation).
    * Used by: AuthService.getFullProfile
    * Note: soft-delete check on organizerProfile done in service layer

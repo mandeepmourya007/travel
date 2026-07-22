@@ -210,7 +210,15 @@ export class AuthService {
    * Not intended for controller-level access.
    */
   async issueTokens(
-    user: { id: string; name: string; email: string | null; role: string; avatarUrl: string | null },
+    user: {
+      id: string
+      name: string
+      email: string | null
+      phone: string | null
+      phoneVerified: boolean
+      role: string
+      avatarUrl: string | null
+    },
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
@@ -221,6 +229,8 @@ export class AuthService {
           id: user.id,
           name: user.name,
           email: user.email ?? undefined,
+          phone: user.phone ?? undefined,
+          phoneVerified: user.phoneVerified,
           role: user.role as AuthResponse['user']['role'],
           avatarUrl: user.avatarUrl ?? undefined,
         },
@@ -238,6 +248,8 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email ?? undefined,
+      phone: user.phone ?? undefined,
+      phoneVerified: user.phoneVerified,
       role: user.role,
       avatarUrl: user.avatarUrl ?? undefined,
     }
