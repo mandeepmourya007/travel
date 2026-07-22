@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import crypto from 'crypto'
 import { OtpService } from '../../../src/services/otp.service'
-import { TooManyRequestsError, ValidationError, AuthError, AppError } from '../../../src/errors/app-error'
+import { TooManyRequestsError, ValidationError, AuthError, AppError, ConflictError } from '../../../src/errors/app-error'
 import { OTP_RESEND_COOLDOWN_SECONDS } from '../../../src/utils/constants'
 
 // ── Mock factories ────────────────────────────────────
@@ -17,7 +17,7 @@ function createMockVerifCodeRepo() {
   }
 }
 
-const mockUserRepo = { findByPhone: vi.fn(), findByEmail: vi.fn(), create: vi.fn() }
+const mockUserRepo = { findByPhone: vi.fn(), findByEmail: vi.fn(), create: vi.fn(), setPhone: vi.fn() }
 const mockAuthService = { issueTokens: vi.fn() }
 const mockOtpProvider = { sendOtp: vi.fn().mockResolvedValue({ success: true, channel: 'sms' }) }
 const mockEmailProvider = { sendEmail: vi.fn().mockResolvedValue({ success: true }), sendOtp: vi.fn().mockResolvedValue({ success: true }) }
@@ -362,6 +362,111 @@ describe('OtpService', () => {
 
     it('should throw ValidationError for invalid email format', async () => {
       await expect(service.verifyEmailOtp('bad', '0000', meta)).rejects.toThrow(ValidationError)
+    })
+  })
+
+  // ── sendPhoneOtpForAttach ─────────────────────────
+
+  describe('sendPhoneOtpForAttach', () => {
+    it('should send OTP when phone is unclaimed', async () => {
+      mockUserRepo.findByPhone.mockResolvedValue(null)
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
+      verifCodeRepo.countRecentByIdentifier.mockResolvedValue(0)
+
+      const result = await service.sendPhoneOtpForAttach('user-1', '9876543210')
+
+      expect(result.retryAfter).toBe(OTP_RESEND_COOLDOWN_SECONDS)
+      expect(mockOtpProvider.sendOtp).toHaveBeenCalled()
+    })
+
+    it('should send OTP when the phone is already owned by the SAME user (re-verify)', async () => {
+      mockUserRepo.findByPhone.mockResolvedValue({ id: 'user-1' })
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
+      verifCodeRepo.countRecentByIdentifier.mockResolvedValue(0)
+
+      await expect(service.sendPhoneOtpForAttach('user-1', '9876543210')).resolves.toBeDefined()
+    })
+
+    it('should throw ConflictError when phone is owned by a different user', async () => {
+      mockUserRepo.findByPhone.mockResolvedValue({ id: 'user-2' })
+
+      await expect(service.sendPhoneOtpForAttach('user-1', '9876543210')).rejects.toThrow(ConflictError)
+      expect(mockOtpProvider.sendOtp).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when phone is invalid', async () => {
+      await expect(service.sendPhoneOtpForAttach('user-1', '12345')).rejects.toThrow(ValidationError)
+    })
+  })
+
+  // ── verifyPhoneOtpForAttach ────────────────────────
+
+  describe('verifyPhoneOtpForAttach', () => {
+    it('should attach the phone, set phoneVerified=true, and return no tokens/auth', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+      mockUserRepo.findByPhone.mockResolvedValue(null)
+      mockUserRepo.setPhone.mockResolvedValue({ id: 'user-1', phone: '9876543210', phoneVerified: true })
+
+      const result = await service.verifyPhoneOtpForAttach('user-1', '9876543210', '0000')
+
+      expect(result).toEqual({ phone: '9876543210', phoneVerified: true })
+      expect(result).not.toHaveProperty('tokens')
+      expect(result).not.toHaveProperty('auth')
+      expect(mockAuthService.issueTokens).not.toHaveBeenCalled()
+      expect(mockUserRepo.setPhone).toHaveBeenCalledWith('user-1', '9876543210')
+    })
+
+    it('should allow a Google-created user (phone: null) to attach a phone', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+      mockUserRepo.findByPhone.mockResolvedValue(null)
+      mockUserRepo.setPhone.mockResolvedValue({ id: 'google-user-1', phone: '9876543210', phoneVerified: true })
+
+      const result = await service.verifyPhoneOtpForAttach('google-user-1', '9876543210', '0000')
+
+      expect(result).toEqual({ phone: '9876543210', phoneVerified: true })
+    })
+
+    it('should throw ConflictError when phone is owned by a different user (race re-check)', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+      mockUserRepo.findByPhone.mockResolvedValue({ id: 'user-2' })
+
+      await expect(service.verifyPhoneOtpForAttach('user-1', '9876543210', '0000')).rejects.toThrow(ConflictError)
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+    })
+
+    it('should throw ConflictError on a P2002 race from setPhone', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+      mockUserRepo.findByPhone.mockResolvedValue(null)
+      const p2002 = Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
+      mockUserRepo.setPhone.mockRejectedValue(p2002)
+
+      await expect(service.verifyPhoneOtpForAttach('user-1', '9876543210', '0000')).rejects.toThrow(ConflictError)
+    })
+
+    it('should throw AuthError when OTP is wrong', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+
+      await expect(service.verifyPhoneOtpForAttach('user-1', '9876543210', '9999')).rejects.toThrow(AuthError)
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+    })
+
+    it('should throw AuthError when OTP is expired', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue({
+        ...validCode,
+        expiresAt: new Date(Date.now() - 1000),
+      })
+
+      await expect(service.verifyPhoneOtpForAttach('user-1', '9876543210', '0000')).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError when max attempts exceeded', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue({ ...validCode, attempts: 5 })
+
+      await expect(service.verifyPhoneOtpForAttach('user-1', '9876543210', '0000')).rejects.toThrow(AuthError)
+    })
+
+    it('should throw ValidationError when phone format is invalid', async () => {
+      await expect(service.verifyPhoneOtpForAttach('user-1', '12345', '0000')).rejects.toThrow(ValidationError)
     })
   })
 })
