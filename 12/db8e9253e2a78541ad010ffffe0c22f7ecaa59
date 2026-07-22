@@ -1,0 +1,31 @@
+"docs/codebase/API Backend.md"
+  h_b3232c20134322 27,70,85-91
+  s_fabd3515f04533::t_462eaa9d18c7cd 33
+  s_fabd3515f04533::t_c6dd9efb0f87c6 102
+  s_fabd3515f04533::t_7efbe43ef365c3 131-133
+  s_fabd3515f04533::t_79b941e2e4717a 96-101,103-109
+  s_fabd3515f04533::t_52ad48cf4b0a31 26,28-32,34-39,69,71-84
+"docs/codebase/Environment & Deployment.md"
+  s_fabd3515f04533::t_0da32b7997ce01 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "12db8e9253e2a78541ad010ffffe0c22f7ecaa59",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
