@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Msg91WhatsappOtpProvider } from '../../../src/providers/msg91-whatsapp-otp.provider'
+import { Msg91WhatsappOtpProvider } from '../../../src/providers/whatsapp/msg91-whatsapp-otp.provider'
 
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 
@@ -38,10 +38,17 @@ describe('Msg91WhatsappOtpProvider', () => {
       expect((options.headers as Record<string, string>)['authkey']).toBe('test-auth-key')
 
       const body = JSON.parse(options.body as string)
-      expect(body.integrated_number).toBe('919876543210')
-      expect(body.payload.to).toBe('919123456789')
+      // businessNumber is used as-is (already includes its own country code) — never re-prefixed
+      expect(body.integrated_number).toBe('9876543210')
       expect(body.payload.template.name).toBe('otp_template')
-      expect(body.payload.template.components[0].parameters[0].text).toBe('5678')
+      expect(body.payload.template.language).toEqual({ code: 'en', policy: 'deterministic' })
+      expect(body.payload.template.namespace).toBeNull()
+      expect(body.payload.template.to_and_components[0].to).toEqual(['919123456789'])
+      // otp_tripeeeh's "Copy Code" URL button needs the same OTP as button_1
+      expect(body.payload.template.to_and_components[0].components).toEqual({
+        body_1: { type: 'text', value: '5678' },
+        button_1: { type: 'text', subtype: 'url', value: '5678' },
+      })
     })
 
     it('returns success:false and logs error on non-2xx response', async () => {

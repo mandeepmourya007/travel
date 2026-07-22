@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { WhatsappNotificationProvider } from '../../../src/providers/whatsapp-notification.provider'
+import { WhatsappNotificationProvider } from '../../../src/providers/whatsapp/whatsapp-notification.provider'
 import type { NotificationPayload } from '../../../src/providers/notification-channel.interface'
 
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
@@ -69,21 +69,22 @@ describe('WhatsappNotificationProvider', () => {
       expect(url).toBe('https://api.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/')
       const body = JSON.parse(options.body as string)
       expect(body.payload.template.name).toBe('booking_confirmed_tpl')
-      expect(body.payload.to).toBe('919123456789')
-      expect(body.integrated_number).toBe('919876543210')
+      expect(body.payload.template.to_and_components[0].to).toEqual(['919123456789'])
+      // businessNumber is used as-is (already includes its own country code) — never re-prefixed
+      expect(body.integrated_number).toBe('9876543210')
     })
 
-    it('builds correct body params for BOOKING_CONFIRMED', async () => {
+    it('builds correct body components for BOOKING_CONFIRMED', async () => {
       fetchMock.mockResolvedValue({ ok: true })
 
       await provider.send(makePayload({ data: { tripName: 'Kerala Tour', bookingId: 'BK123' } }))
 
       const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-      const params = body.payload.template.components[0].parameters
-      expect(params).toEqual([
-        { type: 'text', text: 'Kerala Tour' },
-        { type: 'text', text: 'BK123' },
-      ])
+      const components = body.payload.template.to_and_components[0].components
+      expect(components).toEqual({
+        body_1: { type: 'text', value: 'Kerala Tour' },
+        body_2: { type: 'text', value: 'BK123' },
+      })
     })
 
     it('returns failure and logs error on non-2xx API response', async () => {
@@ -115,10 +116,10 @@ describe('WhatsappNotificationProvider', () => {
       expect(result).toEqual({ channel: 'WHATSAPP', success: true })
       const body = JSON.parse(fetchMock.mock.calls[0][1].body)
       expect(body.payload.template.name).toBe('promo_tpl')
-      expect(body.payload.template.components[0].parameters).toEqual([
-        { type: 'text', text: '10% off' },
-        { type: 'text', text: 'Manali' },
-      ])
+      expect(body.payload.template.to_and_components[0].components).toEqual({
+        body_1: { type: 'text', value: '10% off' },
+        body_2: { type: 'text', value: 'Manali' },
+      })
     })
 
     it('returns failure on API error', async () => {
@@ -129,13 +130,13 @@ describe('WhatsappNotificationProvider', () => {
       expect(result.success).toBe(false)
     })
 
-    it('sends no components array when params are empty', async () => {
+    it('sends an empty components object when params are empty', async () => {
       fetchMock.mockResolvedValue({ ok: true })
 
       await provider.sendPromo('9123456789', 'simple_tpl', [])
 
       const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-      expect(body.payload.template.components).toEqual([])
+      expect(body.payload.template.to_and_components[0].components).toEqual({})
     })
   })
 })

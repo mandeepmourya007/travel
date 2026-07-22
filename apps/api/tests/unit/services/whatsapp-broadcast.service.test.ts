@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WhatsappBroadcastService } from '../../../src/services/whatsapp-broadcast.service'
 import type { WhatsappBroadcastRepository } from '../../../src/repositories/whatsapp-broadcast.repository'
 import type { UserRepository } from '../../../src/repositories/user.repository'
-import type { WhatsappNotificationProvider } from '../../../src/providers/whatsapp-notification.provider'
+import type { WhatsappNotificationProvider } from '../../../src/providers/whatsapp'
 import type { SendWhatsappPromotionDto } from '@shared/validators/admin.schema'
-import { WHATSAPP_PROMO_MAX_RECIPIENTS } from '../../../src/utils/constants'
+import { WHATSAPP_PROMO_MAX_RECIPIENTS } from '../../../src/providers/whatsapp'
 
 const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 
