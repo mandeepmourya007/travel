@@ -1,0 +1,422 @@
+"docs/codebase/API Backend.md"
+  s_fabd3515f04533::t_5e17ec164dddd1 29-32
+  s_fabd3515f04533::t_fb6f201135ed95 82-83
+  s_fabd3515f04533::t_fd1744c74422dc 79-81
+  s_fabd3515f04533::t_4cc58cd31b5204 84-86
+  s_fabd3515f04533::t_5605130d56a4b2 69-78,87-91
+"docs/codebase/Shared Package.md"
+  s_fabd3515f04533::t_9e8d5305b35a58 67
+  s_fabd3515f04533::t_2d3ffb6d36ba7b 64-66
+  s_fabd3515f04533::t_b8082a0cfe1ceb 68
+  s_fabd3515f04533::t_fcad08a3b3e9d0 12,21-24,40,43-44,48,52-63,72-73
+packages/shared/src/validators/admin.schema.ts
+  s_fabd3515f04533::t_4ce91627456aac 131
+  s_fabd3515f04533::t_b13f98f1204efc 132-134
+  s_fabd3515f04533::t_174a847fd4d341 6-11,135-158
+apps/api/src/utils/constants.ts
+  s_fabd3515f04533::t_7a78768c40e129 69,176-180
+  s_fabd3515f04533::t_4eeddb3a23ba58 66-68
+  s_fabd3515f04533::t_1d5bf2820cd6f4 70-71
+  s_fabd3515f04533::t_756228e8f5a706 54-65
+"docs/codebase/Database Schema.md"
+  s_fabd3515f04533::t_15c224d93e32b4 72
+  s_fabd3515f04533::t_47cb410c9fb3d0 33
+  s_fabd3515f04533::t_c38572029b4efb 76
+  s_fabd3515f04533::t_8342b07796b579 30-32
+  s_fabd3515f04533::t_9ada77eb85f20c 34-36
+  s_fabd3515f04533::t_5766a4bc2c0554 77
+  s_fabd3515f04533::t_c73dbdd1299c21 12,22-29,37-44,85,93,101,116-123
+apps/api/prisma/schema.prisma
+  s_fabd3515f04533::t_24a34fb11a4615 970
+  s_fabd3515f04533::t_67dcc11f19e1f8 971-973
+  s_fabd3515f04533::t_7369c45712c620 59-62,191-198,220-222,243-245,258,366-367,407-414,437,580,582-585,592,596-603,974-1050
+.claude/settings.json
+  s_fabd3515f04533::t_f2cf2e1ff7b94c 14-25
+.env.example
+  s_fabd3515f04533::t_e5ed53d6c686dc 129-134
+CLAUDE.md
+  s_fabd3515f04533::t_829039e2e95cdb 1-12,48-60
+apps/api/prisma/migrations/20260718000001_add_reseller_feature/migration.sql
+  s_fabd3515f04533::t_fc0980bd4aa5ad 1-114
+apps/api/prisma/migrations/20260719000001_add_reseller_main_link_unique/migration.sql
+  s_fabd3515f04533::t_e61bcb8e0ff2b3 1-5
+apps/api/prisma/migrations/20260719165626_add_deposit_balance_payment_types/migration.sql
+  s_fabd3515f04533::t_64c48feceaf548 1-18
+apps/api/prisma/migrations/20260719165627_add_deposit_balance_release_unique_index/migration.sql
+  s_fabd3515f04533::t_daa8e93073c707 1-22
+apps/api/prisma/migrations/20260719180000_add_payment_transaction_booking_id_type_index/migration.sql
+  s_fabd3515f04533::t_8556137ddd5695 1-17
+apps/api/prisma/migrations/20260720000000_add_payment_transaction_type_provider_index/migration.sql
+  s_fabd3515f04533::t_d8396fa8bd3cae 1-10
+apps/api/prisma/migrations/20260720120000_add_tnc_acceptance_timestamps/migration.sql
+  s_fabd3515f04533::t_65df2d9fef0eec 1-5
+apps/api/prisma/migrations/20260721195050_add_trip_hidden_and_bookings_paused_fields/migration.sql
+  s_fabd3515f04533::t_b96cdb9afe19b2 1-15
+apps/api/src/config/dependencies.ts
+  s_fabd3515f04533::t_d5d9a8c0533bb6 72,105-108,135,315-318,355,383,410,414
+apps/api/src/config/env.ts
+  s_fabd3515f04533::t_55942efa099f63 3,63-70
+apps/api/src/controllers/admin.controller.ts
+  s_fabd3515f04533::t_2b38833c5970c4 9-10,28-29,175-206
+apps/api/src/controllers/reseller.controller.ts
+  s_fabd3515f04533::t_3a8f62a1b50865 1-128
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_fabd3515f04533::t_fe2c8b6c91662d 85-88,197-212,214,221,226-275,404-407
+apps/api/src/providers/payment/mock-payment.gateway.ts
+  s_fabd3515f04533::t_f850aae6158ca6 84-93
+apps/api/src/providers/payment/payment-gateway.interface.ts
+  s_fabd3515f04533::t_a9c559a8457251 93-98,108-126
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_fabd3515f04533::t_8bbdc4eb71a4f3 320-331
+apps/api/src/repositories/booking.repository.ts
+  s_fabd3515f04533::t_b79bd084ba6c23 226-250,464-466,478-496,511-512,528-547,773,780,893,931
+apps/api/src/repositories/organizer-profile.repository.ts
+  s_fabd3515f04533::t_f0d85e6c8233f8 4-6,128,157,181-234
+apps/api/src/repositories/payment-transaction.repository.ts
+  s_fabd3515f04533::t_01e2da389b3f11 520,572,691-740
+apps/api/src/repositories/reseller.repository.ts
+  s_fabd3515f04533::t_8018ac69d18287 1-606
+apps/api/src/repositories/user.repository.ts
+  s_fabd3515f04533::t_241735c9364a4e 1,3-5,45,65-72,175-248
+apps/api/src/routes/admin.routes.ts
+  s_fabd3515f04533::t_b17dc8457a323a 24-27,30,52,179-205
+apps/api/src/routes/reseller.routes.ts
+  s_fabd3515f04533::t_4991ce47a537a8 1-171
+apps/api/src/server.ts
+  s_fabd3515f04533::t_a2bf7d02600596 13,77
+apps/api/src/services/admin.service.ts
+  s_fabd3515f04533::t_1fccadaa37ac3e 18,62,472-596
+apps/api/src/services/auth.service.ts
+  s_fabd3515f04533::t_aaf72389427954 76-78,84-86,254,269-271,327,492,515-521,529-530,553-557,564,573,689,717-719
+apps/api/src/services/booking.service.ts
+  s_fabd3515f04533::t_c0b283de06534d 3,13,19-20,24,61,216-218,221-228,246-260,288,327-332,334-340,362-370,403-409,430-432,435,473-474,604-625,628-630,641,643-646,651-654,656-657,661-706,712,727-761,763,775-776,787-792,819-838,1186-1187,1249-1286,1288-1289
+apps/api/src/services/payment.service.ts
+  s_fabd3515f04533::t_f7f709ab3b69b4 173-189
+apps/api/src/services/payout.service.ts
+  s_fabd3515f04533::t_dc07d631fa05c9 1-260
+apps/api/src/services/reseller.service.ts
+  s_fabd3515f04533::t_99c4e6ccb45183 1-445
+apps/api/src/services/trip-lifecycle.service.ts
+  s_fabd3515f04533::t_6973bde4b0eab4 200,224-227,230-231,319-320,322-324
+apps/api/src/services/trip.service.ts
+  s_fabd3515f04533::t_1e31c91b2a2618 32-61,352,357-375,380-390,394,400,406,412,545-570
+apps/api/src/types/payment.types.ts
+  s_fabd3515f04533::t_34ae515d989223 6,30-36,41-44,46-51,169
+apps/api/src/utils/cron-jobs.ts
+  s_fabd3515f04533::t_45a36898d6a2f4 12-13,17,220-269,515,519,582-586
+apps/api/tests/integration/auth.routes.test.ts
+  s_fabd3515f04533::t_1ce7b4730e74d7 87,130-215
+apps/api/tests/unit/repositories/booking.repository.test.ts
+  s_fabd3515f04533::t_ed4b9394e9db97 1-134
+apps/api/tests/unit/repositories/payment-transaction.repository.test.ts
+  s_fabd3515f04533::t_3e7bbfb3a6ad09 1-135
+apps/api/tests/unit/repositories/reseller.repository.test.ts
+  s_fabd3515f04533::t_bb15b3d126c1ea 1-296
+apps/api/tests/unit/routes/reseller.routes.test.ts
+  s_fabd3515f04533::t_07b94f2d266f1d 1-65
+apps/api/tests/unit/services/admin.service.test.ts
+  s_fabd3515f04533::t_4812d065e1dc44 12,19-20,36,72,204,213,1146-1564
+apps/api/tests/unit/services/auth.service.test.ts
+  s_fabd3515f04533::t_8942c83f5c3cc3 140,156,208-223,504,510,514-525,558,636,644,649-657,698,710,722,792-807
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_fabd3515f04533::t_b6c6e4fdb742bc 441-442,446,452-453,541,546,587,617,638,664,704,728,749,754,773
+apps/api/tests/unit/services/booking.service.test.ts
+  s_fabd3515f04533::t_e9651607aa65a5 4,7-15,54,142,348,351,364,371-372,379,387-388,391,402,491-492,502,506,512,518,521,530-533,563-567,585,622,625,636,639,649,651,656,663,666,671,678,682-697,702,712,717,845,898-993,1020,1069-1070,1072,1074-1075,1280-1465,1507-1655
+apps/api/tests/unit/services/organizer-invite.service.test.ts
+  s_fabd3515f04533::t_c4dab7cedd48b1 340,349,355,361,368,379,389,401,413,418,465
+apps/api/tests/unit/services/organizer-lifecycle.test.ts
+  s_fabd3515f04533::t_6bca594668a071 220,237,250,280,289,296,308,506
+apps/api/tests/unit/services/payout.service.test.ts
+  s_fabd3515f04533::t_7f1fb50185b45e 1-345
+apps/api/tests/unit/services/reseller.service.test.ts
+  s_fabd3515f04533::t_a1b760f012753e 1-508
+apps/api/tests/unit/services/trip-lifecycle.service.test.ts
+  s_fabd3515f04533::t_4ffeb50347a187 6-15,63,261,277-317,380,404,425,442-505
+apps/api/tests/unit/services/trip.service.test.ts
+  s_fabd3515f04533::t_a127a5f1724b9a 432-493,903,912-915
+apps/api/tests/unit/utils/cron-jobs.test.ts
+  s_fabd3515f04533::t_3b55a09938542a 60-67,79,83,99-100,245-307
+apps/api/tests/unit/validators/auth.schema.test.ts
+  s_fabd3515f04533::t_6f3fe4bf3c0992 12,21,30-34,104-108,113-117,120-187,260-263,273-292
+apps/web/src/app/(auth)/signup/organizer/[token]/page.tsx
+  s_fabd3515f04533::t_6e7bf3d83d5bb8 12,23,162-183,186
+apps/web/src/app/(auth)/signup/page.tsx
+  s_fabd3515f04533::t_b634c345bb0ea3 13-15,24,118-175,179-180
+apps/web/src/app/(public)/about/page.tsx
+  s_fabd3515f04533::t_c22380dfcef054 9-11,65-71,74,76-81,84,88-100
+apps/web/src/app/(public)/cancellation-policy/page.tsx
+  s_fabd3515f04533::t_9a7b2ab9cd4ccb 22-24,28-30,61-66,68,72-77,79,81
+apps/web/src/app/(public)/faq/page.tsx
+  s_fabd3515f04533::t_364eb80abf84a0 10-12,18-20
+apps/web/src/app/(public)/how-it-works/page.tsx
+  s_fabd3515f04533::t_9e60afea493aa1 6,10-12,18-20,32-38,79-83,85,121-126
+apps/web/src/app/(public)/organizer-agreement/page.tsx
+  s_fabd3515f04533::t_d499860c18da9e 54-59
+apps/web/src/app/(public)/terms/page.tsx
+  s_fabd3515f04533::t_89fe67e524816c 14-16
+apps/web/src/app/admin/page.tsx
+  s_fabd3515f04533::t_2579af86f8aaa8 91-110
+apps/web/src/app/admin/reseller-links/page.tsx
+  s_fabd3515f04533::t_dbde0773bc88aa 1-83
+apps/web/src/app/admin/users/error.tsx
+  s_fabd3515f04533::t_8c79760d333da0 1-25
+apps/web/src/app/admin/users/organizers/[organizerId]/error.tsx
+  s_fabd3515f04533::t_d8c827f92e9891 1-25
+apps/web/src/app/admin/users/organizers/[organizerId]/page.tsx
+  s_fabd3515f04533::t_2569fd6cedd020 1-184
+apps/web/src/app/admin/users/page.tsx
+  s_fabd3515f04533::t_c3de1d57efba2d 1-420
+apps/web/src/app/admin/users/travellers/[travellerId]/error.tsx
+  s_fabd3515f04533::t_5c282f52804b7d 1-25
+apps/web/src/app/admin/users/travellers/[travellerId]/page.tsx
+  s_fabd3515f04533::t_b8908ff6f2181e 1-249
+apps/web/src/app/dashboard/reseller-links/page.tsx
+  s_fabd3515f04533::t_7bd24052b9ec76 1-144
+apps/web/src/app/dashboard/trips/[id]/history/page.tsx
+  s_fabd3515f04533::t_ea116671c747f9 11-33,91,94-96
+apps/web/src/app/dashboard/trips/create/__tests__/page.test.tsx
+  s_fabd3515f04533::t_4b02a6b0490f53 1-190
+apps/web/src/app/dashboard/trips/create/page.tsx
+  s_fabd3515f04533::t_7f2b88e4569ede 7,10-11,20,29-30,40-46,145,148
+apps/web/src/app/destinations/page.tsx
+  s_fabd3515f04533::t_e0c98553aaed37 18-20
+apps/web/src/app/layout.tsx
+  s_fabd3515f04533::t_12159bb679d48c 31-32,34,45-47,57-58,60
+apps/web/src/app/manifest.ts
+  s_fabd3515f04533::t_ce6f3b5a2bccbc 8-10
+apps/web/src/app/page.tsx
+  s_fabd3515f04533::t_cec2bcf0c07a38 4-5,17-18,20,26-27,29,61-66,68,70
+apps/web/src/app/payment-complete/page.tsx
+  s_fabd3515f04533::t_bfdfddee0a2549 5,146-154,161-166
+apps/web/src/app/reseller/__tests__/page.test.tsx
+  s_fabd3515f04533::t_75ab602bf2e987 1-182
+apps/web/src/app/reseller/layout.tsx
+  s_fabd3515f04533::t_4c1008c143a5a0 1-17
+apps/web/src/app/reseller/page.tsx
+  s_fabd3515f04533::t_423608a461f45c 1-126
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_fabd3515f04533::t_eed07443b22930 16-17,64-76,176,474,492,503
+apps/web/src/app/trips/[slug]/page.tsx
+  s_fabd3515f04533::t_d91059598695d5 30-31,33,75-82
+apps/web/src/app/trips/layout.tsx
+  s_fabd3515f04533::t_4b3588150843d4 7-8,10,16-17,19
+apps/web/src/app/trips/organizers/[slug]/page.tsx
+  s_fabd3515f04533::t_d694b19dfacf61 49-50,52
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_fabd3515f04533::t_326eedbc8b6c22 7-8,17,30-31,40,43
+apps/web/src/components/auth/google-auth-section.tsx
+  s_fabd3515f04533::t_a007b39029b246 3,6,16-23,26,51-72,86-90,96-115
+apps/web/src/components/booking/__tests__/price-summary.test.tsx
+  s_fabd3515f04533::t_d67dcaa9d2da25 222-255
+apps/web/src/components/booking/booking-success.tsx
+  s_fabd3515f04533::t_141736c3929b53 3,42-51,59-64
+apps/web/src/components/booking/price-summary.tsx
+  s_fabd3515f04533::t_f44552f795bddb 14-15,19-21,25,31-33
+apps/web/src/components/booking/traveler-form.tsx
+  s_fabd3515f04533::t_5e75b7a3aaab1a 32-33,48,80
+apps/web/src/components/bookings/traveler-details-accordion.tsx
+  s_fabd3515f04533::t_e256a8fcb5b7b0 55
+apps/web/src/components/dashboard/dashboard-sidebar.tsx
+  s_fabd3515f04533::t_ee51695e0c557f 15,32
+apps/web/src/components/dashboard/trip-users/traveler-details-table.tsx
+  s_fabd3515f04533::t_f817cfa5da4f81 27
+apps/web/src/components/home/__tests__/welcome-modal.test.tsx
+  s_fabd3515f04533::t_29d72b8cb367b8 1-72
+apps/web/src/components/home/welcome-modal.tsx
+  s_fabd3515f04533::t_27beddcc961b5f 1-4,7-28,30-48,50
+apps/web/src/components/layout/footer.tsx
+  s_fabd3515f04533::t_6d5b5410c6460a 12-16,18
+apps/web/src/components/layout/header.tsx
+  s_fabd3515f04533::t_a13a60fe28e14b 22,25,41-42,51,79-80,111,113
+apps/web/src/components/layout/mobile-bottom-nav.tsx
+  s_fabd3515f04533::t_55bf82632d1637 16,67,74-75
+apps/web/src/components/payments/__tests__/payment-badges.test.tsx
+  s_fabd3515f04533::t_4c626fb39d3d12 54,56
+apps/web/src/components/payments/__tests__/payment-filters.test.tsx
+  s_fabd3515f04533::t_9af5da811ffa12 30
+apps/web/src/components/payments/payment-filters.tsx
+  s_fabd3515f04533::t_bfb609d83b54c6 8
+apps/web/src/components/payments/payment-transaction-list.tsx
+  s_fabd3515f04533::t_53ab94d1e8c245 61
+apps/web/src/components/payments/payment-type-badge.tsx
+  s_fabd3515f04533::t_eb29bfa055c063 12
+apps/web/src/components/reseller/__tests__/reseller-booking-list.test.tsx
+  s_fabd3515f04533::t_4892f2f2e0ab88 1-66
+apps/web/src/components/reseller/__tests__/reseller-leads-table.test.tsx
+  s_fabd3515f04533::t_68d672c482ed52 1-105
+apps/web/src/components/reseller/reseller-booking-list.tsx
+  s_fabd3515f04533::t_8fffeacea50648 1-127
+apps/web/src/components/reseller/reseller-leads-table.tsx
+  s_fabd3515f04533::t_4427134a27391a 1-155
+apps/web/src/components/reseller/reseller-sublinks-drilldown.tsx
+  s_fabd3515f04533::t_12867540970f1e 1-371
+apps/web/src/components/reseller/reseller-trip-card.tsx
+  s_fabd3515f04533::t_271ae02f998b31 1-80
+apps/web/src/components/shared/__tests__/pagination.test.tsx
+  s_fabd3515f04533::t_4a448099e6e0f2 132-197
+apps/web/src/components/shared/__tests__/reseller-search-combobox.test.tsx
+  s_fabd3515f04533::t_f815ea8cb7e070 1-126
+apps/web/src/components/shared/pagination.tsx
+  s_fabd3515f04533::t_c8b4013217f4eb 11-19,34-35,92-101,104-112,197-214
+apps/web/src/components/shared/reseller-search-combobox.tsx
+  s_fabd3515f04533::t_b82bd097ee785f 1-61
+apps/web/src/components/shared/search-combobox.tsx
+  s_fabd3515f04533::t_2798b72bb8f342 4,10,18,24-29,44,46-47,62-64,115-123,161,200-205
+apps/web/src/components/shared/trip-search-combobox.tsx
+  s_fabd3515f04533::t_649b26c4240d6e 16-23,31,33,39,51,53,59,71,73,79
+apps/web/src/components/trips/__tests__/trip-booking-card.test.tsx
+  s_fabd3515f04533::t_d9bcc3d4ba84b0 1-69
+apps/web/src/components/trips/transfer-points-table.tsx
+  s_fabd3515f04533::t_e313ea9d0d996f 27
+apps/web/src/components/trips/trip-booking-card.tsx
+  s_fabd3515f04533::t_da8c1598a89269 1,32-33,36,64,72,142-151
+apps/web/src/components/trips/trip-comparison-table.tsx
+  s_fabd3515f04533::t_2ae8aeb7bfe642 105
+apps/web/src/components/trips/trip-detail-client.tsx
+  s_fabd3515f04533::t_d051b502021ce7 4-5,7-10,28-31,33-67,103-107,130,135
+apps/web/src/components/trips/trip-form/__tests__/trip-form.test.tsx
+  s_fabd3515f04533::t_0aa20de2cb17ff 1-158
+apps/web/src/components/trips/trip-form/transfer-points-tab.tsx
+  s_fabd3515f04533::t_71447087c47dd0 92,176
+apps/web/src/components/trips/trip-form/trip-form.tsx
+  s_fabd3515f04533::t_6c949573024d61 18,23-30,33,39,95-96,102-103,114,135,172,174,178,182-187,309,313-346,351-353
+apps/web/src/components/trips/trip-sticky-book-bar.tsx
+  s_fabd3515f04533::t_3a7eeaf79f7bf6 9-10,13,24,32
+apps/web/src/components/ui/table.tsx
+  s_fabd3515f04533::t_3088d8543ce942 24
+apps/web/src/components/wallet/wallet-transaction-list.tsx
+  s_fabd3515f04533::t_88f41fcf7eab15 56
+apps/web/src/hooks/__tests__/use-reseller.test.tsx
+  s_fabd3515f04533::t_672a1168ee1999 1-240
+apps/web/src/hooks/__tests__/use-resellers.test.tsx
+  s_fabd3515f04533::t_f67816d0dd8190 1-75
+apps/web/src/hooks/use-admin-organizer-directory.ts
+  s_fabd3515f04533::t_3085b7455167d5 1-53
+apps/web/src/hooks/use-admin-travellers.ts
+  s_fabd3515f04533::t_f42edcbf945760 1-49
+apps/web/src/hooks/use-cloudinary-upload.ts
+  s_fabd3515f04533::t_db2794061216a1 21,49-61,70,81
+apps/web/src/hooks/use-create-booking.ts
+  s_fabd3515f04533::t_4a5b13e11fa915 20-21
+apps/web/src/hooks/use-create-trip.ts
+  s_fabd3515f04533::t_a03a035b522271 18,22,25-27
+apps/web/src/hooks/use-google-auth.ts
+  s_fabd3515f04533::t_3ef05533e475bb 31-35,37
+apps/web/src/hooks/use-reseller.ts
+  s_fabd3515f04533::t_1fdc1e2f3210f7 1-235
+apps/web/src/hooks/use-resellers.ts
+  s_fabd3515f04533::t_b79d22ea5d1cba 1-49
+apps/web/src/hooks/use-search-combobox.ts
+  s_fabd3515f04533::t_714339ed52c0f5 1,4-18,22,26-43,47,51-53,62-65,71-105
+apps/web/src/lib/home-content.ts
+  s_fabd3515f04533::t_9ca03caa193428 9,53-54,57,61-62,71-73,92-93,99-109,129-131,138-145
+apps/web/src/lib/legal-content.ts
+  s_fabd3515f04533::t_69deca64cec14d 81,104-105,150,165,332,530-531,577,705,714,816,935-936,956,1045-1046,1058
+apps/web/src/lib/query-keys.ts
+  s_fabd3515f04533::t_5931977e7b7fff 8-9,51-58,233-242,249-274
+apps/web/src/lib/reseller-cookie.ts
+  s_fabd3515f04533::t_a24991d0ad0c48 1-23
+apps/web/src/lib/structured-data.ts
+  s_fabd3515f04533::t_b7b318e0536582 136-138,168-170,203-205,236-238,257-258
+apps/web/src/lib/trip-utils.ts
+  s_fabd3515f04533::t_efd22e8b45eb3a 15-26
+apps/web/src/store/auth.store.ts
+  s_fabd3515f04533::t_8bed9799c24be6 91
+apps/web/src/test/factories/profile.factory.ts
+  s_fabd3515f04533::t_e05ec3fe2002a2 30
+apps/web/src/test/factories/reseller.factory.ts
+  s_fabd3515f04533::t_ee54be357bbdb7 1-114
+apps/web/src/test/setup.ts
+  s_fabd3515f04533::t_5d0b2d5c417d30 17-37
+docker/web.prod.Dockerfile
+  s_fabd3515f04533::t_c1f94fd98b74e3 99-100
+"docs/codebase/API Routes Reference.md"
+  s_fabd3515f04533::t_782e66410e8218 15,76,194-197,215-239
+"docs/codebase/Auth & Security.md"
+  s_fabd3515f04533::t_b1ebd4699b01a5 31-37,42-48
+"docs/codebase/Background Jobs & Realtime.md"
+  s_fabd3515f04533::t_43826b42cddfe6 29,37-39
+"docs/codebase/Data Fetching & State.md"
+  s_fabd3515f04533::t_6faa6ca6e72995 21,35,37-38,49,52
+"docs/codebase/Environment & Deployment.md"
+  s_fabd3515f04533::t_dd5af6c1ec0ab1 63
+"docs/codebase/Frontend Routes Reference.md"
+  s_fabd3515f04533::t_5ecf513b8e2df2 19,48-54,65-80,84-93,105
+"docs/codebase/Payments & Webhooks.md"
+  s_fabd3515f04533::t_3cf91dd5a971ea 77-84
+"docs/codebase/Product Domain.md"
+  s_fabd3515f04533::t_a90d212e295ffc 23,52,54,56-57,60-84
+"docs/codebase/Web Frontend.md"
+  s_fabd3515f04533::t_d4c580bd11a12f 40-43,47-49,74-75
+docs/mvp/mvp-plan.md
+  s_fabd3515f04533::t_23e4bd8725a917 646-660,790-799,825-827,829-831,842
+docs/rnd/2026-07-19-market-organizer-working-capital-refund.md
+  s_fabd3515f04533::t_8b5adf8e5ecdc4 1-52
+docs/rnd/group-travel-market-research.md
+  s_fabd3515f04533::t_8135bf5cedae87 125-131,159-164
+packages/shared/src/constants/admin.ts
+  s_fabd3515f04533::t_394ca7e9646ffe 50-95
+packages/shared/src/constants/booking-status.ts
+  s_fabd3515f04533::t_3831f8f115dd0e 29-53
+packages/shared/src/constants/index.ts
+  s_fabd3515f04533::t_fa6d6fc9e2746d 14
+packages/shared/src/constants/payment.ts
+  s_fabd3515f04533::t_0572a8c2c70085 13-15,23-38,48-58
+packages/shared/src/constants/reseller.ts
+  s_fabd3515f04533::t_60a5521be09b6e 1-27
+packages/shared/src/index.ts
+  s_fabd3515f04533::t_a40509dfa894dd 5
+packages/shared/src/types/admin.types.ts
+  s_fabd3515f04533::t_a29b45817c1ac9 4,7-8,322-429
+packages/shared/src/types/auth.types.ts
+  s_fabd3515f04533::t_47c98442b84b38 9-10,51,56-57
+packages/shared/src/types/booking.types.ts
+  s_fabd3515f04533::t_5847f6a786d856 3,100-101
+packages/shared/src/types/index.ts
+  s_fabd3515f04533::t_4c52869c25618e 17
+packages/shared/src/types/reseller.types.ts
+  s_fabd3515f04533::t_b75a1a987ad920 1-168
+packages/shared/src/types/trip.types.ts
+  s_fabd3515f04533::t_9321b1abf36e7d 202-206,210
+packages/shared/src/types/user.types.ts
+  s_fabd3515f04533::t_a7887786f5d8d7 3,41-47,95
+packages/shared/src/utils/payout.test.ts
+  s_fabd3515f04533::t_2e5305c2581c0b 1-261
+packages/shared/src/utils/payout.ts
+  s_fabd3515f04533::t_2af66b86de64cf 1-122
+packages/shared/src/utils/refund.test.ts
+  s_fabd3515f04533::t_48d38baa93956c 5-9,13-14,17-19,22-25,28-29,34-35,38-39,42-43,50-51,58,67,70-73,76,78-79,82-83,88-89,95,97-98,112,116-117,122,128,130-131
+packages/shared/src/utils/refund.ts
+  s_fabd3515f04533::t_a7a6589de0b9e8 3,8-17,23-29
+packages/shared/src/validators/auth.schema.ts
+  s_fabd3515f04533::t_e009cbf46eaed7 2-3,11-66,109-115,119-121,148,167
+packages/shared/src/validators/booking.schema.ts
+  s_fabd3515f04533::t_59b0f37f8ef988 4-5,26-28,43-44,54,65,82,94
+packages/shared/src/validators/common.schema.ts
+  s_fabd3515f04533::t_49e6551bd6cd9d 48-59
+packages/shared/src/validators/index.ts
+  s_fabd3515f04533::t_dcb019a339f27e 14
+packages/shared/src/validators/reseller.schema.ts
+  s_fabd3515f04533::t_11565a7784d374 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "408926e6e655ee9c9b147f0ec14f7f40d5d1f3c4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fabd3515f04533": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c6c580f-9d9a-437b-9dde-1c18a55115d7",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
