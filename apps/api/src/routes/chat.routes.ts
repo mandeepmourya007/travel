@@ -17,6 +17,7 @@ export function createChatRoutes(
   chatController: ChatController,
   authMiddleware: RequestHandler,
   requireRole: (...roles: UserRole[]) => RequestHandler,
+  requirePhoneVerified: RequestHandler,
 ) {
   const router = Router()
 
@@ -62,6 +63,7 @@ export function createChatRoutes(
   // POST /chat/conversations/:id/messages — Send a message (REST fallback)
   router.post(
     '/conversations/:id/messages',
+    requirePhoneVerified,
     validate(cuidParamSchema, 'params'),
     validate(sendMessageSchema),
     chatController.sendMessage,

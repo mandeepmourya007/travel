@@ -11,14 +11,18 @@ export function createBookingRoutes(
   bookingController: BookingController,
   authMiddleware: RequestHandler,
   _requireRole: (...roles: UserRole[]) => RequestHandler,
+  requirePhoneVerified: RequestHandler,
 ) {
   const router = Router()
 
   // All routes require authentication — static routes before /:id
+  // Booking creation also initiates the payment order, so this is the
+  // highest-risk mutation to gate on phone verification.
   router.post(
     '/',
     bookingRateLimit,
     authMiddleware,
+    requirePhoneVerified,
     validate(createBookingSchema),
     bookingController.createBooking,
   )

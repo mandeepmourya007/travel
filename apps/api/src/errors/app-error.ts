@@ -40,8 +40,9 @@ export class AuthError extends AppError {
 }
 
 export class ForbiddenError extends AppError {
-  constructor(message = 'Forbidden') {
+  constructor(message = 'Forbidden', subCode?: string) {
     super(message, 403, 'FORBIDDEN')
+    this.subCode = subCode
   }
 }
 

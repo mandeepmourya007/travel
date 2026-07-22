@@ -11,6 +11,7 @@ export function createReviewRoutes(
   reviewController: ReviewController,
   authMiddleware: RequestHandler,
   requireRole: (...roles: UserRole[]) => RequestHandler,
+  requirePhoneVerified: RequestHandler,
 ) {
   const router = Router()
 
@@ -26,6 +27,7 @@ export function createReviewRoutes(
   router.post(
     '/',
     authMiddleware,
+    requirePhoneVerified,
     validate(createReviewSchema),
     reviewController.createReview,
   )

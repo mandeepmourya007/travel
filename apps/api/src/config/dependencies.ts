@@ -33,6 +33,7 @@ import { TripController } from '../controllers/trip.controller'
 import { UploadController } from '../controllers/upload.controller'
 import { createAuthMiddleware } from '../middleware/auth.middleware'
 import { requireRole } from '../middleware/role.middleware'
+import { createRequirePhoneVerified } from '../middleware/require-phone-verified.middleware'
 import { createAuthRoutes } from '../routes/auth.routes'
 import { createDestinationRoutes } from '../routes/destination.routes'
 import { createTripRoutes } from '../routes/trip.routes'
@@ -327,6 +328,7 @@ const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvi
 
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
+export const requirePhoneVerified = createRequirePhoneVerified(userRepo)
 
 // ── Controllers ──────────────────────────────────────
 const authController = new AuthController(authService)
@@ -368,11 +370,11 @@ export const firebaseAuthRoutes = firebaseAuth
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
-export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole)
+export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole, requirePhoneVerified)
 export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authMiddleware, requireRole)
-export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
+export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole, requirePhoneVerified)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
-export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
+export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole, requirePhoneVerified)
 export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
 export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole, whatsappBroadcastController)
 export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddleware, requireRole)
