@@ -23,7 +23,7 @@ tags:
 | :--- | :--- | :--- |
 | Email + password | `POST /auth/login` | bcrypt (saltRounds 12); lockout via `LoginAttemptTracker` |
 | Google OAuth | `POST /auth/google` | `@react-oauth/google` on FE |
-| Phone OTP (backend) | `POST /auth/otp/send` + `/verify` | MSG91 or mock; 4-digit, 10m expiry, 5 attempts, dev code `0000` |
+| Phone OTP (backend) | `POST /auth/otp/send` + `/verify` | MSG91 (SMS or WhatsApp, see `MSG91_WA_OTP_PREFER`) or mock; 4-digit, 10m expiry, 5 attempts. Fixed dev code `0000` shortcut currently disabled (commented out in `otp.service.ts`'s `generateOtp()`) — a random 4-digit OTP is generated in every environment |
 | Phone OTP (Firebase) | `POST /auth/firebase/verify` | Strategy chosen by `PHONE_AUTH_STRATEGY`; conditional route mount |
 | Email OTP | `POST /auth/otp/email/send` + `/verify` | Resend/SMTP/mock providers |
 | Organizer invite | `GET/POST /auth/signup/:token` | Admin-generated 7-day JWT invite token |

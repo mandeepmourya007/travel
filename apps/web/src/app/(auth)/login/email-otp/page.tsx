@@ -84,12 +84,10 @@ export default function EmailOtpLoginPage() {
             <Link href="/login/email" className="font-medium text-primary-600 hover:text-primary-700">
               login with email & password
             </Link>
-            {/* TODO: Uncomment when phone OTP is set up
             {' · '}
             <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
-              login with phone
+              login with WhatsApp
             </Link>
-            */}
           </p>
         )}
       </div>

@@ -1,17 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-
-// TODO: Restore original PhoneLoginPage when phone OTP is set up
-export default function PhoneLoginPage() {
-  const router = useRouter()
-  useEffect(() => { router.replace('/login/email') }, [router])
-  return null
-}
-
-/* Original phone login page — uncomment when OTP is ready:
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -88,7 +76,7 @@ export default function PhoneLoginPage() {
             {APP_NAME}
           </Link>
           <p className="mt-2 text-neutral-500">
-            {step === 'phone' ? 'Login with your phone number' : 'Enter the OTP'}
+            {step === 'phone' ? 'Login with WhatsApp' : 'Enter the OTP sent to your WhatsApp'}
           </p>
         </div>
 
@@ -101,6 +89,7 @@ export default function PhoneLoginPage() {
           ) : (
             <OtpVerifyForm
               identifier={formattedPhone}
+              identifierLabel="WhatsApp OTP sent to"
               onEdit={() => { setStep('phone'); firebase.reset() }}
               onVerify={handleVerify}
               onResend={handleResend}
@@ -139,4 +128,3 @@ export default function PhoneLoginPage() {
     </div>
   )
 }
-*/

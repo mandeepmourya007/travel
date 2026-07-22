@@ -59,9 +59,9 @@ export function PhoneInputForm({ onOtpSent, onSubmit }: PhoneInputFormProps) {
       >
         {isPending ? (
           <span className="flex items-center justify-center gap-2">
-            <span className="spinner spinner-sm" /> Sending OTP...
+            <span className="spinner spinner-sm" /> Sending OTP via WhatsApp...
           </span>
-        ) : 'Get OTP'}
+        ) : 'Get OTP via WhatsApp'}
       </button>
 
       <p className="text-center text-xs text-neutral-400">

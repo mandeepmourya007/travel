@@ -95,14 +95,14 @@ describe('OtpService', () => {
       expect(mockOtpProvider.sendOtp).toHaveBeenCalled()
     })
 
-    it('should use DEV_OTP (0000) when NODE_ENV is not production', async () => {
+    it('should generate a random 4-digit OTP (fixed DEV_OTP shortcut is disabled)', async () => {
       verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
       verifCodeRepo.countRecentByIdentifier.mockResolvedValue(0)
 
       await service.sendOtp('9876543210')
 
-      // The OTP passed to provider should be '0000' in dev
-      expect(mockOtpProvider.sendOtp).toHaveBeenCalledWith('9876543210', '0000')
+      const [, otp] = mockOtpProvider.sendOtp.mock.calls[0]
+      expect(otp).toMatch(/^\d{4}$/)
     })
 
     it('should invalidate existing codes before sending new one', async () => {
@@ -268,7 +268,7 @@ describe('OtpService', () => {
       expect(verifCodeRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'EMAIL_OTP', identifier: TEST_EMAIL }),
       )
-      expect(mockEmailProvider.sendOtp).toHaveBeenCalledWith(TEST_EMAIL, '0000')
+      expect(mockEmailProvider.sendOtp).toHaveBeenCalledWith(TEST_EMAIL, expect.stringMatching(/^\d{4}$/))
     })
 
     it('should normalize email to lowercase and trim', async () => {
@@ -277,7 +277,7 @@ describe('OtpService', () => {
 
       await service.sendEmailOtp('  Test@Example.COM  ')
 
-      expect(mockEmailProvider.sendOtp).toHaveBeenCalledWith('test@example.com', '0000')
+      expect(mockEmailProvider.sendOtp).toHaveBeenCalledWith('test@example.com', expect.stringMatching(/^\d{4}$/))
     })
 
     it('should throw ValidationError for invalid email format', async () => {

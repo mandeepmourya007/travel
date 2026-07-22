@@ -15,7 +15,7 @@ import {
   OTP_RESEND_COOLDOWN_SECONDS,
   OTP_RATE_LIMIT_WINDOW_MINUTES,
   OTP_RATE_LIMIT_MAX_SENDS,
-  DEV_OTP,
+  // DEV_OTP, // unused while the fixed dev-OTP shortcut in generateOtp() is disabled
   OTP_TYPE,
 } from '../utils/constants'
 import { USER_ROLE, DEFAULT_USER_NAME } from '@shared/constants'
@@ -35,9 +35,13 @@ export class OtpService {
   // ── Private helpers ────────────────────────────────
 
   private generateOtp(): string {
-    return process.env.NODE_ENV === 'production'
-      ? crypto.randomInt(1000, 10000).toString()
-      : DEV_OTP
+    // Fixed dev OTP disabled — always generate a real random OTP so it matches
+    // what's actually delivered via WhatsApp/SMS. Uncomment to restore the
+    // fixed '0000' OTP shortcut for non-production environments.
+    // return process.env.NODE_ENV === 'production'
+    //   ? crypto.randomInt(1000, 10000).toString()
+    //   : DEV_OTP
+    return crypto.randomInt(1000, 10000).toString()
   }
 
   private hashOtp(otp: string): string {
@@ -95,7 +99,8 @@ export class OtpService {
   /**
    * Sends a 4-digit OTP to the given Indian phone number.
    * Enforces 30s resend cooldown and max 3 sends per 10 minutes.
-   * In non-production environments, always uses DEV_OTP ('0000').
+   * The fixed DEV_OTP ('0000') shortcut for non-production is currently disabled
+   * (see generateOtp()) — a real random OTP is generated in every environment.
    * @throws {ValidationError} Invalid phone format after normalization
    * @throws {TooManyRequestsError} Resend cooldown or rate limit exceeded
    */
