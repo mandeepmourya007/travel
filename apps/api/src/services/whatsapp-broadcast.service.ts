@@ -1,9 +1,10 @@
 import type { Logger } from 'pino'
 import type { WhatsappBroadcastRepository, BroadcastPaginationFilters } from '../repositories/whatsapp-broadcast.repository'
 import type { UserRepository } from '../repositories/user.repository'
-import type { WhatsappNotificationProvider } from '../providers/whatsapp-notification.provider'
+import type { WhatsappNotificationProvider } from '../providers/whatsapp'
 import { ValidationError, AppError } from '../errors/app-error'
-import { BROADCAST_STATUS, BROADCAST_TARGET_TYPE, WHATSAPP_PROMO_MAX_RECIPIENTS, WHATSAPP_PROMO_SEND_DELAY_MS, paginate } from '../utils/constants'
+import { BROADCAST_STATUS, BROADCAST_TARGET_TYPE, WHATSAPP_PROMO_MAX_RECIPIENTS, WHATSAPP_PROMO_SEND_DELAY_MS } from '../providers/whatsapp'
+import { paginate } from '../utils/constants'
 import type { SendWhatsappPromotionDto } from '@shared/validators/admin.schema'
 import { normalizePhone } from '../utils/phone'
 
