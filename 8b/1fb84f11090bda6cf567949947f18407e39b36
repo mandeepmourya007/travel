@@ -1,0 +1,37 @@
+apps/web/src/lib/constants.ts
+  s_19167362b78323::t_523b07b031a0a9 2
+  s_19167362b78323::t_1c0a6dcbdc9d18 35-48,50-54
+  s_19167362b78323::t_3af419f0baa21c 49
+  s_19167362b78323::t_e1686f9ccfabe5 55
+apps/web/src/hooks/use-google-auth.ts
+  s_19167362b78323::t_286617316f1056 44-45
+apps/web/src/lib/api-client.ts
+  s_19167362b78323::t_1ed2b41c50367e 7-8
+  s_19167362b78323::t_dcde1d4e9e7240 157-175
+  s_19167362b78323::t_2d360ffde2ca67 176-178
+apps/web/src/hooks/use-attach-phone.ts
+  s_19167362b78323::t_fcaa117e0792b6 1-40
+apps/web/src/store/auth.store.ts
+  s_19167362b78323::t_7416d55c1d2ef8 9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "8b1fb84f11090bda6cf567949947f18407e39b36",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
