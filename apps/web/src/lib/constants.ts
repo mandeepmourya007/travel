@@ -1,4 +1,5 @@
 import { USER_ROLE } from '@shared/constants'
+import type { UserRole } from '@shared/constants'
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Safarnama'
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
@@ -30,4 +31,25 @@ export function getHomeRoute(role?: string): string {
   if (role === USER_ROLE.ADMIN) return '/admin'
   if (role === USER_ROLE.ORGANIZER) return '/dashboard'
   return '/trips'
+}
+
+// ─── Auth routing ─────────────────────────────────
+export const VERIFY_PHONE_ROUTE = '/verify-phone'
+export const ONBOARDING_ROUTE = '/onboarding'
+
+/**
+ * Single choke point for "where does this user go next" after any
+ * signup/login success handler. Mandatory phone verification wins over
+ * everything else — no role exemption, no new-user exemption — so an
+ * unverified user is always sent to VERIFY_PHONE_ROUTE regardless of
+ * isNewUser/returnTo. See docs/rnd plan: Mandatory Phone Verification.
+ */
+export function getPostAuthRoute(params: {
+  isNewUser: boolean
+  user?: { role?: UserRole | string; phoneVerified?: boolean } | null
+  returnTo?: string | null
+}): string {
+  if (!params.user?.phoneVerified) return VERIFY_PHONE_ROUTE
+  if (params.isNewUser) return ONBOARDING_ROUTE
+  return params.returnTo ?? getHomeRoute(params.user?.role)
 }
