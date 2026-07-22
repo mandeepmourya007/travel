@@ -1,0 +1,26 @@
+apps/web/src/components/auth/phone-verification-flow.tsx
+  s_19167362b78323::t_d1ae2070293580 1-66
+apps/web/src/components/auth/__tests__/phone-verification-flow.test.tsx
+  s_19167362b78323::t_2a446cb1d0daf9 1-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "e17b34b7e434f4f2db39e1257458a7a71a69401a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
