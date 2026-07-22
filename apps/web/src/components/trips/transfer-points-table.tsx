@@ -24,7 +24,7 @@ function PointsColumn({ title, iconColor, points, emptyLabel }: {
       {points.length === 0 ? (
         <p className="text-sm text-neutral-400">{emptyLabel}</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-neutral-200">
+        <div className="max-h-[70vh] overflow-auto rounded-lg border border-neutral-200">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-neutral-50 text-left">

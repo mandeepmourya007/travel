@@ -224,6 +224,31 @@ export class BookingRepository {
   }
 
   /**
+   * Fetches the minimal context PayoutService.releaseBalance needs to resolve a
+   * booking's Cashfree vendor account: the organizer's cashfreeVendorId and the
+   * booking's own identity fields for logging (bookingRef, tripId). Separate from
+   * findById because that method's include shape is reused broadly and does not
+   * carry organizer/vendor fields.
+   */
+  async findForBalanceRelease(id: string) {
+    return this.prisma.booking.findFirst({
+      where: { id, isDeleted: false },
+      select: {
+        id: true,
+        bookingRef: true,
+        totalAmount: true,
+        markupAmount: true,
+        trip: {
+          select: {
+            id: true,
+            organizer: { select: { id: true, cashfreeVendorId: true } },
+          },
+        },
+      },
+    })
+  }
+
+  /**
    * Finds a single booking by ID with trip cancellation details.
    * Used by: BookingService.cancelBooking()
    */
@@ -436,6 +461,9 @@ export class BookingRepository {
       pickupPointId?: string
       dropPointId?: string
       // [TravelerDetail] travelers: Array<{ name: string; phone: string; age: number; gender: Gender; isPrimary: boolean }>
+      // Reseller feature — both optional/defaulted so existing callers/tests are unaffected.
+      sublinkId?: string
+      markupAmount?: number
     },
     paymentTxData: {
       amount: number
@@ -446,6 +474,25 @@ export class BookingRepository {
       gatewayOrderId?: string
       // Legacy Razorpay (kept during expand phase)
       razorpayOrderId?: string
+    },
+    // Reseller feature — when a sublinkToken resolved to a real sublink, the
+    // attribution (last-wins upsert) is written in the SAME transaction as the
+    // booking create, so a crash between the two can't leave one without the other.
+    attribution?: { userId: string; sublinkId: string; tripId: string },
+    // Cashfree Easy Split deposit ledger row — written in the SAME transaction as the
+    // booking + PAYMENT tx create (CRITICAL fix: previously this was a separate
+    // post-transaction best-effort call in booking.service.ts, so a crash between the
+    // two left a booking with no DEPOSIT_RELEASE row — a stranded balance with no
+    // recovery path, since the balance-release cron and the cancelBooking frozen-
+    // startDate lookup both depend on this row existing). A fresh booking has a fresh
+    // id, so this create cannot legitimately collide with an existing row — no
+    // idempotency dance needed here; a real failure rolls back the whole transaction,
+    // which is correct (no orphaned booking with a missing deposit row).
+    depositRelease?: {
+      vendorId: string
+      orderId: string
+      amountRupees: number
+      metadata: Prisma.InputJsonValue
     },
   ) {
     const bookingRef = this.generateBookingRef()
@@ -461,6 +508,8 @@ export class BookingRepository {
           bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
           pickupPointId: bookingData.pickupPointId ?? null,
           dropPointId: bookingData.dropPointId ?? null,
+          sublinkId: bookingData.sublinkId ?? null,
+          markupAmount: bookingData.markupAmount ?? 0,
           // [TravelerDetail] travelerDetails: { create: bookingData.travelers },
         },
         include: { travelerDetails: true },
@@ -476,6 +525,26 @@ export class BookingRepository {
           status: paymentTxData.status,
         },
       })
+      if (depositRelease) {
+        await tx.paymentTransaction.create({
+          data: {
+            bookingId: booking.id,
+            type: PAYMENT_TX_TYPE.DEPOSIT_RELEASE,
+            amount: depositRelease.amountRupees,
+            status: PAYMENT_TX_STATUS.CAPTURED,
+            provider: PAYMENT_PROVIDER.CASHFREE,
+            gatewayOrderId: depositRelease.orderId,
+            metadata: depositRelease.metadata,
+          },
+        })
+      }
+      if (attribution) {
+        await tx.sublinkAttribution.upsert({
+          where: { userId_tripId: { userId: attribution.userId, tripId: attribution.tripId } },
+          create: attribution,
+          update: { sublinkId: attribution.sublinkId },
+        })
+      }
       return booking
     })
   }
@@ -701,13 +770,14 @@ export class BookingRepository {
    * Used by: AdminService.getBookings()
    */
   async findAllAdmin(
-    filters: { status?: string; search?: string; tripId?: string; sortBy?: string; sortOrder?: string },
+    filters: { status?: string; search?: string; tripId?: string; userId?: string; sortBy?: string; sortOrder?: string },
     pagination: { skip: number; take: number },
   ) {
     const where: Prisma.BookingWhereInput = {
       isDeleted: false,
       ...(filters.status && { bookingStatus: filters.status as BookingStatus }),
       ...(filters.tripId && { tripId: filters.tripId }),
+      ...(filters.userId && { userId: filters.userId }),
       ...(filters.search && {
         OR: [
           { bookingRef: { contains: filters.search, mode: 'insensitive' as const } },
@@ -820,6 +890,7 @@ export class BookingRepository {
         id: true,
         userId: true,
         totalAmount: true,
+        markupAmount: true,
         numTravelers: true,
         user: {
           select: { id: true, name: true, email: true },
@@ -857,6 +928,7 @@ export class BookingRepository {
         userName: b.user.name,
         email: b.user.email,
         totalAmount: b.totalAmount,
+        markupAmount: b.markupAmount,
         numTravelers: b.numTravelers,
         cashbackIssued: cb?.amount ?? null,
         issuedAt: cb?.issuedAt?.toISOString() ?? null,

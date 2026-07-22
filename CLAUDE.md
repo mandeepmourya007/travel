@@ -1,3 +1,15 @@
+## Mandatory Task Workflow
+
+**Before writing or editing any code in `apps/api`, `apps/web`, or `packages/shared`:**
+
+1. **Read the relevant `docs/codebase/` note(s) first** — use the "Change → note mapping" table under "Docs Sync" below to find which note(s) cover the area you're touching, and read them before exploring source files. Skip only for trivial one-line fixes where no note plausibly applies.
+2. **Dispatch to the matching specialized agent** from the roster below via the `Agent` tool rather than implementing directly in the main loop, whenever the task matches one of the roster's decision rules (new feature, API/UI change, tests, security-sensitive code, infra/CI, docs sync). Only implement directly in the main loop for trivial edits (typo fixes, config tweaks, one-liners) that don't warrant spinning up an agent.
+3. **Match relevant skills** (e.g. Cashfree skills for payment work) as described in their trigger conditions further below, before writing integration code.
+
+This is a hard requirement, not a suggestion — do not skip straight to code without doing step 1 and considering step 2.
+
+---
+
 ## Project Coding Rules
 
 ### Constants — No Magic Strings
@@ -30,6 +42,19 @@ sortBy: z.enum(MY_SORTS).optional()
 // type — derive from constant, never hardcode union
 sortBy?: MySort
 ```
+
+---
+
+### Tables — Always Paginate
+
+**Rule:** Every table/list view backed by a query that can return more rows than fit on one screen MUST have pagination — no exceptions for "it probably won't have many rows." This applies to every role (admin, organizer, reseller, traveler) and every new table added to the app, not just the reseller feature.
+
+**How:**
+- Backend: list endpoints accept `page`/`limit` query params validated against the shared `paginationSchema` (`packages/shared/src/validators/common.schema.ts`), return `{ data, pagination: { page, limit, total } }`.
+- Frontend: reuse the existing `Pagination` component (`apps/web/src/components/shared/pagination.tsx`) — it supports both callback (`onPageChange`) and URL-based (`buildHref`) modes, plus an opt-in page-size selector (`limit`/`limitOptions`/`onLimitChange`). Never hand-roll a new pager.
+- Before adding a new table, check whether its data hook is already capped to a hardcoded `limit` with no `page` state exposed to the UI — that's a bug, not a shortcut. Always wire `page` state in the component and pass `pagination`/`onPageChange` through to the rendered list.
+
+**Before shipping any new list/table component:** confirm it has (1) a paginated backend query, (2) page state in the component, (3) the `Pagination` component rendered when `totalPages > 1`.
 
 ---
 

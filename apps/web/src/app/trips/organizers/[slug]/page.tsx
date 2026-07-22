@@ -46,8 +46,10 @@ export async function generateMetadata({ params }: OrganizerPageProps): Promise<
 
   const { organizer } = data
   const title = `${organizer.businessName} — Verified Trip Organizer | ${APP_NAME}`
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original fallback: `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with SafePay protection.`
   const raw = organizer.description
-    || `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with SafePay protection.`
+    || `${organizer.businessName} — ${organizer.totalTripsCompleted} trips completed, rated ${organizer.rating}/5. Book safely with secure payments.`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw

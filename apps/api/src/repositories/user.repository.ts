@@ -1,4 +1,8 @@
+import { Prisma } from '@prisma/client'
 import type { UserRole } from '@shared/constants/roles'
+import type { AdminTravellerFilters } from '@shared/types/admin.types'
+import { ADMIN_TRAVELLER_SORT, ADMIN_TRAVELLER_STATUS } from '@shared/constants/admin'
+import { SORT_ORDER } from '@shared/constants/sort'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class UserRepository {
@@ -38,6 +42,7 @@ export class UserRepository {
     avatarUrl?: string
     phoneVerified?: boolean
     emailVerified?: boolean
+    tncAcceptedAt?: Date
   }) {
     return this.prisma.user.create({ data })
   }
@@ -55,6 +60,14 @@ export class UserRepository {
    */
   async updateProfile(id: string, data: { name?: string; role?: 'TRAVELER' | 'ORGANIZER'; avatarUrl?: string }) {
     return this.prisma.user.update({ where: { id }, data })
+  }
+
+  /**
+   * Flips isReseller=true. Idempotent — a no-op update if already true.
+   * Used by: ResellerService.generateMainLink (the resellerEmail match flips this flag).
+   */
+  async setResellerFlag(userId: string) {
+    return this.prisma.user.update({ where: { id: userId }, data: { isReseller: true } })
   }
 
   /**
@@ -158,5 +171,79 @@ export class UserRepository {
   /** Soft-delete a user by id. Intercepted by Prisma extension → sets isDeleted=true. */
   async deleteById(id: string) {
     return this.prisma.user.delete({ where: { id } })
+  }
+
+  /**
+   * Paginated traveller directory for admin. ILIKE search across name/email/phone.
+   * Sorting on bookingsCount uses the `_count` aggregate orderBy.
+   * Used by: AdminService.getTravellerList()
+   */
+  async findAllAdmin(
+    filters: AdminTravellerFilters,
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.UserWhereInput = {
+      isDeleted: false,
+      ...(filters.status && { isActive: filters.status === ADMIN_TRAVELLER_STATUS.ACTIVE }),
+      ...(filters.search && {
+        OR: [
+          { name: { contains: filters.search, mode: 'insensitive' as const } },
+          { email: { contains: filters.search, mode: 'insensitive' as const } },
+          { phone: { contains: filters.search, mode: 'insensitive' as const } },
+        ],
+      }),
+    }
+
+    const dir = filters.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
+    let orderBy: Prisma.UserOrderByWithRelationInput
+    switch (filters.sortBy) {
+      case ADMIN_TRAVELLER_SORT.NAME:
+        orderBy = { name: dir }
+        break
+      case ADMIN_TRAVELLER_SORT.BOOKINGS_COUNT:
+        orderBy = { bookings: { _count: dir } }
+        break
+      default:
+        orderBy = { createdAt: dir }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+          _count: { select: { bookings: { where: { isDeleted: false } } } },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ])
+
+    return { data, total }
+  }
+
+  /**
+   * Single user profile for the admin traveller detail view.
+   * Used by: AdminService.getTravellerDetail()
+   */
+  async findByIdAdmin(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, isDeleted: false },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        avatarUrl: true,
+        createdAt: true,
+        _count: { select: { bookings: { where: { isDeleted: false } } } },
+      },
+    })
   }
 }

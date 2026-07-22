@@ -6,6 +6,8 @@ export interface SignupDto {
   name?: string
   phone?: string
   role?: SignupRole
+  acceptedTerms: true
+  acceptedOrganizerAgreement?: boolean
 }
 
 export interface LoginDto {
@@ -46,10 +48,13 @@ export interface OtpSendResponse {
 export interface UpdateProfileDto {
   name: string
   role?: SignupRole
+  acceptedOrganizerAgreement?: boolean
 }
 
 export interface GoogleAuthDto {
   idToken: string
+  /** Only required/checked when a brand-new user is created — see AuthService.googleAuth. */
+  acceptedTerms?: boolean
 }
 
 export interface OtpVerifyResponse {

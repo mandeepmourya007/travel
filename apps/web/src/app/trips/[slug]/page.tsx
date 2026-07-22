@@ -27,8 +27,10 @@ export async function generateMetadata({ params }: TripDetailPageProps): Promise
   }
 
   const title = `${trip.title} — ${trip.destination.name} | ${APP_NAME}`
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original fallback: `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with SafePay protection.`
   const raw = trip.description
-    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with SafePay protection.`
+    || `${trip.title} to ${trip.destination.name}. ₹${trip.pricePerPerson}/person. ${Math.max(0, trip.maxGroupSize - trip.currentBookings)} seats left. Book safely with secure payments.`
   const description = raw.length > 160
     ? raw.slice(0, raw.lastIndexOf(' ', 160)) + '…'
     : raw
@@ -70,6 +72,14 @@ export default async function TripDetailPage({ params }: TripDetailPageProps) {
     notFound()
   }
 
+  // Reseller `?ref` sublink token resolution intentionally happens entirely
+  // client-side (see TripDetailClient) rather than here. This route is prerendered
+  // via `generateStaticParams`/ISR (10-min revalidate on trip data) for the vast
+  // majority of traffic that has no `?ref`. Reading `searchParams` in a page that
+  // Next has statically generated forces a Next.js "dynamic API" bailout — with no
+  // Suspense boundary isolating it, that bailout throws uncaught and 500s the whole
+  // route (DYNAMIC_SERVER_USAGE), not just requests that actually carry `?ref`. See
+  // incident: safarnama.store/trips/* returning hard 500s in production (2026-07-21).
   const tripJsonLd = buildTripJsonLd(trip, SITE_URL)
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([
     { name: 'Home', url: SITE_URL },

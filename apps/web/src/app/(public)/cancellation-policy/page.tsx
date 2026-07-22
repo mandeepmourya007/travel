@@ -19,11 +19,15 @@ import {
 
 export const metadata: Metadata = {
   title: `Cancellation & Refund Policy | ${APP_NAME}`,
-  description: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how SafePay refunds work.`,
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how SafePay refunds work.`
+  description: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how refunds work.`,
   alternates: { canonical: '/cancellation-policy' },
   openGraph: {
     title: `Cancellation & Refund Policy | ${APP_NAME}`,
-    description: `Clear refund rules for travelers and organizers on ${APP_NAME}. SafePay-protected refunds processed via Razorpay.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `Clear refund rules for travelers and organizers on ${APP_NAME}. SafePay-protected refunds processed via Razorpay.`
+    description: `Clear refund rules for travelers and organizers on ${APP_NAME}. Secure refunds processed via our payment partners.`,
     type: 'website',
     url: '/cancellation-policy',
   },
@@ -54,16 +58,27 @@ export default function CancellationPolicyPage() {
             Cancellation &amp; Refund Policy
           </h1>
           <p className="mt-3 text-sm text-neutral-400">Last updated: {POLICY_DATES.cancellation}</p>
+          {/*
+            Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented
+            for all payment providers.
+            Original: "All payments on {APP_NAME} are held safely via SafePay, which means your money is protected
+            until the trip is completed. This policy explains exactly when and how refunds are issued."
+          */}
           <p className="mt-4 text-base text-neutral-600 leading-relaxed">
-            All payments on {APP_NAME} are held safely via SafePay, which means your money is protected until the trip is completed. This policy explains exactly when and how refunds are issued.
+            All payments on {APP_NAME} are processed securely, and refunds are issued per the policy below. This policy explains exactly when and how refunds are issued.
           </p>
         </div>
 
-        {/* SafePay callout */}
+        {/*
+          Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented
+          for all payment providers.
+          Original heading: "SafePay Protection"
+          Original body: "Your payment is never released to the organizer until the trip is completed. {organizerCancellationText.escrowCallout}"
+        */}
         <div className="mb-10 rounded-2xl border border-success-50 bg-success-50 p-5">
-          <h2 className="text-sm font-semibold text-neutral-800 mb-1">SafePay Protection</h2>
+          <h2 className="text-sm font-semibold text-neutral-800 mb-1">Payment Protection</h2>
           <p className="text-sm text-success-500">
-            Your payment is never released to the organizer until the trip is completed. {organizerCancellationText.escrowCallout}
+            {organizerCancellationText.refundTimingNote}
           </p>
         </div>
 

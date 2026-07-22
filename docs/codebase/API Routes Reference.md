@@ -12,7 +12,7 @@ tags:
 All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown as *(auth)* = JWT required, *(ROLE)* = `requireRole` — see [[API Backend#Middleware]].
 
 > [!info] Mount Map
-> `/auth` (+ conditional firebase) · `/destinations` · `/trips` (trip **and** vehicle routers) · `/uploads` · `/bookings` · `/payments` · `/wallet` · `/reviews` · `/chat` · `/notifications` · `/admin` (admin + trip-category admin) · `/trip-categories` · `/trip-type-requests` · `/webhooks` · `GET /api/v1/sitemap-data` (inline, public) · `GET /health` (DB + Redis check, no auth)
+> `/auth` (+ conditional firebase) · `/destinations` · `/trips` (trip **and** vehicle routers) · `/uploads` · `/bookings` · `/payments` · `/wallet` · `/reviews` · `/chat` · `/notifications` · `/admin` (admin + trip-category admin) · `/trip-categories` · `/trip-type-requests` · `/reseller` · `/webhooks` · `GET /api/v1/sitemap-data` (inline, public) · `GET /health` (DB + Redis check, no auth)
 
 ## Auth — `/api/v1/auth` *(authRateLimit)*
 
@@ -73,7 +73,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | DELETE | `/:id` | Delete trip | ORGANIZER |
 | PATCH | `/:id/toggle-bookings` | Pause/resume bookings | ORGANIZER |
 | PATCH | `/:id/visibility` | Hide/show trip | ORGANIZER |
-| GET | `/:id/history` | Edit history | ORGANIZER |
+| GET | `/:id/history` | Edit history *(each entry's `changedFields` now reflects only fields whose value actually changed vs. the pre-edit trip, not just fields present in the PUT payload; response items carry `changes: { field, previousValue }[]` instead of a bare `changedFields: string[]`)* | ORGANIZER |
 | POST | `/:tripId/request` | Create trip request | TRAVELER |
 | GET | `/:tripId/bookings` | Participant/booking list | ORGANIZER |
 | GET | `/:tripId/requests` | Trip requests list | ORGANIZER |
@@ -191,6 +191,10 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | PATCH | `/trips/:id/bookings` | Admin pause/resume bookings |
 | PATCH | `/trips/:id/visibility` | Admin hide/show trip |
 | GET | `/reviews` | Review list *(adminRateLimit)* |
+| GET | `/users/travellers` | Paginated traveller directory (search/sort by name, bookingsCount, joinedAt; optional status filter — active/inactive, maps to `User.isActive`) |
+| GET | `/users/travellers/:travellerId` | Traveller detail — profile + booked trips (optional bookingStatus filter) + reviews written |
+| GET | `/users/organizers` | Paginated organizer directory (search/sort by name, tripsCount, joinedAt; optional verificationStatus filter) |
+| GET | `/users/organizers/:organizerId` | Organizer directory detail — profile summary (tripsCount = unfiltered total) + paginated trips created (optional trip status filter) |
 | GET | `/trip-categories` | List categories |
 | POST | `/trip-categories` | Create category |
 | PUT | `/trip-categories/:id` | Update category |
@@ -207,6 +211,31 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | GET | `/api/v1/trip-categories` | Active categories | — |
 | POST | `/api/v1/trip-type-requests` | Submit trip-type request | ORGANIZER |
 | GET | `/api/v1/trip-type-requests/my` | My requests | ORGANIZER |
+
+## Reseller — `/api/v1/reseller`
+
+Reseller is NOT a new role — a `TRAVELER` with `User.isReseller=true`. `requireRole` can't express the `isReseller` flag (it's on a shared role), so that check plus all ownership checks live in `ResellerService`, not the route guard. Client sends only an opaque `sublinkToken`/`mainLinkToken` — never a price.
+
+> [!important] Main link is purely internal plumbing, never user-visible
+> `ResellerMainLink` is now unique per `(tripId, resellerId)` (`@@unique`) and is never rendered to any role as a token, a "link", or a listable entity — it only exists to record "organizer invited this reseller for this trip" and to resolve `mainLinkToken` server-side when a reseller creates a sublink. `POST /main-links` is the organizer's **"Invite Reseller"** action and is idempotent: re-inviting the same (trip, reseller) pair returns the existing link as a no-op success (see [[Product Domain]]) rather than erroring. `GET /main-links` doubles as the organizer's **"Resellers invited for my trips"** list — each row now also carries `bookingCount` and `totalMarkupAmount` (same sum-of-sums aggregation as `/main-links/mine`), so the UI never needs a raw main-link token; the backend endpoint is kept as a sane general-purpose organizer read (still tested), even though no page currently calls its FE hook (`useOrganizerMainLinks` was removed — see [[Web Frontend]]). `PATCH /main-links/:mainLinkId` (toggle `isActive`) and `GET /admin/main-links` were both removed (dead code: no FE caller, no UI) — a reseller's own markup **rate** is editable per-sublink via `PATCH /sublinks/:sublinkId` instead (see the reseller-facing "Rate" column note under [[Web Frontend]]/[[Frontend Routes Reference]]).
+
+| Method | Path | Purpose | Guard |
+| :--- | :--- | :--- | :--- |
+| POST | `/main-links` | **Invite Reseller.** Idempotent — creates (or, for a repeat invite, returns the existing) main link for (trip, reseller); flips named user's `isReseller` *(generalRateLimit)* | ORGANIZER, ADMIN |
+| GET | `/main-links` | Organizer's "resellers invited for my trips" list (filter tripId/resellerId) — each row carries `sublinkCount`, `bookingCount`, `totalMarkupAmount` | ORGANIZER, ADMIN |
+| GET | `/main-links/mine` | Reseller's own active main links, joined with the trip's cover photo, for the trip-card landing page (`/reseller`); each row carries `sublinkCount`, `bookingCount`, and `totalMarkupAmount` (sum-of-sums: `Booking.markupAmount` summed per sublink, then across all of that main link's sublinks) *(filter tripId)* | TRAVELER, ADMIN *(+ isReseller check in service)* |
+| GET | `/leads` | Organizer's per-sublink lead aggregation (bookings + SUM(markupAmount) + SUM(numTravelers), plus the sublink's own `markupAmount` rate); filters: `tripId`/`resellerId`/`organizerId`/`mainLinkId`/`sort` | ORGANIZER, ADMIN |
+| GET | `/main-links/:mainLinkId/bookings` | Bookings feed for a main link | ORGANIZER, ADMIN |
+| POST | `/sublinks` | Create a sublink (with markup) off a main link *(generalRateLimit)* | TRAVELER, ADMIN *(+ isReseller check in service)* |
+| GET | `/sublinks` | Reseller's own sublinks (filter tripId/mainLinkId) | TRAVELER, ADMIN |
+| GET | `/my-leads` | Reseller's own per-sublink lead aggregation | TRAVELER, ADMIN |
+| GET | `/sublinks/:sublinkId/bookings` | Bookings feed for a sublink — the shared "Views" UI calls this same endpoint for the reseller, the organizer who owns the trip behind it, and admin, so the guard also allows ORGANIZER; `ResellerService.getSublinkBookings` checks organizer ownership via the sublink's `mainLink.organizerId` | TRAVELER, ORGANIZER, ADMIN |
+| PATCH | `/sublinks/:sublinkId` | Edit markup/label/isActive — the reseller's own `/reseller` page's inline "Rate" pencil-edit calls this via `usePatchSublink`; service ownership check (`sublink.resellerId !== resellerUserId`) has no admin bypass (unlike `getSublinkBookings`), so in practice only the owning reseller can successfully call it | TRAVELER, ADMIN |
+| GET | `/sublinks/resolve/:token` | **Public.** Merged price only — `tripId`, `tripSlug`, `effectivePrice`, `resellerName?`. Deliberately omits `basePrice`/`markupAmount` (this response is embedded in SSR HTML — a breakdown would leak the markup via view-source) *(generalRateLimit)* | — |
+| POST | `/attribution` | Idempotent last-wins `(userId, tripId)` attribution upsert *(generalRateLimit)* | auth |
+| GET | `/resellers/search` | Combobox search — organizer: own resellers; admin: all | ORGANIZER, ADMIN |
+| GET | `/organizers/search` | Combobox search — all organizers | ADMIN |
+| GET | `/admin/leads` | All leads, platform-wide; same filters as `/leads` plus optional `mainLinkId` to scope to one main link's sublinks | ADMIN |
 
 ## Uploads — `/api/v1/uploads`
 

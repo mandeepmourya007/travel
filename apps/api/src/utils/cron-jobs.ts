@@ -9,10 +9,12 @@ import { WebhookEventRepository } from '../repositories/webhook-event.repository
 import { PaymentService } from '../services/payment.service'
 import { BookingService } from '../services/booking.service'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
+import { PayoutService } from '../services/payout.service'
+import { PaymentTransactionRepository } from '../repositories/payment-transaction.repository'
 import { VehicleService } from '../services/vehicle.service'
 import { WalletService } from '../services/wallet.service'
 import { NotificationService } from '../services/notification.service'
-import { NOTIFICATION_TYPE } from '@shared/constants'
+import { NOTIFICATION_TYPE, REFUND_CLIFF_DAYS } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
 import { NORMALIZED_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
@@ -210,6 +212,56 @@ async function completeTripsAndReleaseSafePay(tripLifecycleService: TripLifecycl
       await tripLifecycleService.releaseUnreleasedSafePays()
     } catch (error) {
       logger.error({ error }, 'Trip completion / SafePay release job failed')
+      throw error
+    }
+  }, { schedule: { type: 'interval', value: 30, unit: 'minute' }, checkinMargin: 5, maxRuntime: 20 })
+}
+
+/**
+ * Releases the held BALANCE tranche for Cashfree bookings whose refund cliff has
+ * passed (trip.startDate <= now + REFUND_CLIFF_DAYS). Deposit/balance payout split —
+ * see @shared/utils/payout.ts and PayoutService for the money-flow rationale.
+ *
+ * Per-booking try/catch (via PayoutService.releaseBalance, which never throws) so one
+ * booking's gateway failure doesn't stop the rest of the batch — mirrors
+ * TripLifecycleService.releaseSafePayForTrip's per-item error isolation.
+ *
+ * Intended to be called via setInterval() every 30 minutes.
+ */
+async function releaseCashfreeBalances(
+  paymentTxRepo: PaymentTransactionRepository,
+  payoutService: PayoutService,
+) {
+  await Sentry.withMonitor('cron-release-cashfree-balances', async () => {
+    try {
+      const cutoffDate = new Date(Date.now() + REFUND_CLIFF_DAYS * ONE_DAY)
+      const eligible = await paymentTxRepo.findBalanceReleaseEligibleBookings(cutoffDate)
+
+      if (eligible.length === 0) return
+
+      logger.info({ count: eligible.length }, 'Processing Cashfree balance releases')
+
+      let transferred = 0
+      let skipped = 0
+      let failed = 0
+
+      for (const { bookingId } of eligible) {
+        try {
+          const result = await payoutService.releaseBalance(bookingId)
+          if (result === 'transferred') transferred++
+          else if (result === 'skipped') skipped++
+          else failed++
+        } catch (error) {
+          // releaseBalance is documented to never throw — this catch is a last-resort
+          // guard so an unexpected error still can't kill the batch.
+          logger.error({ bookingId, error }, 'Unexpected error releasing Cashfree balance for booking')
+          failed++
+        }
+      }
+
+      logger.info({ transferred, skipped, failed, total: eligible.length }, 'Cashfree balance release cron finished')
+    } catch (error) {
+      logger.error({ error }, 'Cashfree balance release job failed')
       throw error
     }
   }, { schedule: { type: 'interval', value: 30, unit: 'minute' }, checkinMargin: 5, maxRuntime: 20 })
@@ -460,9 +512,11 @@ export function startCronJobs(deps: {
   refreshTokenRepo: RefreshTokenRepository
   verifCodeRepo: VerificationCodeRepository
   webhookEventRepo: WebhookEventRepository
+  paymentTxRepo: PaymentTransactionRepository
   paymentService: PaymentService | null
   bookingService: BookingService | null
   tripLifecycleService: TripLifecycleService
+  payoutService: PayoutService
   vehicleService: VehicleService
   walletService: WalletService
   notificationService: NotificationService
@@ -524,6 +578,11 @@ export function startCronJobs(deps: {
       () => guard('cron:expire-held-seats', withLock('cron:expire-held-seats', LOCK_TTL_1MIN,
         () => expireHeldSeats(deps.vehicleService))),
       ONE_MINUTE,
+    ),
+    setInterval(
+      () => guard('cron:release-cashfree-balances', withLock('cron:release-cashfree-balances', LOCK_TTL_30MIN,
+        () => releaseCashfreeBalances(deps.paymentTxRepo, deps.payoutService))),
+      THIRTY_MINUTES,
     ),
     setInterval(
       () => guard('cron:reconcile-wallets', withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,

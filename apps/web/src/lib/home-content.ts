@@ -6,7 +6,7 @@
  */
 
 import {
-  Shield,
+  // Shield — unused while the SafePay-badge entries below are commented out; re-add if they're restored.
   Star,
   LayoutList,
   Search,
@@ -50,14 +50,16 @@ export const HERO_COPY = {
   eyebrow: 'India’s group travel marketplace',
   headlinePart1: 'Stop trusting strangers on WhatsApp.',
   headlinePart2: 'Book group trips safely.',
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: 'Find and compare curated group trips from verified organizers across India. Your payment is held safely via SafePay — the organizer gets paid only after the trip is done. No UPI to strangers. No WhatsApp chaos. No surprises.'
   subheadline:
     'Find and compare curated group trips from verified organizers across India. ' +
-    'Your payment is held safely via SafePay — the organizer gets paid only after the trip is done. ' +
-    'No UPI to strangers. No WhatsApp chaos. No surprises.',
+    'Pay securely with no UPI to strangers. No WhatsApp chaos. No surprises.',
 } as const
 
 export const HERO_TRUST_BADGES: TrustBadge[] = [
-  { icon: Shield,     label: 'Money held safely via SafePay until your trip is done' },
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // { icon: Shield,     label: 'Money held safely via SafePay until your trip is done' },
   { icon: Star,       label: 'Reviews only from travelers who actually went' },
   { icon: LayoutList, label: 'Compare up to 3 trips side-by-side' },
 ]
@@ -66,7 +68,9 @@ export const HERO_TRUST_BADGES: TrustBadge[] = [
 
 export const HOW_IT_WORKS_COPY = {
   heading:    'How it works for travelers',
-  subheading: 'From discovery to post-trip review — everything in one place, with your money protected the whole time.',
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: 'From discovery to post-trip review — everything in one place, with your money protected the whole time.'
+  subheading: 'From discovery to post-trip review — everything in one place, with secure payments throughout.',
   cta:        'Browse group trips',
   ctaHref:    '/trips',
 } as const
@@ -85,13 +89,24 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
   {
     step:        '02',
     icon:        CreditCard,
-    title:       'Book with your money protected',
-    description: 'Pay securely via Razorpay (UPI, card, net banking). Your money is held safely via SafePay — the organizer only gets paid after the trip is done. Cancel anytime, refund goes straight to your wallet.',
+    title:       'Book your seat securely',
+    description: 'Pay via Razorpay — UPI, card, or net banking. Get instant booking confirmation and track everything from your dashboard, no WhatsApp screenshots needed.',
     iconColor:   'text-highlight-600',
     iconBg:      'bg-highlight-50',
     iconBorder:  'border-highlight-100',
     stepColor:   'text-highlight-500',
   },
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // {
+  //   step:        '02',
+  //   icon:        CreditCard,
+  //   title:       'Book with your money protected',
+  //   description: 'Pay securely via Razorpay (UPI, card, net banking). Your money is held safely via SafePay — the organizer only gets paid after the trip is done. Cancel anytime, refund goes straight to your wallet.',
+  //   iconColor:   'text-highlight-600',
+  //   iconBg:      'bg-highlight-50',
+  //   iconBorder:  'border-highlight-100',
+  //   stepColor:   'text-highlight-500',
+  // },
   {
     step:        '03',
     icon:        Backpack,
@@ -111,20 +126,23 @@ export const WHY_BOOK_COPY = {
   subheading: "Sending ₹15,000 to a stranger's UPI and hoping for the best is not a booking process. We built something better.",
   organizer: {
     heading: 'Are you a trip organizer?',
-    body:    'Stop managing bookings on WhatsApp. List your trips, get discovered by travelers beyond your Instagram, and get paid securely via SafePay.',
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: 'Stop managing bookings on WhatsApp. List your trips, get discovered by travelers beyond your Instagram, and get paid securely via SafePay.'
+    body:    'Stop managing bookings on WhatsApp. List your trips, get discovered by travelers beyond your Instagram, and get paid securely.',
     cta:     "List your trips — it's free",
     ctaHref: '/signup?role=organizer',
   },
 } as const
 
 export const WHY_BOOK_FEATURES: WhyBookFeature[] = [
-  {
-    icon:        Shield,
-    title:       'SafePay-protected payments',
-    description: 'You pay via Razorpay. Your money is held securely — the organizer gets it only after the trip is done. If the organizer cancels, you get a full refund instantly.',
-    iconColor:   'text-primary-600',
-    iconBg:      'bg-primary-50',
-  },
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // {
+  //   icon:        Shield,
+  //   title:       'SafePay-protected payments',
+  //   description: 'You pay via Razorpay. Your money is held securely — the organizer gets it only after the trip is done. If the organizer cancels, you get a full refund instantly.',
+  //   iconColor:   'text-primary-600',
+  //   iconBg:      'bg-primary-50',
+  // },
   {
     icon:        Star,
     title:       'Reviews you can actually trust',

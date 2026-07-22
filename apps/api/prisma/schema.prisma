@@ -56,6 +56,10 @@ enum PaymentType {
   PAYMENT
   REFUND
   ESCROW_RELEASE
+  // Cashfree deposit/balance payout split (see utils/payout.ts) — ESCROW_RELEASE
+  // above remains the Razorpay-only SafePay path and is unaffected by these.
+  DEPOSIT_RELEASE
+  BALANCE_RELEASE
 }
 
 enum PaymentStatus {
@@ -184,6 +188,14 @@ model User {
   aadhaarVerified Boolean   @default(false)
   phoneVerified   Boolean   @default(false)
   emailVerified   Boolean   @default(false)
+  // Reseller feature: NOT a new role — a normal TRAVELER flipped true when an
+  // organizer names them (by email) on a ResellerMainLink. Gates reseller-only
+  // endpoints/UI; requireRole() can't express this, so services check it explicitly.
+  isReseller      Boolean   @default(false)
+  // Explicit consent timestamp (server-stamped, never client-supplied). No
+  // versioning/re-consent flow — initial acceptance only. Organizer Agreement
+  // acceptance lives on OrganizerProfile, not here — see that model.
+  tncAcceptedAt DateTime? // Terms of Service + Privacy Policy, set for every user on signup
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -205,6 +217,9 @@ model User {
   wallet             Wallet?
   organizerInvitesSent OrganizerInvite[]
   whatsappBroadcasts   WhatsappBroadcast[]
+  resellerMainLinks    ResellerMainLink[]
+  resellerSublinks     ResellerSublink[]
+  sublinkAttributions  SublinkAttribution[]
 
   @@index([role])
 }
@@ -225,6 +240,9 @@ model OrganizerProfile {
   commissionRate      Decimal            @default(10.0) @db.Decimal(5, 2)
   razorpayAccountId   String?
   cashfreeVendorId    String?   // Cashfree Easy Split vendor ID (equivalent of razorpayAccountId)
+  // Server-stamped, never client-supplied. No versioning/re-consent flow —
+  // initial acceptance only, captured when organizer registration completes.
+  organizerTncAcceptedAt DateTime? // Organizer Agreement acceptance
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -237,6 +255,7 @@ model OrganizerProfile {
   tripTypeRequests  TripTypeRequest[]
   documentReviews   DocumentReview[]
   reviewComments    DocumentReviewComment[]
+  resellerMainLinks ResellerMainLink[]
 
   @@index([verificationStatus])
 }
@@ -344,6 +363,8 @@ model Trip {
   editHistory      TripEditHistory[]
   transferPoints   TripTransferPoint[]
   vehicles         TripVehicle[]
+  resellerMainLinks ResellerMainLink[]
+  resellerSublinks  ResellerSublink[]
 
   @@index([destinationId, startDate, status])
   @@index([slug])
@@ -383,6 +404,14 @@ model Booking {
   dropPointId   String?
   dropPoint     TripTransferPoint? @relation("dropPoint", fields: [dropPointId], references: [id])
 
+  // Reseller feature: nullable — non-reseller bookings are entirely unaffected.
+  // sublinkId is the resolved sublink (explicit token or SublinkAttribution) at
+  // booking time; markupAmount is a frozen snapshot (markupPerPerson * numTravelers),
+  // never recomputed later even if the sublink's markup is edited afterwards.
+  sublinkId    String?
+  sublink      ResellerSublink? @relation(fields: [sublinkId], references: [id])
+  markupAmount Int              @default(0)
+
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
@@ -405,6 +434,7 @@ model Booking {
   @@index([bookingRef])
   @@index([bookingStatus, expiresAt])
   @@index([bookingStatus, tripReminderSentAt])  // trip-reminder cron
+  @@index([sublinkId])
   // Partial unique index (not expressible in Prisma DSL — see migration 20260621000001):
   // CREATE UNIQUE INDEX "Booking_active_user_trip_unique" ON "Booking" ("userId", "tripId")
   // WHERE "bookingStatus" IN ('PENDING_PAYMENT', 'CONFIRMED') AND "isDeleted" = false
@@ -547,17 +577,30 @@ model PaymentTransaction {
   updatedAt DateTime @updatedAt
 
   @@index([bookingId])
+  @@index([bookingId, type])
   @@index([provider])
+  // Supports findBalanceReleaseEligibleBookings' outer filter
+  // (type = 'DEPOSIT_RELEASE' AND provider = 'cashfree') as a direct index scan
+  // instead of an index scan on provider + in-memory filter on type.
+  @@index([type, provider])
   @@index([gatewayOrderId])
   @@index([gatewayPaymentId])
   @@index([razorpayOrderId])
   @@index([razorpayPaymentId])
   @@index([status])
   @@index([status, type])
-  // Partial unique index (not expressible in Prisma SDL — lives in raw migration):
+  // Partial unique indexes (not expressible in Prisma SDL — live in raw migrations):
   //   CREATE UNIQUE INDEX "payment_transaction_booking_refund_unique"
   //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'REFUND'
   // Ensures at most one REFUND row per booking — DB-level backstop against double-refund.
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_escrow_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'ESCROW_RELEASE'
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_deposit_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'DEPOSIT_RELEASE'
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_balance_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'BALANCE_RELEASE'
+  // Same reasoning as ESCROW_RELEASE: at most one DEPOSIT_RELEASE / BALANCE_RELEASE
+  // row per booking — the hard DB backstop against a duplicate gateway payout call.
 }
 
 model Review {
@@ -923,4 +966,85 @@ model WhatsappBroadcast {
   @@index([createdByAdminId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ─── Reseller feature ───────────────────────────────────────────────────
+// Reseller is NOT a new role — a normal TRAVELER with User.isReseller flipped
+// true. Organizer generates a main link per (trip, reseller); the reseller
+// generates multiple sublinks off that main link, each with its own markup.
+// Traveler books via a sublink and pays base+markup; markup is track-only
+// (never paid out, never folded into the organizer commission split).
+
+model ResellerMainLink {
+  id          String @id @default(uuid(7))
+  token       String @unique // opaque, crypto.randomBytes(32).toString('base64url') — never id-in-URL
+  tripId      String
+  trip        Trip             @relation(fields: [tripId], references: [id])
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  // resellerId/resellerEmail: v1 requires the named user to already exist at
+  // creation time (NotFoundError otherwise) — see ResellerService.generateMainLink.
+  // resellerEmail is retained as the display/match key even after resellerId is set.
+  resellerId    String
+  reseller      User   @relation(fields: [resellerId], references: [id])
+  resellerEmail String
+
+  isActive  Boolean   @default(true)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  sublinks ResellerSublink[]
+
+  // One main link per (trip, reseller) — re-inviting the same reseller for the
+  // same trip is a no-op (see ResellerService.generateMainLink), not a new row.
+  @@unique([tripId, resellerId])
+  @@index([organizerId])
+  @@index([tripId])
+  @@index([resellerId])
+}
+
+model ResellerSublink {
+  id         String @id @default(uuid(7))
+  token      String @unique // opaque — the `?ref=` value shared with travelers
+  mainLinkId String
+  mainLink   ResellerMainLink @relation(fields: [mainLinkId], references: [id])
+  resellerId String // denormalized from mainLink.resellerId for ownership checks
+  reseller   User   @relation(fields: [resellerId], references: [id])
+  tripId     String // denormalized from mainLink.tripId for single-row price resolve
+  trip       Trip   @relation(fields: [tripId], references: [id])
+
+  markupAmount Int     @default(0) // rupees, PER PERSON — same unit as Trip.pricePerPerson
+  label        String?
+  isActive     Boolean @default(true)
+
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  bookings     Booking[]
+  attributions SublinkAttribution[]
+
+  @@index([mainLinkId])
+  @@index([resellerId])
+  @@index([tripId])
+}
+
+model SublinkAttribution {
+  id        String          @id @default(uuid(7))
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  sublinkId String
+  sublink   ResellerSublink @relation(fields: [sublinkId], references: [id])
+  tripId    String // denormalized — one attribution per user per trip
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Last-wins: newer sublink for the same user+trip overwrites the earlier
+  // attribution via upsert on this unique constraint.
+  @@unique([userId, tripId])
+  @@index([sublinkId])
 }

@@ -172,12 +172,6 @@ services:
       - key: LOG_LEVEL
         value: info
 
-      # ── Sentry (optional — omit DSN to disable) ───────
-      - key: SENTRY_DSN
-        sync: false   # paste your Sentry project DSN from sentry.io
-      - key: SENTRY_TRACES_SAMPLE_RATE
-        value: "0.2"  # 20% of requests traced; raise to 1.0 for local testing
-
   # ── 2. Frontend Web ────────────────────────────────────
   - type: web
     name: safarnama-web

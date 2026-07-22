@@ -9,8 +9,13 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <span className="font-display text-lg font-bold text-primary-600">{APP_NAME}</span>
+            {/*
+              Commented out — restore if SafePay escrow-hold-until-trip-done is accurately
+              implemented for all payment providers.
+              Original: "Compare group trips, book safely with SafePay, and travel with confidence across India."
+            */}
             <p className="mt-3 text-sm text-neutral-500 leading-relaxed">
-              Compare group trips, book safely with SafePay, and travel with confidence across India.
+              Compare group trips, book securely, and travel with confidence across India.
             </p>
           </div>
 

@@ -45,6 +45,18 @@ export const organizerIdParamSchema = z.object({
   organizerId: idSchema,
 })
 
+export const travellerIdParamSchema = z.object({
+  travellerId: idSchema,
+})
+
+export const mainLinkIdParamSchema = z.object({
+  mainLinkId: idSchema,
+})
+
+export const sublinkIdParamSchema = z.object({
+  sublinkId: idSchema,
+})
+
 /** Generic page + limit pagination schema — reuse across admin/wallet/etc routes */
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

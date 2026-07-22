@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   BarChart3,
-  Users,
+  ShieldCheck,
+  UsersRound,
   Package,
   CreditCard,
   Gift,
@@ -13,6 +14,7 @@ import {
   Mail,
   Map,
   Star,
+  Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,7 +27,8 @@ interface NavItem {
 
 const ADMIN_NAV: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/admin', icon: BarChart3 },
-  { id: 'organizers', label: 'Organizers', href: '/admin/organizers', icon: Users },
+  { id: 'organizers', label: 'Organizer Approvals', href: '/admin/organizers', icon: ShieldCheck },
+  { id: 'users', label: 'Users', href: '/admin/users', icon: UsersRound },
   { id: 'bookings', label: 'Bookings', href: '/admin/bookings', icon: Package },
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
   { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
@@ -34,8 +37,10 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'chat', label: 'Chat', href: '/admin/chat', icon: MessageSquare },
   { id: 'invites', label: 'Invites', href: '/admin/invites', icon: Mail },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },
+  { id: 'reseller-links', label: 'Reseller Links', href: '/admin/reseller-links', icon: Share2 },
 ]
 
+// Reseller Links intentionally omitted — MOBILE_NAV is capped at 4 primary items.
 const MOBILE_NAV: NavItem[] = [
   { id: 'overview', label: 'Overview', href: '/admin', icon: BarChart3 },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },

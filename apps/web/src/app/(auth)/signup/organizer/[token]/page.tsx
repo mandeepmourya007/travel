@@ -9,6 +9,7 @@ import { apiClient, isAppApiError } from '@/lib/api-client'
 import { APP_NAME } from '@/lib/constants'
 import { organizerSignupSchema } from '@shared/validators/auth.schema'
 import { useLoadingStore } from '@/store/loading.store'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export default function OrganizerSignupPage() {
   const router = useRouter()
@@ -19,7 +20,7 @@ export default function OrganizerSignupPage() {
 
   const [email, setEmail] = useState('')
   const [tokenError, setTokenError] = useState('')
-  const [form, setForm] = useState({ password: '', name: '' })
+  const [form, setForm] = useState({ password: '', name: '', acceptedOrganizerAgreement: false })
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -158,9 +159,31 @@ export default function OrganizerSignupPage() {
               )}
             </div>
 
+            <div>
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="acceptedOrganizerAgreement"
+                  checked={form.acceptedOrganizerAgreement}
+                  onCheckedChange={(checked) =>
+                    setForm((f) => ({ ...f, acceptedOrganizerAgreement: checked === true }))
+                  }
+                  className="mt-0.5"
+                />
+                <label htmlFor="acceptedOrganizerAgreement" className="text-sm text-neutral-700">
+                  I agree to the{' '}
+                  <Link href="/organizer-agreement" className="font-medium text-primary-600 hover:text-primary-700">
+                    Organizer Agreement
+                  </Link>
+                </label>
+              </div>
+              {getFieldError('acceptedOrganizerAgreement') && (
+                <p className="mt-1 text-xs text-error-500">{getFieldError('acceptedOrganizerAgreement')}</p>
+              )}
+            </div>
+
             <button
               type="submit"
-              disabled={loading || !email}
+              disabled={loading || !email || !form.acceptedOrganizerAgreement}
               className="btn-primary w-full disabled:opacity-50"
             >
               {loading ? (

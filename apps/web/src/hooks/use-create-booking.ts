@@ -17,6 +17,8 @@ interface CreateBookingInput {
   // [TravelerDetail]   emergencyContactPhone?: string
   // [TravelerDetail] }[]
   seatIds?: string[]
+  /** Reseller feature — opaque sublink token only, never a price. Server resolves markup from this (or a prior SublinkAttribution) at booking time. */
+  sublinkToken?: string
 }
 
 /**

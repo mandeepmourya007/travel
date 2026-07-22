@@ -1,10 +1,11 @@
 import type { PaginationMeta } from './api-response.types'
 import type { VerificationStatus, ApproveRejectAction } from '../constants/verification-status'
 import type { BookingStatusConst } from '../constants/booking-status'
+import type { TripStatusConst } from '../constants/trip-types'
 import type { SortOrder } from '../constants/sort'
 export type { SortOrder } from '../constants/sort'
-import type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy } from '../constants/admin'
-export type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy } from '../constants/admin'
+import type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy, AdminTravellerSort, AdminOrganizerSort, AdminTravellerStatus } from '../constants/admin'
+export type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy, AdminTravellerSort, AdminOrganizerSort, AdminTravellerStatus } from '../constants/admin'
 
 // ─── Document Review ────────────────────────────────────
 
@@ -316,5 +317,113 @@ export interface AdminReviewItem {
     title: string
     slug: string
     organizer: { businessName: string }
+  }
+}
+
+// ─── Admin User Directory ───────────────────────────────
+
+export interface AdminTravellerFilters {
+  search?: string
+  status?: AdminTravellerStatus
+  sortBy?: AdminTravellerSort
+  sortOrder?: SortOrder
+  page?: number
+  limit?: number
+}
+
+export interface AdminTravellerListItem {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  bookingsCount: number
+  joinedAt: string
+}
+
+/** Filters the booked-trips sub-list on GET /admin/users/travellers/:travellerId */
+export interface AdminTravellerDetailFilters {
+  status?: BookingStatusConst
+  page?: number
+  limit?: number
+}
+
+export interface AdminTravellerDetail {
+  user: {
+    id: string
+    name: string
+    email: string | null
+    phone: string | null
+    avatarUrl: string | null
+    bookingsCount: number
+    createdAt: string
+  }
+  trips: {
+    data: AdminBookingItem[]
+    pagination: PaginationMeta
+  }
+  reviews: {
+    data: Array<{
+      id: string
+      overallRating: number
+      comment?: string | null
+      createdAt: string
+      trip: { title: string; slug: string }
+    }>
+    total: number
+  }
+}
+
+export interface AdminOrganizerDirectoryFilters {
+  search?: string
+  status?: VerificationStatusFilter
+  sortBy?: AdminOrganizerSort
+  sortOrder?: SortOrder
+  page?: number
+  limit?: number
+}
+
+export interface AdminOrganizerDirectoryItem {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  businessName: string
+  tripsCount: number
+  joinedAt: string
+}
+
+/** Filters the trips-created sub-list on GET /admin/users/organizers/:organizerId */
+export interface AdminOrganizerDetailFilters {
+  status?: TripStatusConst
+  page?: number
+  limit?: number
+}
+
+export interface AdminOrganizerTripItem {
+  id: string
+  title: string
+  slug: string
+  status: string
+  pricePerPerson: number
+  currentBookings: number
+  maxGroupSize: number
+  startDate: string
+  endDate: string
+  createdAt: string
+}
+
+export interface AdminOrganizerTripsDetail {
+  organizer: {
+    id: string
+    businessName: string
+    email: string | null
+    phone: string | null
+    verificationStatus: VerificationStatusFilter
+    tripsCount: number
+    createdAt: string
+  }
+  trips: {
+    data: AdminOrganizerTripItem[]
+    pagination: PaginationMeta
   }
 }

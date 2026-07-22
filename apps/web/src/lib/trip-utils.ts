@@ -12,3 +12,15 @@ export function getEffectivePrice(trip: Pick<TripDetail, 'earlyBirdPrice' | 'ear
 
   return isEarlyBird ? trip.earlyBirdPrice! : trip.pricePerPerson
 }
+
+/**
+ * Effective price per person including a reseller sublink's markup, if any.
+ * Display-only — the server always recomputes the authoritative total from the
+ * sublink token (or a prior SublinkAttribution) at booking time.
+ */
+export function getEffectivePriceWithMarkup(
+  trip: Pick<TripDetail, 'earlyBirdPrice' | 'earlyBirdDeadline' | 'pricePerPerson'>,
+  markupAmountPerPerson = 0,
+): number {
+  return getEffectivePrice(trip) + markupAmountPerPerson
+}

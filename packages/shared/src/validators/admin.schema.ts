@@ -3,8 +3,12 @@ import { VERIFICATION_STATUSES, APPROVE_REJECT_ACTIONS } from '../constants/veri
 import { BOOKING_STATUSES } from '../constants/booking-status'
 import { TRIP_STATUSES } from '../constants/trip-types'
 import { DOC_TYPES } from '../constants/upload'
-import { SORT_ORDERS } from '../constants/sort'
-import { ADMIN_REVIEW_SORT_BYS, ADMIN_BOOKING_SORT_BYS, ADMIN_TRIP_SORT_BYS } from '../constants/admin'
+import { SORT_ORDERS, SORT_ORDER } from '../constants/sort'
+import {
+  ADMIN_REVIEW_SORT_BYS, ADMIN_BOOKING_SORT_BYS, ADMIN_TRIP_SORT_BYS,
+  ADMIN_TRAVELLER_SORTS, ADMIN_ORGANIZER_SORTS, ADMIN_TRAVELLER_SORT, ADMIN_ORGANIZER_SORT,
+  ADMIN_TRAVELLER_STATUSES,
+} from '../constants/admin'
 import { USER_ROLES } from '../constants/roles'
 import { paginationSchema, idSchema } from './common.schema'
 
@@ -124,3 +128,31 @@ export type SendWhatsappPromotionDto = z.infer<typeof sendWhatsappPromotionSchem
 
 /** Validates query params for GET /admin/whatsapp/broadcasts */
 export const broadcastHistoryFiltersSchema = paginationSchema
+
+// ─── Admin User Directory ───────────────────────────────
+
+/** Validates query params for GET /admin/users/travellers */
+export const adminTravellerFiltersSchema = paginationSchema.extend({
+  search: z.string().max(100).trim().optional(),
+  status: z.enum(ADMIN_TRAVELLER_STATUSES).optional(),
+  sortBy: z.enum(ADMIN_TRAVELLER_SORTS).default(ADMIN_TRAVELLER_SORT.JOINED_AT),
+  sortOrder: z.enum(SORT_ORDERS).default(SORT_ORDER.DESC),
+})
+
+/** Validates query params for GET /admin/users/organizers */
+export const adminOrganizerDirectoryFiltersSchema = paginationSchema.extend({
+  search: z.string().max(100).trim().optional(),
+  status: z.enum(VERIFICATION_STATUSES).optional(),
+  sortBy: z.enum(ADMIN_ORGANIZER_SORTS).default(ADMIN_ORGANIZER_SORT.JOINED_AT),
+  sortOrder: z.enum(SORT_ORDERS).default(SORT_ORDER.DESC),
+})
+
+/** Validates query params for GET /admin/users/travellers/:travellerId — filters the booked-trips sub-list */
+export const adminTravellerDetailFiltersSchema = paginationSchema.extend({
+  status: z.enum(BOOKING_STATUSES).optional(),
+})
+
+/** Validates query params for GET /admin/users/organizers/:organizerId — filters the trips-created sub-list */
+export const adminOrganizerDetailFiltersSchema = paginationSchema.extend({
+  status: z.enum(TRIP_STATUSES).optional(),
+})

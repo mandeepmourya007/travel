@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { idSchema } from './common.schema'
 import { APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
-import { TRIP_REQUEST_STATUSES } from '../constants/booking-status'
+import { BOOKING_STATUSES, TRIP_REQUEST_STATUSES, TRIP_BOOKING_SORTS, MY_BOOKINGS_TABS } from '../constants/booking-status'
+import { PAYMENT_PROVIDERS } from '../constants/payment'
 
 /** Reusable traveler detail schema — shared between booking and trip request */
 export const travelerDetailSchema = z.object({
@@ -22,6 +23,9 @@ export const createBookingSchema = z.object({
   // [TravelerDetail] travelers: z.array(travelerDetailSchema).min(1),
   travelers: z.array(travelerDetailSchema).optional(),
   seatIds: z.array(z.string().min(1)).min(1).max(10).optional(),
+  // Reseller feature — opaque sublink token only, never a price. Server resolves
+  // markup from this token (or a prior SublinkAttribution) at booking time.
+  sublinkToken: z.string().min(1).optional(),
 })
 
 export const createTripRequestSchema = z.object({
@@ -36,6 +40,8 @@ export const createTripRequestBodySchema = z.object({
   numberOfTravelers: z.number().int().min(1).max(10),
   // [TravelerDetail] travelers: z.array(travelerDetailSchema).min(1),
   travelers: z.array(travelerDetailSchema).optional(),
+  // Reseller feature — see createBookingSchema comment.
+  sublinkToken: z.string().min(1).optional(),
 })
 
 export const respondTripRequestSchema = z.object({
@@ -45,7 +51,7 @@ export const respondTripRequestSchema = z.object({
 
 // ─── Organizer Trip Participants Filters ──────────────
 
-const bookingStatusEnum = z.enum(['PENDING_PAYMENT', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'REFUNDED', 'EXPIRED'])
+const bookingStatusEnum = z.enum(BOOKING_STATUSES)
 
 export const tripBookingFiltersSchema = z.object({
   bookingStatus: z
@@ -56,7 +62,7 @@ export const tripBookingFiltersSchema = z.object({
     ])
     .optional(),
   search: z.string().max(100).optional(),
-  sort: z.enum(['newest', 'oldest', 'amount_desc', 'amount_asc']).default('newest'),
+  sort: z.enum(TRIP_BOOKING_SORTS).default('newest'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 })
@@ -73,7 +79,7 @@ export const tripRequestFiltersSchema = z.object({
 // ─── Traveler "My Bookings" Filters & Actions ───────
 
 export const myBookingFiltersSchema = z.object({
-  tab: z.enum(['all', 'upcoming', 'payment_pending', 'completed', 'cancelled']).optional(),
+  tab: z.enum(MY_BOOKINGS_TABS).optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 })
@@ -85,7 +91,7 @@ export const cancelBookingSchema = z.object({
 // ─── Payment Verification ──────────────────────────
 
 export const verifyPaymentSchema = z.object({
-  provider: z.enum(['razorpay', 'cashfree']).optional(),
+  provider: z.enum(PAYMENT_PROVIDERS).optional(),
   // Provider-neutral
   orderId: z.string().min(1).optional(),
   paymentId: z.string().min(1).optional(),

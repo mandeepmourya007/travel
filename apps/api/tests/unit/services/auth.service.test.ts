@@ -137,6 +137,7 @@ describe('AuthService', () => {
       email: 'john@example.com',
       password: 'Password1',
       role: 'TRAVELER' as const,
+      acceptedTerms: true as const,
     }
 
     it('creates user and returns auth response', async () => {
@@ -152,6 +153,7 @@ describe('AuthService', () => {
           name: 'John Doe',
           email: 'john@example.com',
           role: 'TRAVELER',
+          tncAcceptedAt: expect.any(Date),
         }),
       )
       expect(result.auth.user.id).toBe('user-123')
@@ -202,6 +204,22 @@ describe('AuthService', () => {
       const decoded = jwt.verify(result.auth.tokens.accessToken, JWT_SECRET) as any
       expect(decoded.userId).toBe('user-123')
       expect(decoded.role).toBe('TRAVELER')
+    })
+
+    it('stamps organizerTncAcceptedAt on the created OrganizerProfile when role is ORGANIZER', async () => {
+      const organizerUser = { ...testUser, role: 'ORGANIZER' as const }
+      userRepo.emailExists.mockResolvedValue(false)
+      userRepo.create.mockResolvedValue(organizerUser)
+      organizerProfileRepo.create.mockResolvedValue({})
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      await service.signup(
+        { ...signupDto, role: 'ORGANIZER', acceptedOrganizerAgreement: true },
+        meta,
+      )
+
+      const createCall = organizerProfileRepo.create.mock.calls[0][0]
+      expect(createCall.organizerTncAcceptedAt).toBeInstanceOf(Date)
     })
   })
 
@@ -483,13 +501,26 @@ describe('AuthService', () => {
       organizerProfileRepo.findByUserId.mockResolvedValue(null)
       organizerProfileRepo.create.mockResolvedValue({})
 
-      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER' })
+      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER', acceptedOrganizerAgreement: true })
 
       expect(organizerProfileRepo.create).toHaveBeenCalledWith({
         user: { connect: { id: 'user-123' } },
         businessName: 'New',
         slug: 'new',
+        organizerTncAcceptedAt: expect.any(Date),
       })
+    })
+
+    it('stamps organizerTncAcceptedAt on the created OrganizerProfile when switching an existing TRAVELER to ORGANIZER', async () => {
+      userRepo.findById.mockResolvedValue({ ...testUser, role: 'TRAVELER' })
+      userRepo.updateProfile.mockResolvedValue({ ...testUser, name: 'New', role: 'ORGANIZER' })
+      organizerProfileRepo.findByUserId.mockResolvedValue(null)
+      organizerProfileRepo.create.mockResolvedValue({})
+
+      await service.updateProfile('user-123', { name: 'New', role: 'ORGANIZER', acceptedOrganizerAgreement: true })
+
+      const createCall = organizerProfileRepo.create.mock.calls[0][0]
+      expect(createCall.organizerTncAcceptedAt).toBeInstanceOf(Date)
     })
 
     it('should NOT create OrganizerProfile when role stays TRAVELER', async () => {
@@ -524,7 +555,7 @@ describe('AuthService', () => {
       refreshTokenRepo.create.mockResolvedValue({})
 
       const result = await service.signup(
-        { email: 'test@example.com', password: 'Password1' }, meta,
+        { email: 'test@example.com', password: 'Password1', acceptedTerms: true }, meta,
       )
 
       expect(userRepo.create).toHaveBeenCalledWith(
@@ -602,7 +633,7 @@ describe('AuthService', () => {
       })
       refreshTokenRepo.create.mockResolvedValue({})
 
-      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      const result = await service.googleAuth({ idToken: 'valid', acceptedTerms: true }, googleMeta)
 
       expect(userRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Google User',
@@ -610,8 +641,18 @@ describe('AuthService', () => {
         googleId: 'google-sub-123',
         role: 'TRAVELER',
         avatarUrl: 'https://photo.url/pic.jpg',
+        tncAcceptedAt: expect.any(Date),
       }))
       expect(result.isNewUser).toBe(true)
+    })
+
+    it('should throw ValidationError when creating a new Google user without acceptedTerms', async () => {
+      userRepo.findByGoogleId.mockResolvedValue(null)
+      userRepo.findByEmail.mockResolvedValue(null)
+
+      await expect(service.googleAuth({ idToken: 'valid' }, googleMeta))
+        .rejects.toThrow('You must accept the Terms of Service and Privacy Policy')
+      expect(userRepo.create).not.toHaveBeenCalled()
     })
 
     it('should throw AuthError when Google token verification fails', async () => {
@@ -654,7 +695,7 @@ describe('AuthService', () => {
       })
       refreshTokenRepo.create.mockResolvedValue({})
 
-      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      const result = await service.googleAuth({ idToken: 'valid', acceptedTerms: true }, googleMeta)
       expect(result.isNewUser).toBe(false)
     })
 
@@ -666,7 +707,7 @@ describe('AuthService', () => {
       })
       refreshTokenRepo.create.mockResolvedValue({})
 
-      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      const result = await service.googleAuth({ idToken: 'valid', acceptedTerms: true }, googleMeta)
       expect(result.isNewUser).toBe(true)
     })
 
@@ -678,7 +719,7 @@ describe('AuthService', () => {
       })
       refreshTokenRepo.create.mockResolvedValue({})
 
-      const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
+      const result = await service.googleAuth({ idToken: 'valid', acceptedTerms: true }, googleMeta)
       expect(result.auth.user.name).toBe('Google User')
     })
   })
@@ -747,6 +788,22 @@ describe('AuthService', () => {
 
       await expect(service.getFullProfile('nonexistent'))
         .rejects.toThrow(NotFoundError)
+    })
+
+    it('should return isReseller=true when the user has been flagged as a reseller', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue({ ...travelerWithProfile, isReseller: true })
+
+      const result = await service.getFullProfile('user-123')
+
+      expect(result.isReseller).toBe(true)
+    })
+
+    it('should return isReseller=false for a normal (non-reseller) traveler', async () => {
+      userRepo.findWithOrganizer.mockResolvedValue({ ...travelerWithProfile, isReseller: false })
+
+      const result = await service.getFullProfile('user-123')
+
+      expect(result.isReseller).toBe(false)
     })
   })
 

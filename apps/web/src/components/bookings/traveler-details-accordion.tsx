@@ -52,7 +52,7 @@ export function TravelerDetailsAccordion({ travelers }: TravelerDetailsAccordion
       </button>
 
       {isOpen && (
-        <div className="mt-2 overflow-x-auto rounded-lg border border-neutral-200">
+        <div className="mt-2 max-h-[70vh] overflow-auto rounded-lg border border-neutral-200">
           {/* Desktop table */}
           <table className="hidden w-full text-sm md:table">
             <thead>

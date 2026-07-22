@@ -9,6 +9,7 @@ import {
   organizerDocumentsSchema,
   updateOrganizerProfileSchema,
   connectBankAccountSchema,
+  organizerSignupSchema,
 } from '@shared/validators/auth.schema'
 
 describe('signupSchema', () => {
@@ -17,6 +18,7 @@ describe('signupSchema', () => {
     email: 'john@example.com',
     password: 'Password1',
     role: 'TRAVELER' as const,
+    acceptedTerms: true as const,
   }
 
   it('passes with valid traveler data', () => {
@@ -25,7 +27,11 @@ describe('signupSchema', () => {
   })
 
   it('passes with valid organizer data', () => {
-    const result = signupSchema.safeParse({ ...validPayload, role: 'ORGANIZER' })
+    const result = signupSchema.safeParse({
+      ...validPayload,
+      role: 'ORGANIZER',
+      acceptedOrganizerAgreement: true,
+    })
     expect(result.success).toBe(true)
   })
 
@@ -95,13 +101,89 @@ describe('signupSchema', () => {
   })
 
   it('passes with email and password only (no name, no role)', () => {
-    const result = signupSchema.safeParse({ email: 'a@b.com', password: 'Password1' })
+    const result = signupSchema.safeParse({
+      email: 'a@b.com',
+      password: 'Password1',
+      acceptedTerms: true,
+    })
     expect(result.success).toBe(true)
   })
 
   it('returns undefined for role when not provided', () => {
-    const result = signupSchema.parse({ email: 'a@b.com', password: 'Password1' })
+    const result = signupSchema.parse({
+      email: 'a@b.com',
+      password: 'Password1',
+      acceptedTerms: true,
+    })
     expect(result.role).toBeUndefined()
+  })
+
+  it('rejects when acceptedTerms is missing', () => {
+    const { acceptedTerms, ...rest } = validPayload
+    const result = signupSchema.safeParse(rest)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects when acceptedTerms is false', () => {
+    const result = signupSchema.safeParse({ ...validPayload, acceptedTerms: false })
+    expect(result.success).toBe(false)
+  })
+
+  it('passes with role ORGANIZER and acceptedOrganizerAgreement true', () => {
+    const result = signupSchema.safeParse({
+      ...validPayload,
+      role: 'ORGANIZER',
+      acceptedOrganizerAgreement: true,
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects role ORGANIZER with acceptedOrganizerAgreement false', () => {
+    const result = signupSchema.safeParse({
+      ...validPayload,
+      role: 'ORGANIZER',
+      acceptedOrganizerAgreement: false,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.join('.') === 'acceptedOrganizerAgreement')).toBe(true)
+    }
+  })
+
+  it('rejects role ORGANIZER with acceptedOrganizerAgreement omitted', () => {
+    const result = signupSchema.safeParse({ ...validPayload, role: 'ORGANIZER' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.join('.') === 'acceptedOrganizerAgreement')).toBe(true)
+    }
+  })
+
+  it('does not require acceptedOrganizerAgreement for role TRAVELER', () => {
+    const result = signupSchema.safeParse({ ...validPayload, role: 'TRAVELER' })
+    expect(result.success).toBe(true)
+  })
+})
+
+describe('organizerSignupSchema', () => {
+  const validPayload = {
+    password: 'Password1',
+    name: 'Jane Doe',
+    acceptedOrganizerAgreement: true as const,
+  }
+
+  it('passes with valid data', () => {
+    expect(organizerSignupSchema.safeParse(validPayload).success).toBe(true)
+  })
+
+  it('rejects when acceptedOrganizerAgreement is missing', () => {
+    const { acceptedOrganizerAgreement, ...rest } = validPayload
+    expect(organizerSignupSchema.safeParse(rest).success).toBe(false)
+  })
+
+  it('rejects when acceptedOrganizerAgreement is false', () => {
+    expect(
+      organizerSignupSchema.safeParse({ ...validPayload, acceptedOrganizerAgreement: false }).success,
+    ).toBe(false)
   })
 })
 
@@ -175,8 +257,10 @@ describe('updateProfileSchema', () => {
     expect(updateProfileSchema.safeParse({ name: 'A'.repeat(101) }).success).toBe(false)
   })
 
-  it('should accept name with valid role', () => {
-    expect(updateProfileSchema.safeParse({ name: 'AB', role: 'ORGANIZER' }).success).toBe(true)
+  it('should accept name with valid role when acceptedOrganizerAgreement is true', () => {
+    expect(
+      updateProfileSchema.safeParse({ name: 'AB', role: 'ORGANIZER', acceptedOrganizerAgreement: true }).success,
+    ).toBe(true)
   })
 
   it('should accept name without role', () => {
@@ -185,6 +269,26 @@ describe('updateProfileSchema', () => {
 
   it('should reject invalid role', () => {
     expect(updateProfileSchema.safeParse({ name: 'AB', role: 'ADMIN' }).success).toBe(false)
+  })
+
+  it('rejects role ORGANIZER with acceptedOrganizerAgreement false', () => {
+    const result = updateProfileSchema.safeParse({ name: 'AB', role: 'ORGANIZER', acceptedOrganizerAgreement: false })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.join('.') === 'acceptedOrganizerAgreement')).toBe(true)
+    }
+  })
+
+  it('rejects role ORGANIZER with acceptedOrganizerAgreement omitted', () => {
+    const result = updateProfileSchema.safeParse({ name: 'AB', role: 'ORGANIZER' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.join('.') === 'acceptedOrganizerAgreement')).toBe(true)
+    }
+  })
+
+  it('does not require acceptedOrganizerAgreement for role TRAVELER', () => {
+    expect(updateProfileSchema.safeParse({ name: 'AB', role: 'TRAVELER' }).success).toBe(true)
   })
 })
 

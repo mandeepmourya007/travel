@@ -81,6 +81,16 @@ export class MockPaymentGateway implements IPaymentGateway {
     this.logger.warn({ transferId }, '[MOCK] releaseTransferHold — no-op')
   }
 
+  async transferToVendor(
+    vendorId: string,
+    amountPaise: number,
+    ctx: { orderId: string; idempotencyKey: string },
+  ): Promise<{ transferId: string; raw: unknown }> {
+    const transferId = `trf_mock_${crypto.randomBytes(6).toString('hex')}`
+    this.logger.warn({ vendorId, amountPaise, orderId: ctx.orderId, idempotencyKey: ctx.idempotencyKey, transferId }, '[MOCK] Balance transferred to vendor')
+    return { transferId, raw: {} }
+  }
+
   async createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount> {
     const accountId = `mock_payout_${params.referenceId.slice(0, 8)}`
     this.logger.warn({ accountId }, '[MOCK] createPayoutAccount — NOT a real payout account')

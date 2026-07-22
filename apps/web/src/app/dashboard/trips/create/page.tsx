@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, ShieldAlert, FileWarning, Landmark } from 'lucide-react'
 import Link from 'next/link'
 import { useCreateTrip } from '@/hooks/use-create-trip'
+import { usePublishTrip } from '@/hooks/use-publish-trip'
 import { createVehiclesForTrip } from '@/hooks/use-sync-vehicles'
 import { useProfile } from '@/hooks/use-profile'
-import { TripForm, clearTripDraft } from '@/components/trips/trip-form/trip-form'
+import { TripForm, clearTripDraft, TRIP_SUBMIT_INTENT } from '@/components/trips/trip-form/trip-form'
+import type { TripSubmitIntent } from '@/components/trips/trip-form/trip-form'
 import { useToast } from '@/components/shared/toast'
 import { areDocsComplete } from '@/lib/organizer-utils'
 import type { CreateTripDto } from '@shared/types/trip.types'
@@ -15,6 +17,7 @@ import type { CreateVehicleDto } from '@shared/types/vehicle.types'
 export default function CreateTripPage() {
   const router = useRouter()
   const createTrip = useCreateTrip()
+  const publishTrip = usePublishTrip()
   const { toast } = useToast()
   const { data: profile, isLoading } = useProfile()
 
@@ -23,8 +26,8 @@ export default function CreateTripPage() {
   const docsComplete = areDocsComplete(profile?.organizerProfile?.documents)
   const bankLinked = profile?.organizerProfile?.bankAccountLinked ?? false
 
-  const handleSubmit = (data: CreateTripDto, vehicleData?: CreateVehicleDto[]) => {
-    createTrip.mutate(data, {
+  const handleSubmit = (data: CreateTripDto, vehicleData?: CreateVehicleDto[], intent: TripSubmitIntent = TRIP_SUBMIT_INTENT.DRAFT) => {
+    createTrip.mutate({ data, silent: intent === TRIP_SUBMIT_INTENT.PUBLISH }, {
       onSuccess: async (trip) => {
         clearTripDraft()
         if (vehicleData && vehicleData.length > 0 && trip.id) {
@@ -32,6 +35,13 @@ export default function CreateTripPage() {
             await createVehiclesForTrip(trip.id, vehicleData)
           } catch {
             toast({ variant: 'error', title: 'Trip created but vehicle setup failed. Configure it from the Seats tab.' })
+          }
+        }
+        if (intent === TRIP_SUBMIT_INTENT.PUBLISH && trip.id) {
+          try {
+            await publishTrip.mutateAsync(trip.id)
+          } catch {
+            toast({ variant: 'error', title: 'Trip saved as draft — publish it from your trips list' })
           }
         }
         router.push('/dashboard/trips')
@@ -132,9 +142,10 @@ export default function CreateTripPage() {
       <div className="card-static p-4 sm:p-6">
         <TripForm
           onSubmit={handleSubmit}
-          isSubmitting={createTrip.isPending}
+          isSubmitting={createTrip.isPending || publishTrip.isPending}
           submitError={createTrip.error?.message ?? null}
           submitLabel="Create Trip"
+          allowPublish
         />
       </div>
     )

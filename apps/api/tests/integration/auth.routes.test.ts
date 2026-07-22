@@ -84,6 +84,7 @@ describe('Auth Routes (integration)', () => {
       email: 'john@example.com',
       password: 'Password1',
       role: 'TRAVELER',
+      acceptedTerms: true,
     }
 
     it('returns 201 with auth data on success', async () => {
@@ -125,6 +126,92 @@ describe('Auth Routes (integration)', () => {
 
       expect(res.status).toBe(409)
       expect(res.body.error.code).toBe('CONFLICT')
+    })
+
+    it('returns 400 when role is ORGANIZER and acceptedOrganizerAgreement is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/signup')
+        .send({ ...validBody, role: 'ORGANIZER' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockService.signup).not.toHaveBeenCalled()
+    })
+
+    it('returns 400 when role is ORGANIZER and acceptedOrganizerAgreement is false', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/signup')
+        .send({ ...validBody, role: 'ORGANIZER', acceptedOrganizerAgreement: false })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockService.signup).not.toHaveBeenCalled()
+    })
+
+    it('returns 201 when role is ORGANIZER and acceptedOrganizerAgreement is true', async () => {
+      mockService.signup.mockResolvedValue({
+        ...authResponse,
+        auth: { ...authResponse.auth, user: { ...authResponse.auth.user, role: 'ORGANIZER' } },
+      })
+
+      const res = await request(app)
+        .post('/api/v1/auth/signup')
+        .send({ ...validBody, role: 'ORGANIZER', acceptedOrganizerAgreement: true })
+
+      expect(res.status).toBe(201)
+      expect(mockService.signup).toHaveBeenCalledOnce()
+    })
+  })
+
+  // ── PATCH /profile ────────────────────────────────
+
+  describe('PATCH /api/v1/auth/profile', () => {
+    it('returns 400 when switching role to ORGANIZER without acceptedOrganizerAgreement', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+
+      const res = await request(app)
+        .patch('/api/v1/auth/profile')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ name: 'Rahul', role: 'ORGANIZER' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('returns 400 when switching role to ORGANIZER with acceptedOrganizerAgreement false', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+
+      const res = await request(app)
+        .patch('/api/v1/auth/profile')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ name: 'Rahul', role: 'ORGANIZER', acceptedOrganizerAgreement: false })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error.code).toBe('VALIDATION_ERROR')
+      expect(mockService.updateProfile).not.toHaveBeenCalled()
+    })
+
+    it('returns 200 when switching role to ORGANIZER with acceptedOrganizerAgreement true', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+      mockService.updateProfile.mockResolvedValue({
+        id: 'u1',
+        name: 'Rahul',
+        role: 'ORGANIZER',
+        accessToken: 'new-jwt',
+      })
+
+      const res = await request(app)
+        .patch('/api/v1/auth/profile')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ name: 'Rahul', role: 'ORGANIZER', acceptedOrganizerAgreement: true })
+
+      expect(res.status).toBe(200)
+      expect(res.body.data.role).toBe('ORGANIZER')
+      expect(mockService.updateProfile).toHaveBeenCalledWith(
+        'u1',
+        expect.objectContaining({ role: 'ORGANIZER', acceptedOrganizerAgreement: true }),
+      )
     })
   })
 

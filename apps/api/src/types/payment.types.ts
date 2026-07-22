@@ -3,7 +3,7 @@
  * Gateways map their proprietary shapes into these; PaymentService operates only on these.
  */
 
-import { PAYMENT_PROVIDERS } from '@shared/constants'
+import { PAYMENT_PROVIDERS, type CashfreeAccountTypeConst } from '@shared/constants'
 
 // ─── Provider Identifier ──────────────────────────────
 // Single source of truth: PAYMENT_PROVIDERS array in packages/shared/src/constants/payment.ts
@@ -27,12 +27,28 @@ export type NormalizedEventType = (typeof NORMALIZED_EVENT_TYPE)[keyof typeof NO
  * Split payout params — both gateways accept these at order creation.
  * Razorpay: becomes transfers[] with on_hold + on_hold_until.
  * Cashfree: becomes order_splits[] with deferred settlement date.
+ *
+ * SEMANTIC CHANGE (deposit/balance payout split, see utils/payout.ts):
+ * `vendorAmountPaise` now means the DEPOSIT amount only (the non-refundable share
+ * released at order creation), not the organizer's full commission-adjusted
+ * entitlement. Razorpay's SafePay escrow path is unaffected by this — it still holds
+ * the full transfer amount via on_hold/on_hold_until and releases it post-completion,
+ * so Razorpay callers should continue passing the full entitlement here.
  */
 export interface SplitParams {
   /** Gateway-specific vendor/linked-account ID */
   vendorAccountId: string
-  /** Organizer's share in paise (platform commission already deducted) */
+  /**
+   * Cashfree: deposit amount in paise (non-refundable share released now).
+   * Razorpay: full organizer entitlement in paise (unaffected — SafePay holds it).
+   */
   vendorAmountPaise: number
+  /**
+   * Cashfree only — the held balance in paise (entitlement - deposit), released later
+   * by the balance-release cron via gateway.transferToVendor(). Informational/logging
+   * only at order-creation time; Cashfree's createOrder does not split on this amount.
+   */
+  vendorBalancePaise?: number
   /** Epoch seconds — when the hold should be released */
   holdUntilEpochSec: number
   notes?: Record<string, unknown>
@@ -150,7 +166,7 @@ export interface CreatePayoutAccountParams {
   /** Required for Cashfree vendor KYC and Razorpay Route linked-account legal_info.pan */
   pan?: string
   /** Required for Cashfree vendor KYC; ignored by Razorpay */
-  accountType?: 'INDIVIDUAL' | 'BUSINESS'
+  accountType?: CashfreeAccountTypeConst
   bank: {
     accountNumber: string
     ifsc: string

@@ -89,7 +89,7 @@ export function TransferPointsTab() {
                         <NumberInput
                           id={`pickupPoints-${idx}-extraCharge`}
                           value={field.value?.toString() ?? ''}
-                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
                           onBlur={field.onBlur}
                           ref={field.ref}
                           placeholder="0"
@@ -173,7 +173,7 @@ export function TransferPointsTab() {
                         <NumberInput
                           id={`dropPoints-${idx}-extraCharge`}
                           value={field.value?.toString() ?? ''}
-                          onChange={(val) => field.onChange(val === '' ? 0 : Number(val))}
+                          onChange={(val) => field.onChange(val === '' ? undefined : Number(val))}
                           onBlur={field.onBlur}
                           ref={field.ref}
                           placeholder="0"

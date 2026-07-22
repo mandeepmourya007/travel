@@ -1,5 +1,6 @@
 import type { UserRole, SignupRole } from '../constants/roles'
 import type { VerificationStatus } from '../constants/verification-status'
+import type { CashfreeAccountTypeConst } from '../constants/payment'
 import type { DocumentReviewItem } from './admin.types'
 
 export type { UserRole, SignupRole }
@@ -37,6 +38,13 @@ export interface UserProfileResponse {
   isVerified: boolean
   phoneVerified: boolean
   createdAt: string
+  /**
+   * Reseller feature — true when an organizer has generated a main link naming this
+   * user by email. Populated by `getFullProfile` in `apps/api/src/services/auth.service.ts`
+   * from the real `User.isReseller` column. Kept optional for backward compatibility with
+   * any older cached/stubbed `UserProfileResponse` object literals.
+   */
+  isReseller?: boolean
   organizerProfile: OrganizerProfileResponse | null
 }
 
@@ -84,7 +92,7 @@ export interface ConnectBankAccountDto {
   /** Required when PAYMENT_GATEWAY=cashfree; ignored by Razorpay */
   pan?: string
   /** Required when PAYMENT_GATEWAY=cashfree; ignored by Razorpay */
-  accountType?: 'INDIVIDUAL' | 'BUSINESS'
+  accountType?: CashfreeAccountTypeConst
 }
 
 /** Response from POST /auth/profile/organizer/bank */

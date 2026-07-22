@@ -26,12 +26,16 @@ Defined in `apps/api/src/utils/cron-jobs.ts`, started from `src/index.ts` via `s
 | cleanup-stale-tokens | 1h | Purge expired/revoked refresh tokens |
 | cleanup-webhook-events | 24h | Purge terminal [[Database Schema#Auth & Audit|WebhookEvent]] rows > 90 days |
 | complete-trips-safepay | 30m | Complete ended trips + release [[Payments & Webhooks|SafePay escrow]] |
+| release-cashfree-balances | 30m | Release held BALANCE tranche for Cashfree bookings past the 7-day refund cliff — see below |
 | expire-held-seats | 1m | Release seat holds past 10 minutes |
 | reconcile-wallets | 1h | Wallet drift detection (logs only, no auto-fix) |
 | trip-reminders | 1h | Reminders in the 24–48h pre-trip window (durable dedup via `tripReminderSentAt`) |
 | expire-wallet-credits | 6h | Void expired credits + warn ones approaching expiry (7-day warning) |
 | update-trending-scores | 2h (+ once at startup) | Recompute `Trip.trendingScore` via booking-velocity strategy |
 | keepAlive | 14m | Ping `RENDER_EXTERNAL_URL/health` (prod only, Render free-tier keepalive) |
+
+> [!info] release-cashfree-balances (mirrors complete-trips-safepay)
+> Same `withLock` distributed-lock + `Sentry.withMonitor` wrapper as the other jobs. Queries `PaymentTransactionRepository.findBalanceReleaseEligibleBookings(cutoffDate)` where `cutoffDate = now + REFUND_CLIFF_DAYS (7 days)`, matching `trip.startDate <= cutoffDate` — i.e. the trip's refund cliff has already passed. Eligible bookings are Cashfree, `CONFIRMED`/`COMPLETED`/`CANCELLED`, have a `DEPOSIT_RELEASE` tx, and either haven't already had a `BALANCE_RELEASE` written, or (for `CANCELLED`) haven't had a `REFUND` issued (a refunded cancellation's balance was never earned and stays held permanently). For each eligible booking calls `PayoutService.releaseBalance(bookingId)`, which never throws — per-booking try/catch in the cron is a last-resort guard only, mirroring `TripLifecycleService.releaseSafePayForTrip`'s per-item error isolation so one booking's gateway failure can't stop the batch. See [[Payments & Webhooks]] for the deposit/balance money-flow rationale.
 
 ## Socket.IO
 

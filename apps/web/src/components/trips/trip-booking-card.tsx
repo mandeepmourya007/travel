@@ -1,4 +1,4 @@
-import { Shield, Check, X as XIcon, MapPin } from 'lucide-react'
+import { Check, X as XIcon, MapPin } from 'lucide-react'
 import { formatCurrency, getSeatsLeft } from '@/lib/format'
 import { SeatsLeftBadge } from '@/components/trips/seats-left-badge'
 import { TripCtaButton } from './trip-cta-button'
@@ -29,9 +29,11 @@ function PointsList({ title, iconColor, points }: { title: string; iconColor: st
 
 interface TripBookingCardProps {
   trip: TripDetail
+  /** Reseller sublink markup, per person — added on top of the base/early-bird price when the trip was opened via a `?ref=` link. */
+  markupAmount?: number
 }
 
-export function TripBookingCard({ trip }: TripBookingCardProps) {
+export function TripBookingCard({ trip, markupAmount = 0 }: TripBookingCardProps) {
   const seatsLeft = getSeatsLeft(trip.maxGroupSize, trip.currentBookings)
   const isFull = seatsLeft === 0
 
@@ -59,7 +61,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
         {trip.earlyBirdPrice ? (
           <>
             <span className="text-2xl font-bold text-accent-500">
-              {formatCurrency(trip.earlyBirdPrice)}
+              {formatCurrency(trip.earlyBirdPrice + markupAmount)}
             </span>
             <span className="text-sm text-neutral-400 line-through ml-2">
               {formatCurrency(trip.pricePerPerson)}
@@ -67,7 +69,7 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
           </>
         ) : (
           <span className="text-2xl font-bold text-accent-500">
-            {formatCurrency(trip.pricePerPerson)}
+            {formatCurrency(trip.pricePerPerson + markupAmount)}
           </span>
         )}
         <span className="text-neutral-500 text-sm ml-1">/person</span>
@@ -137,11 +139,16 @@ export function TripBookingCard({ trip }: TripBookingCardProps) {
       {/* CTA */}
       <TripCtaButton trip={trip} variant="card" />
 
-      {/* SafePay trust badge */}
-      <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
-        <Shield className="h-4 w-4 text-primary-500" />
-        Payment held safely via SafePay until trip completion
-      </div>
+      {/*
+        Commented out — restore (and re-add the `Shield` import from 'lucide-react') if SafePay
+        escrow-hold-until-trip-done is accurately implemented for all payment providers.
+
+        SafePay trust badge
+        <div className="mt-4 flex items-center gap-2 text-xs text-neutral-500">
+          <Shield className="h-4 w-4 text-primary-500" />
+          Payment held safely via SafePay until trip completion
+        </div>
+      */}
 
       {/* Cancellation */}
       {trip.cancellationPolicy && (

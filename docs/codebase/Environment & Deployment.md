@@ -60,7 +60,7 @@ Standalone file, run with `docker compose --env-file .env.prod -f docker-compose
 | postgres | profile ==`db`== — optional, skip when using Neon/external |
 | redis | appendonly, 128MB, requires `REDIS_PASSWORD` |
 | api | `docker/api.prod.Dockerfile` (3-stage, non-root); CMD: `prisma migrate deploy` → start; reads `/etc/secrets/.env.prod` if present (Render pattern) |
-| web | `docker/web.prod.Dockerfile` — ==`NEXT_PUBLIC_*` baked at build== via args; standalone `server.js`, non-root |
+| web | `docker/web.prod.Dockerfile` — ==`NEXT_PUBLIC_*` baked at build== via args; standalone `server.js`, non-root; runner stage copies `apps/web/public` (favicon, manifest icons, screenshots) alongside `.next/standalone`/`.next/static` — omitting it 404s all static assets referenced by `manifest.ts` |
 | nginx | 80/443 reverse proxy, template config |
 | certbot | profile `certbot` — manual TLS |
 | migrate / seed | profiles for one-off `prisma migrate deploy` / prod seed |

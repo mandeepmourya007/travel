@@ -6,6 +6,8 @@ import type {
   OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
   ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminTripFilters, AdminReviewFilters,
+  AdminTravellerFilters, AdminOrganizerDirectoryFilters,
+  AdminTravellerDetailFilters, AdminOrganizerDetailFilters,
 } from '@shared/types/admin.types'
 
 export class AdminController {
@@ -23,8 +25,8 @@ export class AdminController {
   })
 
   /** GET /admin/organizers/:id — Organizer detail */
-  getOrganizerDetail = asyncHandler(async (req: Request, res: Response) => {
-    const detail = await this.adminService.getOrganizerDetail(req.params.id)
+  getOrganizerApprovalDetail = asyncHandler(async (req: Request, res: Response) => {
+    const detail = await this.adminService.getOrganizerApprovalDetail(req.params.id)
     res.json({ success: true, data: detail })
   })
 
@@ -169,5 +171,37 @@ export class AdminController {
   getAdminReviews = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.adminService.getAdminReviews(req.query as AdminReviewFilters)
     res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  // ─── Admin User Directory ───────────────────────────
+
+  /** GET /admin/users/travellers — Paginated traveller directory */
+  getTravellerList = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getTravellerList(req.query as AdminTravellerFilters)
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/users/travellers/:travellerId — Traveller detail: profile + booked trips + reviews */
+  getTravellerDetail = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getTravellerDetail(
+      req.params.travellerId,
+      req.query as AdminTravellerDetailFilters,
+    )
+    res.json({ success: true, data: result })
+  })
+
+  /** GET /admin/users/organizers — Paginated organizer directory */
+  getOrganizer = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getOrganizer(req.query as AdminOrganizerDirectoryFilters)
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/users/organizers/:organizerId — Trips created by an organizer + summary */
+  getOrganizerDetail = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getOrganizerDetail(
+      req.params.organizerId,
+      req.query as AdminOrganizerDetailFilters,
+    )
+    res.json({ success: true, data: result })
   })
 }

@@ -28,8 +28,10 @@ export const metadata: Metadata = {
     default: `${APP_NAME} — India's Group Travel Aggregator`,
     template: `%s | ${APP_NAME}`,
   },
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: `${APP_NAME} is India's group travel aggregator — compare group trips from Pune, Mumbai, Delhi & Bangalore, book with SafePay-protected payments, and travel with verified organizers. Weekend getaways, treks, beach trips & adventure tours.`
   description:
-    `${APP_NAME} is India's group travel aggregator — compare group trips from Pune, Mumbai, Delhi & Bangalore, book with SafePay-protected payments, and travel with verified organizers. Weekend getaways, treks, beach trips & adventure tours.`,
+    `${APP_NAME} is India's group travel aggregator — compare group trips from Pune, Mumbai, Delhi & Bangalore, book with secure payments, and travel with verified organizers. Weekend getaways, treks, beach trips & adventure tours.`,
   keywords: [
     // Primary transactional
     'group trips India', 'group travel packages India', 'group tour packages',
@@ -40,7 +42,9 @@ export const metadata: Metadata = {
     'Ladakh group tour', 'Spiti Valley group trip', 'Manali group tour',
     // Platform-specific
     'book group trips online India', 'verified trip organizers India',
-    'SafePay group travel', 'compare group trips India',
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // 'SafePay group travel',
+    'compare group trips India',
     // Trending niches
     'women only group tours India', 'solo traveller group trips India',
     'weekend group getaways India', 'budget group tours India',
@@ -50,8 +54,10 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: `${APP_NAME} — Compare Group Trips. Book Safely.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `India's group travel aggregator. Compare trips from verified organizers, book with SafePay protection, and travel with confidence. Weekend getaways, treks & adventure tours.`
     description:
-      `India's group travel aggregator. Compare trips from verified organizers, book with SafePay protection, and travel with confidence. Weekend getaways, treks & adventure tours.`,
+      `India's group travel aggregator. Compare trips from verified organizers, book with secure payments, and travel with confidence. Weekend getaways, treks & adventure tours.`,
   },
   robots: {
     index: true,

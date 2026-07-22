@@ -69,6 +69,7 @@ import { createReviewRoutes } from '../routes/review.routes'
 import { createWalletRoutes } from '../routes/wallet.routes'
 import { createChatRoutes } from '../routes/chat.routes'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
+import { PayoutService } from '../services/payout.service'
 import { NotificationRepository } from '../repositories/notification.repository'
 import { AdminService } from '../services/admin.service'
 import { AdminController } from '../controllers/admin.controller'
@@ -101,6 +102,10 @@ import { LoginAttemptTracker } from '../utils/login-attempt-tracker'
 import { SitemapService } from '../services/sitemap.service'
 import { BookingVelocityStrategy } from '../services/trending/booking-velocity.strategy'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
+import { ResellerRepository } from '../repositories/reseller.repository'
+import { ResellerService } from '../services/reseller.service'
+import { ResellerController } from '../controllers/reseller.controller'
+import { createResellerRoutes } from '../routes/reseller.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -127,6 +132,7 @@ const docReviewRepo = new DocumentReviewRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
 const organizerInviteRepo = new OrganizerInviteRepository(prisma)
 const whatsappBroadcastRepo = new WhatsappBroadcastRepository(prisma)
+const resellerRepo = new ResellerRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
@@ -306,7 +312,10 @@ const tripLifecycleService = new TripLifecycleService(
   notificationService, walletService, bookingRepo,
 )
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo)
+// Deposit/balance payout orchestration (Cashfree only) — see services/payout.service.ts.
+export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo)
+const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
   organizerProfileRepo, userRepo, bookingRepo, tripRepo,
@@ -343,6 +352,7 @@ const whatsappBroadcastService = new WhatsappBroadcastService(
   logger,
 )
 const whatsappBroadcastController = new WhatsappBroadcastController(whatsappBroadcastService)
+const resellerController = new ResellerController(resellerService)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)
@@ -370,6 +380,7 @@ export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddlewa
 export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCategoryController)
 export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)
 export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
+export const resellerRoutes = createResellerRoutes(resellerController, authMiddleware, requireRole)
 export const webhookRoutes = (() => {
   if (!webhookController) return null
   const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''
@@ -396,9 +407,11 @@ export const cronDeps = {
   refreshTokenRepo,
   verifCodeRepo,
   webhookEventRepo,
+  paymentTxRepo,
   paymentService,
   bookingService,
   tripLifecycleService,
+  payoutService,
   vehicleService,
   walletService,
   notificationService,

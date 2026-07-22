@@ -14,6 +14,27 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   }
 }
 
+// jsdom doesn't implement scrollIntoView — used by tab-navigation.tsx to keep the
+// active tab visible on mount/change.
+if (typeof Element.prototype.scrollIntoView === 'undefined') {
+  Element.prototype.scrollIntoView = function scrollIntoView() {}
+}
+
+// jsdom doesn't implement matchMedia — required by use-is-mobile.ts (and any
+// component that checks viewport breakpoints, e.g. VehicleTab).
+if (typeof window !== 'undefined' && typeof window.matchMedia === 'undefined') {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }) as unknown as MediaQueryList
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
 afterEach(() => {
   cleanup()

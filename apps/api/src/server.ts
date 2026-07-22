@@ -10,7 +10,7 @@ import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { asyncHandler } from './utils/async-handler'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, sitemapService } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, resellerRoutes, sitemapService } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -74,6 +74,7 @@ export function createServer() {
   app.use('/api/v1/admin', adminTripCategoryRoutes)
   app.use('/api/v1/trip-categories', publicTripCategoryRoutes)
   app.use('/api/v1/trip-type-requests', organizerTripTypeRequestRoutes)
+  app.use('/api/v1/reseller', resellerRoutes)
 
   // ── Sitemap Data (lightweight, no auth) ──────────
   app.get('/api/v1/sitemap-data', asyncHandler(async (_req, res) => {

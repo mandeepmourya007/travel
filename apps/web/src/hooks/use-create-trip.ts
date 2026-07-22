@@ -15,14 +15,16 @@ export function useCreateTrip() {
   const { toast } = useToast()
 
   return useMutation({
-    mutationFn: async (data: CreateTripDto) => {
+    mutationFn: async ({ data }: { data: CreateTripDto; silent?: boolean }) => {
       const res = await apiClient.post<{ success: true; data: TripSummary }>('/trips', data)
       return res.data.data
     },
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: tripKeys.myTrips() })
       queryClient.invalidateQueries({ queryKey: organizerKeys.stats() })
-      toast({ variant: 'success', title: 'Trip created successfully' })
+      if (!variables.silent) {
+        toast({ variant: 'success', title: 'Trip created successfully' })
+      }
     },
     onError: () => {
       toast({ variant: 'error', title: 'Failed to create trip. Please try again.' })

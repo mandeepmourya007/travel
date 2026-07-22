@@ -3,17 +3,21 @@ import Link from 'next/link'
 import { AppShell } from '@/components/layout/app-shell'
 import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
-import { Search, Shield, CreditCard, MapPin, Star, MessageCircle } from 'lucide-react'
+import { Search, CreditCard, MapPin, Star, MessageCircle } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: `How It Works — Book Group Trips Safely | ${APP_NAME}`,
-  description: `Learn how ${APP_NAME} works: compare group trips, book with SafePay-protected payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`,
+  // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // Original: `Learn how ${APP_NAME} works: compare group trips, book with SafePay-protected payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`
+  description: `Learn how ${APP_NAME} works: compare group trips, book with secure payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`,
   alternates: {
     canonical: '/how-it-works',
   },
   openGraph: {
     title: `How It Works — Book Group Trips Safely | ${APP_NAME}`,
-    description: `Step-by-step guide: compare group trips, book with SafePay protection, and travel safely.`,
+    // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
+    // Original: `Step-by-step guide: compare group trips, book with SafePay protection, and travel safely.`
+    description: `Step-by-step guide: compare group trips, book with secure payments, and travel safely.`,
     type: 'website',
     url: '/how-it-works',
   },
@@ -25,11 +29,13 @@ const travelerSteps = [
     title: 'Compare Trips',
     description: 'Browse trips across 14+ destinations. Filter by price, type, dates, and ratings. Use our side-by-side comparison tool to pick the best trip for you.',
   },
-  {
-    icon: Shield,
-    title: 'Book with SafePay Protection',
-    description: 'Your payment is held safely via SafePay — not released to the organizer until your trip is completed. If the trip is cancelled, you get a full refund automatically.',
-  },
+  // Commented out — restore (and re-add `Shield` to the lucide-react import) if SafePay
+  // escrow-hold-until-trip-done is accurately implemented for all payment providers.
+  // {
+  //   icon: Shield,
+  //   title: 'Book with SafePay Protection',
+  //   description: 'Your payment is held safely via SafePay — not released to the organizer until your trip is completed. If the trip is cancelled, you get a full refund automatically.',
+  // },
   {
     icon: CreditCard,
     title: 'Secure Payment via Razorpay',
@@ -70,8 +76,13 @@ export default function HowItWorksPage() {
           <h1 className="font-display text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl">
             How {APP_NAME} Works
           </h1>
+          {/*
+            Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented
+            for all payment providers.
+            Original: "Book group trips safely in 3 simple steps — compare, book with SafePay protection, and travel with confidence."
+          */}
           <p className="mx-auto mt-4 max-w-2xl text-lg text-neutral-500">
-            Book group trips safely in 3 simple steps — compare, book with SafePay protection, and travel with confidence.
+            Book group trips safely in 3 simple steps — compare, book with secure payments, and travel with confidence.
           </p>
         </div>
 
@@ -107,7 +118,12 @@ export default function HowItWorksPage() {
             <li><strong>Booking Management:</strong> Instant booking or request-based approval flow. Manage traveler details, payments, and communications.</li>
             <li><strong>Seat Selection:</strong> Optionally enable vehicle seat maps so travelers can choose their seats.</li>
             <li><strong>Reviews & Ratings:</strong> Build trust with verified post-trip reviews. Respond to reviews publicly.</li>
-            <li><strong>Secure Payouts:</strong> Receive payouts after trip completion via SafePay. 10% platform commission.</li>
+            {/*
+              Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented
+              for all payment providers.
+              Original: "<strong>Secure Payouts:</strong> Receive payouts after trip completion via SafePay. 10% platform commission."
+            */}
+            <li><strong>Secure Payouts:</strong> Receive payouts securely to your bank account. 10% platform fee.</li>
             <li><strong>Dashboard:</strong> Track bookings, revenue, pending requests, and trip performance from a single dashboard.</li>
           </ul>
         </div>

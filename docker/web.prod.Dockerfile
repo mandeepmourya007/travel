@@ -96,9 +96,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 # Copy static assets (CSS, JS chunks)
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 
-# Copy public assets if they exist (favicon, images, etc.)
-# NOTE: If apps/web/public/ doesn't exist yet, remove or comment this line
-# COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
+# Copy public assets (favicon, manifest icons, screenshots, etc.)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
 USER nextjs
 EXPOSE 3000

@@ -337,7 +337,7 @@ describe('AuthService — Organizer Invites', () => {
     })
 
     it('creates the user with ORGANIZER role using the email from the token', async () => {
-      await service.organizerSignup(validToken, { password: 'Password1', name: 'Alice' }, meta)
+      await service.organizerSignup(validToken, { password: 'Password1', name: 'Alice', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(userRepo.create).toHaveBeenCalledOnce()
       expect(userRepo.create).toHaveBeenCalledWith(
@@ -346,26 +346,26 @@ describe('AuthService — Organizer Invites', () => {
     })
 
     it('creates an OrganizerProfile for the new user', async () => {
-      await service.organizerSignup(validToken, { password: 'Password1', name: 'Alice' }, meta)
+      await service.organizerSignup(validToken, { password: 'Password1', name: 'Alice', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(organizerProfileRepo.create).toHaveBeenCalledOnce()
     })
 
     it('creates a wallet for the new user', async () => {
-      await service.organizerSignup(validToken, { password: 'Password1' }, meta)
+      await service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(walletRepo.create).toHaveBeenCalledWith(newOrganizerUser.id)
     })
 
     it('marks the invite as accepted — acceptedAt timestamp gets set', async () => {
-      await service.organizerSignup(validToken, { password: 'Password1' }, meta)
+      await service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(inviteRepo.markAccepted).toHaveBeenCalledOnce()
       expect(inviteRepo.markAccepted).toHaveBeenCalledWith(ORG_EMAIL)
     })
 
     it('returns valid auth tokens', async () => {
-      const result = await service.organizerSignup(validToken, { password: 'Password1' }, meta)
+      const result = await service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(result.auth.tokens.accessToken).toBeTruthy()
       expect(result.refreshToken).toBeTruthy()
@@ -376,7 +376,7 @@ describe('AuthService — Organizer Invites', () => {
     })
 
     it('returned auth user has ORGANIZER role', async () => {
-      const result = await service.organizerSignup(validToken, { password: 'Password1' }, meta)
+      const result = await service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(result.auth.user.role).toBe('ORGANIZER')
       expect(result.auth.user.email).toBe(ORG_EMAIL)
@@ -386,7 +386,7 @@ describe('AuthService — Organizer Invites', () => {
       userRepo.emailExists.mockResolvedValue(true)
 
       await expect(
-        service.organizerSignup(validToken, { password: 'Password1' }, meta),
+        service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta),
       ).rejects.toThrow(ConflictError)
     })
 
@@ -398,7 +398,7 @@ describe('AuthService — Organizer Invites', () => {
       )
 
       await expect(
-        service.organizerSignup(expiredToken, { password: 'Password1' }, meta),
+        service.organizerSignup(expiredToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta),
       ).rejects.toThrow(AuthError)
     })
 
@@ -410,12 +410,12 @@ describe('AuthService — Organizer Invites', () => {
       )
 
       await expect(
-        service.organizerSignup(badToken, { password: 'Password1' }, meta),
+        service.organizerSignup(badToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta),
       ).rejects.toThrow(AuthError)
     })
 
     it('does not send an invite email on signup (only on invite generation)', async () => {
-      await service.organizerSignup(validToken, { password: 'Password1' }, meta)
+      await service.organizerSignup(validToken, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       // emailProvider was cleared before this test — should not be called during signup
       expect(emailProvider.sendEmail).not.toHaveBeenCalled()
@@ -462,7 +462,7 @@ describe('AuthService — Organizer Invites', () => {
         { expiresIn: '7d' },
       )
 
-      const result = await service.organizerSignup(token, { password: 'Password1' }, meta)
+      const result = await service.organizerSignup(token, { password: 'Password1', acceptedOrganizerAgreement: true as const }, meta)
 
       expect(result.auth.user.role).toBe('ORGANIZER')
     })

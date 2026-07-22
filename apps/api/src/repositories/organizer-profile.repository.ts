@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client'
 import { VERIFICATION_STATUS } from '@shared/constants/verification-status'
 import type { VerificationStatus } from '@shared/constants/verification-status'
+import type { AdminOrganizerDirectoryFilters } from '@shared/types/admin.types'
+import { ADMIN_ORGANIZER_SORT } from '@shared/constants/admin'
+import { SORT_ORDER } from '@shared/constants/sort'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 import type { PaymentProvider } from '../types/payment.types'
 
@@ -122,7 +125,7 @@ export class OrganizerProfileRepository {
 
   /**
    * Single organizer profile with full details for admin review.
-   * Used by: AdminService.getOrganizerDetail()
+   * Used by: AdminService.getOrganizerApprovalDetail()
    */
   async findByIdAdmin(id: string) {
     return this.prisma.organizerProfile.findFirst({
@@ -151,6 +154,7 @@ export class OrganizerProfileRepository {
         reviewComments: {
           orderBy: { createdAt: 'asc' },
         },
+        _count: { select: { trips: { where: { isDeleted: false } } } },
       },
     })
   }
@@ -173,5 +177,59 @@ export class OrganizerProfileRepository {
     return this.prisma.organizerProfile.count({
       where: { verificationStatus: VERIFICATION_STATUS.PENDING, isDeleted: false },
     })
+  }
+
+  /**
+   * Paginated organizer directory for admin. ILIKE search across user name/email + businessName.
+   * Optional verificationStatus filter. Sorting on tripsCount uses the `_count` aggregate orderBy.
+   * Used by: AdminService.getOrganizer()
+   */
+  async findAllDirectory(
+    filters: AdminOrganizerDirectoryFilters,
+    pagination: { skip: number; take: number },
+  ) {
+    const where: Prisma.OrganizerProfileWhereInput = {
+      isDeleted: false,
+      ...(filters.status && { verificationStatus: filters.status }),
+      ...(filters.search && {
+        OR: [
+          { businessName: { contains: filters.search, mode: 'insensitive' as const } },
+          { user: { name: { contains: filters.search, mode: 'insensitive' as const } } },
+          { user: { email: { contains: filters.search, mode: 'insensitive' as const } } },
+        ],
+      }),
+    }
+
+    const dir = filters.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.ASC : SORT_ORDER.DESC
+    let orderBy: Prisma.OrganizerProfileOrderByWithRelationInput
+    switch (filters.sortBy) {
+      case ADMIN_ORGANIZER_SORT.NAME:
+        orderBy = { businessName: dir }
+        break
+      case ADMIN_ORGANIZER_SORT.TRIPS_COUNT:
+        orderBy = { trips: { _count: dir } }
+        break
+      default:
+        orderBy = { createdAt: dir }
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.organizerProfile.findMany({
+        where,
+        skip: pagination.skip,
+        take: pagination.take,
+        orderBy,
+        select: {
+          id: true,
+          businessName: true,
+          createdAt: true,
+          user: { select: { name: true, email: true, phone: true } },
+          _count: { select: { trips: { where: { isDeleted: false } } } },
+        },
+      }),
+      this.prisma.organizerProfile.count({ where }),
+    ])
+
+    return { data, total }
   }
 }

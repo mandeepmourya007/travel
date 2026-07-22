@@ -28,8 +28,13 @@ export function useGoogleAuth(opts?: UseGoogleAuthOptions) {
   const setAuth = useAuthStore((s) => s.setAuth)
 
   return useMutation({
+    // acceptedTerms is hardcoded true here: GoogleAuthSection only ever calls this
+    // mutation from a button that's either gated behind an explicit consent checkbox
+    // (signup) or paired with a permanent "by continuing you agree to..." disclaimer
+    // (login) — see google-auth-section.tsx. The backend re-validates it regardless
+    // and only stamps/requires it for the new-user-creation branch.
     mutationFn: (idToken: string) =>
-      apiClient.post('/auth/google', { idToken }).then(r => r.data.data as GoogleAuthResponse),
+      apiClient.post('/auth/google', { idToken, acceptedTerms: true }).then(r => r.data.data as GoogleAuthResponse),
     onSuccess: (data) => {
       setAuth(
         {

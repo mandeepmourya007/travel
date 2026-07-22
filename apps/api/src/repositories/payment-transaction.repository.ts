@@ -517,6 +517,7 @@ export class PaymentTransactionRepository {
         booking: {
           select: {
             totalAmount: true,
+            markupAmount: true,
             trip: {
               select: {
                 organizer: {
@@ -568,6 +569,7 @@ export class PaymentTransactionRepository {
           select: {
             tripId: true,
             totalAmount: true,
+            markupAmount: true,
             trip: {
               select: {
                 organizer: {
@@ -684,6 +686,56 @@ export class PaymentTransactionRepository {
         },
       },
     })
+  }
+
+  /**
+   * Finds bookings eligible for the Cashfree balance-release cron: a DEPOSIT_RELEASE
+   * record exists (split was attached at booking time), the trip's refund cliff has
+   * passed (startDate <= cutoffDate, where cutoffDate = now + REFUND_CLIFF_DAYS), no
+   * BALANCE_RELEASE record exists yet, and the booking is either still
+   * CONFIRMED/COMPLETED or was CANCELLED with a 0%-refund (no REFUND tx was ever
+   * created — see booking.service.ts cancelBooking, which only calls
+   * initiateBookingRefund when refundAmount > 0). A CANCELLED booking with a REFUND tx
+   * (the >0%-refund case) must NEVER be included — that balance was never earned and
+   * must stay held (MEDIUM fix: product rule — 0%-refund cancellations entitle the
+   * organizer to the full balance since no refund was actually issued; >0%-refund
+   * cancellations never release the balance).
+   *
+   * Single indexed query (M1/S1 fix): the two previous unbounded findMany scans over
+   * every BALANCE_RELEASE and every REFUND row ever created (diffed against candidates
+   * in JS via Sets) are replaced by Prisma relation filters — `none: { type: 'BALANCE_RELEASE' }`
+   * compiles to a NOT EXISTS against `paymentTransactions` scoped to this same booking,
+   * and the CANCELLED+REFUND exclusion is expressed as an OR branch (CONFIRMED/COMPLETED
+   * bookings never need the REFUND check at all; CANCELLED bookings additionally require
+   * `none: { type: 'REFUND' }`). Both compile to indexed NOT EXISTS subqueries correlated
+   * on bookingId — O(matching rows), not O(all BALANCE_RELEASE/REFUND rows ever).
+   *
+   * Used by: PayoutService-driven balance-release cron (cron-jobs.ts).
+   */
+  async findBalanceReleaseEligibleBookings(cutoffDate: Date): Promise<Array<{ bookingId: string }>> {
+    const candidates = await this.prisma.paymentTransaction.findMany({
+      where: {
+        type: 'DEPOSIT_RELEASE',
+        // Cashfree-only — Razorpay has no deposit/balance split (see RazorpayGateway.transferToVendor).
+        provider: 'cashfree',
+        booking: {
+          isDeleted: false,
+          trip: { isDeleted: false, startDate: { lte: cutoffDate } },
+          paymentTransactions: { none: { type: 'BALANCE_RELEASE' } },
+          OR: [
+            { bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] } },
+            {
+              bookingStatus: BOOKING_STATUS.CANCELLED,
+              paymentTransactions: { none: { type: PAYMENT_TX_TYPE.REFUND } },
+            },
+          ],
+        },
+      },
+      select: { bookingId: true },
+      distinct: ['bookingId'],
+    })
+
+    return candidates.map((c) => ({ bookingId: c.bookingId }))
   }
 
   // ─── Private helpers ────────────────────────────────

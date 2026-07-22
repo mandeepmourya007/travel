@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
         //   By holding _hasHydrated=false until this fetch resolves, components stay behind
         //   the AuthGuard spinner, no API calls fire without a token, and the 401/doRefresh
         //   path is never triggered during hydration.
-        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4001/api/v1'
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001/api/v1'
         const refreshUrl = `${apiBase}/auth/refresh`
         const controller = new AbortController()
         // Covers Render free-tier cold starts (typically 30-50s after inactivity).

@@ -53,7 +53,7 @@ export function WalletTransactionList({
   return (
     <div className="space-y-4">
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-sm md:block">
+      <div className="hidden max-h-[70vh] overflow-auto rounded-xl border border-neutral-200 bg-white shadow-sm md:block">
         <table className="w-full text-sm">
           <thead className="border-b-2 border-neutral-200 bg-neutral-50">
             <tr>

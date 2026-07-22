@@ -5,7 +5,8 @@ import type { PaymentHistoryFilters, AdminPaymentFilters, OrganizerPaymentFilter
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters, OrganizerReviewFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
-import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters, AdminReviewFilters } from '@shared/types/admin.types'
+import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters, AdminReviewFilters, AdminTravellerFilters, AdminOrganizerDirectoryFilters, AdminTravellerDetailFilters, AdminOrganizerDetailFilters } from '@shared/types/admin.types'
+import type { ResellerSublinkFilters, ResellerLeadFilters, MyMainLinksFilters } from '@shared/types/reseller.types'
 
 /** Single source of truth for query key string segments. Exported for manual cache invalidation. */
 export const QK = {
@@ -47,6 +48,14 @@ export const QK = {
   SIGNATURE: 'signature',
   ALL_PENDING: 'allPending',
   MY_REQUESTS: 'my-requests',
+  TRAVELLERS: 'travellers',
+  ORGANIZER_DIRECTORY: 'organizer-directory',
+  RESELLER: 'reseller',
+  MAIN_LINKS: 'main-links',
+  SUBLINKS: 'sublinks',
+  LEADS: 'leads',
+  RESOLVE: 'resolve',
+  RESELLERS: 'resellers',
 } as const
 
 export const tripKeys = {
@@ -221,9 +230,45 @@ export const adminKeys = {
   reviewsBase: () => [...adminKeys.all, QK.REVIEWS] as const,
   reviews: (filters?: AdminReviewFilters) =>
     [...adminKeys.reviewsBase(), filters] as const,
+  travellersBase: () => [...adminKeys.all, QK.TRAVELLERS] as const,
+  travellers: (filters?: AdminTravellerFilters) =>
+    [...adminKeys.travellersBase(), filters] as const,
+  travellerDetail: (id: string, filters?: AdminTravellerDetailFilters) =>
+    [...adminKeys.travellersBase(), QK.DETAIL, id, filters] as const,
+  organizerDirectoryBase: () => [...adminKeys.all, QK.ORGANIZER_DIRECTORY] as const,
+  organizerDirectory: (filters?: AdminOrganizerDirectoryFilters) =>
+    [...adminKeys.organizerDirectoryBase(), filters] as const,
+  organizerTripsDetail: (id: string, filters?: AdminOrganizerDetailFilters) =>
+    [...adminKeys.organizerDirectoryBase(), QK.DETAIL, id, filters] as const,
 }
 
 export const docReviewKeys = {
   all: ['docReview'] as const,
   comments: () => [...docReviewKeys.all, 'comments'] as const,
+}
+
+export const resellerKeys = {
+  all: ['reseller'] as const,
+  mainLinksBase: () => [...resellerKeys.all, QK.MAIN_LINKS] as const,
+  myMainLinks: (filters?: MyMainLinksFilters) =>
+    [...resellerKeys.mainLinksBase(), QK.MY, filters] as const,
+  mainLinkBookings: (mainLinkId: string, page?: number, limit?: number) =>
+    [...resellerKeys.mainLinksBase(), QK.DETAIL, mainLinkId, QK.BOOKINGS, page, limit] as const,
+  sublinksBase: () => [...resellerKeys.all, QK.SUBLINKS] as const,
+  mySublinks: (filters?: ResellerSublinkFilters) =>
+    [...resellerKeys.sublinksBase(), QK.MY, filters] as const,
+  sublinkBookings: (sublinkId: string, page?: number, limit?: number) =>
+    [...resellerKeys.sublinksBase(), QK.DETAIL, sublinkId, QK.BOOKINGS, page, limit] as const,
+  resolve: (token: string) => [...resellerKeys.all, QK.RESOLVE, token] as const,
+  resellerSearch: (q: string, page: number, limit: number) =>
+    [...resellerKeys.all, QK.RESELLERS, QK.SEARCH, q, page, limit] as const,
+  organizerSearch: (q: string, page: number, limit: number) =>
+    [...resellerKeys.all, QK.ORGANIZERS, QK.SEARCH, q, page, limit] as const,
+}
+
+export const leadKeys = {
+  all: ['resellerLeads'] as const,
+  organizer: (filters?: ResellerLeadFilters) => [...leadKeys.all, QK.ORGANIZER, filters] as const,
+  reseller: (filters?: ResellerLeadFilters) => [...leadKeys.all, QK.MY, filters] as const,
+  admin: (filters?: ResellerLeadFilters) => [...leadKeys.all, QK.ADMIN, filters] as const,
 }

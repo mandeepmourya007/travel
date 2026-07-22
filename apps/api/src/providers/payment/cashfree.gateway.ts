@@ -82,7 +82,10 @@ export class CashfreeGateway implements IPaymentGateway {
       body['order_meta'] = { return_url: returnUrl }
     }
 
-    // Easy Split: wire vendor payout at order creation
+    // Easy Split: wire vendor DEPOSIT payout at order creation.
+    // split.vendorAmountPaise is the deposit only (non-refundable share) — NOT the
+    // organizer's full entitlement. The held balance (split.vendorBalancePaise) is
+    // transferred later, on demand, via transferToVendor() once the refund cliff passes.
     if (split?.vendorAccountId) {
       const vendorAmountRupees = split.vendorAmountPaise / 100
       body['order_splits'] = [
@@ -191,20 +194,82 @@ export class CashfreeGateway implements IPaymentGateway {
     // on network timeouts return the existing refund rather than creating a second one.
     const refundId = `REFUND_${orderId}`
 
+    const body: Record<string, unknown> = {
+      refund_id: refundId,
+      refund_amount: amountPaise / 100,
+      refund_note: String(notes?.['reason'] ?? 'Booking refund'),
+    }
+
+    // No-clawback refund (see utils/payout.ts): if this order was split, force the
+    // vendor's refund share to 0 so Cashfree never debits the organizer's settled
+    // deposit. This is safe by construction — the deposit released to the vendor is
+    // always <= the platform-retained amount, so the refund is fully covered by the
+    // platform's own share without needing to reverse anything from the vendor.
+    const vendorAccountId = notes?.['vendorAccountId'] as string | undefined
+    if (vendorAccountId) {
+      body['refund_splits'] = [{ vendor_id: vendorAccountId, amount: 0 }]
+    }
+
     try {
-      const response = await this.fetch('POST', `/orders/${orderId}/refunds`, {
-        refund_id: refundId,
-        refund_amount: amountPaise / 100,
-        refund_note: String(notes?.['reason'] ?? 'Booking refund'),
-      })
+      const response = await this.fetch('POST', `/orders/${orderId}/refunds`, body)
 
       return {
         refundId: (response['cf_refund_id'] as string | undefined) ?? refundId,
         raw: response,
       }
     } catch (error) {
-      this.logger.error({ error, orderId, amountPaise }, 'Cashfree refund initiation failed')
+      this.logger.error({ error, orderId, amountPaise, vendorAccountId }, 'Cashfree refund initiation failed')
       throw new PaymentError('Failed to initiate Cashfree refund', error)
+    }
+  }
+
+  /**
+   * Transfers the held balance tranche to the organizer's vendor account, on demand,
+   * via Cashfree Easy Split's vendor transfer API. Called by the balance-release cron
+   * once the refund cliff has passed (see payout.service.ts::releaseBalance).
+   *
+   * Idempotency: ctx.idempotencyKey (BALANCE_${orderId}) is forwarded as x-request-id
+   * so a retried call after a network timeout does not create a second transfer.
+   *
+   * @throws PaymentError — provider API failure
+   */
+  async transferToVendor(
+    vendorId: string,
+    amountPaise: number,
+    ctx: { orderId: string; idempotencyKey: string; notes?: Record<string, unknown> },
+  ): Promise<{ transferId: string; raw: unknown }> {
+    const timer = startTimer()
+    try {
+      // transfer_id is Cashfree's idempotency key for this endpoint (same pattern as
+      // refund_id above) — a retried call with the same transfer_id after a network
+      // timeout returns the existing transfer rather than creating a second one.
+      const response = await this.fetch(
+        'POST',
+        `/easy-split/vendors/${vendorId}/transfer`,
+        {
+          transfer_id: ctx.idempotencyKey,
+          transfer_amount: amountPaise / 100,
+          transfer_from: 'MERCHANT',
+          transfer_type: 'ON_DEMAND',
+        },
+      )
+
+      const transferId = (response['cf_transfer_id'] as string | number | undefined)
+        ?? (response['transfer_id'] as string | undefined)
+        ?? ctx.idempotencyKey
+
+      this.logger.info(
+        { vendorId, orderId: ctx.orderId, amountRupees: amountPaise / 100, idempotencyKey: ctx.idempotencyKey, durationMs: timer.elapsed() },
+        'Cashfree Easy Split balance transfer completed',
+      )
+
+      return { transferId: String(transferId), raw: response }
+    } catch (error) {
+      this.logger.error(
+        { error, vendorId, orderId: ctx.orderId, amountPaise, idempotencyKey: ctx.idempotencyKey, durationMs: timer.elapsed() },
+        'Cashfree Easy Split balance transfer failed',
+      )
+      throw new PaymentError('Failed to transfer balance to Cashfree vendor', error)
     }
   }
 
@@ -336,6 +401,10 @@ export class CashfreeGateway implements IPaymentGateway {
       phone: params.phone ?? CF_FALLBACK_PHONE,
       // In sandbox, skip instant bank verification — test banks require matching holder name "JANE DOE".
       // In production, always verify so mis-entered accounts are caught immediately.
+      // NOTE: deliberately NOT gated by CASHFREE_ENABLE_SANDBOX_SPLIT — forcing real bank
+      // verification in sandbox would make vendor creation fail against fake test data.
+      // That flag only relaxes the *split-attachment* gate in booking.service.ts (whether
+      // an already-created vendor is used for order_splits), not vendor onboarding itself.
       verify_account: this.config.environment === 'production',
       dashboard_access: false,
       schedule_option: CF_SCHEDULE_OPTION_T1,

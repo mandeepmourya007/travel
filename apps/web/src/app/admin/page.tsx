@@ -88,6 +88,26 @@ export default function AdminOverviewPage() {
     <div className="space-y-6">
       <h1 className="font-display text-2xl font-bold text-neutral-900">Admin Overview</h1>
 
+      {/* Management — visible on mobile where these aren't in the bottom nav */}
+      <div className="md:hidden">
+        <h2 className="mb-3 font-display text-lg font-semibold text-neutral-800">Manage</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {MANAGE_LINKS.map(({ href, label, icon: Icon, description }) => (
+            <Link
+              key={href}
+              href={href}
+              className="card flex flex-col gap-2 p-4 transition-colors hover:bg-neutral-50 active:bg-neutral-100"
+            >
+              <Icon className="h-5 w-5 text-primary-600" />
+              <div>
+                <p className="text-sm font-semibold text-neutral-800">{label}</p>
+                <p className="text-xs text-neutral-500">{description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
       {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -162,26 +182,6 @@ export default function AdminOverviewPage() {
           </div>
         </div>
       )}
-
-      {/* Management — visible on mobile where these aren't in the bottom nav */}
-      <div className="md:hidden">
-        <h2 className="mb-3 font-display text-lg font-semibold text-neutral-800">Manage</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {MANAGE_LINKS.map(({ href, label, icon: Icon, description }) => (
-            <Link
-              key={href}
-              href={href}
-              className="card flex flex-col gap-2 p-4 transition-colors hover:bg-neutral-50 active:bg-neutral-100"
-            >
-              <Icon className="h-5 w-5 text-primary-600" />
-              <div>
-                <p className="text-sm font-semibold text-neutral-800">{label}</p>
-                <p className="text-xs text-neutral-500">{description}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }

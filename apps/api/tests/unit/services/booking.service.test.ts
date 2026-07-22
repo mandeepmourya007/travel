@@ -1,8 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
+import { PaymentError } from '../../../src/errors/app-error'
 import { logger } from '../../../src/utils/logger'
 import { withLock } from '../../../src/utils/redis-lock'
+import * as payoutUtils from '@shared/utils/payout'
+
+// calculatePayoutSplit is left as the real implementation by default; individual
+// tests override it via mockReturnValueOnce to force an unsafe split and exercise
+// the assertPayoutSafe throw path (H1: typed-error rethrow at this inline call site).
+vi.mock('@shared/utils/payout', async () => {
+  const actual = await vi.importActual<typeof import('@shared/utils/payout')>('@shared/utils/payout')
+  return { ...actual, calculatePayoutSplit: vi.fn(actual.calculatePayoutSplit) }
+})
 
 // Default: withLock executes fn immediately and returns true (lock acquired).
 // Individual tests override this per-case.
@@ -41,6 +51,7 @@ const mockBookingRepo = {
   findActiveByUserAndTrip: vi.fn(),
   findExpiredPendingBookings: vi.fn(),
   findWithPaymentDetails: vi.fn(),
+  findForBalanceRelease: vi.fn().mockResolvedValue(null),
 }
 
 const mockTripRepo = {
@@ -128,6 +139,7 @@ let service: BookingService
 
 afterEach(() => {
   mockEnv.PAYMENT_GATEWAY = 'razorpay'
+  mockEnv.CASHFREE_ENV = 'sandbox'
 })
 
 beforeEach(() => {
@@ -333,9 +345,10 @@ describe('BookingService', () => {
   // cancelBooking
   // ═══════════════════════════════════════════════════
   describe('cancelBooking', () => {
+    // 10 days out — safely beyond the 7-day (168h) refund cliff.
     const futureTrip = {
       ...createMockBooking().trip,
-      startDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+      startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
       cancellationPolicy: 'FLEXIBLE',
     }
 
@@ -348,22 +361,22 @@ describe('BookingService', () => {
       mockPaymentService.resolveProviderFromTx.mockReturnValue('razorpay')
     })
 
-    it('should cancel with 100% refund for FLEXIBLE >=48h (CONFIRMED)', async () => {
+    it('should cancel with 50% refund for FLEXIBLE >=7d out (CONFIRMED)', async () => {
       const booking = createMockBooking({ trip: futureTrip })
       mockBookingRepo.findById.mockResolvedValue(booking)
 
       const result = await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
 
       expect(result.bookingStatus).toBe('CANCELLED')
-      expect(result.refundPercent).toBe(100)
-      expect(result.refundAmount).toBe(9000)
+      expect(result.refundPercent).toBe(50)
+      expect(result.refundAmount).toBe(4500)
       expect(mockBookingRepo.cancelAtomically).toHaveBeenCalledWith(
         'booking-1', 'user-1', 'Changed plans',
         { tripId: 'trip-1', numTravelers: 2 },
       )
     })
 
-    it('should give 50% refund for FLEXIBLE <48h', async () => {
+    it('should give 0% refund for FLEXIBLE within 7d', async () => {
       const booking = createMockBooking({
         trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) },
       })
@@ -371,11 +384,11 @@ describe('BookingService', () => {
 
       const result = await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
 
-      expect(result.refundPercent).toBe(50)
-      expect(result.refundAmount).toBe(4500)
+      expect(result.refundPercent).toBe(0)
+      expect(result.refundAmount).toBe(0)
     })
 
-    it('should give 50% refund for MODERATE >=48h', async () => {
+    it('should give 50% refund for MODERATE >=7d out', async () => {
       const booking = createMockBooking({
         trip: { ...futureTrip, cancellationPolicy: 'MODERATE' },
       })
@@ -386,7 +399,7 @@ describe('BookingService', () => {
       expect(result.refundPercent).toBe(50)
     })
 
-    it('should give 0% refund for MODERATE <48h', async () => {
+    it('should give 0% refund for MODERATE within 7d', async () => {
       const booking = createMockBooking({
         trip: {
           ...futureTrip,
@@ -475,8 +488,8 @@ describe('BookingService', () => {
 
     // ── Refund amount unit conversion ───────────────────────────────────────
 
-    it('should store REFUND tx in rupees and call Razorpay in paise (100% refund)', async () => {
-      const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE >=48h → 100%, totalAmount=9000
+    it('should store REFUND tx in rupees and call Razorpay in paise (50% refund, >=7d out)', async () => {
+      const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE >=7d → 50%, totalAmount=9000
       mockBookingRepo.findById.mockResolvedValue(booking)
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
         { id: 'ptx-cap-1', type: 'PAYMENT', status: 'CAPTURED', gatewayPaymentId: 'pay_abc123', razorpayPaymentId: 'pay_abc123' },
@@ -486,48 +499,38 @@ describe('BookingService', () => {
 
       const result = await service.cancelBooking('user-1', 'booking-1', 'Changed plans')
 
-      expect(result.refundAmount).toBe(9000)
+      expect(result.refundAmount).toBe(4500)
       // REFUND tx stored in rupees — never paise
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         type: 'REFUND',
-        amount: 9000,
+        amount: 4500,
         status: 'INITIATED',
       }))
       // Razorpay API receives amount in paise
       expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
         'pay_abc123',
-        900000, // 9000 rupees × 100
+        450000, // 4500 rupees × 100
         expect.objectContaining({ bookingId: 'booking-1' }),
         'razorpay',
       )
     })
 
-    it('should store REFUND tx in rupees and call Razorpay in paise (50% partial refund)', async () => {
+    it('should store REFUND tx in rupees and call Razorpay in paise (0% refund, within 7d)', async () => {
       const booking = createMockBooking({
         totalAmount: 8000,
-        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <7d → 0%
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
       mockPaymentTxRepo.findByBookingId.mockResolvedValue([
         { id: 'ptx-cap-2', type: 'PAYMENT', status: 'CAPTURED', gatewayPaymentId: 'pay_def456', razorpayPaymentId: 'pay_def456' },
       ])
-      mockPaymentTxRepo.create.mockResolvedValue({ id: 'ptx-refund-2' })
-      mockPaymentService.initiateRefund.mockResolvedValue({ id: 'rfnd_y', status: 'processed' })
 
       const result = await service.cancelBooking('user-1', 'booking-1', 'Emergency')
 
-      expect(result.refundPercent).toBe(50)
-      expect(result.refundAmount).toBe(4000) // Math.round(8000 * 50 / 100)
-      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-        amount: 4000, // rupees, not paise
-        status: 'INITIATED',
-      }))
-      expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
-        'pay_def456',
-        400000, // 4000 rupees × 100
-        expect.any(Object),
-        'razorpay',
-      )
+      expect(result.refundPercent).toBe(0)
+      expect(result.refundAmount).toBe(0)
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
     })
 
     it('should NOT create REFUND tx or call initiateRefund when STRICT policy (0% refund)', async () => {
@@ -557,8 +560,11 @@ describe('BookingService', () => {
 
       await service.cancelBooking('user-1', 'booking-1', 'reason')
 
-      // wasConfirmed = false → initiateBookingRefund never entered at all
-      expect(mockPaymentTxRepo.findByBookingId).not.toHaveBeenCalled()
+      // cancelBooking now fetches the tx list once up front (frozen DEPOSIT_RELEASE
+      // startDate lookup, CRITICAL fix) regardless of preCancelStatus — but
+      // wasConfirmed=false means initiateBookingRefund (and thus a second fetch) is
+      // never entered, so the list is fetched exactly once, not twice.
+      expect(mockPaymentTxRepo.findByBookingId).toHaveBeenCalledTimes(1)
       expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
       expect(mockPaymentService.initiateRefund).not.toHaveBeenCalled()
     })
@@ -576,7 +582,7 @@ describe('BookingService', () => {
       const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
 
       expect(result.bookingStatus).toBe('CANCELLED')
-      expect(result.refundAmount).toBe(9000)
+      expect(result.refundAmount).toBe(4500)
       // REFUND tx was created (INITIATED) before the Razorpay call — remains as retry target
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         type: 'REFUND',
@@ -613,10 +619,10 @@ describe('BookingService', () => {
 
     // ── Math.round edge cases ───────────────────────────────────────────────
 
-    it('should Math.round refund amount for odd totalAmount (50% of 9001 = 4501)', async () => {
+    it('should Math.round refund amount for odd totalAmount (50% of 9001 = 4501, >=7d out)', async () => {
       const booking = createMockBooking({
         totalAmount: 9001,
-        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+        trip: futureTrip, // >=7d out → 50%
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
 
@@ -627,10 +633,10 @@ describe('BookingService', () => {
       expect(result.refundPercent).toBe(50)
     })
 
-    it('should Math.round refund amount for odd totalAmount (50% of 8999 = 4500)', async () => {
+    it('should Math.round refund amount for odd totalAmount (50% of 8999 = 4500, >=7d out)', async () => {
       const booking = createMockBooking({
         totalAmount: 8999,
-        trip: { ...futureTrip, startDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) }, // <48h → 50%
+        trip: futureTrip, // >=7d out → 50%
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
 
@@ -640,29 +646,14 @@ describe('BookingService', () => {
       expect(result.refundAmount).toBe(4500)
     })
 
-    // ── 48-hour boundary ────────────────────────────────────────────────────
+    // ── 7-day (168h) refund-cliff boundary ──────────────────────────────────
 
-    it('should give 100% refund for FLEXIBLE at >=48h boundary', async () => {
+    it('should give 50% refund for FLEXIBLE at >=168h (7d) boundary', async () => {
       const booking = createMockBooking({
         trip: {
           ...futureTrip,
           cancellationPolicy: 'FLEXIBLE',
-          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 + 5000), // 48h + 5s buffer
-        },
-      })
-      mockBookingRepo.findById.mockResolvedValue(booking)
-
-      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
-
-      expect(result.refundPercent).toBe(100)
-    })
-
-    it('should give 50% refund for FLEXIBLE just under 48h boundary', async () => {
-      const booking = createMockBooking({
-        trip: {
-          ...futureTrip,
-          cancellationPolicy: 'FLEXIBLE',
-          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 - 1), // 1ms under 48h
+          startDate: new Date(Date.now() + 168 * 60 * 60 * 1000 + 5000), // 168h + 5s buffer
         },
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
@@ -672,12 +663,43 @@ describe('BookingService', () => {
       expect(result.refundPercent).toBe(50)
     })
 
-    it('should give 50% refund for MODERATE at >=48h boundary', async () => {
+    it('should give 50% refund for FLEXIBLE at exactly the 168h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'FLEXIBLE',
+          startDate: new Date(Date.now() + 168 * 60 * 60 * 1000),
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      // >= 168h ⇒ 50% (boundary is inclusive)
+      expect(result.refundPercent).toBe(50)
+    })
+
+    it('should give 0% refund for FLEXIBLE just under 168h boundary', async () => {
+      const booking = createMockBooking({
+        trip: {
+          ...futureTrip,
+          cancellationPolicy: 'FLEXIBLE',
+          startDate: new Date(Date.now() + 168 * 60 * 60 * 1000 - 1), // 1ms under 168h
+        },
+      })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundPercent).toBe(0)
+    })
+
+    it('should give 50% refund for MODERATE at >=168h (7d) boundary', async () => {
       const booking = createMockBooking({
         trip: {
           ...futureTrip,
           cancellationPolicy: 'MODERATE',
-          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 + 5000),
+          startDate: new Date(Date.now() + 168 * 60 * 60 * 1000 + 5000),
         },
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
@@ -687,12 +709,12 @@ describe('BookingService', () => {
       expect(result.refundPercent).toBe(50)
     })
 
-    it('should give 0% refund for MODERATE just under 48h boundary', async () => {
+    it('should give 0% refund for MODERATE just under 168h boundary', async () => {
       const booking = createMockBooking({
         trip: {
           ...futureTrip,
           cancellationPolicy: 'MODERATE',
-          startDate: new Date(Date.now() + 48 * 60 * 60 * 1000 - 1),
+          startDate: new Date(Date.now() + 168 * 60 * 60 * 1000 - 1),
         },
       })
       mockBookingRepo.findById.mockResolvedValue(booking)
@@ -820,7 +842,7 @@ describe('BookingService', () => {
       // Cashfree requires orderId in notes (refunds are order-scoped)
       expect(mockPaymentService.initiateRefund).toHaveBeenCalledWith(
         'pay_cf_123',
-        900000,
+        450000, // 4500 rupees (50% of 9000) × 100
         expect.objectContaining({ bookingId: 'booking-1', orderId: 'order_cf_abc' }),
         'cashfree',
       )
@@ -873,6 +895,102 @@ describe('BookingService', () => {
         provider: 'razorpay',
       }))
     })
+
+    // ── Frozen startDate snapshot (CRITICAL fix) ────────────────────────────
+    // A DEPOSIT_RELEASE tx's metadata.computedSplit.startDate freezes the trip's
+    // startDate at the moment the deposit was released. If the organizer later
+    // reschedules the trip LATER (TripService.updateTrip), cancelBooking must keep
+    // computing the refund window against the ORIGINAL frozen startDate, not the live
+    // (rescheduled) one — otherwise the reschedule could manufacture refund eligibility
+    // the platform never reserved money for when it released the deposit.
+    describe('frozen DEPOSIT_RELEASE startDate snapshot', () => {
+      it('uses the FROZEN startDate from DEPOSIT_RELEASE metadata, not the live (rescheduled) trip.startDate', async () => {
+        // Original startDate (at deposit-release time) was 10 days out — well beyond the
+        // 7-day cliff, so the deposit-release computation assumed a refund was still
+        // possible (50%). The organizer has since moved the trip EARLIER on the live
+        // `trip` row, to 1 day out (inside the cliff — would give 0% if the live date
+        // were used). The frozen date must win: 50%.
+        const originalStartDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+        const rescheduledLiveStartDate = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+        const booking = createMockBooking({
+          trip: { ...futureTrip, cancellationPolicy: 'FLEXIBLE', startDate: rescheduledLiveStartDate },
+        })
+        mockBookingRepo.findById.mockResolvedValue(booking)
+        mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+          {
+            id: 'ptx-deposit',
+            type: 'DEPOSIT_RELEASE',
+            metadata: { computedSplit: { startDate: originalStartDate.toISOString(), entitlement: 8100, deposit: 4050, balance: 4050 } },
+          },
+        ])
+
+        const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+        // Frozen startDate (10d out) >= 7-day cliff → 50%, matching what the deposit was
+        // computed against — NOT the live/rescheduled startDate's 0%.
+        expect(result.refundPercent).toBe(50)
+        expect(result.refundAmount).toBe(4500)
+      })
+
+      it('reschedule-LATER regression: organizer pushes the trip date out after deposit release — frozen date still governs the refund, not the new later date', async () => {
+        // Deposit was released when the trip was 2 days out (within the cliff → last-minute
+        // booking, 0% refund expected under the frozen snapshot). The organizer then
+        // reschedules the trip to 30 days out on the live `trip` row. If cancelBooking
+        // (incorrectly) used the live startDate, it would compute hoursUntilTrip as ~30
+        // days → 50% refund — a refund the platform never reserved money for, since the
+        // deposit was released assuming the window was already closed.
+        const originalStartDate = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+        const rescheduledLiveStartDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        const booking = createMockBooking({
+          trip: { ...futureTrip, cancellationPolicy: 'FLEXIBLE', startDate: rescheduledLiveStartDate },
+        })
+        mockBookingRepo.findById.mockResolvedValue(booking)
+        mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+          {
+            id: 'ptx-deposit',
+            type: 'DEPOSIT_RELEASE',
+            metadata: { computedSplit: { startDate: originalStartDate.toISOString(), entitlement: 9000, deposit: 9000, balance: 0 } },
+          },
+        ])
+
+        const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+        // Must use the FROZEN (original, 2-days-out) startDate → within the 7-day cliff → 0%.
+        expect(result.refundPercent).toBe(0)
+        expect(result.refundAmount).toBe(0)
+      })
+
+      it('falls back to the live trip.startDate when no DEPOSIT_RELEASE tx exists (Razorpay booking — unchanged behaviour)', async () => {
+        const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE, 10d out
+        mockBookingRepo.findById.mockResolvedValue(booking)
+        mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+          { id: 'ptx-cap', type: 'PAYMENT', status: 'CAPTURED', razorpayPaymentId: 'pay_abc' },
+        ])
+
+        const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+        expect(result.refundPercent).toBe(50)
+        expect(result.refundAmount).toBe(4500)
+      })
+
+      it('falls back to the live trip.startDate when the DEPOSIT_RELEASE metadata has no startDate (legacy row from before this fix)', async () => {
+        const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE, 10d out
+        mockBookingRepo.findById.mockResolvedValue(booking)
+        mockPaymentTxRepo.findByBookingId.mockResolvedValue([
+          {
+            id: 'ptx-deposit-legacy',
+            type: 'DEPOSIT_RELEASE',
+            // Pre-fix row: no startDate in computedSplit.
+            metadata: { computedSplit: { entitlement: 8100, deposit: 4050, balance: 4050 } },
+          },
+        ])
+
+        const result = await service.cancelBooking('user-1', 'booking-1', 'reason')
+
+        expect(result.refundPercent).toBe(50)
+        expect(result.refundAmount).toBe(4500)
+      })
+    })
   })
 
   // ═══════════════════════════════════════════════════
@@ -899,6 +1017,7 @@ describe('BookingService', () => {
       earlyBirdDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       startDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       bookingDeadline: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+      cancellationPolicy: 'FLEXIBLE',
       maxGroupSize: 20,
       currentBookings: 5,
       version: 0,
@@ -947,9 +1066,13 @@ describe('BookingService', () => {
 
       expect(result.bookingId).toBe('booking-new')
       expect(result.razorpayOrderId).toBe('order_abc')
+      // Reseller regression: no sublinkToken + no attribution → markupAmount=0,
+      // sublinkId=undefined, totalAmount unchanged, no attribution arg passed.
       expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
-        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2 }),
+        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2, totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
         expect.objectContaining({ provider: 'razorpay', gatewayOrderId: 'order_abc', amount: 8000, type: 'PAYMENT', status: 'INITIATED' }),
+        undefined,
+        undefined,
       )
       expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
         expect.objectContaining({ amountPaise: expect.any(Number), receipt: expect.any(String), notes: expect.any(Object) }),
@@ -1154,6 +1277,192 @@ describe('BookingService', () => {
       expect(callArg.split).toBeNull()
     })
 
+    // ── Cashfree deposit/balance payout split (S1, S9) ─────────────────────
+    // Production-mode Cashfree Easy Split: order_splits carries only the deposit (D),
+    // and the DEPOSIT_RELEASE ledger row is now written atomically as part of
+    // createWithPaymentTx's `depositRelease` param (CRITICAL/HIGH#2 fix) — no more
+    // post-hoc PayoutService.releaseDeposit() call from createBooking.
+    describe('Cashfree deposit/balance payout split', () => {
+      let cfService: BookingService
+
+      beforeEach(() => {
+        mockEnv.PAYMENT_GATEWAY = 'cashfree'
+        mockEnv.CASHFREE_ENV = 'production'
+        cfService = new BookingService(
+          mockBookingRepo as any,
+          mockTripRepo as any,
+          mockTripRequestRepo as any,
+          mockPaymentTxRepo as any,
+          mockPaymentService as any,
+          logger as any,
+          { send: vi.fn().mockResolvedValue([]) } as any,
+          null, // vehicleService
+          null, // cache
+          null, // userRepo
+          null, // resellerRepo
+        )
+      })
+
+      it('S1: attaches only the deposit to order_splits and passes the DEPOSIT_RELEASE row atomically to createWithPaymentTx', async () => {
+        // mockTrip: pricePerPerson=5000, earlyBirdPrice=4000 (active), startDate +30d
+        // (well beyond the 7-day cliff — normal split, not the last-minute edge case).
+        mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+        const cfTrip = {
+          ...mockTrip,
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_1', commissionRate: 10 },
+        }
+        mockTripRepo.findByIdForBooking.mockResolvedValue(cfTrip)
+        mockPaymentService.createOrder.mockResolvedValue({
+          orderId: 'order_cf_prod',
+          status: 'created',
+          clientPayload: { provider: 'cashfree', orderId: 'order_cf_prod', paymentSessionId: 'sess_1' },
+        })
+        mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+          id: 'booking-cf-prod',
+          bookingRef: 'TRP-2025-0004',
+          totalAmount: 8000,
+          expiresAt: new Date(),
+        })
+
+        await cfService.createBooking('user-1', validInput)
+
+        // baseTotal = 4000 (early bird) * 2 = 8000 rupees = 800000 paise.
+        // entitlement = round(800000 * 0.9) = 720000. deposit = round(720000 * 0.5) = 360000.
+        const callArg = mockPaymentService.createOrder.mock.calls[0][0]
+        expect(callArg.split).toEqual(
+          expect.objectContaining({ vendorAccountId: 'cf_vendor_prod_1', vendorAmountPaise: 360000, vendorBalancePaise: 360000 }),
+        )
+
+        // depositRelease is the 4th positional arg to createWithPaymentTx — written in the
+        // SAME transaction as the booking + PAYMENT tx (no more separate post-hoc call).
+        expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.any(Object),
+          undefined,
+          expect.objectContaining({
+            vendorId: 'cf_vendor_prod_1',
+            orderId: 'order_cf_prod',
+            amountRupees: 3600, // 360000 paise / 100
+            metadata: expect.objectContaining({
+              computedSplit: expect.objectContaining({
+                entitlement: 720000,
+                deposit: 360000,
+                balance: 360000,
+                baseAmount: 800000,
+                commissionRate: 10,
+                // CRITICAL fix: the trip's startDate is frozen into computedSplit at
+                // deposit-release time, so a later reschedule can't invalidate the
+                // refund-window computation already baked into this deposit.
+                startDate: new Date(cfTrip.startDate).toISOString(),
+              }),
+            }),
+          }),
+        )
+      })
+
+      it('S6/edge: releases the full entitlement as deposit (balance=0) for a last-minute booking (<=7d out)', async () => {
+        mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+        mockTripRepo.findByIdForBooking.mockResolvedValue({
+          ...mockTrip,
+          startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days out — within the 7-day cliff
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_2', commissionRate: 50 },
+        })
+        mockPaymentService.createOrder.mockResolvedValue({
+          orderId: 'order_cf_lastmin',
+          status: 'created',
+          clientPayload: { provider: 'cashfree', orderId: 'order_cf_lastmin', paymentSessionId: 'sess_2' },
+        })
+        mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+          id: 'booking-cf-lastmin',
+          bookingRef: 'TRP-2025-0005',
+          totalAmount: 8000,
+          expiresAt: new Date(),
+        })
+
+        await cfService.createBooking('user-1', validInput)
+
+        const callArg = mockPaymentService.createOrder.mock.calls[0][0]
+        // entitlement = round(800000 * 0.5) = 400000. Last-minute → deposit = entitlement, balance = 0.
+        expect(callArg.split).toEqual(
+          expect.objectContaining({ vendorAmountPaise: 400000, vendorBalancePaise: 0 }),
+        )
+      })
+
+      it('S9 (fixed): does not throw for a last-minute booking at the realistic 10% commission default — releases full entitlement as deposit', async () => {
+        mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+        mockTripRepo.findByIdForBooking.mockResolvedValue({
+          ...mockTrip,
+          startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // within the 7-day cliff
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_3', commissionRate: 10 }, // realistic commission
+        })
+        mockPaymentService.createOrder.mockResolvedValue({
+          orderId: 'order_cf_lastmin_lowcomm',
+          status: 'created',
+          clientPayload: { provider: 'cashfree', orderId: 'order_cf_lastmin_lowcomm', paymentSessionId: 'sess_3' },
+        })
+        mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+          id: 'booking-cf-lastmin-lowcomm',
+          bookingRef: 'TRP-2025-0006',
+          totalAmount: 8000,
+          expiresAt: new Date(),
+        })
+
+        // Previously this threw: assertPayoutSafe enforced deposit<=platformRetained even
+        // though a refund is impossible in this window. The fix (payout.ts refundWindowClosed)
+        // skips that check here, so checkout must now succeed.
+        await cfService.createBooking('user-1', validInput)
+
+        // entitlement = round(800000 * 0.9) = 720000. Last-minute → deposit = entitlement, balance = 0.
+        const callArg = mockPaymentService.createOrder.mock.calls[0][0]
+        expect(callArg.split).toEqual(
+          expect.objectContaining({ vendorAmountPaise: 720000, vendorBalancePaise: 0 }),
+        )
+        expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.any(Object),
+          undefined,
+          expect.objectContaining({
+            metadata: expect.objectContaining({
+              computedSplit: expect.objectContaining({ deposit: 720000, balance: 0, entitlement: 720000 }),
+            }),
+          }),
+        )
+      })
+
+      it('H1: rethrows the assertPayoutSafe invariant violation as a typed PaymentError (statusCode 502, code PAYMENT_FAILED)', async () => {
+        mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+        const cfTrip = {
+          ...mockTrip,
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_unsafe', commissionRate: 10 },
+        }
+        mockTripRepo.findByIdForBooking.mockResolvedValue(cfTrip)
+
+        // Force calculatePayoutSplit to return a deliberately unsafe split
+        // (deposit > platformRetained, refund window still open) so
+        // assertPayoutSafe throws and the inline catch in createBooking must
+        // rethrow a typed PaymentError instead of the bare Error.
+        vi.mocked(payoutUtils.calculatePayoutSplit).mockReturnValueOnce({
+          entitlement: 800000,
+          deposit: 700000,
+          balance: 100000,
+          refundWindowClosed: false,
+        })
+
+        let caught: unknown
+        try {
+          await cfService.createBooking('user-1', validInput)
+        } catch (err) {
+          caught = err
+        }
+
+        expect(caught).toBeInstanceOf(PaymentError)
+        expect((caught as PaymentError).statusCode).toBe(502)
+        expect((caught as PaymentError).code).toBe('PAYMENT_FAILED')
+        expect((caught as Error).cause).toBeInstanceOf(Error)
+        expect(mockBookingRepo.createWithPaymentTx).not.toHaveBeenCalled()
+      })
+    })
+
     it('should use early bird price when deadline has not passed', async () => {
       mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
       mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
@@ -1195,6 +1504,155 @@ describe('BookingService', () => {
         service.createBooking('user-1', { ...validInput, numTravelers: 3 }),
       ).rejects.toThrow('traveler')
     })
+
+  // ═══════════════════════════════════════════════════
+  // createBooking — reseller markup resolution
+  //
+  // mockTrip: pricePerPerson=5000, earlyBirdPrice=4000, earlyBirdDeadline in the
+  // future → isEarlyBird=true, so baseTotal for numTravelers=2 with no transfer
+  // points is (4000+0+0)*2 = 8000 (matches the no-markup regression assertion
+  // in "should create booking and Razorpay order for INSTANT trip" above).
+  // ═══════════════════════════════════════════════════
+  describe('createBooking — reseller markup resolution', () => {
+    const mockResellerRepo = {
+      findActiveByToken: vi.fn(),
+      findAttributionByUserAndTrip: vi.fn(),
+    }
+    let resellerService: BookingService
+
+    beforeEach(() => {
+      mockResellerRepo.findActiveByToken.mockReset()
+      mockResellerRepo.findAttributionByUserAndTrip.mockReset()
+      resellerService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        null,
+        null,
+        null,
+        mockResellerRepo as any,
+      )
+      mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
+      mockTripRepo.findByIdForBooking.mockResolvedValue(mockTrip)
+      mockPaymentService.createOrder.mockResolvedValue({
+        orderId: 'order_abc',
+        status: 'created',
+        clientPayload: { provider: 'razorpay', orderId: 'order_abc', razorpayKeyId: 'rzp_test_key' },
+      })
+      mockBookingRepo.createWithPaymentTx.mockResolvedValue({
+        id: 'booking-new',
+        bookingRef: 'TRP-2025-0001',
+        totalAmount: 8000,
+        expiresAt: new Date(),
+      })
+    })
+
+    it('markup>0 happy path: sublinkToken resolves to an active sublink on the same trip', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-1', markupAmount: 300, tripId: 'trip-1' })
+
+      const result = await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-A' })
+
+      expect(mockResellerRepo.findActiveByToken).toHaveBeenCalledWith('tok-A', 'sublink')
+      // baseTotal = 4000*2 = 8000, markupTotal = 300*2 = 600 → totalAmount = 8600
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8600, sublinkId: 'sub-1', markupAmount: 600 }),
+        expect.any(Object),
+        { userId: 'user-1', sublinkId: 'sub-1', tripId: 'trip-1' },
+        undefined,
+      )
+      // Commission split computed on BASE only: baseAmountInPaise=800000, commission 10% → vendorAmountPaise unaffected by markup.
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ amountPaise: 860000 }),
+      )
+      expect(result.amountInRupees).toBe(8600)
+    })
+
+    it('attribution fallback: no sublinkToken but an existing SublinkAttribution for (userId, tripId) applies its markup', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-2', markupAmount: 200, tripId: 'trip-1', isActive: true, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockResellerRepo.findActiveByToken).not.toHaveBeenCalled()
+      expect(mockResellerRepo.findAttributionByUserAndTrip).toHaveBeenCalledWith('user-1', 'trip-1')
+      // baseTotal=8000, markupTotal = 200*2=400 → totalAmount=8400. No sublinkToken → no attribution write.
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8400, sublinkId: 'sub-2', markupAmount: 400 }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      )
+    })
+
+    it('ignores an inactive/deleted attributed sublink and falls back to markup=0', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-dead', markupAmount: 999, tripId: 'trip-1', isActive: false, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      )
+    })
+
+    it('mismatched token (sublink.tripId !== booking tripId) is ignored, not an error — proceeds at markup=0', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-3', markupAmount: 500, tripId: 'trip-OTHER' })
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue(null)
+
+      await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-mismatch' })
+
+      // Falls through to the attribution check since the token didn't resolve to a usable sublink.
+      expect(mockResellerRepo.findAttributionByUserAndTrip).toHaveBeenCalledWith('user-1', 'trip-1')
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      )
+    })
+
+    it('last-wins: an explicit sublinkToken for a NEW sublink overrides a prior attribution to a different sublink', async () => {
+      mockResellerRepo.findActiveByToken.mockResolvedValue({ id: 'sub-B', markupAmount: 700, tripId: 'trip-1' })
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue({
+        sublink: { id: 'sub-A', markupAmount: 100, tripId: 'trip-1', isActive: true, isDeleted: false },
+      })
+
+      await resellerService.createBooking('user-1', { ...validInput, sublinkToken: 'tok-B' })
+
+      // The token short-circuits the attribution lookup entirely — sub-A is never even read.
+      expect(mockResellerRepo.findAttributionByUserAndTrip).not.toHaveBeenCalled()
+      // baseTotal=8000, markupTotal = 700*2=1400 → totalAmount=9400, attribution write refreshes to sub-B.
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ totalAmount: 9400, sublinkId: 'sub-B', markupAmount: 1400 }),
+        expect.any(Object),
+        { userId: 'user-1', sublinkId: 'sub-B', tripId: 'trip-1' },
+        undefined,
+      )
+    })
+
+    it('markup=0 regression: byte-identical totalAmount/vendorAmountPaise when resellerRepo is wired but returns nothing', async () => {
+      mockResellerRepo.findAttributionByUserAndTrip.mockResolvedValue(null)
+
+      await resellerService.createBooking('user-1', validInput)
+
+      expect(mockBookingRepo.createWithPaymentTx).toHaveBeenCalledWith(
+        expect.objectContaining({ tripId: 'trip-1', userId: 'user-1', numTravelers: 2, totalAmount: 8000, sublinkId: undefined, markupAmount: 0 }),
+        expect.any(Object),
+        undefined,
+        undefined,
+      )
+      expect(mockPaymentService.createOrder).toHaveBeenCalledWith(expect.objectContaining({ amountPaise: 800000 }))
+    })
+  })
   })
 
   // ═══════════════════════════════════════════════════
