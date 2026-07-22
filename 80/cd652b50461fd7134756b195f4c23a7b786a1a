@@ -1,0 +1,33 @@
+apps/web/src/components/shared/__tests__/auth-guard.test.tsx
+  s_19167362b78323::t_775f16f56ab009 85-126,133-140,143
+  s_19167362b78323::t_f07490b71b4363 127-132,141-142
+  s_19167362b78323::t_8c9c1b14e929e9 19-26
+  s_19167362b78323::t_5712ffd1bb78d7 48-49
+  s_19167362b78323::t_ff65c5074094b2 144
+apps/web/src/components/shared/auth-guard.tsx
+  s_19167362b78323::t_421126e4967cce 7,20,35-37,41,59
+  s_19167362b78323::t_dbf776609a2554 21-29
+  s_19167362b78323::t_aca3608a0a272f 60-62
+  s_19167362b78323::t_741b97d242a09b 63-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "80cd652b50461fd7134756b195f4c23a7b786a1a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
