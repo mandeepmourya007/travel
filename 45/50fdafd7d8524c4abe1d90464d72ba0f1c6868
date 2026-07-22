@@ -1,0 +1,61 @@
+"docs/codebase/Auth & Security.md"
+  s_19167362b78323::t_ce39ce40f2d404 52-53
+  s_19167362b78323::t_3b6c0d9c729445 75,81,84
+  s_19167362b78323::t_8405149262daa5 38-51,54
+  s_19167362b78323::t_a271196555fd2d 85
+"docs/codebase/API Backend.md"
+  h_b3232c20134322 114
+  s_19167362b78323::t_c7db0d09c64ad7 62
+  s_19167362b78323::t_0cc7e5e502cd38 73
+  s_933263301295b7::t_907ccd725abb49 113,115-131
+"docs/codebase/Frontend Routes Reference.md"
+  s_19167362b78323::t_4c06277a3bf9f4 35
+  s_19167362b78323::t_dbaf4e8c3b7666 103
+"docs/codebase/Shared Package.md"
+  s_19167362b78323::t_0fdf1f55d5a936 48
+"docs/codebase/Web Frontend.md"
+  s_19167362b78323::t_9469a67882ce6f 49-50
+  s_19167362b78323::t_f07c0e3e96e59e 64
+"docs/codebase/Product Domain.md"
+  s_19167362b78323::t_ebff190d294540 36-38
+"docs/codebase/API Routes Reference.md"
+  s_19167362b78323::t_b142a12b7afc8f 140
+  s_19167362b78323::t_9f2ead07845960 101
+  s_19167362b78323::t_7bc1475df03a5e 157
+  s_19167362b78323::t_3749f615ebacf5 41-42
+  h_b3232c20134322 59-61,78-83
+  s_933263301295b7::t_b2b16e26b0f04f 58,62-77
+"docs/codebase/Data Fetching & State.md"
+  h_b3232c20134322 24
+  s_19167362b78323::t_5c2d0ec70113a5 48
+  s_19167362b78323::t_ed8e4b75e55880 23,25-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4550fdafd7d8524c4abe1d90464d72ba0f1c6868",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_933263301295b7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a0bd00ebdc57a2612",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
