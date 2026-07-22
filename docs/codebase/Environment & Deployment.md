@@ -23,7 +23,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Redis | `REDIS_URL` (required in prod) |
 | Email | `SMTP_HOST/PORT/USER/PASS/FROM` (all-or-nothing), `RESEND_API_KEY`, `RESEND_FROM`, `SUPPORT_EMAIL` (optional, defaults `support@safarnama.store`; used as Reply-To + `List-Unsubscribe` mailto) |
 | SMS OTP | `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID` |
-| WhatsApp (optional) | `MSG91_WA_BUSINESS_NUMBER` (10-digit), `MSG91_WA_OTP_TEMPLATE`, `MSG91_WA_OTP_PREFER` (`"true"` to prefer WA over SMS OTP), `MSG91_WA_TPL_<TYPE>` × 12 notification template names — all optional; system silently skips WhatsApp channel when unset |
+| WhatsApp (optional) | `MSG91_WA_BUSINESS_NUMBER` (exact value from MSG91 dashboard — already includes its own country code, never re-prefixed by provider code), `MSG91_WA_OTP_TEMPLATE`, `MSG91_WA_OTP_PREFER` (`"true"` to prefer WA over SMS OTP), `MSG91_WA_TPL_<TYPE>` × 12 notification template names — all optional; system silently skips WhatsApp channel when unset |
 | Payments | `PAYMENT_GATEWAY` (razorpay\|cashfree), `RAZORPAY_KEY_ID` (must start `rzp_`) / `KEY_SECRET` / `WEBHOOK_SECRET`, `CASHFREE_APP_ID` / `SECRET_KEY` / `WEBHOOK_SECRET` / `CASHFREE_ENV`, `NEXT_PUBLIC_CASHFREE_ENV` |
 | Media | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` |
 | Monitoring | `SENTRY_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `NEXT_PUBLIC_SENTRY_*`, `SENTRY_AUTH_TOKEN` (source maps) |
