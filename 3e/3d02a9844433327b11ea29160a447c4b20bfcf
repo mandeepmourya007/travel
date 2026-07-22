@@ -1,0 +1,45 @@
+apps/api/src/services/otp.service.ts
+  s_19167362b78323::t_9969a38f505007 18
+  s_19167362b78323::t_11d3c96da9ee42 102-103
+  s_19167362b78323::t_40914ad3793d14 38-44
+apps/web/src/app/(auth)/login/phone/page.tsx
+  s_19167362b78323::t_a983c96407187a 79
+  s_19167362b78323::t_13a51e6f713cf5 92
+"docs/codebase/API Backend.md"
+  h_b3232c20134322 101
+  s_19167362b78323::t_5b744f6e1debc3 129
+  s_19167362b78323::t_5f92324adecb63 100,102-106
+apps/api/tests/unit/services/otp.service.test.ts
+  s_19167362b78323::t_3d5291cd62836b 271,280
+  s_19167362b78323::t_3f865c65285eb0 98,104-105
+apps/web/src/app/(auth)/login/email-otp/page.tsx
+  s_19167362b78323::t_b02477b7f52095 89
+apps/web/src/components/auth/phone-input-form.tsx
+  s_19167362b78323::t_41b31c1acf1a52 62,64
+apps/web/src/app/(auth)/login/email/page.tsx
+  s_19167362b78323::t_b6de76d8770c4e 193-194,196
+  s_19167362b78323::t_b74b6f15e21287 195
+"docs/codebase/Auth & Security.md"
+  s_19167362b78323::t_ea355ba7e5cf52 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "3e3d02a9844433327b11ea29160a447c4b20bfcf",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
