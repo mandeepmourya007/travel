@@ -33,7 +33,6 @@ import { TripController } from '../controllers/trip.controller'
 import { UploadController } from '../controllers/upload.controller'
 import { createAuthMiddleware } from '../middleware/auth.middleware'
 import { requireRole } from '../middleware/role.middleware'
-import { createRequirePhoneVerified } from '../middleware/require-phone-verified.middleware'
 import { createAuthRoutes } from '../routes/auth.routes'
 import { createDestinationRoutes } from '../routes/destination.routes'
 import { createTripRoutes } from '../routes/trip.routes'
@@ -314,7 +313,8 @@ const tripLifecycleService = new TripLifecycleService(
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
 // Deposit/balance payout orchestration (Cashfree only) — see services/payout.service.ts.
 export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo)
+const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo, otpService)
 const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
@@ -324,11 +324,8 @@ const adminService = new AdminService(
   docReviewRepo, reviewRepo, organizerInviteRepo,
 )
 
-const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
-
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
-export const requirePhoneVerified = createRequirePhoneVerified(userRepo)
 
 // ── Controllers ──────────────────────────────────────
 const authController = new AuthController(authService)
@@ -370,11 +367,11 @@ export const firebaseAuthRoutes = firebaseAuth
 export const destinationRoutes = createDestinationRoutes(destinationController, authMiddleware, requireRole)
 export const tripRoutes = createTripRoutes(tripController, authMiddleware, requireRole)
 export const uploadRoutes = createUploadRoutes(uploadController, authMiddleware, requireRole)
-export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole, requirePhoneVerified)
+export const bookingRoutes = createBookingRoutes(bookingController, authMiddleware, requireRole)
 export const paymentRoutes = createPaymentRoutes(paymentHistoryController, authMiddleware, requireRole)
-export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole, requirePhoneVerified)
+export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware, requireRole)
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
-export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole, requirePhoneVerified)
+export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
 export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
 export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole, whatsappBroadcastController)
 export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddleware, requireRole)

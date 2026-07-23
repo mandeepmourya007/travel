@@ -187,6 +187,11 @@ export const JWT_ACCESS_EXPIRY_SECONDS = 900
 export const OTP_TYPE = {
   PHONE_OTP: 'PHONE_OTP',
   EMAIL_OTP: 'EMAIL_OTP',
+  // Booking-scoped contact verification (post-payment). Distinct from PHONE_OTP so
+  // the account "attach phone" flow and this flow never clobber each other's
+  // in-flight code for the same phone number (VerificationCodeRepository is keyed
+  // by (identifier, type)).
+  BOOKING_CONTACT_OTP: 'BOOKING_CONTACT_OTP',
 } as const
 
 export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'

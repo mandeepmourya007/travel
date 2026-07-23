@@ -15,6 +15,7 @@ import { PaymentService } from './payment.service'
 import type { NotificationService } from './notification.service'
 import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
+import type { OtpService } from './otp.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError, PaymentError } from '../errors/app-error'
 import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT, RAZORPAY_ORDER_STATUS, NORMALIZED_ORDER_STATUS, CASHFREE_ENVIRONMENT, PAYOUT_EVENT } from '../utils/constants'
@@ -59,6 +60,7 @@ export class BookingService {
     private cache: CacheService | null = null,
     private userRepo: UserRepository | null = null,
     private resellerRepo: ResellerRepository | null = null,
+    private otpService: OtpService | null = null,
   ) {}
 
   /** Invalidate trip search + detail caches after booking mutations. */
@@ -161,6 +163,9 @@ export class BookingService {
           },
         },
         hasReview: b.review !== null,
+        hasVerifiedContact: (b.travelerDetails ?? []).some(
+          (t: { isPrimary: boolean; phoneVerified: boolean }) => t.isPrimary && t.phoneVerified,
+        ),
         review: b.review
           ? {
               id: b.review.id,
@@ -1305,6 +1310,83 @@ export class BookingService {
       // Safe: findActiveByUserAndTrip only returns PENDING | non-expired APPROVED
       requestStatus: (request?.status as MyTripBookingStatus['requestStatus']) ?? null,
     }
+  }
+
+  // ─── Post-Payment Booking Contact Verification ────────
+  // Booking-scoped contact verification, collected right after payment succeeds.
+  // Deliberately never writes to User.phone/User.phoneVerified — the contact may
+  // belong to someone other than the account owner (e.g. booking for a friend).
+
+  /** Guards against calling booking-contact methods when OtpService is not wired */
+  private requireOtpService(): OtpService {
+    if (!this.otpService) {
+      throw new ValidationError('Booking contact verification is not configured')
+    }
+    return this.otpService
+  }
+
+  /**
+   * Ownership + status guard shared by the booking-contact methods below.
+   * @throws NotFoundError — booking doesn't exist
+   * @throws ForbiddenError — user doesn't own the booking
+   * @throws ValidationError — booking is not CONFIRMED (contact is only collected post-payment)
+   */
+  private async guardBookingContactAccess(userId: string, bookingId: string) {
+    const booking = await this.bookingRepo.findById(bookingId)
+    if (!booking) throw new NotFoundError('Booking')
+    if (booking.userId !== userId) throw new ForbiddenError('You can only manage contact details for your own bookings')
+    if (booking.bookingStatus !== BOOKING_STATUS.CONFIRMED) {
+      throw new ValidationError(`Cannot set a booking contact for a booking with status ${booking.bookingStatus}`)
+    }
+    return booking
+  }
+
+  /**
+   * Sends an OTP to verify a contact number for a CONFIRMED booking.
+   * No User-table write — see class-level note above.
+   */
+  async sendBookingContactOtp(userId: string, bookingId: string, phone: string) {
+    await this.guardBookingContactAccess(userId, bookingId)
+    return this.requireOtpService().sendBookingContactOtp(phone)
+  }
+
+  /**
+   * Verifies the OTP and persists the verified contact onto the booking's primary
+   * TravelerDetail. No User-table write — see class-level note above.
+   */
+  async verifyBookingContactOtp(
+    userId: string,
+    bookingId: string,
+    data: { name: string; phone: string; otp: string },
+  ) {
+    await this.guardBookingContactAccess(userId, bookingId)
+    await this.requireOtpService().verifyBookingContactOtp(data.phone, data.otp)
+    return this.bookingRepo.upsertPrimaryContact(bookingId, {
+      name: data.name,
+      phone: data.phone,
+      phoneVerified: true,
+    })
+  }
+
+  /**
+   * One-tap shortcut: reuses the account's own verified phone as this booking's
+   * contact — no OTP needed. Only READS from User; never writes to it.
+   * @throws ValidationError — account has no verified phone to reuse
+   */
+  async useAccountPhoneForBooking(userId: string, bookingId: string) {
+    await this.guardBookingContactAccess(userId, bookingId)
+    if (!this.userRepo) {
+      throw new ValidationError('Booking contact verification is not configured')
+    }
+    const user = await this.userRepo.findById(userId)
+    if (!user || !user.phone || !user.phoneVerified) {
+      throw new ValidationError('No verified account phone available')
+    }
+    return this.bookingRepo.upsertPrimaryContact(bookingId, {
+      name: user.name,
+      phone: user.phone,
+      phoneVerified: true,
+    })
   }
 
 }

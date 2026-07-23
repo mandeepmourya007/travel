@@ -4,6 +4,15 @@ import { BookingService } from '../services/booking.service'
 import type { VerifyPaymentDto } from '@shared/types/payment.types'
 import type { CreateBookingDto, MyBookingFilters } from '@shared/types/booking.types'
 
+interface BookingContactBody {
+  name: string
+  phone: string
+}
+
+interface BookingContactVerifyOtpBody extends BookingContactBody {
+  otp: string
+}
+
 export class BookingController {
   constructor(private bookingService: BookingService) {}
 
@@ -56,6 +65,26 @@ export class BookingController {
   /** POST /bookings/:id/sync-payment — manually poll Razorpay and confirm if paid */
   syncPayment = asyncHandler(async (req: Request, res: Response) => {
     const result = await this.bookingService.syncPaymentStatus(req.params.id, req.user!.userId)
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /bookings/:id/contact/send-otp — send OTP to verify this booking's contact number */
+  sendBookingContactOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { phone } = req.body as BookingContactBody
+    const result = await this.bookingService.sendBookingContactOtp(req.user!.userId, req.params.id, phone)
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /bookings/:id/contact/verify-otp — verify OTP and persist this booking's contact */
+  verifyBookingContactOtp = asyncHandler(async (req: Request, res: Response) => {
+    const { name, phone, otp } = req.body as BookingContactVerifyOtpBody
+    const result = await this.bookingService.verifyBookingContactOtp(req.user!.userId, req.params.id, { name, phone, otp })
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /bookings/:id/contact/use-account-phone — one-tap shortcut using the account's own verified phone */
+  useAccountPhoneForBooking = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.bookingService.useAccountPhoneForBooking(req.user!.userId, req.params.id)
     res.json({ success: true, data: result })
   })
 }

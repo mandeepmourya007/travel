@@ -24,6 +24,7 @@ const BOOKING_INCLUDE_LIST = {
       id: true,
       name: true,
       phone: true,
+      phoneVerified: true,
       age: true,
       gender: true,
       isPrimary: true,
@@ -58,6 +59,7 @@ const MY_BOOKING_INCLUDE = {
       id: true,
       name: true,
       phone: true,
+      phoneVerified: true,
       age: true,
       gender: true,
       isPrimary: true,
@@ -1017,6 +1019,46 @@ export class BookingRepository {
       weekBookings: r.week_bookings,
       monthBookings: r.month_bookings,
     }))
+  }
+
+  /**
+   * Upserts the primary (isPrimary=true) TravelerDetail for a booking with a
+   * verified contact — used by the post-payment booking-contact-verification flow.
+   * Booking-scoped only: never touches the User table.
+   * Used by: BookingService.verifyBookingContactOtp(), useAccountPhoneForBooking()
+   */
+  /**
+   * Find-or-create the booking's primary contact. A partial unique index
+   * (`TravelerDetail_bookingId_primary_key`, migration
+   * 20260724020000) enforces at most one active primary contact per
+   * booking, so two concurrent calls (e.g. a double-tap before the button's
+   * `disabled` state applies) can't both pass the `findFirst` check and
+   * both create — the loser's insert is caught below and turned into an
+   * update against the winner's row instead of surfacing a raw P2002.
+   */
+  async upsertPrimaryContact(
+    bookingId: string,
+    data: { name: string; phone: string; phoneVerified: boolean },
+  ) {
+    const existing = await this.prisma.travelerDetail.findFirst({
+      where: { bookingId, isPrimary: true, isDeleted: false },
+    })
+    if (existing) {
+      return this.prisma.travelerDetail.update({ where: { id: existing.id }, data })
+    }
+    try {
+      return await this.prisma.travelerDetail.create({
+        data: { ...data, bookingId, isPrimary: true },
+      })
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const winner = await this.prisma.travelerDetail.findFirstOrThrow({
+          where: { bookingId, isPrimary: true, isDeleted: false },
+        })
+        return this.prisma.travelerDetail.update({ where: { id: winner.id }, data })
+      }
+      throw err
+    }
   }
 
   // Maps sort filter to Prisma orderBy

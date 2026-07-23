@@ -112,21 +112,24 @@ export class OtpService {
   }
 
   /**
-   * The actual send mechanics for a PHONE_OTP: cooldown/rate-limit checks, code
-   * generation + storage, delivery via the OTP provider. Assumes `phone` is
-   * already normalized. Shared by the public `sendOtp` and the authenticated
-   * `sendPhoneOtpForAttach` — no user-lookup/auto-signup logic lives here.
+   * The actual send mechanics for a phone-identifier OTP: cooldown/rate-limit checks,
+   * code generation + storage, delivery via the OTP provider. Assumes `phone` is
+   * already normalized. Shared by the public `sendOtp`, the authenticated
+   * `sendPhoneOtpForAttach`, and `sendBookingContactOtp` — no user-lookup/auto-signup
+   * logic lives here. `type` defaults to PHONE_OTP so existing callers are unaffected;
+   * pass a distinct type (e.g. BOOKING_CONTACT_OTP) to keep that flow's in-flight code
+   * from clobbering (or being clobbered by) another flow's code for the same phone number.
    */
-  private async sendPhoneOtpMechanics(phone: string) {
-    await this.checkCooldown(phone, OTP_TYPE.PHONE_OTP)
-    await this.checkRateLimit(phone, OTP_TYPE.PHONE_OTP)
-    await this.verifCodeRepo.invalidateExisting(phone, OTP_TYPE.PHONE_OTP)
+  private async sendPhoneOtpMechanics(phone: string, type: OtpType = OTP_TYPE.PHONE_OTP) {
+    await this.checkCooldown(phone, type)
+    await this.checkRateLimit(phone, type)
+    await this.verifCodeRepo.invalidateExisting(phone, type)
 
     const otp = this.generateOtp()
     const codeHash = this.hashOtp(otp)
 
     await this.verifCodeRepo.create({
-      type: OTP_TYPE.PHONE_OTP,
+      type,
       identifier: phone,
       codeHash,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
@@ -329,5 +332,39 @@ export class OtpService {
     this.logger.info({ userId }, 'Phone attached and verified')
 
     return { phone: updated.phone!, phoneVerified: updated.phoneVerified }
+  }
+
+  // ── Booking contact OTP (post-payment, per-booking) ────
+  // Verifies a contact number FOR A SPECIFIC BOOKING — which may not belong to the
+  // account owner (e.g. booking on behalf of a friend). Deliberately has NO User-table
+  // access at all: it must never read or write `User.phone`/`User.phoneVerified`. The
+  // caller (BookingService) is responsible for persisting the verified contact onto the
+  // booking's TravelerDetail record. Do not reuse sendPhoneOtpForAttach/
+  // verifyPhoneOtpForAttach here — those unconditionally write to User.
+
+  /**
+   * Sends a BOOKING_CONTACT_OTP to the given phone number. No user lookup.
+   * @throws {ValidationError} Invalid phone format after normalization
+   * @throws {TooManyRequestsError} Resend cooldown or rate limit exceeded
+   */
+  async sendBookingContactOtp(rawPhone: string) {
+    const phone = normalizePhone(rawPhone)
+    if (!phone) throw new ValidationError('Invalid phone number')
+
+    return this.sendPhoneOtpMechanics(phone, OTP_TYPE.BOOKING_CONTACT_OTP)
+  }
+
+  /**
+   * Verifies a BOOKING_CONTACT_OTP for the given phone number. No user lookup or write.
+   * @throws {ValidationError} Invalid phone format after normalization
+   * @throws {AuthError} No OTP found, expired, max attempts exceeded, or wrong OTP
+   */
+  async verifyBookingContactOtp(rawPhone: string, otp: string): Promise<{ phone: string }> {
+    const phone = normalizePhone(rawPhone)
+    if (!phone) throw new ValidationError('Invalid phone number')
+
+    await this.verifyCode(phone, OTP_TYPE.BOOKING_CONTACT_OTP, otp)
+
+    return { phone }
   }
 }
