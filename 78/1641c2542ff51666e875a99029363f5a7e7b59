@@ -1,0 +1,41 @@
+apps/api/src/controllers/otp.controller.ts
+  s_19167362b78323::t_120944c69e9495 59-73
+apps/api/src/repositories/user.repository.ts
+  s_19167362b78323::t_97137cc244a647 103-110
+  s_19167362b78323::t_2fcf5bd2aaab19 93-102
+apps/api/src/utils/constants.ts
+  s_19167362b78323::t_36634007833a22 195-200
+apps/api/src/services/auth.service.ts
+  s_19167362b78323::t_cfabc5a22a1321 514-516,527
+  s_19167362b78323::t_fd6ad44a71f70e 337
+  s_19167362b78323::t_f18ba76e01b5c7 543-544
+apps/api/src/services/otp.service.ts
+  s_19167362b78323::t_05197f44904f9f 3
+  s_19167362b78323::t_c22f59de950828 338-343,346-359,363-367,369-384,386-394,396-417
+  s_19167362b78323::t_2257f9b4cf73bf 284-285,300,304,314
+  s_19167362b78323::t_c468301ff98fba 344-345,360-362,368,385,395
+  s_19167362b78323::t_8c9ba5c52381b6 418
+apps/api/src/routes/auth.routes.ts
+  s_19167362b78323::t_006d42da42faf6 81-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "781641c2542ff51666e875a99029363f5a7e7b59",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
