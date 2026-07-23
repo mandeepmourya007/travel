@@ -1,0 +1,48 @@
+apps/web/src/hooks/use-attach-email.ts
+  s_19167362b78323::t_a9f8e5f6d5a9ea 36
+  s_19167362b78323::t_2df3fc437e082d 1-35,37-40
+apps/web/src/app/profile/page.tsx
+  s_19167362b78323::t_cc662cec945f9a 38-59
+  s_19167362b78323::t_40fd9281ad3a02 5
+apps/web/src/components/auth/phone-verification-flow.tsx
+  s_19167362b78323::t_beec72f9397c06 87,91,93
+  s_19167362b78323::t_64063b2354a013 34-42,56-62
+  s_19167362b78323::t_bfcc1c770beef1 48-52
+  s_19167362b78323::t_5c6aa9dd136556 3,7,13-20,31-33,46,53-55,63-64,88-90,92,94-97
+  s_19167362b78323::t_255c003a940cd0 47
+apps/web/src/components/profile/edit-profile-modal.tsx
+  s_19167362b78323::t_9d3ab053a4f665 140-148
+  s_19167362b78323::t_1b81d645e09568 1-108,112-139,149-173
+  s_19167362b78323::t_69623fef00d5c3 109-111
+apps/web/src/components/auth/email-input-form.tsx
+  s_19167362b78323::t_70bd67541c648f 11-12,15,17-18,26-32,34-39,42-44,52,57,60
+apps/web/src/store/auth.store.ts
+  s_19167362b78323::t_5c055fb91035b8 11
+apps/web/src/components/auth/email-verification-flow.tsx
+  s_19167362b78323::t_98f233a0a2b8be 31-39,53-59
+  s_19167362b78323::t_bfcc1c770beef1 45-49
+  s_19167362b78323::t_1b2d6c81f0fa63 1-2,4-6,8-12,20-27,40-42,44,63-81,93-111
+  s_19167362b78323::t_51eb18526ff24f 82,86,88
+  s_19167362b78323::t_87e0e39460a2de 3,7,13-19,28-30,43,50-52,60-62,83-85,87,89-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d47f09798b98b8c0d00284935a452fe2a3ff36d2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
