@@ -1,0 +1,25 @@
+apps/web/src/components/trips/trip-form/__tests__/trip-form.test.tsx
+  s_19167362b78323::t_2ec2f2828f01b3 8-22
+  s_19167362b78323::t_7e9272553152ae 40-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e0eafe8dcc99a25ae1f4897c31ba16021814beb6",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
