@@ -16,6 +16,7 @@ function createMockUserRepo() {
     updatePassword: vi.fn(),
     updateProfile: vi.fn(),
     updateGoogleId: vi.fn(),
+    markEmailVerified: vi.fn(),
     emailExists: vi.fn(),
     findWithOrganizer: vi.fn(),
   }
@@ -92,6 +93,7 @@ const testUser = {
   googleId: null as string | null,
   phone: null as string | null,
   phoneVerified: false,
+  emailVerified: false,
 }
 
 const meta = { userAgent: 'test-agent', ip: '127.0.0.1' }
@@ -583,6 +585,7 @@ describe('AuthService', () => {
     it('should login existing user found by googleId', async () => {
       const existing = { ...testUser, googleId: 'google-sub-123', email: 'google@example.com' }
       userRepo.findByGoogleId.mockResolvedValue(existing)
+      userRepo.markEmailVerified.mockResolvedValue({ ...existing, emailVerified: true })
       refreshTokenRepo.create.mockResolvedValue({})
 
       const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
@@ -592,13 +595,36 @@ describe('AuthService', () => {
       expect(userRepo.create).not.toHaveBeenCalled()
     })
 
+    it('backfills emailVerified=true for an existing account found by googleId that predates this check', async () => {
+      const existing = { ...testUser, googleId: 'google-sub-123', email: 'google@example.com', emailVerified: false }
+      userRepo.findByGoogleId.mockResolvedValue(existing)
+      userRepo.markEmailVerified.mockResolvedValue({ ...existing, emailVerified: true })
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(userRepo.markEmailVerified).toHaveBeenCalledWith('user-123')
+    })
+
+    it('does not call markEmailVerified when the account found by googleId is already verified', async () => {
+      const existing = { ...testUser, googleId: 'google-sub-123', email: 'google@example.com', emailVerified: true }
+      userRepo.findByGoogleId.mockResolvedValue(existing)
+      refreshTokenRepo.create.mockResolvedValue({})
+
+      await service.googleAuth({ idToken: 'valid' }, googleMeta)
+
+      expect(userRepo.markEmailVerified).not.toHaveBeenCalled()
+    })
+
     it('should link googleId when user found by email but not googleId', async () => {
       userRepo.findByGoogleId.mockResolvedValue(null)
       userRepo.findByEmail.mockResolvedValue({ ...testUser, email: 'google@example.com' })
-      userRepo.updateGoogleId.mockResolvedValue({
+      const linked = {
         ...testUser, email: 'google@example.com', googleId: 'google-sub-123',
         avatarUrl: 'https://photo.url/pic.jpg',
-      })
+      }
+      userRepo.updateGoogleId.mockResolvedValue(linked)
+      userRepo.markEmailVerified.mockResolvedValue({ ...linked, emailVerified: true })
       refreshTokenRepo.create.mockResolvedValue({})
 
       const result = await service.googleAuth({ idToken: 'valid' }, googleMeta)
@@ -606,6 +632,9 @@ describe('AuthService', () => {
       expect(userRepo.updateGoogleId).toHaveBeenCalledWith(
         'user-123', 'google-sub-123', 'https://photo.url/pic.jpg',
       )
+      // Google already proved ownership of this email — linking an account
+      // must also mark it verified, not just attach the googleId.
+      expect(userRepo.markEmailVerified).toHaveBeenCalledWith('user-123')
       expect(result.auth.user.avatarUrl).toBe('https://photo.url/pic.jpg')
       expect(result.isNewUser).toBe(false)
     })
@@ -614,7 +643,9 @@ describe('AuthService', () => {
       const userWithAvatar = { ...testUser, email: 'google@example.com', avatarUrl: 'https://existing-avatar.jpg' }
       userRepo.findByGoogleId.mockResolvedValue(null)
       userRepo.findByEmail.mockResolvedValue(userWithAvatar)
-      userRepo.updateGoogleId.mockResolvedValue({ ...userWithAvatar, googleId: 'google-sub-123' })
+      const linked = { ...userWithAvatar, googleId: 'google-sub-123' }
+      userRepo.updateGoogleId.mockResolvedValue(linked)
+      userRepo.markEmailVerified.mockResolvedValue({ ...linked, emailVerified: true })
       refreshTokenRepo.create.mockResolvedValue({})
 
       await service.googleAuth({ idToken: 'valid' }, googleMeta)
@@ -629,7 +660,7 @@ describe('AuthService', () => {
       userRepo.findByEmail.mockResolvedValue(null)
       userRepo.create.mockResolvedValue({
         ...testUser, name: 'Google User', email: 'google@example.com',
-        googleId: 'google-sub-123', avatarUrl: 'https://photo.url/pic.jpg',
+        googleId: 'google-sub-123', avatarUrl: 'https://photo.url/pic.jpg', emailVerified: true,
       })
       refreshTokenRepo.create.mockResolvedValue({})
 
@@ -638,6 +669,8 @@ describe('AuthService', () => {
       expect(userRepo.create).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Google User',
         email: 'google@example.com',
+        // Google's ID token already proves ownership of this email.
+        emailVerified: true,
         googleId: 'google-sub-123',
         role: 'TRAVELER',
         avatarUrl: 'https://photo.url/pic.jpg',
