@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api-client'
 import { bookingKeys, tripKeys } from '@/lib/query-keys'
 import { useAuthStore } from '@/store/auth.store'
+import { BookingContactVerificationFlow } from '@/components/booking/booking-contact-verification-flow'
 import type { VerifyPaymentResponse } from '@shared/types/payment.types'
 import { PAYMENT_PROVIDER } from '@shared/constants'
 
@@ -37,7 +38,9 @@ export default function PaymentCompletePage() {
 
   const [state, setState] = useState<PageState>('verifying')
   const [bookingRef, setBookingRef] = useState<string | null>(null)
+  const [bookingId, setBookingId] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [contactDone, setContactDone] = useState(false)
   const verifyCalledRef = useRef(false)
 
   useEffect(() => {
@@ -50,9 +53,9 @@ export default function PaymentCompletePage() {
     if (verifyCalledRef.current) return
     verifyCalledRef.current = true
 
-    const bookingId = sessionStorage.getItem(CASHFREE_BOOKING_KEY)
+    const pendingBookingId = sessionStorage.getItem(CASHFREE_BOOKING_KEY)
 
-    if (!orderId || !bookingId) {
+    if (!orderId || !pendingBookingId) {
       setState('missing-params')
       return
     }
@@ -67,12 +70,15 @@ export default function PaymentCompletePage() {
 
     apiClient
       .post<{ success: true; data: VerifyPaymentResponse }>(
-        `/bookings/${bookingId}/verify-payment`,
+        `/bookings/${pendingBookingId}/verify-payment`,
         { orderId, provider: PAYMENT_PROVIDER.CASHFREE },
       )
       .then((res) => {
         const status = res.data.data.bookingStatus
         if (status === 'CONFIRMED') {
+          // Capture the booking id into state BEFORE clearing sessionStorage so it
+          // survives into the success render (needed by BookingContactVerificationFlow).
+          setBookingId(pendingBookingId)
           sessionStorage.removeItem(CASHFREE_BOOKING_KEY)
           setBookingRef(res.data.data.bookingRef)
           setState('success')
@@ -167,15 +173,26 @@ export default function PaymentCompletePage() {
           </ol>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/my-bookings" prefetch={false} className="btn-primary">
-            View My Bookings
-          </Link>
-          <Link href="/trips" prefetch={false} className="btn-secondary">
-            Browse More Trips
-          </Link>
-        </div>
+        {contactDone && (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/my-bookings" prefetch={false} className="btn-primary">
+              View My Bookings
+            </Link>
+            <Link href="/trips" prefetch={false} className="btn-secondary">
+              Browse More Trips
+            </Link>
+          </div>
+        )}
       </div>
+
+      {!contactDone && bookingId && (
+        <div className="mt-6">
+          <BookingContactVerificationFlow
+            bookingId={bookingId}
+            onComplete={() => setContactDone(true)}
+          />
+        </div>
+      )}
     </div>
   )
 }
