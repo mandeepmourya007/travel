@@ -117,6 +117,12 @@ enum VerificationCodeType {
   // so the account "attach phone" flow and this flow never clobber each other's
   // in-flight code for the same phone number (keyed by identifier+type).
   BOOKING_CONTACT_OTP
+  // Authenticated "attach phone"/"attach email" flows (profile edit) — distinct
+  // from PHONE_OTP/EMAIL_OTP so an authenticated user attaching an identifier
+  // can never invalidate (or be invalidated by) an unrelated public
+  // login/signup OTP in flight for the same identifier.
+  ATTACH_PHONE_OTP
+  ATTACH_EMAIL_OTP
 }
 
 enum BookingMode {
