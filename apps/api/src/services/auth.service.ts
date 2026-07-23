@@ -210,7 +210,15 @@ export class AuthService {
    * Not intended for controller-level access.
    */
   async issueTokens(
-    user: { id: string; name: string; email: string | null; role: string; avatarUrl: string | null },
+    user: {
+      id: string
+      name: string
+      email: string | null
+      phone: string | null
+      phoneVerified: boolean
+      role: string
+      avatarUrl: string | null
+    },
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const accessToken = this.generateAccessToken({ userId: user.id, role: user.role })
@@ -221,6 +229,8 @@ export class AuthService {
           id: user.id,
           name: user.name,
           email: user.email ?? undefined,
+          phone: user.phone ?? undefined,
+          phoneVerified: user.phoneVerified,
           role: user.role as AuthResponse['user']['role'],
           avatarUrl: user.avatarUrl ?? undefined,
         },
@@ -238,6 +248,8 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email ?? undefined,
+      phone: user.phone ?? undefined,
+      phoneVerified: user.phoneVerified,
       role: user.role,
       avatarUrl: user.avatarUrl ?? undefined,
     }
@@ -322,6 +334,7 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       isVerified: user.aadhaarVerified,
       phoneVerified: user.phoneVerified,
+      emailVerified: user.emailVerified,
       createdAt: user.createdAt.toISOString(),
       organizerProfile: orgProfile,
       isReseller: user.isReseller,
@@ -498,6 +511,9 @@ export class AuthService {
     let user = await this.userRepo.findByGoogleId(google.sub)
     if (user) {
       if (!user.isActive) throw new AuthError('Account is deactivated')
+      // Google's ID token already proves ownership of this email — backfills
+      // accounts created before this account was linked, or before this check existed.
+      if (!user.emailVerified) user = await this.userRepo.markEmailVerified(user.id)
       this.logger.info({ userId: user.id }, 'Google login (by googleId)')
       return { ...(await this.issueTokens(user, meta)), isNewUser: false }
     }
@@ -508,6 +524,7 @@ export class AuthService {
       if (!user.isActive) throw new AuthError('Account is deactivated')
       const avatarToSet = !user.avatarUrl ? google.picture : undefined
       user = await this.userRepo.updateGoogleId(user.id, google.sub, avatarToSet)
+      if (!user.emailVerified) user = await this.userRepo.markEmailVerified(user.id)
       this.logger.info({ userId: user.id }, 'Google login (linked googleId)')
       return { ...(await this.issueTokens(user, meta)), isNewUser: false }
     }
@@ -523,6 +540,8 @@ export class AuthService {
       user = await this.userRepo.create({
         name: google.name,
         email: google.email,
+        // Google's ID token already proves ownership of this email.
+        emailVerified: true,
         googleId: google.sub,
         role: USER_ROLE.TRAVELER,
         avatarUrl: google.picture,

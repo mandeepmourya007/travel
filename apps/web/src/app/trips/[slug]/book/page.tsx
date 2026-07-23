@@ -27,6 +27,7 @@ import { loadCashfreeScript } from '@/lib/cashfree'
 import { TravelerForm } from '@/components/booking/traveler-form'
 import { PriceSummary } from '@/components/booking/price-summary'
 import { BookingSuccess } from '@/components/booking/booking-success'
+import { BookingContactVerificationFlow } from '@/components/booking/booking-contact-verification-flow'
 import { BookingPageSkeleton } from './loading'
 import { formatCurrency } from '@/lib/format'
 import { getEffectivePrice } from '@/lib/trip-utils'
@@ -36,6 +37,7 @@ type BookingRenderState = 'loading' | 'error' | 'fullyBooked' | 'deadlinePassed'
 
 
 interface BookingResult {
+  bookingId: string
   bookingRef: string
   tripTitle: string
   tripDates: { start: string; end: string }
@@ -87,6 +89,9 @@ export default function BookingPage() {
   const [phase, setPhase] = useState<'form' | 'success' | 'alreadyBooked'>('form')
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  // Mandatory post-payment contact-verification step must complete before the
+  // success screen's navigation-away CTAs appear (see BookingContactVerificationFlow).
+  const [contactDone, setContactDone] = useState(false)
 
   // Seat selection state
   const showSeatStep = !!trip?.seatSelectionEnabled
@@ -228,6 +233,7 @@ export default function BookingPage() {
                   tripId: trip.id,
                 })
                 setBookingResult({
+                  bookingId: result.bookingId,
                   bookingRef: result.bookingRef,
                   tripTitle: trip.title,
                   tripDates: { start: trip.startDate, end: trip.endDate },
@@ -379,7 +385,17 @@ export default function BookingPage() {
         )}
 
         {renderState === 'success' && bookingResult && (
-          <BookingSuccess {...bookingResult} />
+          <>
+            <BookingSuccess {...bookingResult} showActions={contactDone} />
+            {!contactDone && (
+              <div className="max-w-lg mx-auto px-4">
+                <BookingContactVerificationFlow
+                  bookingId={bookingResult.bookingId}
+                  onComplete={() => setContactDone(true)}
+                />
+              </div>
+            )}
+          </>
         )}
 
         {renderState === 'form' && trip && (

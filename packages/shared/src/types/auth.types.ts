@@ -25,10 +25,24 @@ export interface AuthResponse {
     id: string
     name: string
     email?: string
+    phone?: string
+    phoneVerified: boolean
     role: UserRole
     avatarUrl?: string
   }
   tokens: AuthTokens
+}
+
+/** Response for the authenticated "attach phone" flow — no tokens, no session change. */
+export interface AttachPhoneResponse {
+  phone: string
+  phoneVerified: boolean
+}
+
+/** Response for the authenticated "attach email" flow — no tokens, no session change. */
+export interface AttachEmailResponse {
+  email: string
+  emailVerified: boolean
 }
 
 export interface SendOtpDto {

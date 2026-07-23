@@ -71,6 +71,103 @@ services:
           name: safarnama-redis
           property: connectionString
 
+      # ── Auth ──────────────────────────────────────────
+      - key: JWT_SECRET
+        sync: false   # openssl rand -hex 32
+      - key: CLIENT_URL
+        sync: false   # https://safarnama.store
+      - key: ALLOWED_ORIGINS
+        sync: false   # comma-separated extra origins e.g. https://www.safarnama.in,https://safarnama.in
+
+      # ── Google OAuth ──────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # ── Razorpay ──────────────────────────────────────
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+
+      # ── Cloudinary ────────────────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # ── Resend (email) ────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: Safarnama <onboarding@resend.dev>
+
+      # ── SMTP (fallback, unused on free tier) ──────────
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        value: noreply@safarnama.in
+
+      # ── MSG91 (SMS OTP) ───────────────────────────────
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_TEMPLATE_ID
+        sync: false
+
+      # ── MSG91 WhatsApp (optional — system works without these) ────────────
+      # All keys are optional. WhatsApp channel is silently skipped when not set.
+      # Setup: register number on MSG91 dashboard → approve templates on Meta Business Manager
+      - key: MSG91_WA_BUSINESS_NUMBER
+        sync: false   # exact value from MSG91 dashboard → WhatsApp (already includes its own country code — copy verbatim)
+      - key: MSG91_WA_OTP_TEMPLATE
+        sync: false   # Meta-approved OTP template name e.g. safarnama_otp
+      - key: MSG91_WA_OTP_PREFER
+        value: "false" # set "true" to send OTP via WhatsApp instead of SMS
+      # Transactional notification template names (from Meta Business Manager via MSG91 dashboard)
+      - key: MSG91_WA_TPL_BOOKING_CONFIRMED
+        sync: false
+      - key: MSG91_WA_TPL_BOOKING_CANCELLED
+        sync: false
+      - key: MSG91_WA_TPL_PAYMENT_RECEIVED
+        sync: false
+      - key: MSG91_WA_TPL_PAYMENT_FAILED
+        sync: false
+      - key: MSG91_WA_TPL_REFUND_PROCESSED
+        sync: false
+      - key: MSG91_WA_TPL_TRIP_REMINDER
+        sync: false
+      - key: MSG91_WA_TPL_ORGANIZER_APPROVED
+        sync: false
+      - key: MSG91_WA_TPL_ORGANIZER_REJECTED
+        sync: false
+      - key: MSG91_WA_TPL_TRIP_REQUEST_APPROVED
+        sync: false
+      - key: MSG91_WA_TPL_DOCUMENT_REUPLOAD_REQUIRED
+        sync: false
+      - key: MSG91_WA_TPL_WALLET_CREDIT_EXPIRING
+        sync: false
+      - key: MSG91_WA_TPL_TRIP_TYPE_REQUEST_APPROVED
+        sync: false
+
+      # ── Firebase ──────────────────────────────────────
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+
       # ── Logging ───────────────────────────────────────
       - key: LOG_LEVEL
         value: info

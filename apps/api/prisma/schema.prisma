@@ -82,6 +82,7 @@ enum NotificationChannel {
   SMS
   PUSH
   IN_APP
+  WHATSAPP
 }
 
 enum NotificationType {
@@ -112,6 +113,16 @@ enum VerificationCodeType {
   PHONE_OTP
   EMAIL_OTP
   PASSWORD_RESET
+  // Booking-scoped contact verification (post-payment) — distinct from PHONE_OTP
+  // so the account "attach phone" flow and this flow never clobber each other's
+  // in-flight code for the same phone number (keyed by identifier+type).
+  BOOKING_CONTACT_OTP
+  // Authenticated "attach phone"/"attach email" flows (profile edit) — distinct
+  // from PHONE_OTP/EMAIL_OTP so an authenticated user attaching an identifier
+  // can never invalidate (or be invalidated by) an unrelated public
+  // login/signup OTP in flight for the same identifier.
+  ATTACH_PHONE_OTP
+  ATTACH_EMAIL_OTP
 }
 
 enum BookingMode {
@@ -215,6 +226,7 @@ model User {
   tripEdits          TripEditHistory[]
   wallet             Wallet?
   organizerInvitesSent OrganizerInvite[]
+  whatsappBroadcasts   WhatsappBroadcast[]
   resellerMainLinks    ResellerMainLink[]
   resellerSublinks     ResellerSublink[]
   sublinkAttributions  SublinkAttribution[]
@@ -470,6 +482,7 @@ model TravelerDetail {
   tripRequest   TripRequest? @relation(fields: [tripRequestId], references: [id])
   name          String
   phone         String?
+  phoneVerified Boolean      @default(false)
   age           Int?
   gender        Gender?
   isPrimary     Boolean      @default(false)
@@ -484,6 +497,11 @@ model TravelerDetail {
 
   assignedSeat VehicleSeat?
 
+  // A partial unique index on (bookingId) WHERE isPrimary AND NOT isDeleted
+  // enforces at most one active primary contact per booking — see migration
+  // 20260724020000_add_traveler_detail_primary_contact_unique_index. Not
+  // representable as a Prisma @@unique (that would also cap non-primary
+  // rows to one per booking), so it exists only in the migration SQL.
   @@index([bookingId])
   @@index([tripRequestId])
 }
@@ -943,6 +961,27 @@ model OrganizerInvite {
 
   @@index([acceptedAt])
   @@index([sentBy])
+}
+
+model WhatsappBroadcast {
+  id               String    @id @default(uuid(7))
+  createdByAdminId String
+  createdByAdmin   User      @relation(fields: [createdByAdminId], references: [id])
+  message          String
+  templateName     String
+  targetType       String
+  targetRole       String?
+  totalCount       Int       @default(0)
+  successCount     Int       @default(0)
+  failureCount     Int       @default(0)
+  status           String    @default("PENDING")
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([createdByAdminId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ─── Reseller feature ───────────────────────────────────────────────────

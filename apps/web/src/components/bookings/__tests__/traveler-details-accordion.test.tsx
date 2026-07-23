@@ -6,12 +6,12 @@ import type { TravelerDetailItem } from '@shared/types/booking.types'
 import { TravelerDetailsAccordion } from '../traveler-details-accordion'
 
 const twoTravelers: TravelerDetailItem[] = [
-  { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
-  { id: 'td-2', name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
+  { id: 'td-1', name: 'Alice', phone: '9999999999', phoneVerified: true, age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
+  { id: 'td-2', name: 'Charlie', phone: '7777777777', phoneVerified: false, age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
 ]
 
 const oneTraveler: TravelerDetailItem[] = [
-  { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
+  { id: 'td-1', name: 'Alice', phone: '9999999999', phoneVerified: true, age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
 ]
 
 describe('TravelerDetailsAccordion', () => {

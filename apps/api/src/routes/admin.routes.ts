@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
 import { USER_ROLE } from '@shared/constants'
 import type { AdminController } from '../controllers/admin.controller'
+import type { WhatsappBroadcastController } from '../controllers/whatsapp-broadcast.controller'
 import { validate } from '../middleware/validate.middleware'
 import { adminRateLimit } from '../middleware/rate-limit.middleware'
 import {
@@ -18,6 +19,8 @@ import {
   docTypeParamSchema,
   addDocCommentSchema,
   organizerInviteFiltersSchema,
+  sendWhatsappPromotionSchema,
+  broadcastHistoryFiltersSchema,
   adminTravellerFiltersSchema,
   adminOrganizerDirectoryFiltersSchema,
   adminTravellerDetailFiltersSchema,
@@ -30,6 +33,7 @@ export function createAdminRoutes(
   adminController: AdminController,
   authMiddleware: RequestHandler,
   requireRole: (...roles: UserRole[]) => RequestHandler,
+  waBroadcastController?: WhatsappBroadcastController,
 ) {
   const router = Router()
 
@@ -155,6 +159,22 @@ export function createAdminRoutes(
     validate(adminReviewFiltersSchema, 'query'),
     adminController.getAdminReviews,
   )
+
+  // ─── WhatsApp Broadcast ────────────────────────────
+  if (waBroadcastController) {
+    router.post(
+      '/whatsapp/broadcast',
+      adminRateLimit,
+      validate(sendWhatsappPromotionSchema, 'body'),
+      waBroadcastController.sendPromotion,
+    )
+
+    router.get(
+      '/whatsapp/broadcasts',
+      validate(broadcastHistoryFiltersSchema, 'query'),
+      waBroadcastController.getBroadcastHistory,
+    )
+  }
 
   // ─── User Directory ─────────────────────────────────
   router.get(

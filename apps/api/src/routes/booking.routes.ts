@@ -3,7 +3,14 @@ import type { RequestHandler } from 'express'
 import type { UserRole } from '@shared/types/user.types'
 import { BookingController } from '../controllers/booking.controller'
 import { validate } from '../middleware/validate.middleware'
-import { myBookingFiltersSchema, cancelBookingSchema, createBookingSchema, verifyPaymentSchema } from '@shared/validators/booking.schema'
+import {
+  myBookingFiltersSchema,
+  cancelBookingSchema,
+  createBookingSchema,
+  verifyPaymentSchema,
+  bookingContactSchema,
+  bookingContactVerifyOtpSchema,
+} from '@shared/validators/booking.schema'
 import { cuidParamSchema, tripIdParamSchema } from '@shared/validators/common.schema'
 import { bookingRateLimit } from '../middleware/rate-limit.middleware'
 
@@ -73,6 +80,34 @@ export function createBookingRoutes(
     authMiddleware,
     validate(cuidParamSchema, 'params'),
     bookingController.syncPayment,
+  )
+
+  // Post-payment per-booking contact verification — booking-scoped, never
+  // writes to User.phone/User.phoneVerified. See BookingService for the guard.
+  router.post(
+    '/:id/contact/send-otp',
+    bookingRateLimit,
+    authMiddleware,
+    validate(cuidParamSchema, 'params'),
+    validate(bookingContactSchema),
+    bookingController.sendBookingContactOtp,
+  )
+
+  router.post(
+    '/:id/contact/verify-otp',
+    bookingRateLimit,
+    authMiddleware,
+    validate(cuidParamSchema, 'params'),
+    validate(bookingContactVerifyOtpSchema),
+    bookingController.verifyBookingContactOtp,
+  )
+
+  router.post(
+    '/:id/contact/use-account-phone',
+    bookingRateLimit,
+    authMiddleware,
+    validate(cuidParamSchema, 'params'),
+    bookingController.useAccountPhoneForBooking,
   )
 
   return router

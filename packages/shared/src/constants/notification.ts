@@ -26,4 +26,5 @@ export const NOTIFICATION_CHANNEL = {
   EMAIL: 'EMAIL',
   SMS: 'SMS',
   PUSH: 'PUSH',
+  WHATSAPP: 'WHATSAPP',
 } as const

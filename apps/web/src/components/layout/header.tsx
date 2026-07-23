@@ -202,7 +202,7 @@ export function Header() {
           ) : (
             <>
               <Link
-                href="/login/email"
+                href="/login/phone"
                 prefetch={false}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
               >
@@ -304,7 +304,7 @@ export function Header() {
           ) : (
             <div className="flex gap-2 border-t border-neutral-100 mt-2 pt-3">
               <Link
-                href="/login/email"
+                href="/login/phone"
                 prefetch={false}
                 onClick={closeMobileMenu}
                 className="btn-secondary flex-1 text-center text-sm"

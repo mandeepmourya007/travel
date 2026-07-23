@@ -9,6 +9,7 @@ import {
   ADMIN_TRAVELLER_SORTS, ADMIN_ORGANIZER_SORTS, ADMIN_TRAVELLER_SORT, ADMIN_ORGANIZER_SORT,
   ADMIN_TRAVELLER_STATUSES,
 } from '../constants/admin'
+import { USER_ROLES } from '../constants/roles'
 import { paginationSchema, idSchema } from './common.schema'
 
 /** Validates query params for GET /admin/organizers */
@@ -95,6 +96,38 @@ export const adminReviewFiltersSchema = paginationSchema.extend({
   sortBy: z.enum(ADMIN_REVIEW_SORT_BYS).optional(),
   sortOrder: z.enum(SORT_ORDERS).optional(),
 })
+
+// ─── WhatsApp Broadcast Schemas ──────────────────────────
+
+/** Validates body for POST /admin/whatsapp/broadcast */
+export const sendWhatsappPromotionSchema = z.object({
+  templateName: z.string().min(1).max(200).trim(),
+  message: z.string().min(1).max(1000).trim(),
+  targetType: z.enum(['ALL_USERS', 'BY_ROLE', 'PHONE_LIST']),
+  targetRole: z.enum(USER_ROLES).optional(),
+  phones: z.array(z.string().min(10).max(15)).max(500).optional(),
+  params: z.array(z.string().max(200)).default([]),
+}).superRefine((data, ctx) => {
+  if (data.targetType === 'BY_ROLE' && !data.targetRole) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'targetRole is required when targetType is BY_ROLE',
+      path: ['targetRole'],
+    })
+  }
+  if (data.targetType === 'PHONE_LIST' && (!data.phones || data.phones.length === 0)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'phones list is required when targetType is PHONE_LIST',
+      path: ['phones'],
+    })
+  }
+})
+
+export type SendWhatsappPromotionDto = z.infer<typeof sendWhatsappPromotionSchema>
+
+/** Validates query params for GET /admin/whatsapp/broadcasts */
+export const broadcastHistoryFiltersSchema = paginationSchema
 
 // ─── Admin User Directory ───────────────────────────────
 

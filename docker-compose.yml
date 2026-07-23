@@ -37,7 +37,7 @@ services:
     container_name: travel-redis
     restart: unless-stopped
     ports:
-      - '127.0.0.1:6379:6379'
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
     # maxmemory 32mb is plenty for dev cache (sessions, OTP codes, rate-limit counters)
     command: redis-server --requirepass dev-redis-pass --maxmemory 32mb --maxmemory-policy allkeys-lru --save ""
     tmpfs:

@@ -44,7 +44,7 @@ vi.mock('@/store/auth.store', () => {
     isAuthenticated: true,
     _hasHydrated: true,
     accessToken: 'test-jwt',
-    user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'TRAVELER' },
+    user: { id: 'user-1', name: 'Test User', email: 'test@test.com', role: 'TRAVELER', phoneVerified: true },
   }
   const useAuthStore = (selector?: (s: Record<string, unknown>) => unknown) =>
     selector ? selector(state) : state

@@ -11,6 +11,9 @@ interface BookingSuccessProps {
   tripDates: { start: string; end: string }
   numTravelers: number
   amountPaid: number
+  /** Gates the navigation-away CTAs — false while the mandatory post-payment
+   *  contact-verification step (BookingContactVerificationFlow) is pending. */
+  showActions?: boolean
 }
 
 export function BookingSuccess({
@@ -19,6 +22,7 @@ export function BookingSuccess({
   tripDates,
   numTravelers,
   amountPaid,
+  showActions = true,
 }: BookingSuccessProps) {
   return (
     <div className="max-w-lg mx-auto text-center py-12 px-4">
@@ -66,18 +70,20 @@ export function BookingSuccess({
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Link href="/my-bookings" prefetch={false} className="btn-primary">
-            View My Bookings
-          </Link>
-          <button
-            disabled
-            className="btn-secondary opacity-50 cursor-not-allowed"
-            title="Coming Soon"
-          >
-            Chat with Organizer
-          </button>
-        </div>
+        {showActions && (
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/my-bookings" prefetch={false} className="btn-primary">
+              View My Bookings
+            </Link>
+            <button
+              disabled
+              className="btn-secondary opacity-50 cursor-not-allowed"
+              title="Coming Soon"
+            >
+              Chat with Organizer
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

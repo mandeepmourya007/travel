@@ -16,8 +16,14 @@ vi.mock('@/store/auth.store', () => ({
   useAuthStore: (selector: (state: unknown) => unknown) => mockUseAuthStore(selector),
 }))
 
-function setAuthState(state: { isAuthenticated: boolean; _hasHydrated: boolean }) {
-  mockUseAuthStore.mockImplementation((selector: (s: typeof state) => unknown) => selector(state))
+interface MockAuthState {
+  isAuthenticated: boolean
+  _hasHydrated: boolean
+  user?: { role?: string; phoneVerified?: boolean }
+}
+
+function setAuthState(state: MockAuthState) {
+  mockUseAuthStore.mockImplementation((selector: (s: MockAuthState) => unknown) => selector(state))
 }
 
 describe('AuthGuard', () => {
@@ -39,8 +45,8 @@ describe('AuthGuard', () => {
     expect(screen.queryByText('Protected')).not.toBeInTheDocument()
   })
 
-  it('renders children when authenticated and hydrated', () => {
-    setAuthState({ isAuthenticated: true, _hasHydrated: true })
+  it('renders children when authenticated, hydrated, and phone-verified', () => {
+    setAuthState({ isAuthenticated: true, _hasHydrated: true, user: { phoneVerified: true } })
 
     render(
       <AuthGuard>
@@ -52,7 +58,7 @@ describe('AuthGuard', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
-  it('redirects to /login/email when hydrated but not authenticated', () => {
+  it('redirects to /login/phone when hydrated but not authenticated', () => {
     setAuthState({ isAuthenticated: false, _hasHydrated: true })
 
     render(
@@ -61,7 +67,7 @@ describe('AuthGuard', () => {
       </AuthGuard>,
     )
 
-    expect(mockReplace).toHaveBeenCalledWith('/login/email')
+    expect(mockReplace).toHaveBeenCalledWith('/login/phone')
     expect(screen.queryByText('Protected')).not.toBeInTheDocument()
   })
 
@@ -76,4 +82,24 @@ describe('AuthGuard', () => {
 
     expect(mockReplace).not.toHaveBeenCalled()
   })
+
+  it.each(['TRAVELER', 'ORGANIZER', 'ADMIN'])(
+    'renders children for an authenticated %s regardless of phoneVerified',
+    (role) => {
+      setAuthState({
+        isAuthenticated: true,
+        _hasHydrated: true,
+        user: { role, phoneVerified: false },
+      })
+
+      render(
+        <AuthGuard>
+          <p>Protected</p>
+        </AuthGuard>,
+      )
+
+      expect(screen.getByText('Protected')).toBeInTheDocument()
+      expect(mockReplace).not.toHaveBeenCalled()
+    },
+  )
 })

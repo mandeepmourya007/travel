@@ -19,7 +19,7 @@ export function SupportChatButton({ className }: SupportChatButtonProps) {
 
   const handleClick = () => {
     if (!isAuthenticated) {
-      router.push('/login/email?returnTo=/messages')
+      router.push('/login/phone?returnTo=/messages')
       return
     }
 

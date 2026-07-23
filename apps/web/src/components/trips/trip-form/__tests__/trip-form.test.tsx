@@ -5,6 +5,21 @@ import { renderWithQuery } from '@/test/test-utils'
 import { TripForm, TRIP_SUBMIT_INTENT } from '../trip-form'
 import type { CreateTripDto } from '@shared/types/trip.types'
 
+// The confirmation-modal flow below walks through every tab, including Media
+// (which renders the fixture photo via next/image). Vitest/jsdom never loads
+// next.config.js's `images.remotePatterns`, so next/image rejects ANY external
+// hostname at render time — even an already-whitelisted one (verified: swapping
+// the fixture to a real res.cloudinary.com URL still throws the same
+// "hostname not configured" error in this test environment). Mocking
+// next/image to a plain <img> is the standard workaround for this Next.js/
+// Vitest gap and matches what next/image mocks look like in other Next.js
+// projects' test setups.
+vi.mock('next/image', () => ({
+  __esModule: true,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  default: (props: any) => <img {...props} alt={props.alt ?? ''} />,
+}))
+
 // Valid-per-schema defaults so clicking straight to Review + Submit opens the
 // confirmation modal without needing to drive every tab's inputs.
 const VALID_DEFAULTS: Partial<CreateTripDto> = {
@@ -22,7 +37,11 @@ const VALID_DEFAULTS: Partial<CreateTripDto> = {
   inclusions: ['Transport'],
   exclusions: [],
   itinerary: [],
-  photos: ['https://example.com/photo.jpg'],
+  // Must be an absolute URL (Zod's `photos` schema requires `.url()`) AND on a
+  // host allowlisted in next.config.js's remotePatterns (Cloudinary/Unsplash/
+  // Google only) — an arbitrary domain like example.com throws at next/image
+  // render time even though it passes schema validation.
+  photos: ['https://res.cloudinary.com/demo/image/upload/v1/photo.jpg'],
   pickupPoints: [{ label: 'Delhi Airport', extraCharge: 0 }],
   dropPoints: [{ label: 'Delhi Airport', extraCharge: 0 }],
 }

@@ -48,13 +48,33 @@ const authResponse = {
 
 // ── Test app factory ──────────────────────────────────
 
-function createTestApp(mockService: ReturnType<typeof createMockAuthService>) {
+function createMockOtpService() {
+  return {
+    sendOtp: vi.fn(),
+    verifyOtp: vi.fn(),
+    sendEmailOtp: vi.fn(),
+    verifyEmailOtp: vi.fn(),
+    sendPhoneOtpForAttach: vi.fn(),
+    verifyPhoneOtpForAttach: vi.fn(),
+  } as unknown as OtpService & {
+    sendOtp: ReturnType<typeof vi.fn>
+    verifyOtp: ReturnType<typeof vi.fn>
+    sendEmailOtp: ReturnType<typeof vi.fn>
+    verifyEmailOtp: ReturnType<typeof vi.fn>
+    sendPhoneOtpForAttach: ReturnType<typeof vi.fn>
+    verifyPhoneOtpForAttach: ReturnType<typeof vi.fn>
+  }
+}
+
+function createTestApp(
+  mockService: ReturnType<typeof createMockAuthService>,
+  mockOtpService: ReturnType<typeof createMockOtpService> = createMockOtpService(),
+) {
   const app = express()
   app.use(express.json())
   app.use(cookieParser())
 
   const controller = new AuthController(mockService)
-  const mockOtpService = { sendOtp: vi.fn(), verifyOtp: vi.fn() } as unknown as OtpService
   const otpController = new OtpController(mockOtpService)
   const authMiddleware = createAuthMiddleware(mockService)
   const router = createAuthRoutes(controller, otpController, authMiddleware, requireRole)
@@ -68,12 +88,14 @@ function createTestApp(mockService: ReturnType<typeof createMockAuthService>) {
 
 describe('Auth Routes (integration)', () => {
   let mockService: ReturnType<typeof createMockAuthService>
+  let mockOtpService: ReturnType<typeof createMockOtpService>
   let app: express.Express
 
   beforeEach(() => {
     vi.clearAllMocks()
     mockService = createMockAuthService()
-    app = createTestApp(mockService)
+    mockOtpService = createMockOtpService()
+    app = createTestApp(mockService, mockOtpService)
   })
 
   // ── POST /signup ──────────────────────────────────
@@ -339,6 +361,91 @@ describe('Auth Routes (integration)', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.data.email).toBe('john@test.com')
+    })
+  })
+
+  // ── POST /otp/attach/send ─────────────────────────
+
+  describe('POST /api/v1/auth/otp/attach/send', () => {
+    it('returns 401 without an Authorization header', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/send')
+        .send({ phone: '9876543210' })
+
+      expect(res.status).toBe(401)
+      expect(mockOtpService.sendPhoneOtpForAttach).not.toHaveBeenCalled()
+    })
+
+    it('returns 200 and delegates to sendPhoneOtpForAttach with the authenticated userId', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+      mockOtpService.sendPhoneOtpForAttach.mockResolvedValue({ message: 'OTP sent', retryAfter: 30 })
+
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/send')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ phone: '9876543210' })
+
+      expect(res.status).toBe(200)
+      expect(mockOtpService.sendPhoneOtpForAttach).toHaveBeenCalledWith('u1', '9876543210')
+    })
+
+    it('returns 409 when the phone is already linked to another account', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+      mockOtpService.sendPhoneOtpForAttach.mockRejectedValue(
+        new ConflictError('This phone number is already linked to another account', 'PHONE_TAKEN'),
+      )
+
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/send')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ phone: '9876543210' })
+
+      expect(res.status).toBe(409)
+      expect(res.body.error.subCode).toBe('PHONE_TAKEN')
+    })
+  })
+
+  // ── POST /otp/attach/verify ────────────────────────
+
+  describe('POST /api/v1/auth/otp/attach/verify', () => {
+    it('returns 401 without an Authorization header', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/verify')
+        .send({ phone: '9876543210', otp: '1234' })
+
+      expect(res.status).toBe(401)
+      expect(mockOtpService.verifyPhoneOtpForAttach).not.toHaveBeenCalled()
+    })
+
+    it('returns 200 with phone/phoneVerified and never sets a refresh cookie', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+      mockOtpService.verifyPhoneOtpForAttach.mockResolvedValue({ phone: '9876543210', phoneVerified: true })
+
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/verify')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ phone: '9876543210', otp: '1234' })
+
+      expect(res.status).toBe(200)
+      expect(res.body.data).toEqual({ phone: '9876543210', phoneVerified: true })
+      expect(res.body.data.tokens).toBeUndefined()
+      expect(res.headers['set-cookie']).toBeUndefined()
+      expect(mockOtpService.verifyPhoneOtpForAttach).toHaveBeenCalledWith('u1', '9876543210', '1234')
+    })
+
+    it('returns 409 when the phone is already linked to another account', async () => {
+      mockService.verifyAccessToken.mockReturnValue({ userId: 'u1', role: 'TRAVELER' })
+      mockOtpService.verifyPhoneOtpForAttach.mockRejectedValue(
+        new ConflictError('This phone number is already linked to another account', 'PHONE_TAKEN'),
+      )
+
+      const res = await request(app)
+        .post('/api/v1/auth/otp/attach/verify')
+        .set('Authorization', 'Bearer valid-token')
+        .send({ phone: '9876543210', otp: '1234' })
+
+      expect(res.status).toBe(409)
+      expect(res.body.error.subCode).toBe('PHONE_TAKEN')
     })
   })
 })

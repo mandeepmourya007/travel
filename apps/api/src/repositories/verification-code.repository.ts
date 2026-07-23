@@ -1,3 +1,4 @@
+import type { VerificationCodeType } from '@prisma/client'
 import type { ExtendedPrismaClient } from '../lib/prisma'
 
 export class VerificationCodeRepository {
@@ -6,7 +7,7 @@ export class VerificationCodeRepository {
   /** Stores a new verification code (hashed). */
   async create(data: {
     userId?: string
-    type: 'EMAIL_VERIFY' | 'PHONE_OTP' | 'EMAIL_OTP' | 'PASSWORD_RESET'
+    type: VerificationCodeType
     identifier: string
     codeHash: string
     expiresAt: Date
@@ -19,7 +20,7 @@ export class VerificationCodeRepository {
    * Note: Expiry is checked in the service layer, not here.
    * Used by: OtpService.sendOtp() (cooldown check), OtpService.verifyOtp()
    */
-  async findLatestByIdentifier(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP') {
+  async findLatestByIdentifier(identifier: string, type: VerificationCodeType) {
     return this.prisma.verificationCode.findFirst({
       where: {
         identifier,
@@ -47,7 +48,7 @@ export class VerificationCodeRepository {
   }
 
   /** Invalidates all active codes for an identifier. Used by: OtpService.sendOtp() before sending new code. */
-  async invalidateExisting(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP') {
+  async invalidateExisting(identifier: string, type: VerificationCodeType) {
     return this.prisma.verificationCode.updateMany({
       where: { identifier, type, usedAt: null },
       data: { usedAt: new Date() },
@@ -58,7 +59,7 @@ export class VerificationCodeRepository {
    * Counts codes sent in the last N minutes for an identifier.
    * Used by: OtpService.sendOtp() for rate limiting (max 3 per 10 min).
    */
-  async countRecentByIdentifier(identifier: string, type: 'PHONE_OTP' | 'EMAIL_OTP', minutesAgo: number): Promise<number> {
+  async countRecentByIdentifier(identifier: string, type: VerificationCodeType, minutesAgo: number): Promise<number> {
     return this.prisma.verificationCode.count({
       where: {
         identifier,

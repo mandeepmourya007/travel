@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from '@/store/auth.store'
+import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated'
 import { apiClient, isAppApiError } from '@/lib/api-client'
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, getPostAuthRoute } from '@/lib/constants'
 import { organizerSignupSchema } from '@shared/validators/auth.schema'
 import { useLoadingStore } from '@/store/loading.store'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,8 +16,6 @@ export default function OrganizerSignupPage() {
   const router = useRouter()
   const { token } = useParams<{ token: string }>()
   const setAuth = useAuthStore((s) => s.setAuth)
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const hasHydrated = useAuthStore((s) => s._hasHydrated)
 
   const [email, setEmail] = useState('')
   const [tokenError, setTokenError] = useState('')
@@ -25,11 +24,9 @@ export default function OrganizerSignupPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated) {
-      router.replace('/dashboard')
-    }
-  }, [hasHydrated, isAuthenticated, router])
+  // requireOnboarded: false — bounce an authenticated visitor away immediately
+  // (matches the original behavior: no completedOnboarding gate on this page).
+  useRedirectIfAuthenticated({ requireOnboarded: false })
 
   useEffect(() => {
     if (!token) return
@@ -66,7 +63,7 @@ export default function OrganizerSignupPage() {
       if (res.success) {
         useLoadingStore.getState().show('Setting up your organizer account...')
         setAuth(res.data.user, res.data.tokens.accessToken)
-        router.push('/onboarding')
+        router.push(getPostAuthRoute({ isNewUser: true, user: res.data.user }))
       }
     } catch (err: unknown) {
       if (isAppApiError(err) && err.details) {
@@ -196,7 +193,7 @@ export default function OrganizerSignupPage() {
 
           <p className="mt-6 text-center text-sm text-neutral-500">
             Already have an account?{' '}
-            <Link href="/login/email" className="font-medium text-primary-600 hover:text-primary-700">
+            <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
               Sign in
             </Link>
           </p>

@@ -45,7 +45,7 @@ const TRAVELER_NAV: NavItem[] = [
 const GUEST_NAV: NavItem[] = [
   { id: 'explore', label: 'Explore', href: '/trips', icon: MapPin },
   { id: 'destinations', label: 'Destinations', href: '/destinations', icon: Compass },
-  { id: 'signin', label: 'Sign In', href: '/login/email', icon: LogIn },
+  { id: 'signin', label: 'Sign In', href: '/login/phone', icon: LogIn },
 ]
 
 export function MobileBottomNav() {

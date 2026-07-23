@@ -6,6 +6,9 @@ interface AuthUser {
   id: string
   name: string
   email?: string
+  phone?: string
+  phoneVerified?: boolean
+  emailVerified?: boolean
   role: UserRole
   avatarUrl?: string
 }

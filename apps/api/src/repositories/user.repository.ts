@@ -82,6 +82,33 @@ export class UserRepository {
   }
 
   /**
+   * Attaches + verifies a phone number for an already-authenticated user of any auth
+   * method (email, Google, organizer-invite). Sets phoneVerified=true atomically.
+   * Used by: OtpService.verifyPhoneOtpForAttach
+   */
+  async setPhone(id: string, phone: string) {
+    return this.prisma.user.update({ where: { id }, data: { phone, phoneVerified: true } })
+  }
+
+  /**
+   * Attaches + verifies an email for an already-authenticated user of any auth
+   * method (phone, Google, organizer-invite). Sets emailVerified=true atomically.
+   * Used by: OtpService.verifyEmailOtpForAttach
+   */
+  async setEmail(id: string, email: string) {
+    return this.prisma.user.update({ where: { id }, data: { email, emailVerified: true } })
+  }
+
+  /**
+   * Marks the account's existing email as verified without changing it —
+   * used when an external IdP (Google) has already confirmed ownership.
+   * Used by: AuthService.googleAuth
+   */
+  async markEmailVerified(id: string) {
+    return this.prisma.user.update({ where: { id }, data: { emailVerified: true } })
+  }
+
+  /**
    * Fetches user with organizer profile included (1-to-1 relation).
    * Used by: AuthService.getFullProfile
    * Note: soft-delete check on organizerProfile done in service layer
@@ -140,6 +167,32 @@ export class UserRepository {
       where: { role, isDeleted: false },
       select: { id: true, email: true },
     })
+  }
+
+  /**
+   * All active users with a verified phone, capped at limit rows.
+   * Caller checks length against WHATSAPP_PROMO_MAX_RECIPIENTS before proceeding.
+   */
+  async findAllWithVerifiedPhone(limit?: number): Promise<Array<{ id: string; phone: string }>> {
+    const rows = await this.prisma.user.findMany({
+      where: { phone: { not: null }, phoneVerified: true, isActive: true, isDeleted: false },
+      select: { id: true, phone: true },
+      ...(limit !== undefined ? { take: limit } : {}),
+    })
+    return rows.filter((r): r is { id: string; phone: string } => r.phone !== null)
+  }
+
+  /**
+   * Active users of a given role with a verified phone, capped at limit rows.
+   * Caller checks length against WHATSAPP_PROMO_MAX_RECIPIENTS before proceeding.
+   */
+  async findByRoleWithVerifiedPhone(role: UserRole, limit?: number): Promise<Array<{ id: string; phone: string }>> {
+    const rows = await this.prisma.user.findMany({
+      where: { role, phone: { not: null }, phoneVerified: true, isActive: true, isDeleted: false },
+      select: { id: true, phone: true },
+      ...(limit !== undefined ? { take: limit } : {}),
+    })
+    return rows.filter((r): r is { id: string; phone: string } => r.phone !== null)
   }
 
   /** Soft-delete a user by id. Intercepted by Prisma extension → sets isDeleted=true. */

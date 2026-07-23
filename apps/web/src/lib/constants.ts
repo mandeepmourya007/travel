@@ -1,4 +1,5 @@
 import { USER_ROLE } from '@shared/constants'
+import type { UserRole } from '@shared/constants'
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Safarnama'
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
@@ -30,4 +31,24 @@ export function getHomeRoute(role?: string): string {
   if (role === USER_ROLE.ADMIN) return '/admin'
   if (role === USER_ROLE.ORGANIZER) return '/dashboard'
   return '/trips'
+}
+
+// ─── Auth routing ─────────────────────────────────
+export const ONBOARDING_ROUTE = '/onboarding'
+
+/**
+ * Single choke point for "where does this user go next" after any
+ * signup/login success handler. New users go through onboarding; everyone
+ * else returns to `returnTo` (if any) or their role's home route. Phone
+ * verification is no longer gated here — it's now a booking-scoped,
+ * post-payment step (see BookingContactVerificationFlow), not an
+ * account-level login-time gate.
+ */
+export function getPostAuthRoute(params: {
+  isNewUser: boolean
+  user?: { role?: UserRole | string; phoneVerified?: boolean } | null
+  returnTo?: string | null
+}): string {
+  if (params.isNewUser) return ONBOARDING_ROUTE
+  return params.returnTo ?? getHomeRoute(params.user?.role)
 }

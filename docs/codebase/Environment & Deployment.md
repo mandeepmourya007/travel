@@ -23,6 +23,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Redis | `REDIS_URL` (required in prod) |
 | Email | `SMTP_HOST/PORT/USER/PASS/FROM` (all-or-nothing), `RESEND_API_KEY`, `RESEND_FROM`, `SUPPORT_EMAIL` (optional, defaults `support@safarnama.store`; used as Reply-To + `List-Unsubscribe` mailto) |
 | SMS OTP | `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID` |
+| WhatsApp (optional) | `MSG91_WA_BUSINESS_NUMBER` (exact value from MSG91 dashboard — already includes its own country code, never re-prefixed by provider code), `MSG91_WA_OTP_TEMPLATE`, `MSG91_WA_OTP_PREFER` (`"true"` to prefer WA over SMS OTP), `MSG91_WA_TPL_<TYPE>` × 12 notification template names — all optional; system silently skips WhatsApp channel when unset |
 | Payments | `PAYMENT_GATEWAY` (razorpay\|cashfree), `RAZORPAY_KEY_ID` (must start `rzp_`) / `KEY_SECRET` / `WEBHOOK_SECRET`, `CASHFREE_APP_ID` / `SECRET_KEY` / `WEBHOOK_SECRET` / `CASHFREE_ENV`, `NEXT_PUBLIC_CASHFREE_ENV` |
 | Media | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` |
 | Monitoring | `SENTRY_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `NEXT_PUBLIC_SENTRY_*`, `SENTRY_AUTH_TOKEN` (source maps) |
@@ -43,7 +44,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Service | Image | Ports | Notes |
 | :--- | :--- | :--- | :--- |
 | postgres | postgres:15-alpine3.20 | 127.0.0.1:5432 | `fsync=off` (==dev only==), 192M |
-| redis | redis:7-alpine3.20 | 127.0.0.1:6379 | pass `dev-redis-pass`, tmpfs, 32MB |
+| redis | redis:7-alpine3.20 | `127.0.0.1:${REDIS_PORT:-6379}` | pass `dev-redis-pass`, tmpfs, 32MB — host port overridable to avoid clashing with another project's local Redis; internal container-to-container traffic (`REDIS_URL=redis://:pass@redis:6379`) is unaffected, always 6379 |
 | api | `docker/api.Dockerfile` | 4001→4000 | binds src/prisma/tests/shared; entrypoint runs `migrate deploy` + `generate` then `node --watch` |
 | web | `docker/web.Dockerfile` | `${WEB_PORT:-3000}` | `next dev --turbo`, 3GB mem |
 | seed / seed-prod | travel-api:dev | — | profiles `seed`/`seed-prod`, run `tsx prisma/seed[.prod].ts` |

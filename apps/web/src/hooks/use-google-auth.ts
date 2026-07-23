@@ -41,6 +41,8 @@ export function useGoogleAuth(opts?: UseGoogleAuthOptions) {
           id: data.user.id,
           name: data.user.name,
           email: data.user.email,
+          phone: data.user.phone,
+          phoneVerified: data.user.phoneVerified,
           role: data.user.role as UserRole,
           avatarUrl: data.user.avatarUrl,
         },

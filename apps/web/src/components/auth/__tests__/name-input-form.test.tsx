@@ -75,6 +75,14 @@ describe('NameInputForm', () => {
     await user.click(screen.getByRole('button', { name: /continue/i }))
 
     expect(screen.getByText(/saving/i)).toBeInTheDocument()
+
+    // Drain the delayed response before the test ends — otherwise the 200ms
+    // timer and its onComplete() continuation keep running in the background
+    // (pool: 'forks' runs this whole file in one process) and can land inside
+    // a LATER test in this file once it finally resolves, polluting the shared
+    // `onComplete` mock's call count under full-suite load. This is what caused
+    // "should show error when API fails" to flake intermittently.
+    await waitFor(() => expect(screen.queryByText(/saving/i)).not.toBeInTheDocument())
   })
 
   it('should call onComplete() callback on success', async () => {

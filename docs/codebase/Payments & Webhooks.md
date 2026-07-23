@@ -87,6 +87,7 @@ Manual reconciliation: `POST /bookings/:id/sync-payment` polls the gateway and r
 - SDK loaders: `apps/web/src/lib/razorpay.ts`, `apps/web/src/lib/cashfree.ts`.
 - Return handler page: `/payment-complete` → [[Frontend Routes Reference]].
 - Hooks: `use-create-booking`, `use-verify-payment`, `use-sync-payment` → [[Data Fetching & State]].
+- **Both gateways now require a mandatory post-payment contact-verification step** before the success screen's navigation-away CTAs appear — Razorpay in `app/trips/[slug]/book/page.tsx`'s success handler, Cashfree in `app/payment-complete/page.tsx`'s success state. Both mount the same `BookingContactVerificationFlow` → [[Auth & Security#Booking Contact Verification (Frontend)]].
 
 > [!warning] Cashfree Go-Live
 > Before declaring the Cashfree integration production-ready, walk the go-live checklist in `.claude/skills/cashfree-skills/pg/go-live/SKILL.md` (domain whitelisting, webhook signature verification, env-var swap, backend re-verify, dead-code cleanup).

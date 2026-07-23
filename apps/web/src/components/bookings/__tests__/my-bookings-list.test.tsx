@@ -514,7 +514,7 @@ describe('MyBookingsList', () => {
     const booking = makeMyBooking({
       numTravelers: 1,
       travelerDetails: [
-        { id: 'td-1', name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
+        { id: 'td-1', name: 'Alice', phone: '9999999999', phoneVerified: true, age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: null, emergencyContactPhone: null },
       ],
     })
     setupHandlers({ bookings: [booking] })
@@ -524,5 +524,60 @@ describe('MyBookingsList', () => {
     await waitFor(() => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
+  })
+
+  // ── 15. Contact verification safety-net banner ──
+
+  it('should show the "add contact number" banner for a CONFIRMED booking with no verified contact', async () => {
+    const booking = makeMyBooking({ bookingStatus: 'CONFIRMED', hasVerifiedContact: false })
+    setupHandlers({ bookings: [booking] })
+
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/add a contact number for this trip/i)).toBeInTheDocument()
+    })
+  })
+
+  it('should NOT show the banner when the booking already has a verified contact', async () => {
+    const booking = makeMyBooking({ bookingStatus: 'CONFIRMED', hasVerifiedContact: true })
+    setupHandlers({ bookings: [booking] })
+
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirmed')).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/add a contact number for this trip/i)).not.toBeInTheDocument()
+  })
+
+  it('should NOT show the banner for a non-CONFIRMED booking even without a verified contact', async () => {
+    const booking = makeMyBooking({ bookingStatus: 'COMPLETED', hasVerifiedContact: false })
+    setupHandlers({ bookings: [booking] })
+
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Completed')).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/add a contact number for this trip/i)).not.toBeInTheDocument()
+  })
+
+  it('should open the contact-verification modal when the banner button is clicked', async () => {
+    const booking = makeMyBooking({ bookingStatus: 'CONFIRMED', hasVerifiedContact: false })
+    setupHandlers({ bookings: [booking] })
+
+    const user = userEvent.setup()
+    renderWithQuery(<MyBookingsList />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/add a contact number for this trip/i)).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /add contact number/i }))
+
+    expect(screen.getAllByText(/verify a contact number/i).length).toBeGreaterThan(0)
+    // The flow itself never renders a dismiss/skip affordance
+    expect(screen.queryByRole('button', { name: /^skip$/i })).not.toBeInTheDocument()
   })
 })

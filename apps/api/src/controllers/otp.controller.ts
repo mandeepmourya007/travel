@@ -41,4 +41,34 @@ export class OtpController {
     res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
     res.json({ success: true, data: { user: auth.user, tokens: auth.tokens, isNewUser } })
   })
+
+  /** POST /auth/otp/attach/send — authenticated — attach a phone to the current session's user */
+  sendAttachPhoneOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.sendPhoneOtpForAttach(req.user!.userId, req.body.phone)
+    res.json({ success: true, data: result })
+  })
+
+  /**
+   * POST /auth/otp/attach/verify — authenticated — session-preserving, never issues
+   * tokens or sets a cookie (contrast with the public verifyOtp above).
+   */
+  verifyAttachPhoneOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.verifyPhoneOtpForAttach(req.user!.userId, req.body.phone, req.body.otp)
+    res.json({ success: true, data: result })
+  })
+
+  /** POST /auth/otp/attach-email/send — authenticated — attach an email to the current session's user */
+  sendAttachEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.sendEmailOtpForAttach(req.user!.userId, req.body.email)
+    res.json({ success: true, data: result })
+  })
+
+  /**
+   * POST /auth/otp/attach-email/verify — authenticated — session-preserving, never issues
+   * tokens or sets a cookie (contrast with the public verifyEmailOtp above).
+   */
+  verifyAttachEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.verifyEmailOtpForAttach(req.user!.userId, req.body.email, req.body.otp)
+    res.json({ success: true, data: result })
+  })
 }

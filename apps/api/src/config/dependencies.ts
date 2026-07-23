@@ -20,6 +20,7 @@ import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { MockOtpProvider } from '../providers/mock-otp.provider'
 import { Msg91OtpProvider } from '../providers/msg91-otp.provider'
+import { Msg91WhatsappOtpProvider, WhatsappNotificationProvider, WHATSAPP_TEMPLATE_ENV_KEY } from '../providers/whatsapp'
 import { ResendEmailProvider } from '../providers/resend-email.provider'
 import { NodemailerEmailProvider } from '../providers/nodemailer-email.provider'
 import { MockEmailProvider } from '../providers/mock-email.provider'
@@ -88,8 +89,11 @@ import { VehicleController } from '../controllers/vehicle.controller'
 import { createVehicleRoutes } from '../routes/vehicle.routes'
 import { TripCategoryRepository } from '../repositories/trip-category.repository'
 import { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
+import { WhatsappBroadcastRepository } from '../repositories/whatsapp-broadcast.repository'
 import { TripCategoryService } from '../services/trip-category.service'
+import { WhatsappBroadcastService } from '../services/whatsapp-broadcast.service'
 import { TripCategoryController } from '../controllers/trip-category.controller'
+import { WhatsappBroadcastController } from '../controllers/whatsapp-broadcast.controller'
 import { createPublicTripCategoryRoutes, createAdminTripCategoryRoutes, createOrganizerTripTypeRequestRoutes } from '../routes/trip-category.routes'
 import { CacheService } from '../services/cache.service'
 import { redis } from './redis'
@@ -126,6 +130,7 @@ const vehicleRepo = new VehicleRepository(prisma)
 const docReviewRepo = new DocumentReviewRepository(prisma)
 const tripCategoryRepo = new TripCategoryRepository(prisma)
 const organizerInviteRepo = new OrganizerInviteRepository(prisma)
+const whatsappBroadcastRepo = new WhatsappBroadcastRepository(prisma)
 const resellerRepo = new ResellerRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
@@ -192,9 +197,19 @@ export const chatService = new ChatService(conversationRepo, messageRepo, tripRe
 // tripLifecycleService is constructed after notificationService — see below
 export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organizerProfileRepo, logger)
 
-const otpProvider = env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
-  ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
-  : new MockOtpProvider(logger)
+const waOtpConfigured = !!(env.MSG91_AUTH_KEY && env.MSG91_WA_BUSINESS_NUMBER && env.MSG91_WA_OTP_TEMPLATE)
+const preferWhatsappOtp = env.MSG91_WA_OTP_PREFER === 'true'
+
+const otpProvider = waOtpConfigured && preferWhatsappOtp
+  ? new Msg91WhatsappOtpProvider(
+      env.MSG91_AUTH_KEY!,
+      env.MSG91_WA_BUSINESS_NUMBER!,
+      env.MSG91_WA_OTP_TEMPLATE!,
+      logger,
+    )
+  : env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
+    ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
+    : new MockOtpProvider(logger)
 
 const smtpConfigured = !!(env.RESEND_API_KEY || (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS))
 
@@ -254,11 +269,41 @@ const emailNotifProvider = new EmailNotificationProvider(emailProvider, logger)
 const smsProvider = new SmsNotificationProvider(logger)
 const pushProvider = new PushNotificationProvider(logger)
 
+// Build WhatsApp template map — only types that have a configured template are included.
+// Uses the validated env object via a typed cast; keys are dynamic so direct property
+// access isn't possible, but Zod has already validated and coerced all values.
+const whatsappTemplateMap: Partial<Record<string, string>> = {}
+for (const [notifType, envKey] of Object.entries(WHATSAPP_TEMPLATE_ENV_KEY)) {
+  const tplName = (env as unknown as Record<string, string | undefined>)[envKey]
+  if (tplName) whatsappTemplateMap[notifType] = tplName
+}
+
+const waNotifConfigured = !!(env.MSG91_AUTH_KEY && env.MSG91_WA_BUSINESS_NUMBER)
+const whatsappNotifProvider: WhatsappNotificationProvider | null = waNotifConfigured
+  ? new WhatsappNotificationProvider(
+      env.MSG91_AUTH_KEY!,
+      env.MSG91_WA_BUSINESS_NUMBER!,
+      whatsappTemplateMap,
+      logger,
+    )
+  : null
+
 export const notificationService = new NotificationService(
   notificationRepo, userRepo,
-  [inAppProvider, emailNotifProvider, smsProvider, pushProvider],
+  [
+    inAppProvider,
+    emailNotifProvider,
+    smsProvider,
+    pushProvider,
+    ...(whatsappNotifProvider ? [whatsappNotifProvider] : []),
+  ],
   logger,
 )
+
+// Wire booking + notification into paymentService now that both are available.
+// Cannot be constructor-injected because bookingService depends on paymentService,
+// and notificationService is constructed after paymentService — late-bind avoids the cycle.
+paymentService.setPostConstruct(bookingRepo, notificationService)
 
 // Services that depend on notificationService (must be after it)
 const tripLifecycleService = new TripLifecycleService(
@@ -268,7 +313,8 @@ const tripLifecycleService = new TripLifecycleService(
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
 // Deposit/balance payout orchestration (Cashfree only) — see services/payout.service.ts.
 export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo)
+const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo, otpService)
 const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
@@ -277,8 +323,6 @@ const adminService = new AdminService(
   walletRepo, walletService, logger, notificationService,
   docReviewRepo, reviewRepo, organizerInviteRepo,
 )
-
-const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
 
 // ── Middleware ────────────────────────────────────────
 export const authMiddleware = createAuthMiddleware(authService)
@@ -299,6 +343,13 @@ const adminController = new AdminController(adminService, tripService)
 const vehicleController = new VehicleController(vehicleService)
 const tripCategoryController = new TripCategoryController(tripCategoryService)
 const webhookController = new WebhookController(paymentService, bookingService)
+const whatsappBroadcastService = new WhatsappBroadcastService(
+  whatsappBroadcastRepo,
+  userRepo,
+  whatsappNotifProvider,
+  logger,
+)
+const whatsappBroadcastController = new WhatsappBroadcastController(whatsappBroadcastService)
 const resellerController = new ResellerController(resellerService)
 
 // ── Routes ───────────────────────────────────────────
@@ -322,7 +373,7 @@ export const reviewRoutes = createReviewRoutes(reviewController, authMiddleware,
 export const walletRoutes = createWalletRoutes(walletController, authMiddleware, requireRole)
 export const chatRoutes = createChatRoutes(chatController, authMiddleware, requireRole)
 export const notificationRoutes = createNotificationRoutes(notificationController, authMiddleware, requireRole)
-export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole)
+export const adminRoutes = createAdminRoutes(adminController, authMiddleware, requireRole, whatsappBroadcastController)
 export const vehicleRoutes = createVehicleRoutes(vehicleController, authMiddleware, requireRole)
 export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCategoryController)
 export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)

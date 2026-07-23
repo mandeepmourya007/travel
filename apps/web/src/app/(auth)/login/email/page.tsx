@@ -4,8 +4,9 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
+import { useRedirectIfAuthenticated } from '@/hooks/use-redirect-if-authenticated'
 import { apiClient } from '@/lib/api-client'
-import { APP_NAME, getHomeRoute } from '@/lib/constants'
+import { APP_NAME, getPostAuthRoute } from '@/lib/constants'
 import { loginSchema } from '@shared/validators/auth.schema'
 import { GoogleAuthSection } from '@/components/auth/google-auth-section'
 import { EmailInput } from '@/components/shared/email-input'
@@ -47,11 +48,7 @@ function EmailLoginForm() {
   const [loading, setLoading] = useState(false)
   const [googleRedirectPending, setGoogleRedirectPending] = useState(() => readGooglePending())
 
-  useEffect(() => {
-    if (hasHydrated && isAuthenticated && completedOnboarding) {
-      router.replace(returnTo ?? getHomeRoute(useAuthStore.getState().user?.role))
-    }
-  }, [hasHydrated, isAuthenticated, completedOnboarding, router, returnTo])
+  useRedirectIfAuthenticated({ returnTo })
 
   const clearGooglePending = () => {
     sessionStorage.removeItem(GOOGLE_PENDING_KEY)
@@ -91,7 +88,7 @@ function EmailLoginForm() {
         useLoadingStore.getState().show('Signing in...')
         setAuth(res.data.user, res.data.tokens.accessToken)
         markOnboardingComplete()
-        router.push(returnTo ?? getHomeRoute(res.data.user.role))
+        router.push(getPostAuthRoute({ isNewUser: false, user: res.data.user, returnTo }))
       }
     } catch (err: unknown) {
       setError((err as Error).message || 'Login failed. Please try again.')
@@ -173,7 +170,7 @@ function EmailLoginForm() {
               clearGooglePending()
               useLoadingStore.getState().show('Signing in...')
               if (!isNewUser) markOnboardingComplete()
-              router.push(isNewUser ? '/onboarding' : (returnTo ?? getHomeRoute(useAuthStore.getState().user?.role)))
+              router.push(getPostAuthRoute({ isNewUser, user: useAuthStore.getState().user, returnTo }))
             }}
             onError={clearGooglePending}
           />
@@ -189,6 +186,10 @@ function EmailLoginForm() {
             Or{' '}
             <Link href="/login/email-otp" className="font-medium text-primary-600 hover:text-primary-700">
               login with email OTP
+            </Link>
+            {' · '}
+            <Link href="/login/phone" className="font-medium text-primary-600 hover:text-primary-700">
+              login with WhatsApp
             </Link>
           </p>
         </div>

@@ -33,6 +33,9 @@ tags:
 > [!info] Admin Impersonation
 > `TRAVELER_ROLES = [TRAVELER, ADMIN]` in [[Shared Package#Constants|shared constants]] — admins are allowed on traveler pages/endpoints.
 
+> [!important] Contact verification is booking-scoped, not account-mandatory
+> The prior mandatory account-level phone-verification policy (every user forced to `User.phoneVerified === true` at login) has been retired. The business need it served — a reachable WhatsApp number — is now collected **per booking**, right after that booking's payment succeeds, since the reachable number for a trip may belong to someone other than the account owner (e.g. booking on behalf of a friend). The verified contact lives on that booking's own `TravelerDetail.phoneVerified`, never on `User.phoneVerified`. The authenticated `POST /auth/otp/attach/send` + `/verify` pair (account-level, optional) still exists as a profile-page convenience, unrelated to this booking-scoped requirement. See [[Auth & Security#Post-Payment Booking Contact Verification]].
+
 ## Core Feature Areas
 
 - **Trips** — categories (admin-managed `TripCategory` + organizer `TripTypeRequest`), destinations, itineraries, transfer points (pickup/drop), early-bird pricing, trending scores.

@@ -72,5 +72,16 @@ export function createAuthRoutes(
   router.post('/otp/email/send', otpRateLimit, validate(sendEmailOtpSchema), otpController.sendEmailOtp)
   router.post('/otp/email/verify', otpRateLimit, validate(verifyEmailOtpSchema), otpController.verifyEmailOtp)
 
+  // Authenticated "attach phone" pair — lets a logged-in user of ANY auth method
+  // attach + verify a phone without replacing their session. Not the same as the
+  // public otp/send + otp/verify above (those auto-signup/login by phone).
+  router.post('/otp/attach/send', authMiddleware, otpRateLimit, validate(sendOtpSchema), otpController.sendAttachPhoneOtp)
+  router.post('/otp/attach/verify', authMiddleware, otpRateLimit, validate(verifyOtpSchema), otpController.verifyAttachPhoneOtp)
+
+  // Authenticated "attach email" pair — mirrors the attach-phone pair above, for email.
+  // Not the same as the public otp/email/send + otp/email/verify (those auto-signup/login).
+  router.post('/otp/attach-email/send', authMiddleware, otpRateLimit, validate(sendEmailOtpSchema), otpController.sendAttachEmailOtp)
+  router.post('/otp/attach-email/verify', authMiddleware, otpRateLimit, validate(verifyEmailOtpSchema), otpController.verifyAttachEmailOtp)
+
   return router
 }

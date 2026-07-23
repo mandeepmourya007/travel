@@ -21,6 +21,8 @@ import { loadCashfreeScript } from '@/lib/cashfree'
 import { bookingKeys } from '@/lib/query-keys'
 import { APP_NAME } from '@/lib/constants'
 import { PAYMENT_PROVIDER, BOOKING_STATUS } from '@shared/constants'
+import { Modal } from '@/components/shared/modal'
+import { BookingContactVerificationFlow } from '@/components/booking/booking-contact-verification-flow'
 
 interface MyBookingCardProps {
   booking: MyBookingListItem
@@ -48,8 +50,11 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
   const showEditReview = booking.bookingStatus === BOOKING_STATUS.COMPLETED && booking.hasReview
   const showSyncPayment = booking.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT
   const showPayNow = booking.bookingStatus === BOOKING_STATUS.PENDING_PAYMENT
+  const needsContactVerification =
+    booking.bookingStatus === BOOKING_STATUS.CONFIRMED && !booking.hasVerifiedContact
 
   const [isPaying, setIsPaying] = useState(false)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
   const syncPayment = useSyncPayment()
   const createBooking = useCreateBooking()
   const verifyPayment = useVerifyPayment()
@@ -270,6 +275,24 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
           </div>
         )}
 
+        {/* Contact verification safety net — surfaces if the mandatory post-payment
+            step (BookingContactVerificationFlow) was abandoned mid-way, e.g. via a
+            refresh or navigating away before completion. */}
+        {needsContactVerification && (
+          <div className="flex flex-col items-start gap-2 rounded-lg border border-warning-200 bg-warning-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-warning-700">
+              Add a contact number for this trip so the organizer can reach you.
+            </p>
+            <button
+              type="button"
+              onClick={() => setContactModalOpen(true)}
+              className="btn-secondary shrink-0 py-1.5 px-3 text-sm"
+            >
+              Add contact number
+            </button>
+          </div>
+        )}
+
         {/* Expired nudge */}
         {booking.bookingStatus === BOOKING_STATUS.EXPIRED && (
           <p className="text-sm text-neutral-500">
@@ -343,6 +366,21 @@ export function MyBookingCard({ booking, onCancel, onReview }: MyBookingCardProp
           </div>
         </div>
       </div>
+
+      {/* Contact verification modal — the modal itself may be closed (durable
+          "come back later" entry point), but the flow inside it stays
+          non-dismissible/mandatory (no onCancel passed). */}
+      {contactModalOpen && (
+        <Modal open onClose={() => setContactModalOpen(false)} title="Verify a contact number">
+          <BookingContactVerificationFlow
+            bookingId={booking.id}
+            onComplete={() => {
+              setContactModalOpen(false)
+              queryClient.invalidateQueries({ queryKey: bookingKeys.all })
+            }}
+          />
+        </Modal>
+      )}
     </div>
   )
 }

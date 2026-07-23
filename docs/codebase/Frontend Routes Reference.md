@@ -25,13 +25,16 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 
 | Route | Purpose |
 | :--- | :--- |
-| `/login` | Server redirect → `/login/email` |
+| `/login` | Server redirect → `/login/phone` (default login method) |
 | `/login/email` | Email/password + Google; `returnTo` (open-redirect-safe); post-login role routing |
 | `/login/email-otp` | Email OTP login |
-| `/login/phone` | Firebase phone OTP login |
+| `/login/phone` | Phone/WhatsApp OTP login (backend MSG91 flow, not Firebase client SDK — see [[Auth & Security]]) — default login screen; all app-wide "sign in" links (`header.tsx`, `mobile-bottom-nav.tsx`, `auth-guard.tsx`, `login-required-dialog.tsx`, `use-logout.ts`, `api-client.ts` 401 interceptor, onboarding/signup flows) point here |
 | `/signup` | Traveler signup |
 | `/signup/organizer/[token]` | Organizer signup via invite token |
 | `/onboarding` · `/onboarding/profile` | Post-signup onboarding |
+
+> [!info] `/verify-phone` removed
+> The mandatory login-time phone-verification gate route has been deleted along with `AuthGuard`'s phone-gate branch and `getPostAuthRoute`'s phone-first check. Contact verification is now booking-scoped, collected right after payment success — see [[Auth & Security#Booking Contact Verification (Frontend)]] and the `/trips/[slug]/book`, `/payment-complete`, and `/my-bookings` entries below.
 
 ## `(public)` Group — indexable legal/marketing
 
@@ -49,7 +52,7 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | :---------------------------| :----------------------------------------------------------------|
 | `/trips`                   | Listing/search/filters                                          |
 | `/trips/[slug]`            | Trip detail — SSG/ISR via `generateStaticParams` (10-min revalidate), TouristTrip JSON-LD. Does **not** read `searchParams` server-side (reading a dynamic API in a statically-generated route with no Suspense boundary around it throws an uncaught `DYNAMIC_SERVER_USAGE` bailout and 500s the whole route) — the `?ref` reseller-sublink token is resolved entirely client-side in `TripDetailClient` via `useSearchParams()` + `useSublinkResolve` instead. |
-| `/trips/[slug]/book`       | Booking flow (seats, travelers, payment)                        |
+| `/trips/[slug]/book`       | Booking flow (seats, travelers, payment). Razorpay success renders `BookingSuccess` (CTAs hidden via `showActions={contactDone}`) followed by `BookingContactVerificationFlow` until `onComplete` fires → [[Auth & Security#Booking Contact Verification (Frontend)]]. |
 | `/trips/compare`           | Side-by-side comparison (max 3)                                 |
 | `/trips/organizers/[slug]` | Public organizer profile, Organization JSON-LD                  |
 
@@ -99,7 +102,8 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | `/my-bookings` | Traveler bookings |
 | `/my-payments` | Payment history |
 | `/my-reviews` | Reviews written |
-| `/profile` | User profile |
+| `/profile` | User profile — `edit-user-profile-form.tsx`'s read-only phone block renders `VerifyPhoneCta` (`components/profile/verify-phone-cta.tsx`) whenever `!profile.phoneVerified`; opens `PhoneVerificationFlow` in a `Modal` — an optional, account-level convenience (no mandatory gate exists anymore). `profile-header.tsx`'s "Phone Verified" badge reflects the change once the profile query invalidates. |
+| `/my-bookings` (contact safety net) | `my-booking-card.tsx` shows a non-dismissible banner on any `CONFIRMED` booking with `hasVerifiedContact === false`, opening a closeable `Modal` that hosts `BookingContactVerificationFlow` — the durable "come back later" re-entry point for the mandatory post-payment contact step if it was abandoned mid-way (refresh, tab close, navigating away). See [[Auth & Security#Booking Contact Verification (Frontend)]]. |
 | `/wallet` | Balance, transactions, cashback |
 | `/messages` | Chat inbox |
 | `/reseller` | **Layout-level** `AppShell` (`app/reseller/layout.tsx`) + **page-level** `<AuthGuard allowedRoles={[...TRAVELER_ROLES]}>` **+** `isReseller` gate (from `useProfile()`, renders `EmptyState` when false). Redesigned as a **trip-card landing page** (this is the one reseller-facing page with its own layout, distinct from `/dashboard/reseller-links` and `/admin/reseller-links`, which keep the flat `ResellerLeadsTable` UI): one `reseller-trip-card.tsx` (`ResellerTripCard`) per `useMyMainLinksAsReseller()` row (a reseller has exactly one main link per trip) showing trip photo/title, organizer name (`organizerName`), sublink count, booking count, and `totalMarkupAmount`, with "View Links" and "Generate Link" actions; page pagination wired to that hook's `pagination`. Summary cards (bookings/total markup) are now summed client-side from the same `useMyMainLinksAsReseller()` rows — `useMyLeads` is no longer fetched on this page (avoids a redundant request). "Generate Link" (from a card, or from inside the drill-in below) opens the simplified `GenerateLinkModal` (exported from `reseller-sublinks-drilldown.tsx`) — no trip picker, since the main link is already known from context: just a markup-amount input and optional label, calling `useCreateSublink({ mainLinkToken, markupAmount, label })`. "View Links" opens `reseller-sublinks-drilldown.tsx` (`ResellerSublinksDrilldown`) — a `Modal` scoped to that one main link's sublinks via `useMySublinks({ mainLinkId })` (a real caller again after being orphaned by an earlier consolidation): Label / Rate (pencil-edit → its own "Edit Markup Rate" modal, reimplementing — not importing — the equivalent modal in `reseller-leads-table.tsx`, which stays untouched for the organizer/admin pages) / Bookings / Earnings / Link (copy) / Views (opens `ResellerBookingList` in a `Modal` via `useSublinkBookings`, scoped to that sublink row). `ResellerLeadsTable` itself is unchanged and still used verbatim by `/dashboard/reseller-links` and `/admin/reseller-links`. |
@@ -108,7 +112,7 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 
 | Route | Purpose |
 | :--- | :--- |
-| `/payment-complete` | Gateway return handler — *noindex*, no shell |
+| `/payment-complete` | Cashfree gateway return handler — *noindex*, no shell. Success state captures `bookingId` into state (before clearing `cashfree_pending_booking_id` from sessionStorage) and renders `BookingContactVerificationFlow` in place of the "View My Bookings"/"Browse More Trips" CTAs until `onComplete` fires. |
 | `/preview/trip-users` | Mock-data preview harness (robots-blocked) |
 | `/demo-css` | **Route Handler** (GET) — dev-only, serves `docs/engineering/fe/preview.html`, 404 in prod |
 | `/demo-css/components` | Component showcase |
