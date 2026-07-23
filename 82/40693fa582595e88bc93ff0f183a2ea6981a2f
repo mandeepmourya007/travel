@@ -1,0 +1,32 @@
+apps/api/tests/unit/services/otp.service.test.ts
+  s_19167362b78323::t_5b22d6f5838265 20
+  s_19167362b78323::t_971780072ddb21 473-560
+  s_19167362b78323::t_b5649885592d23 561
+apps/api/tests/unit/services/auth.service.test.ts
+  s_19167362b78323::t_9a60d646b92cd8 604
+  s_19167362b78323::t_69bde382b9cee7 19
+  s_19167362b78323::t_add54e05ac0a71 588,598-603,605-618,622,625-627,635-637,646-648
+  s_19167362b78323::t_5e1849ae58d890 663,672-673
+  s_19167362b78323::t_525667d1f26c62 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "8240693fa582595e88bc93ff0f183a2ea6981a2f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
