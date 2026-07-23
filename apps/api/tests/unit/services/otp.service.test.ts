@@ -469,4 +469,83 @@ describe('OtpService', () => {
       await expect(service.verifyPhoneOtpForAttach('user-1', '12345', '0000')).rejects.toThrow(ValidationError)
     })
   })
+
+  // ── sendBookingContactOtp / verifyBookingContactOtp ────
+  // Booking-scoped contact verification — must never touch the User table.
+
+  describe('sendBookingContactOtp', () => {
+    it('should send OTP and never touch the User table', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
+      verifCodeRepo.countRecentByIdentifier.mockResolvedValue(0)
+
+      const result = await service.sendBookingContactOtp('9876543210')
+
+      expect(result.retryAfter).toBe(OTP_RESEND_COOLDOWN_SECONDS)
+      expect(mockOtpProvider.sendOtp).toHaveBeenCalled()
+      expect(mockUserRepo.findByPhone).not.toHaveBeenCalled()
+      expect(mockUserRepo.create).not.toHaveBeenCalled()
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when phone is invalid', async () => {
+      await expect(service.sendBookingContactOtp('12345')).rejects.toThrow(ValidationError)
+    })
+
+    it('should use a distinct code slot from PHONE_OTP for the same number (no cross-invalidation)', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
+      verifCodeRepo.countRecentByIdentifier.mockResolvedValue(0)
+
+      await service.sendBookingContactOtp('9876543210')
+
+      expect(verifCodeRepo.invalidateExisting).toHaveBeenCalledWith('9876543210', 'BOOKING_CONTACT_OTP')
+      expect(verifCodeRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'BOOKING_CONTACT_OTP', identifier: '9876543210' }),
+      )
+    })
+  })
+
+  describe('verifyBookingContactOtp', () => {
+    it('should verify the OTP and return the phone, never touching the User table', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+
+      const result = await service.verifyBookingContactOtp('9876543210', '0000')
+
+      expect(result).toEqual({ phone: '9876543210' })
+      expect(mockUserRepo.findByPhone).not.toHaveBeenCalled()
+      expect(mockUserRepo.create).not.toHaveBeenCalled()
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+      expect(mockAuthService.issueTokens).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when phone format is invalid', async () => {
+      await expect(service.verifyBookingContactOtp('12345', '0000')).rejects.toThrow(ValidationError)
+    })
+
+    it('should throw AuthError when no OTP was found', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(null)
+
+      await expect(service.verifyBookingContactOtp('9876543210', '0000')).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError when OTP is wrong', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue(validCode)
+
+      await expect(service.verifyBookingContactOtp('9876543210', '9999')).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError when OTP is expired', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue({
+        ...validCode,
+        expiresAt: new Date(Date.now() - 1000),
+      })
+
+      await expect(service.verifyBookingContactOtp('9876543210', '0000')).rejects.toThrow(AuthError)
+    })
+
+    it('should throw AuthError when max attempts exceeded', async () => {
+      verifCodeRepo.findLatestByIdentifier.mockResolvedValue({ ...validCode, attempts: 5 })
+
+      await expect(service.verifyBookingContactOtp('9876543210', '0000')).rejects.toThrow(AuthError)
+    })
+  })
 })

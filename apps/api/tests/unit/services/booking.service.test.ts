@@ -2706,3 +2706,179 @@ describe('syncPaymentStatus', () => {
     })
   })
 
+// ═══════════════════════════════════════════════════
+// Post-Payment Booking Contact Verification
+// Booking-scoped only — must never write to the User table.
+// ═══════════════════════════════════════════════════
+describe('booking contact verification', () => {
+  const mockOtpService = {
+    sendBookingContactOtp: vi.fn(),
+    verifyBookingContactOtp: vi.fn(),
+  }
+  const mockUserRepo = {
+    findById: vi.fn(),
+    setPhone: vi.fn(),
+    create: vi.fn(),
+  }
+
+  let contactService: BookingService
+
+  beforeEach(() => {
+    mockOtpService.sendBookingContactOtp.mockReset()
+    mockOtpService.verifyBookingContactOtp.mockReset()
+    mockUserRepo.findById.mockReset()
+    mockUserRepo.setPhone.mockReset()
+    mockUserRepo.create.mockReset()
+    mockBookingRepo.upsertPrimaryContact = vi.fn()
+
+    contactService = new BookingService(
+      mockBookingRepo as any,
+      mockTripRepo as any,
+      mockTripRequestRepo as any,
+      mockPaymentTxRepo as any,
+      mockPaymentService as any,
+      logger as any,
+      { send: vi.fn().mockResolvedValue([]) } as any,
+      null, // vehicleService
+      null, // cache
+      mockUserRepo as any,
+      null, // resellerRepo
+      mockOtpService as any,
+    )
+  })
+
+  const confirmedBooking = createMockBooking({ bookingStatus: 'CONFIRMED', userId: 'user-1' })
+
+  describe('sendBookingContactOtp', () => {
+    it('should send the OTP after the ownership + status guard passes', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockOtpService.sendBookingContactOtp.mockResolvedValue({ message: 'OTP sent', retryAfter: 30 })
+
+      const result = await contactService.sendBookingContactOtp('user-1', 'booking-1', '9876543210')
+
+      expect(result).toEqual({ message: 'OTP sent', retryAfter: 30 })
+      expect(mockOtpService.sendBookingContactOtp).toHaveBeenCalledWith('9876543210')
+    })
+
+    it('should throw NotFoundError when the booking does not exist', async () => {
+      mockBookingRepo.findById.mockResolvedValue(null)
+
+      await expect(
+        contactService.sendBookingContactOtp('user-1', 'booking-1', '9876543210'),
+      ).rejects.toThrow('Booking')
+    })
+
+    it('should throw ForbiddenError when the booking belongs to a different user', async () => {
+      mockBookingRepo.findById.mockResolvedValue({ ...confirmedBooking, userId: 'someone-else' })
+
+      await expect(
+        contactService.sendBookingContactOtp('user-1', 'booking-1', '9876543210'),
+      ).rejects.toThrow('You can only manage contact details for your own bookings')
+      expect(mockOtpService.sendBookingContactOtp).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when the booking is not CONFIRMED', async () => {
+      mockBookingRepo.findById.mockResolvedValue({ ...confirmedBooking, bookingStatus: 'PENDING_PAYMENT' })
+
+      await expect(
+        contactService.sendBookingContactOtp('user-1', 'booking-1', '9876543210'),
+      ).rejects.toThrow('Cannot set a booking contact for a booking with status PENDING_PAYMENT')
+      expect(mockOtpService.sendBookingContactOtp).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('verifyBookingContactOtp', () => {
+    it('should verify the OTP, upsert the primary contact with phoneVerified=true, and never touch User', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockOtpService.verifyBookingContactOtp.mockResolvedValue({ phone: '9876543210' })
+      mockBookingRepo.upsertPrimaryContact.mockResolvedValue({ id: 'td-1', name: 'Alice', phone: '9876543210', phoneVerified: true })
+
+      const result = await contactService.verifyBookingContactOtp('user-1', 'booking-1', {
+        name: 'Alice', phone: '9876543210', otp: '1234',
+      })
+
+      expect(mockOtpService.verifyBookingContactOtp).toHaveBeenCalledWith('9876543210', '1234')
+      expect(mockBookingRepo.upsertPrimaryContact).toHaveBeenCalledWith('booking-1', {
+        name: 'Alice', phone: '9876543210', phoneVerified: true,
+      })
+      expect(result).toEqual({ id: 'td-1', name: 'Alice', phone: '9876543210', phoneVerified: true })
+      expect(mockUserRepo.findById).not.toHaveBeenCalled()
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+      expect(mockUserRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should throw ForbiddenError when the booking belongs to a different user', async () => {
+      mockBookingRepo.findById.mockResolvedValue({ ...confirmedBooking, userId: 'someone-else' })
+
+      await expect(
+        contactService.verifyBookingContactOtp('user-1', 'booking-1', { name: 'Alice', phone: '9876543210', otp: '1234' }),
+      ).rejects.toThrow('You can only manage contact details for your own bookings')
+      expect(mockOtpService.verifyBookingContactOtp).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when the booking is not CONFIRMED', async () => {
+      mockBookingRepo.findById.mockResolvedValue({ ...confirmedBooking, bookingStatus: 'EXPIRED' })
+
+      await expect(
+        contactService.verifyBookingContactOtp('user-1', 'booking-1', { name: 'Alice', phone: '9876543210', otp: '1234' }),
+      ).rejects.toThrow('Cannot set a booking contact for a booking with status EXPIRED')
+    })
+
+    it('should propagate the OTP error and never upsert when verification fails', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockOtpService.verifyBookingContactOtp.mockRejectedValue(new Error('Invalid OTP'))
+
+      await expect(
+        contactService.verifyBookingContactOtp('user-1', 'booking-1', { name: 'Alice', phone: '9876543210', otp: '9999' }),
+      ).rejects.toThrow('Invalid OTP')
+      expect(mockBookingRepo.upsertPrimaryContact).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('useAccountPhoneForBooking', () => {
+    it('should reuse the verified account phone and never write to User', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockUserRepo.findById.mockResolvedValue({ id: 'user-1', name: 'Alice', phone: '9876543210', phoneVerified: true })
+      mockBookingRepo.upsertPrimaryContact.mockResolvedValue({ id: 'td-1', name: 'Alice', phone: '9876543210', phoneVerified: true })
+
+      const result = await contactService.useAccountPhoneForBooking('user-1', 'booking-1')
+
+      expect(mockBookingRepo.upsertPrimaryContact).toHaveBeenCalledWith('booking-1', {
+        name: 'Alice', phone: '9876543210', phoneVerified: true,
+      })
+      expect(result).toEqual({ id: 'td-1', name: 'Alice', phone: '9876543210', phoneVerified: true })
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+      expect(mockUserRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when the account has no verified phone', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockUserRepo.findById.mockResolvedValue({ id: 'user-1', name: 'Alice', phone: null, phoneVerified: false })
+
+      await expect(
+        contactService.useAccountPhoneForBooking('user-1', 'booking-1'),
+      ).rejects.toThrow('No verified account phone available')
+      expect(mockBookingRepo.upsertPrimaryContact).not.toHaveBeenCalled()
+      expect(mockUserRepo.setPhone).not.toHaveBeenCalled()
+    })
+
+    it('should throw ValidationError when the account has a phone but it is not verified', async () => {
+      mockBookingRepo.findById.mockResolvedValue(confirmedBooking)
+      mockUserRepo.findById.mockResolvedValue({ id: 'user-1', name: 'Alice', phone: '9876543210', phoneVerified: false })
+
+      await expect(
+        contactService.useAccountPhoneForBooking('user-1', 'booking-1'),
+      ).rejects.toThrow('No verified account phone available')
+    })
+
+    it('should throw ForbiddenError when the booking belongs to a different user', async () => {
+      mockBookingRepo.findById.mockResolvedValue({ ...confirmedBooking, userId: 'someone-else' })
+
+      await expect(
+        contactService.useAccountPhoneForBooking('user-1', 'booking-1'),
+      ).rejects.toThrow('You can only manage contact details for your own bookings')
+      expect(mockUserRepo.findById).not.toHaveBeenCalled()
+    })
+  })
+})
+

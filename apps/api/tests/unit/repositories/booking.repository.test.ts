@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { BookingRepository } from '../../../src/repositories/booking.repository'
 
 // ── Mock Prisma ──────────────────────────────────────
@@ -130,5 +131,81 @@ describe('BookingRepository.createWithPaymentTx', () => {
 
     expect(mockPrisma.tx.sublinkAttribution.upsert).toHaveBeenCalledTimes(1)
     expect(mockPrisma.tx.paymentTransaction.create).toHaveBeenCalledTimes(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// upsertPrimaryContact (M2 fix — race-safe against the partial unique index
+// `TravelerDetail_bookingId_primary_key`, migration 20260724020000)
+// ═══════════════════════════════════════════════════════
+describe('BookingRepository.upsertPrimaryContact', () => {
+  let repo: BookingRepository
+  let mockPrisma: {
+    travelerDetail: { findFirst: ReturnType<typeof vi.fn>; findFirstOrThrow: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> }
+  }
+
+  const contact = { name: 'Alice', phone: '9876543210', phoneVerified: true }
+
+  beforeEach(() => {
+    mockPrisma = {
+      travelerDetail: {
+        findFirst: vi.fn(),
+        findFirstOrThrow: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+      },
+    }
+    repo = new BookingRepository(mockPrisma as any)
+  })
+
+  it('updates the existing primary contact when one is already present', async () => {
+    mockPrisma.travelerDetail.findFirst.mockResolvedValue({ id: 'td-1' })
+    mockPrisma.travelerDetail.update.mockResolvedValue({ id: 'td-1', ...contact })
+
+    const result = await repo.upsertPrimaryContact('booking-1', contact)
+
+    expect(mockPrisma.travelerDetail.update).toHaveBeenCalledWith({ where: { id: 'td-1' }, data: contact })
+    expect(mockPrisma.travelerDetail.create).not.toHaveBeenCalled()
+    expect(result).toEqual({ id: 'td-1', ...contact })
+  })
+
+  it('creates a new primary contact when none exists', async () => {
+    mockPrisma.travelerDetail.findFirst.mockResolvedValue(null)
+    mockPrisma.travelerDetail.create.mockResolvedValue({ id: 'td-2', ...contact })
+
+    const result = await repo.upsertPrimaryContact('booking-1', contact)
+
+    expect(mockPrisma.travelerDetail.create).toHaveBeenCalledWith({
+      data: { ...contact, bookingId: 'booking-1', isPrimary: true },
+    })
+    expect(result).toEqual({ id: 'td-2', ...contact })
+  })
+
+  it('falls back to updating the winner when a concurrent create loses the partial-unique-index race (P2002)', async () => {
+    mockPrisma.travelerDetail.findFirst.mockResolvedValue(null)
+    mockPrisma.travelerDetail.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '6.0.0',
+      }),
+    )
+    mockPrisma.travelerDetail.findFirstOrThrow.mockResolvedValue({ id: 'td-winner' })
+    mockPrisma.travelerDetail.update.mockResolvedValue({ id: 'td-winner', ...contact })
+
+    const result = await repo.upsertPrimaryContact('booking-1', contact)
+
+    expect(mockPrisma.travelerDetail.findFirstOrThrow).toHaveBeenCalledWith({
+      where: { bookingId: 'booking-1', isPrimary: true, isDeleted: false },
+    })
+    expect(mockPrisma.travelerDetail.update).toHaveBeenCalledWith({ where: { id: 'td-winner' }, data: contact })
+    expect(result).toEqual({ id: 'td-winner', ...contact })
+  })
+
+  it('rethrows non-P2002 errors from create without swallowing them', async () => {
+    mockPrisma.travelerDetail.findFirst.mockResolvedValue(null)
+    mockPrisma.travelerDetail.create.mockRejectedValue(new Error('DB connection lost'))
+
+    await expect(repo.upsertPrimaryContact('booking-1', contact)).rejects.toThrow('DB connection lost')
+    expect(mockPrisma.travelerDetail.findFirstOrThrow).not.toHaveBeenCalled()
   })
 })
