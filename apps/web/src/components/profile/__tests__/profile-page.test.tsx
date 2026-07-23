@@ -97,7 +97,7 @@ describe('ProfilePage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('profile-header')).toBeInTheDocument()
     })
-    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0)
     expect(screen.getByText('TRAVELER')).toBeInTheDocument()
     expect(screen.queryByTestId('organizer-profile-card')).not.toBeInTheDocument()
   })
@@ -120,7 +120,7 @@ describe('ProfilePage', () => {
     expect(screen.getAllByText('Verified')[0]).toBeInTheDocument()
   })
 
-  // ── Edit user profile form ──────────────────────────
+  // ── Edit Profile modal ───────────────────────────────
 
   it('should disable save button when no changes made', async () => {
     server.use(
@@ -129,11 +129,15 @@ describe('ProfilePage', () => {
       }),
     )
 
+    const user = userEvent.setup()
     renderWithQuery(<ProfilePage />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-save-btn')).toBeDisabled()
+      expect(screen.getByTestId('edit-profile-trigger')).toBeInTheDocument()
     })
+    await user.click(screen.getByTestId('edit-profile-trigger'))
+
+    expect(screen.getByTestId('edit-profile-name-save')).toBeDisabled()
   })
 
   it('should enable save button when name changes', async () => {
@@ -147,13 +151,14 @@ describe('ProfilePage', () => {
     renderWithQuery(<ProfilePage />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-name-input')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-profile-trigger')).toBeInTheDocument()
     })
+    await user.click(screen.getByTestId('edit-profile-trigger'))
 
-    await user.clear(screen.getByTestId('profile-name-input'))
-    await user.type(screen.getByTestId('profile-name-input'), 'Updated Name')
+    await user.clear(screen.getByTestId('edit-profile-name-input'))
+    await user.type(screen.getByTestId('edit-profile-name-input'), 'Updated Name')
 
-    expect(screen.getByTestId('profile-save-btn')).toBeEnabled()
+    expect(screen.getByTestId('edit-profile-name-save')).toBeEnabled()
   })
 
   it('should call API and update store on successful save', async () => {
@@ -167,12 +172,13 @@ describe('ProfilePage', () => {
     renderWithQuery(<ProfilePage />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-name-input')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-profile-trigger')).toBeInTheDocument()
     })
+    await user.click(screen.getByTestId('edit-profile-trigger'))
 
-    await user.clear(screen.getByTestId('profile-name-input'))
-    await user.type(screen.getByTestId('profile-name-input'), 'Updated Name')
-    await user.click(screen.getByTestId('profile-save-btn'))
+    await user.clear(screen.getByTestId('edit-profile-name-input'))
+    await user.type(screen.getByTestId('edit-profile-name-input'), 'Updated Name')
+    await user.click(screen.getByTestId('edit-profile-name-save'))
 
     await waitFor(() => {
       expect(mockUpdateUser).toHaveBeenCalled()
@@ -196,15 +202,16 @@ describe('ProfilePage', () => {
     renderWithQuery(<ProfilePage />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-name-input')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-profile-trigger')).toBeInTheDocument()
     })
+    await user.click(screen.getByTestId('edit-profile-trigger'))
 
-    await user.clear(screen.getByTestId('profile-name-input'))
-    await user.type(screen.getByTestId('profile-name-input'), 'Updated Name')
-    await user.click(screen.getByTestId('profile-save-btn'))
+    await user.clear(screen.getByTestId('edit-profile-name-input'))
+    await user.type(screen.getByTestId('edit-profile-name-input'), 'Updated Name')
+    await user.click(screen.getByTestId('edit-profile-name-save'))
 
     await waitFor(() => {
-      expect(screen.getByTestId('profile-save-error')).toBeInTheDocument()
+      expect(screen.getByTestId('edit-profile-name-error')).toBeInTheDocument()
     })
   })
 

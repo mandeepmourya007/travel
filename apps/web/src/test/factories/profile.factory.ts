@@ -26,6 +26,7 @@ export function makeTravelerProfile(overrides: Partial<UserProfileResponse> = {}
     avatarUrl: null,
     isVerified: false,
     phoneVerified: true,
+    emailVerified: true,
     createdAt: '2025-01-15T00:00:00.000Z',
     isReseller: false,
     organizerProfile: null,
