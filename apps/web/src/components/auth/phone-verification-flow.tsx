@@ -12,8 +12,10 @@ interface PhoneVerificationFlowProps {
 }
 
 /**
- * The single reusable "attach + verify phone" wiring, shared by the mandatory
- * gate route (`/verify-phone`) and the profile "Verify phone" CTA modal.
+ * The single reusable "attach + verify phone" wiring, used by the profile
+ * "Verify phone" CTA modal — an optional, account-level phone-verification
+ * flow (distinct from the mandatory, booking-scoped
+ * `BookingContactVerificationFlow` shown after payment success).
  * Owns the phone -> otp step machine and wires the *attach* hooks (never the
  * public login OTP hooks) so the current session is never replaced.
  */

@@ -4,8 +4,7 @@ import { useLoadingStore } from '@/store/loading.store'
 import { useAuthStore } from '@/store/auth.store'
 import { getAppRouter } from '@/lib/app-router'
 import { feLogger } from '@/lib/logger'
-import { API_TIMEOUT_MS, VERIFY_PHONE_ROUTE } from '@/lib/constants'
-import { AUTH_ERROR_CODE } from '@shared/constants'
+import { API_TIMEOUT_MS } from '@/lib/constants'
 import { useConnectionStore } from '@/store/connection.store'
 
 /** How long to keep the "Session expired" overlay before force-hiding it.
@@ -151,28 +150,6 @@ apiClient.interceptors.response.use(
           const store = useLoadingStore.getState()
           if (store.epoch === overlayEpoch) store.hide(true)
         }, SESSION_EXPIRY_LOADER_TIMEOUT_MS)
-      }
-    }
-
-    // Server-side phone-verification gate (requirePhoneVerified middleware) rejected
-    // a mutation — this is a defense-in-depth backstop behind AuthGuard's client-side
-    // redirect (e.g. a client whose store hasn't caught up yet, or a non-browser
-    // caller). Unlike the 401 branch above, the session itself is still valid — the
-    // user is authenticated, just not yet verified — so we do NOT clearAuth().
-    if (
-      error.response?.status === 403 &&
-      error.response?.data?.error?.subCode === AUTH_ERROR_CODE.PHONE_NOT_VERIFIED &&
-      typeof window !== 'undefined' &&
-      window.location.pathname !== VERIFY_PHONE_ROUTE
-    ) {
-      // Re-sync the store with the server's fresh-DB-read truth so AuthGuard's
-      // gate (which reads this same field) takes over on the next render.
-      useAuthStore.getState().updateUser({ phoneVerified: false })
-      const appRouter = getAppRouter()
-      if (appRouter) {
-        appRouter.replace(VERIFY_PHONE_ROUTE)
-      } else {
-        window.location.assign(VERIFY_PHONE_ROUTE)
       }
     }
 

@@ -34,22 +34,21 @@ export function getHomeRoute(role?: string): string {
 }
 
 // ─── Auth routing ─────────────────────────────────
-export const VERIFY_PHONE_ROUTE = '/verify-phone'
 export const ONBOARDING_ROUTE = '/onboarding'
 
 /**
  * Single choke point for "where does this user go next" after any
- * signup/login success handler. Mandatory phone verification wins over
- * everything else — no role exemption, no new-user exemption — so an
- * unverified user is always sent to VERIFY_PHONE_ROUTE regardless of
- * isNewUser/returnTo. See docs/rnd plan: Mandatory Phone Verification.
+ * signup/login success handler. New users go through onboarding; everyone
+ * else returns to `returnTo` (if any) or their role's home route. Phone
+ * verification is no longer gated here — it's now a booking-scoped,
+ * post-payment step (see BookingContactVerificationFlow), not an
+ * account-level login-time gate.
  */
 export function getPostAuthRoute(params: {
   isNewUser: boolean
   user?: { role?: UserRole | string; phoneVerified?: boolean } | null
   returnTo?: string | null
 }): string {
-  if (!params.user?.phoneVerified) return VERIFY_PHONE_ROUTE
   if (params.isNewUser) return ONBOARDING_ROUTE
   return params.returnTo ?? getHomeRoute(params.user?.role)
 }
