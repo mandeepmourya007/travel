@@ -1,0 +1,26 @@
+apps/api/prisma/migrations/20260724030000_add_attach_otp_types/migration.sql
+  s_19167362b78323::t_dbbe393a862528 1-5
+apps/api/prisma/schema.prisma
+  s_19167362b78323::t_ee0745122f3545 120-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "399dad50a236fc158e6db41cd91494b160136426",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
