@@ -22,7 +22,7 @@ tags:
 | Method | Backend Path | Notes |
 | :--- | :--- | :--- |
 | Email + password | `POST /auth/login` | bcrypt (saltRounds 12); lockout via `LoginAttemptTracker` |
-| Google OAuth | `POST /auth/google` | `@react-oauth/google` on FE |
+| Google OAuth | `POST /auth/google` | `@react-oauth/google` on FE; sets `User.emailVerified = true` in all 3 branches (new user, link-by-email, existing googleId) — Google's ID token already proves ownership, and `UserRepository.markEmailVerified` backfills accounts that predate this check on their next Google login |
 | Phone OTP (backend) | `POST /auth/otp/send` + `/verify` | MSG91 (SMS or WhatsApp, see `MSG91_WA_OTP_PREFER`) or mock; 4-digit, 10m expiry, 5 attempts. Fixed dev code `0000` shortcut currently disabled (commented out in `otp.service.ts`'s `generateOtp()`) — a random 4-digit OTP is generated in every environment |
 | Phone OTP (Firebase) | `POST /auth/firebase/verify` | Strategy chosen by `PHONE_AUTH_STRATEGY`; conditional route mount |
 | Email OTP | `POST /auth/otp/email/send` + `/verify` | Resend/SMTP/mock providers |
@@ -64,6 +64,21 @@ tags:
 - These are **not** the same as `POST /auth/otp/send` + `/verify` — those are public, look a user up *by phone*, and auto-signup/login as that phone's owner (replacing the session). The attach pair is authenticated, operates on `req.user!.userId` (never a body-supplied user id), and **never calls `issueTokens`, never sets the refresh cookie, never returns tokens** — the caller's existing session is untouched.
 - **Duplicate phone rejection:** if the phone is already linked to a different account, both `sendPhoneOtpForAttach` (pre-check via `UserRepository.findByPhone`) and `verifyPhoneOtpForAttach` (race-safety re-check + a P2002 unique-constraint catch on `UserRepository.setPhone`) reject with `ConflictError` (`code: CONFLICT`, `subCode: PHONE_TAKEN` — see `AUTH_ERROR_CODE` in `apps/api/src/utils/constants.ts`; `PHONE_NOT_VERIFIED` has been removed from `AUTH_ERROR_CODE` now that `requirePhoneVerified` — its only producer — is gone). `phone` stays `@unique` — no merge/hijack of another account.
 - `AuthService.issueTokens` and `AuthService.getMe` both include `phone`/`phoneVerified` on `AuthResponse['user']`, so every login path (signup, login, Google, phone/email OTP verify) surfaces the current verification state to the client without an extra round-trip.
+- **Distinct OTP type:** `sendPhoneOtpForAttach`/`verifyPhoneOtpForAttach` use `OTP_TYPE.ATTACH_PHONE_OTP` — a separate slot from the public login flow's `PHONE_OTP` for the same phone number. Without this, an authenticated user attaching a phone that someone else is mid-signup with (no owner yet, so the pre-check passes) would silently invalidate that other person's in-flight signup code via `invalidateExisting`. Same rationale as `BOOKING_CONTACT_OTP` below, now applied to both attach flows (migration `20260724030000_add_attach_otp_types`).
+
+**Attach-email pair — mirrors the attach-phone pair above 1:1, for email instead of phone:**
+
+| Method | Path | Guard | Notes |
+| :--- | :--- | :--- | :--- |
+| Send attach OTP | `POST /auth/otp/attach-email/send` | auth + `otpRateLimit` | `OtpService.sendEmailOtpForAttach(userId, email)` — reuses `sendEmailOtpSchema` |
+| Verify + attach | `POST /auth/otp/attach-email/verify` | auth + `otpRateLimit` | `OtpService.verifyEmailOtpForAttach(userId, email, otp)` — reuses `verifyEmailOtpSchema` |
+
+- Same session-preserving contract as the phone pair: authenticated, operates on `req.user!.userId`, never calls `issueTokens`, never sets the refresh cookie, never returns tokens.
+- **Duplicate email rejection:** if the email is already linked to a different account, both `sendEmailOtpForAttach` (pre-check via `UserRepository.findByEmail`) and `verifyEmailOtpForAttach` (race-safety re-check + a P2002 unique-constraint catch on `UserRepository.setEmail`) reject with `ConflictError` (`code: CONFLICT`, `subCode: EMAIL_TAKEN` — see `AUTH_ERROR_CODE` in `packages/shared/src/constants/auth.ts`).
+- **Distinct OTP type:** uses `OTP_TYPE.ATTACH_EMAIL_OTP`, not the public flow's `EMAIL_OTP` — same collision-avoidance rationale as `ATTACH_PHONE_OTP` above.
+- `UserRepository.setEmail(id, email)` sets `email` + `emailVerified: true` atomically, mirroring `setPhone`. `UserProfileResponse` (`GET /auth/profile`) now also includes `emailVerified: boolean`.
+- Used by the traveler profile's `EditProfileModal` (`apps/web/src/components/profile/edit-profile-modal.tsx`) — see [[Web Frontend]] — to require OTP verification of a NEW email before it's persisted, exactly like the existing phone-change flow.
+- **"Verify" vs "Change"/"Add":** `EmailVerificationFlow`/`PhoneVerificationFlow` both accept an optional `initialEmail`/`initialPhone` prop. When the identifier already exists but is unverified (the "Verify" action), the modal passes the current value and the flow auto-sends the OTP on mount, skipping straight to the OTP step — the user is never asked to retype an address/number they already entered. "Change" (verified, want a new one) and "Add" (none set) omit the prop and still show the input step. The auto-send's pending/error state is tracked in local component state (`autoSendState`), deliberately separate from the mutation's own `isSuccess`/`isError` — those reset to pending on every `onResend` call too, which would otherwise flicker the OTP screen back to a loading state (and remount `OtpVerifyForm`, losing typed digits) on every resend.
 
 ## Roles & Guards (Backend)
 

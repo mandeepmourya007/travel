@@ -40,6 +40,8 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | POST | `/otp/email/verify` | Verify email OTP | — |
 | POST | `/otp/attach/send` | Send phone OTP to attach to the logged-in user's account *(otpRateLimit)* | auth |
 | POST | `/otp/attach/verify` | Verify + attach phone to the logged-in user — session-preserving, no tokens/cookie | auth |
+| POST | `/otp/attach-email/send` | Send email OTP to attach to the logged-in user's account *(otpRateLimit)* | auth |
+| POST | `/otp/attach-email/verify` | Verify + attach email to the logged-in user — session-preserving, no tokens/cookie | auth |
 | POST | `/firebase/verify` | Verify Firebase phone ID token *(conditional mount)* | — |
 
 ## Destinations — `/api/v1/destinations`
