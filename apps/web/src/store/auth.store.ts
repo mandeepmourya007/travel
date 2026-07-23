@@ -8,6 +8,7 @@ interface AuthUser {
   email?: string
   phone?: string
   phoneVerified?: boolean
+  emailVerified?: boolean
   role: UserRole
   avatarUrl?: string
 }
