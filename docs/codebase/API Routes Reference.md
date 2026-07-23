@@ -98,14 +98,17 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 
 | Method | Path | Purpose | Guard |
 | :--- | :--- | :--- | :--- |
-| POST | `/` | Create booking (+ initiates payment order) | auth, requirePhoneVerified |
-| GET | `/my` | My bookings | auth |
+| POST | `/` | Create booking (+ initiates payment order) | auth |
+| GET | `/my` | My bookings — includes `hasVerifiedContact` per booking | auth |
 | GET | `/my/summary` | My booking summary | auth |
 | GET | `/my/pending-requests` | My pending trip requests | auth |
 | GET | `/my/trip-status/:tripId` | My booking status for a trip | auth |
 | POST | `/:id/cancel` | Cancel booking | auth |
 | POST | `/:id/verify-payment` | Verify client payment callback | auth |
 | POST | `/:id/sync-payment` | Reconcile payment status from gateway | auth |
+| POST | `/:id/contact/send-otp` | Send OTP to verify a contact number for this booking (post-payment, booking-scoped — never touches `User.phone`) *(body: `{ phone }`, requires CONFIRMED status)* | auth |
+| POST | `/:id/contact/verify-otp` | Verify the OTP and persist the contact onto the booking's primary `TravelerDetail` *(body: `{ name, phone, otp }`)* | auth |
+| POST | `/:id/contact/use-account-phone` | One-tap shortcut — reuse the account's own verified phone as this booking's contact (no OTP) | auth |
 
 ## Payments (history) — `/api/v1/payments`
 
@@ -137,7 +140,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | Method | Path | Purpose | Guard |
 | :--- | :--- | :--- | :--- |
 | GET | `/trip/:tripId` | Public trip reviews | — |
-| POST | `/` | Create review | auth, requirePhoneVerified |
+| POST | `/` | Create review | auth |
 | GET | `/my/booking/:bookingId` | Own review for a booking | auth |
 | PUT | `/:id` | Update own review | auth |
 | POST | `/:id/reply` | Organizer reply | ORGANIZER |
@@ -154,7 +157,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | GET | `/conversations` | List my conversations | auth |
 | GET | `/conversations/:id/messages/search` | Search messages | auth |
 | GET | `/conversations/:id/messages` | Paginated messages | auth |
-| POST | `/conversations/:id/messages` | Send message (REST fallback) | auth, requirePhoneVerified |
+| POST | `/conversations/:id/messages` | Send message (REST fallback) | auth |
 | POST | `/conversations/:id/messages/:msgId/reactions` | Add reaction | auth |
 | DELETE | `/conversations/:id/messages/:msgId/reactions/:emoji` | Remove reaction | auth |
 | PATCH | `/conversations/:id/close` | Close conversation | ADMIN |

@@ -44,7 +44,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Service | Image | Ports | Notes |
 | :--- | :--- | :--- | :--- |
 | postgres | postgres:15-alpine3.20 | 127.0.0.1:5432 | `fsync=off` (==dev only==), 192M |
-| redis | redis:7-alpine3.20 | 127.0.0.1:6379 | pass `dev-redis-pass`, tmpfs, 32MB |
+| redis | redis:7-alpine3.20 | `127.0.0.1:${REDIS_PORT:-6379}` | pass `dev-redis-pass`, tmpfs, 32MB — host port overridable to avoid clashing with another project's local Redis; internal container-to-container traffic (`REDIS_URL=redis://:pass@redis:6379`) is unaffected, always 6379 |
 | api | `docker/api.Dockerfile` | 4001→4000 | binds src/prisma/tests/shared; entrypoint runs `migrate deploy` + `generate` then `node --watch` |
 | web | `docker/web.Dockerfile` | `${WEB_PORT:-3000}` | `next dev --turbo`, 3GB mem |
 | seed / seed-prod | travel-api:dev | — | profiles `seed`/`seed-prod`, run `tsx prisma/seed[.prod].ts` |

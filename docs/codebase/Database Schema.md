@@ -9,7 +9,7 @@ tags:
 
 # Database Schema
 
-Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 42 migrations in `apps/api/prisma/migrations/` (latest: `20260721195050_add_trip_hidden_and_bookings_paused_fields`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
+Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_URL`, `directUrl = DIRECT_URL`). 43 migrations in `apps/api/prisma/migrations/` (latest: `20260724010000_add_traveler_detail_phone_verified`); scaling notes in `apps/api/prisma/DB_SCALING_RUNBOOK.md`.
 
 > [!important] ID Strategy
 > Every model uses ==`@id @default(uuid(7))` (UUIDv7)==. Legacy rows may hold cuid v1 — validators accept **both** (`idSchema` in [[Shared Package#Validators (Zod)|shared validators]]; never bare `z.string().uuid()`, it rejects v7).
@@ -32,7 +32,7 @@ Prisma 6 + PostgreSQL. Schema: `apps/api/prisma/schema.prisma` (`url = DATABASE_
 | Gender                | MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY                                                                                                                                                            |
 | NotificationChannel   | EMAIL, SMS, PUSH, IN_APP, WHATSAPP                                                                                                                                                                |
 | NotificationType      | 20 values (BOOKING_CONFIRMED, PAYMENT_RECEIVED, TRIP_REMINDER, CHAT_MESSAGE, ORGANIZER_APPROVED, WALLET_CREDIT_EXPIRING, …)                                                                       |
-| VerificationCodeType  | EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET                                                                                                                                                |
+| VerificationCodeType  | EMAIL_VERIFY, PHONE_OTP, EMAIL_OTP, PASSWORD_RESET, ==BOOKING_CONTACT_OTP== — booking-scoped contact verification, kept distinct from `PHONE_OTP` so the two flows never invalidate each other's in-flight code for the same phone number |
 | BookingMode           | INSTANT, REQUEST_BASED                                                                                                                                                                            |
 | TripRequestStatus     | PENDING, APPROVED, REJECTED, EXPIRED, CONVERTED                                                                                                                                                   |
 | TransferPointType     | PICKUP, DROP                                                                                                                                                                                      |
@@ -92,7 +92,7 @@ erDiagram
 
 - **Booking** — `bookingRef` *(unique)*, `tripId`, `userId`, `numTravelers`, `totalAmount`, `walletAmount`, `tripProtection`, `bookingStatus`, `expiresAt?`, `cancellationReason/At/ById`, `pickupPointId?`/`dropPointId?` → TripTransferPoint, `tripReminderSentAt?`, ==`sublinkId?` → ResellerSublink== (nullable — non-reseller bookings unaffected), ==`markupAmount` (Int, default 0)== — frozen snapshot (`markupPerPerson × numTravelers`) at booking time, never recomputed later. Raw partial-unique: ==one active booking per (user, trip)==.
 - **TripRequest** — `tripId`, `userId`, `numTravelers`, `message?`, travelerDetails[], `status`, `respondedAt?`, `responseNote?`, `approvalExpiresAt?`, `bookingId?` *(unique)*. *Unique(tripId, userId)*.
-- **TravelerDetail** — `bookingId?` | `tripRequestId?`, `name`, `phone?`, `age?`, `gender?`, `isPrimary`, `emergencyContactName/Phone?`. Relation: assignedSeat? (VehicleSeat).
+- **TravelerDetail** — `bookingId?` | `tripRequestId?`, `name`, `phone?`, ==`phoneVerified` (Boolean, default false)== — set `true` only by the post-payment booking-contact-verification flow (`BookingRepository.upsertPrimaryContact`, migration `20260724010000_add_traveler_detail_phone_verified`); completely independent from and never mirrors `User.phoneVerified` — see [[Auth & Security]] for why. `age?`, `gender?`, `isPrimary`, `emergencyContactName/Phone?`. Relation: assignedSeat? (VehicleSeat). ==Raw partial-unique: one active primary contact per booking== (`(bookingId) WHERE isPrimary AND NOT isDeleted`, migration `20260724020000_add_traveler_detail_primary_contact_unique_index`) — not representable as a Prisma `@@unique`, guards `upsertPrimaryContact` against a concurrent-request race creating two primary rows for the same booking.
 - **TripVehicle** — `tripId`, `label`, `vehicleType`, `sortOrder`, grid (`rows`/`cols`/`aisleAfterCol?`/`driverRow`/`driverCol`), `layout (Json)`, `photos (String[])`.
 - **VehicleSeat** — `tripVehicleId`, `row`/`col`/`seatLabel`/`seatNumber`, `status` (SeatStatus), `bookingId?`, `travelerDetailId?` *(unique)*, `heldAt/heldUntil/heldByUserId`. *Unique(tripVehicleId,row,col)* and *(tripVehicleId,seatNumber)*.
 

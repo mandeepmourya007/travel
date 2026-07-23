@@ -33,8 +33,8 @@ tags:
 > [!info] Admin Impersonation
 > `TRAVELER_ROLES = [TRAVELER, ADMIN]` in [[Shared Package#Constants|shared constants]] — admins are allowed on traveler pages/endpoints.
 
-> [!important] Mandatory phone verification — every user, every role
-> Every authenticated user (TRAVELER, ORGANIZER, ADMIN alike) is expected to have a verified phone (`User.phoneVerified === true`) so the business can reach them on WhatsApp — no role exemptions, no grandfathering. Users who sign up via phone OTP or Firebase phone auth satisfy this by construction; everyone else (email/password, email OTP, Google, organizer invite) attaches + verifies a phone after the fact via the authenticated `POST /auth/otp/attach/send` + `/verify` pair. See [[Auth & Security#Mandatory Phone Verification (All Roles)]].
+> [!important] Contact verification is booking-scoped, not account-mandatory
+> The prior mandatory account-level phone-verification policy (every user forced to `User.phoneVerified === true` at login) has been retired. The business need it served — a reachable WhatsApp number — is now collected **per booking**, right after that booking's payment succeeds, since the reachable number for a trip may belong to someone other than the account owner (e.g. booking on behalf of a friend). The verified contact lives on that booking's own `TravelerDetail.phoneVerified`, never on `User.phoneVerified`. The authenticated `POST /auth/otp/attach/send` + `/verify` pair (account-level, optional) still exists as a profile-page convenience, unrelated to this booking-scoped requirement. See [[Auth & Security#Post-Payment Booking Contact Verification]].
 
 ## Core Feature Areas
 
