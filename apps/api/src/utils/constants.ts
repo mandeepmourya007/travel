@@ -192,6 +192,12 @@ export const OTP_TYPE = {
   // in-flight code for the same phone number (VerificationCodeRepository is keyed
   // by (identifier, type)).
   BOOKING_CONTACT_OTP: 'BOOKING_CONTACT_OTP',
+  // Authenticated "attach phone"/"attach email" flows (profile edit). Distinct
+  // from PHONE_OTP/EMAIL_OTP so an authenticated user attaching an identifier
+  // can never invalidate (or be invalidated by) an unrelated public
+  // login/signup OTP in flight for the same identifier.
+  ATTACH_PHONE_OTP: 'ATTACH_PHONE_OTP',
+  ATTACH_EMAIL_OTP: 'ATTACH_EMAIL_OTP',
 } as const
 
 export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'

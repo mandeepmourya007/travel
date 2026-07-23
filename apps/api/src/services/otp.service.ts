@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import type { Logger } from 'pino'
-import type { AuthResponse, AttachPhoneResponse } from '@shared/types/auth.types'
+import type { AuthResponse, AttachPhoneResponse, AttachEmailResponse } from '@shared/types/auth.types'
 import { VerificationCodeRepository } from '../repositories/verification-code.repository'
 import { UserRepository } from '../repositories/user.repository'
 import { AuthService } from './auth.service'
@@ -281,7 +281,8 @@ export class OtpService {
   // from the public sendOtp/verifyOtp, which auto-signup/login by phone.
 
   /**
-   * Sends a PHONE_OTP to attach to the authenticated user's account.
+   * Sends an ATTACH_PHONE_OTP to attach to the authenticated user's account.
+   * Distinct type from the public PHONE_OTP flow — see `OTP_TYPE.ATTACH_PHONE_OTP`.
    * Rejects up-front if the phone already belongs to a different account.
    * @throws {ValidationError} Invalid phone format after normalization
    * @throws {ConflictError} Phone already linked to another account
@@ -296,11 +297,11 @@ export class OtpService {
       throw new ConflictError('This phone number is already linked to another account', AUTH_ERROR_CODE.PHONE_TAKEN)
     }
 
-    return this.sendPhoneOtpMechanics(phone)
+    return this.sendPhoneOtpMechanics(phone, OTP_TYPE.ATTACH_PHONE_OTP)
   }
 
   /**
-   * Verifies a PHONE_OTP and attaches the phone to the authenticated user.
+   * Verifies an ATTACH_PHONE_OTP and attaches the phone to the authenticated user.
    * Session-preserving — never issues tokens, never touches the refresh cookie.
    * @throws {ValidationError} Invalid phone format after normalization
    * @throws {AuthError} No OTP found, expired, max attempts exceeded, or wrong OTP
@@ -310,7 +311,7 @@ export class OtpService {
     const phone = normalizePhone(rawPhone)
     if (!phone) throw new ValidationError('Invalid phone number')
 
-    await this.verifyCode(phone, OTP_TYPE.PHONE_OTP, otp)
+    await this.verifyCode(phone, OTP_TYPE.ATTACH_PHONE_OTP, otp)
 
     // Race-safety second check — another user may have claimed this phone
     // between the send-side pre-check and this verify call.
@@ -332,6 +333,87 @@ export class OtpService {
     this.logger.info({ userId }, 'Phone attached and verified')
 
     return { phone: updated.phone!, phoneVerified: updated.phoneVerified }
+  }
+
+  // ── Attach email (authenticated) ──────────────────
+  // Mirrors sendPhoneOtpForAttach/verifyPhoneOtpForAttach exactly, for email instead
+  // of phone. Lets an already-logged-in user (any auth method) attach + verify an
+  // email WITHOUT replacing their session.
+
+  /**
+   * Sends an ATTACH_EMAIL_OTP to attach to the authenticated user's account.
+   * Distinct type from the public EMAIL_OTP flow — see `OTP_TYPE.ATTACH_EMAIL_OTP`.
+   * Rejects up-front if the email already belongs to a different account.
+   * @throws {ValidationError} Invalid email format
+   * @throws {ConflictError} Email already linked to another account
+   * @throws {TooManyRequestsError} Resend cooldown or rate limit exceeded
+   */
+  async sendEmailOtpForAttach(userId: string, rawEmail: string) {
+    const email = normalizeEmail(rawEmail)
+    if (!email) throw new ValidationError('Invalid email address')
+
+    const owner = await this.userRepo.findByEmail(email)
+    if (owner && owner.id !== userId) {
+      throw new ConflictError('This email is already linked to another account', AUTH_ERROR_CODE.EMAIL_TAKEN)
+    }
+
+    await this.checkCooldown(email, OTP_TYPE.ATTACH_EMAIL_OTP)
+    await this.checkRateLimit(email, OTP_TYPE.ATTACH_EMAIL_OTP)
+    await this.verifCodeRepo.invalidateExisting(email, OTP_TYPE.ATTACH_EMAIL_OTP)
+
+    const otp = this.generateOtp()
+    const codeHash = this.hashOtp(otp)
+
+    await this.verifCodeRepo.create({
+      type: OTP_TYPE.ATTACH_EMAIL_OTP,
+      identifier: email,
+      codeHash,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000),
+    })
+
+    const sendResult = await this.emailProvider.sendOtp(email, otp)
+    if (!sendResult.success) {
+      throw new AppError('Failed to send OTP. Please try again.', 502, 'OTP_SEND_FAILED', true, sendResult.error)
+    }
+
+    this.logger.info({ email: `${email.slice(0, 3)}***` }, 'Attach email OTP sent')
+
+    return { message: 'OTP sent', retryAfter: OTP_RESEND_COOLDOWN_SECONDS }
+  }
+
+  /**
+   * Verifies an ATTACH_EMAIL_OTP and attaches the email to the authenticated user.
+   * Session-preserving — never issues tokens, never touches the refresh cookie.
+   * @throws {ValidationError} Invalid email format
+   * @throws {AuthError} No OTP found, expired, max attempts exceeded, or wrong OTP
+   * @throws {ConflictError} Email already linked to another account (race-safe)
+   */
+  async verifyEmailOtpForAttach(userId: string, rawEmail: string, otp: string): Promise<AttachEmailResponse> {
+    const email = normalizeEmail(rawEmail)
+    if (!email) throw new ValidationError('Invalid email address')
+
+    await this.verifyCode(email, OTP_TYPE.ATTACH_EMAIL_OTP, otp)
+
+    // Race-safety second check — another user may have claimed this email
+    // between the send-side pre-check and this verify call.
+    const owner = await this.userRepo.findByEmail(email)
+    if (owner && owner.id !== userId) {
+      throw new ConflictError('This email is already linked to another account', AUTH_ERROR_CODE.EMAIL_TAKEN)
+    }
+
+    let updated
+    try {
+      updated = await this.userRepo.setEmail(userId, email)
+    } catch (err: unknown) {
+      if (err instanceof Error && 'code' in err && (err as { code: string }).code === 'P2002') {
+        throw new ConflictError('This email is already linked to another account', AUTH_ERROR_CODE.EMAIL_TAKEN)
+      }
+      throw err
+    }
+
+    this.logger.info({ userId }, 'Email attached and verified')
+
+    return { email: updated.email!, emailVerified: updated.emailVerified }
   }
 
   // ── Booking contact OTP (post-payment, per-booking) ────

@@ -91,6 +91,24 @@ export class UserRepository {
   }
 
   /**
+   * Attaches + verifies an email for an already-authenticated user of any auth
+   * method (phone, Google, organizer-invite). Sets emailVerified=true atomically.
+   * Used by: OtpService.verifyEmailOtpForAttach
+   */
+  async setEmail(id: string, email: string) {
+    return this.prisma.user.update({ where: { id }, data: { email, emailVerified: true } })
+  }
+
+  /**
+   * Marks the account's existing email as verified without changing it —
+   * used when an external IdP (Google) has already confirmed ownership.
+   * Used by: AuthService.googleAuth
+   */
+  async markEmailVerified(id: string) {
+    return this.prisma.user.update({ where: { id }, data: { emailVerified: true } })
+  }
+
+  /**
    * Fetches user with organizer profile included (1-to-1 relation).
    * Used by: AuthService.getFullProfile
    * Note: soft-delete check on organizerProfile done in service layer

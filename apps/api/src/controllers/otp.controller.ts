@@ -56,4 +56,19 @@ export class OtpController {
     const result = await this.otpService.verifyPhoneOtpForAttach(req.user!.userId, req.body.phone, req.body.otp)
     res.json({ success: true, data: result })
   })
+
+  /** POST /auth/otp/attach-email/send — authenticated — attach an email to the current session's user */
+  sendAttachEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.sendEmailOtpForAttach(req.user!.userId, req.body.email)
+    res.json({ success: true, data: result })
+  })
+
+  /**
+   * POST /auth/otp/attach-email/verify — authenticated — session-preserving, never issues
+   * tokens or sets a cookie (contrast with the public verifyEmailOtp above).
+   */
+  verifyAttachEmailOtp = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.otpService.verifyEmailOtpForAttach(req.user!.userId, req.body.email, req.body.otp)
+    res.json({ success: true, data: result })
+  })
 }
