@@ -1,0 +1,49 @@
+apps/web/src/app/preview/trip-users/page.tsx
+  s_19167362b78323::t_3ef8c89ce0be33 34-36,48-49,61
+apps/web/src/lib/__tests__/get-post-auth-route.test.ts
+  s_19167362b78323::t_511ecb80afb54c 2,5,7-10,14,16,19,26-31
+apps/web/src/components/bookings/__tests__/my-bookings-list.test.tsx
+  s_19167362b78323::t_4cafe251023b4a 579
+  s_19167362b78323::t_4e407298abad65 517
+  s_19167362b78323::t_3339a7d40cfcdd 528-578,580-582
+apps/web/src/components/booking/__tests__/booking-contact-verification-flow.test.tsx
+  s_19167362b78323::t_99429679101ea2 141,147,152-161
+  s_19167362b78323::t_63f71293355adf 1-21,37-140,148-151,165-226
+  s_19167362b78323::t_922fc4b1261c3c 22-36
+  s_19167362b78323::t_ba810d29358268 142-146,162-164
+apps/web/src/components/bookings/__tests__/traveler-details-accordion.test.tsx
+  s_19167362b78323::t_141118c1592560 9-10,14
+apps/web/src/hooks/__tests__/use-redirect-if-authenticated.test.ts
+  s_19167362b78323::t_de7df56fb32e4e 69,74
+apps/web/src/hooks/__tests__/use-booking-contact.test.tsx
+  s_19167362b78323::t_1a28f20815bd0c 37-54
+  s_19167362b78323::t_5bde0e6a09d2e4 34-36
+  s_19167362b78323::t_dfba37c5cd055b 55-57
+  s_19167362b78323::t_d13bc09856fbee 1-33,58-130
+apps/web/src/components/shared/__tests__/auth-guard.test.tsx
+  s_19167362b78323::t_9cfc40b2abf8e3 86-93,101-104
+apps/web/src/test/factories/booking.factory.ts
+  s_19167362b78323::t_5eb9c2322a2541 30
+  s_19167362b78323::t_efca0e22026b7a 33-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "08664742ca73b16374514e21104630b3fb752fda",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
