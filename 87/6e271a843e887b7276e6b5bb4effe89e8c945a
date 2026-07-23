@@ -1,0 +1,46 @@
+apps/web/src/components/bookings/my-booking-card.tsx
+  s_19167362b78323::t_7c1e4654d530a9 369-383
+  s_19167362b78323::t_bb90df274c5e0c 53-54,57
+  s_19167362b78323::t_9d81052f072d7d 278-295
+  s_19167362b78323::t_46b543891b37e7 24-25
+apps/web/src/app/payment-complete/page.tsx
+  s_19167362b78323::t_7745cc17dd505c 176-185,187-195
+  s_19167362b78323::t_263995ede26c53 56,58,73,79-81
+  s_19167362b78323::t_965abb3c3ecfbb 11
+  s_19167362b78323::t_45a93066648518 41,43
+apps/web/src/app/trips/[slug]/book/page.tsx
+  s_19167362b78323::t_608779590a187c 92-94
+  s_19167362b78323::t_792a3f3e3fb5cc 30
+  s_19167362b78323::t_0a9e54b6028104 388-398
+  s_19167362b78323::t_e3c3622a3f0ca1 236
+  s_03cd87ca9f513e::t_65c19219e35934 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "876e271a843e887b7276e6b5bb4effe89e8c945a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_03cd87ca9f513e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-ab8b6893127eafea5",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
