@@ -1,0 +1,30 @@
+apps/web/src/lib/api-client.ts
+  s_19167362b78323::t_de5007d807ace2 7
+apps/web/src/components/auth/phone-verification-flow.tsx
+  s_19167362b78323::t_e756bced18f548 15-18
+apps/web/src/components/shared/auth-guard.tsx
+  s_19167362b78323::t_34acc6963f8da9 27
+apps/web/src/lib/constants.ts
+  s_19167362b78323::t_34ad3d1a13dbb9 41-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0248ac21df06a3980f978b812a1919bca0c1afcb",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
