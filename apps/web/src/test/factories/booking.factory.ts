@@ -27,10 +27,11 @@ export function makeMyBooking(overrides: Partial<MyBookingListItem> = {}): MyBoo
       organizer: { id: `org-${counter}`, businessName: `TripVibes ${counter}`, rating: 4.5, verified: true },
     },
     hasReview: false,
+    hasVerifiedContact: true,
     review: null,
     travelerDetails: [
-      { id: `td-${counter}-1`, name: 'Alice', phone: '9999999999', age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
-      { id: `td-${counter}-2`, name: 'Charlie', phone: '7777777777', age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
+      { id: `td-${counter}-1`, name: 'Alice', phone: '9999999999', phoneVerified: true, age: 25, gender: 'FEMALE', isPrimary: true, emergencyContactName: 'Bob', emergencyContactPhone: '8888888888' },
+      { id: `td-${counter}-2`, name: 'Charlie', phone: '7777777777', phoneVerified: false, age: 30, gender: 'MALE', isPrimary: false, emergencyContactName: null, emergencyContactPhone: null },
     ],
     pickupPoint: { id: 'pp-1', label: 'Delhi Airport T3', time: '06:00 AM' },
     dropPoint: { id: 'dp-1', label: 'Delhi Airport T3', time: '08:00 PM' },

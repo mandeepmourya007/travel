@@ -83,54 +83,14 @@ describe('AuthGuard', () => {
     expect(mockReplace).not.toHaveBeenCalled()
   })
 
-  describe('mandatory phone verification gate', () => {
-    it.each(['TRAVELER', 'ORGANIZER', 'ADMIN'])(
-      'redirects a %s with phoneVerified: false to /verify-phone',
-      (role) => {
-        setAuthState({
-          isAuthenticated: true,
-          _hasHydrated: true,
-          user: { role, phoneVerified: false },
-        })
-
-        render(
-          <AuthGuard>
-            <p>Protected</p>
-          </AuthGuard>,
-        )
-
-        expect(mockReplace).toHaveBeenCalledWith('/verify-phone')
-        expect(screen.queryByText('Protected')).not.toBeInTheDocument()
-      },
-    )
-
-    it.each(['TRAVELER', 'ORGANIZER', 'ADMIN'])(
-      'renders children for a verified %s',
-      (role) => {
-        setAuthState({
-          isAuthenticated: true,
-          _hasHydrated: true,
-          user: { role, phoneVerified: true },
-        })
-
-        render(
-          <AuthGuard>
-            <p>Protected</p>
-          </AuthGuard>,
-        )
-
-        expect(screen.getByText('Protected')).toBeInTheDocument()
-        expect(mockReplace).not.toHaveBeenCalled()
-      },
-    )
-
-    it('redirects when phoneVerified is undefined (pre-existing session with no phoneVerified field — no grandfathering)', () => {
-      // Once hasHydrated is true, the persisted `user` object has already been
-      // merged in by zustand's persist middleware (see auth.store.ts) — there is
-      // no async window left where `phoneVerified` is still "loading". An
-      // undefined value here means this session's AuthUser predates the field
-      // entirely and must be treated the same as an explicit `false`.
-      setAuthState({ isAuthenticated: true, _hasHydrated: true, user: { role: 'TRAVELER' } })
+  it.each(['TRAVELER', 'ORGANIZER', 'ADMIN'])(
+    'renders children for an authenticated %s regardless of phoneVerified',
+    (role) => {
+      setAuthState({
+        isAuthenticated: true,
+        _hasHydrated: true,
+        user: { role, phoneVerified: false },
+      })
 
       render(
         <AuthGuard>
@@ -138,8 +98,8 @@ describe('AuthGuard', () => {
         </AuthGuard>,
       )
 
-      expect(mockReplace).toHaveBeenCalledWith('/verify-phone')
-      expect(screen.queryByText('Protected')).not.toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText('Protected')).toBeInTheDocument()
+      expect(mockReplace).not.toHaveBeenCalled()
+    },
+  )
 })

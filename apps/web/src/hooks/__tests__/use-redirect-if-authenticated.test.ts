@@ -66,12 +66,12 @@ describe('useRedirectIfAuthenticated', () => {
     expect(mockReplace).toHaveBeenCalledWith('/trips')
   })
 
-  it('redirects to /verify-phone when authenticated but not phone-verified', () => {
+  it('redirects via getPostAuthRoute regardless of phoneVerified', () => {
     setAuthState({ isAuthenticated: true, _hasHydrated: true, completedOnboarding: true, user: { role: 'TRAVELER', phoneVerified: false } })
 
     renderHook(() => useRedirectIfAuthenticated())
 
-    expect(mockReplace).toHaveBeenCalledWith('/verify-phone')
+    expect(mockReplace).toHaveBeenCalledWith('/trips')
   })
 
   it('requireOnboarded: false redirects even when onboarding is incomplete', () => {
