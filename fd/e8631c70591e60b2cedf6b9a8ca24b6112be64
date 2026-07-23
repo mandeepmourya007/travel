@@ -1,0 +1,61 @@
+apps/api/src/controllers/booking.controller.ts
+  s_19167362b78323::t_3e8f2753599b60 7-15
+  s_19167362b78323::t_65ed3dab4f8f2e 70-89
+apps/api/src/config/dependencies.ts
+  s_19167362b78323::t_dfac92419b2866 374
+  s_19167362b78323::t_85f473ac61de6c 316-317
+  s_19167362b78323::t_8d4fe7069935e6 372
+  s_19167362b78323::t_c5ee2a6b69a143 370
+apps/api/src/repositories/verification-code.repository.ts
+  s_19167362b78323::t_eeb160e3eee92d 1,10
+  s_19167362b78323::t_ed171f130f2a43 23,51,62
+apps/api/src/services/booking.service.ts
+  s_19167362b78323::t_592289bc22d1a5 63
+  s_19167362b78323::t_515b8216d48ff3 166-168
+  s_19167362b78323::t_020569ce36e08b 18
+  s_19167362b78323::t_4d03f48f3a73e7 1315-1390
+  s_19167362b78323::t_7753cae2f67064 1391
+apps/api/src/services/otp.service.ts
+  s_19167362b78323::t_15806e8b2d5f6b 336-369
+  s_19167362b78323::t_66349059880d57 115-121,123-126,132
+apps/api/src/repositories/booking.repository.ts
+  s_19167362b78323::t_3635480e6169fc 1024-1029,1039-1048
+  s_19167362b78323::t_7a869c9bef207c 27,62
+  s_19167362b78323::t_248c55db778757 1030-1038,1049-1061
+  s_b2fa8e5fbbbfbc::t_a5b055ca6e287d 1062-1063
+apps/api/src/utils/constants.ts
+  s_19167362b78323::t_8651d29f5dbab1 190-194
+apps/api/src/routes/booking.routes.ts
+  s_19167362b78323::t_4bb77471339e99 6-13
+  s_19167362b78323::t_25d48222816e76 85-111
+  s_19167362b78323::t_3b88948121cb3e 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fde8631c70591e60b2cedf6b9a8ca24b6112be64",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_b2fa8e5fbbbfbc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ce5cdb85-02d8-4cb1-9ad6-0b18dc1a63ba",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
