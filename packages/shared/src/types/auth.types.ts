@@ -39,6 +39,12 @@ export interface AttachPhoneResponse {
   phoneVerified: boolean
 }
 
+/** Response for the authenticated "attach email" flow — no tokens, no session change. */
+export interface AttachEmailResponse {
+  email: string
+  emailVerified: boolean
+}
+
 export interface SendOtpDto {
   phone: string
 }

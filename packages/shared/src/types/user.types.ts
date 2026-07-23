@@ -37,6 +37,7 @@ export interface UserProfileResponse {
   avatarUrl: string | null
   isVerified: boolean
   phoneVerified: boolean
+  emailVerified: boolean
   createdAt: string
   /**
    * Reseller feature — true when an organizer has generated a main link naming this

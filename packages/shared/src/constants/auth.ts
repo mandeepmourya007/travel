@@ -8,4 +8,6 @@
 export const AUTH_ERROR_CODE = {
   /** 409 CONFLICT — phone already linked to a different account (attach flow) */
   PHONE_TAKEN: 'PHONE_TAKEN',
+  /** 409 CONFLICT — email already linked to a different account (attach flow) */
+  EMAIL_TAKEN: 'EMAIL_TAKEN',
 } as const
