@@ -134,7 +134,7 @@ apiClient.interceptors.response.use(
       useAuthStore.getState().clearAuth()
       if (typeof window !== 'undefined') {
         const returnTo = window.location.pathname + window.location.search
-        const loginUrl = `/login/email?returnTo=${encodeURIComponent(returnTo)}`
+        const loginUrl = `/login/phone?returnTo=${encodeURIComponent(returnTo)}`
         const appRouter = getAppRouter()
         if (appRouter) {
           appRouter.replace(loginUrl)

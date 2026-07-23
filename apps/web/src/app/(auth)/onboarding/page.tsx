@@ -17,7 +17,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (!hasHydrated) return
-    if (!isAuthenticated) { router.replace('/login/email'); return }
+    if (!isAuthenticated) { router.replace('/login/phone'); return }
     // getPostAuthRoute (not raw getHomeRoute) — completedOnboarding flips true
     // inside OnboardingForm's onComplete below (markOnboardingComplete(), just
     // before its own router.push(getPostAuthRoute(...))), which re-runs this

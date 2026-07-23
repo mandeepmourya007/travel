@@ -25,10 +25,10 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 
 | Route | Purpose |
 | :--- | :--- |
-| `/login` | Server redirect → `/login/email` |
+| `/login` | Server redirect → `/login/phone` (default login method) |
 | `/login/email` | Email/password + Google; `returnTo` (open-redirect-safe); post-login role routing |
 | `/login/email-otp` | Email OTP login |
-| `/login/phone` | Firebase phone OTP login |
+| `/login/phone` | Phone/WhatsApp OTP login (backend MSG91 flow, not Firebase client SDK — see [[Auth & Security]]) — default login screen; all app-wide "sign in" links (`header.tsx`, `mobile-bottom-nav.tsx`, `auth-guard.tsx`, `login-required-dialog.tsx`, `use-logout.ts`, `api-client.ts` 401 interceptor, onboarding/signup flows) point here |
 | `/signup` | Traveler signup |
 | `/signup/organizer/[token]` | Organizer signup via invite token |
 | `/onboarding` · `/onboarding/profile` | Post-signup onboarding |

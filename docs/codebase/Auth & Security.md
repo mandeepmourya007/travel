@@ -86,12 +86,13 @@ tags:
 - **Hydration** (`onRehydrateStorage`): if previously authenticated, silently `POST /auth/refresh` (50s timeout for cold starts) *before* flipping `_hasHydrated`. Confirmed 401 → clear session; transient errors → stay logged in.
 - **401 flow** in the axios interceptor: mutex-guarded refresh, then session-expired overlay + redirect with sanitized `returnTo` → [[Data Fetching & State#API Client]].
 - Post-login routing: `getHomeRoute(role)` — ADMIN → `/admin`, ORGANIZER → `/dashboard`, else `/trips`. Every login/signup success handler (password, Google, phone OTP, email OTP, onboarding completion, organizer-invite signup) routes through `getPostAuthRoute({ isNewUser, user, returnTo })` (`apps/web/src/lib/constants.ts`) — ==no phone-verification branch anymore==: `isNewUser` (→ `ONBOARDING_ROUTE`), else `returnTo ?? getHomeRoute(role)`. `VERIFY_PHONE_ROUTE` has been removed from `constants.ts` along with the branch.
+- ==`/login` now defaults to `/login/phone`== (previously `/login/email`) — every app-wide "sign in" navigation target (`header.tsx`, `mobile-bottom-nav.tsx`, `auth-guard.tsx`, `login-required-dialog.tsx`, `use-logout.ts`'s default `redirectTo`, the `api-client.ts` 401 interceptor, onboarding/signup flows) was swept to point at `/login/phone`. `/login/email` and `/login/email-otp` remain reachable as alternate methods, cross-linked from `/login/phone`.
 
 ### Frontend Guards
 
 | Guard | Behavior |
 | :--- | :--- |
-| `components/shared/auth-guard.tsx` | Spinner until `_hasHydrated`; unauth → `/login/email`; optional `allowedRoles` (mismatch → `/`). ==No phone-verification branch== — that gate has been retired in favor of the booking-scoped flow below. |
+| `components/shared/auth-guard.tsx` | Spinner until `_hasHydrated`; unauth → `/login/phone` (default login screen); optional `allowedRoles` (mismatch → `/`). ==No phone-verification branch== — that gate has been retired in favor of the booking-scoped flow below. |
 | `components/shared/role-guard.tsx` | Renders "Access Denied" for wrong role |
 
 Layout-level: `admin/layout.tsx` (`AuthGuard allowedRoles={['ADMIN']}`), `dashboard/layout.tsx` (`AuthGuard` + `RoleGuard ORGANIZER`). All other private pages guard page-level. ==No `middleware.ts`== — protection is client-side only; SSR still returns 200 for private routes.

@@ -21,7 +21,7 @@ export function LoginRequiredDialog({ open, onClose, returnTo }: LoginRequiredDi
   const router = useRouter()
 
   const handleLoginClick = () => {
-    router.push(`/login/email?returnTo=${encodeURIComponent(returnTo)}`)
+    router.push(`/login/phone?returnTo=${encodeURIComponent(returnTo)}`)
   }
 
   return (
