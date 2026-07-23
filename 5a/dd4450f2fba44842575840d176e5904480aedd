@@ -1,0 +1,59 @@
+"docs/codebase/Web Frontend.md"
+  s_19167362b78323::t_2f07ab5fbea0c2 49-51
+  s_19167362b78323::t_499787b05feae8 65
+"docs/codebase/API Routes Reference.md"
+  s_19167362b78323::t_6986e3191adf53 101-102,109-111
+  s_19167362b78323::t_27d1dbf122c033 143
+  s_19167362b78323::t_df38f40fbe73fb 160
+"docs/codebase/Environment & Deployment.md"
+  s_19167362b78323::t_ef3f565e179118 47
+"docs/codebase/Data Fetching & State.md"
+  s_19167362b78323::t_1cd88563fc6b41 46
+  s_19167362b78323::t_e11958ff84735c 48
+"docs/codebase/Payments & Webhooks.md"
+  s_19167362b78323::t_76446d7a15f156 90
+"docs/codebase/Product Domain.md"
+  s_19167362b78323::t_3d001f2a3575e1 36-37
+"docs/codebase/Shared Package.md"
+  s_19167362b78323::t_5e9ee8872d4f83 48
+"docs/codebase/Auth & Security.md"
+  s_19167362b78323::t_afdc1c2621c2ef 88,94,99-101
+  s_19167362b78323::t_4115428a4138b2 38,40-41,43-57,65
+  s_19167362b78323::t_e8dc5190374282 102
+"docs/codebase/Frontend Routes Reference.md"
+  s_19167362b78323::t_69cd13c279d541 105-106
+  s_19167362b78323::t_509600ae6bea72 36-37
+  s_19167362b78323::t_3a78f355a668c4 115
+  s_19167362b78323::t_757513a76e1c2f 55
+  s_19167362b78323::t_98bc2e6b5fdee7 35
+"docs/codebase/API Backend.md"
+  s_19167362b78323::t_ee21630e70f1c2 77
+  s_19167362b78323::t_34c7d477c44a5a 62
+  s_19167362b78323::t_2ec8ac295af7cf 73
+  s_19167362b78323::t_267cd69e5c429f 38
+"docs/codebase/Database Schema.md"
+  s_19167362b78323::t_2e485d98e2467f 35
+  s_19167362b78323::t_064b32e6c35672 95
+  s_19167362b78323::t_25acb8f7e5c3fd 12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "5add4450f2fba44842575840d176e5904480aedd",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_19167362b78323": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "571de968-d801-4d7d-b6c6-5956f5026b7c",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
