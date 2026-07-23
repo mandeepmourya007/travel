@@ -8,6 +8,4 @@
 export const AUTH_ERROR_CODE = {
   /** 409 CONFLICT — phone already linked to a different account (attach flow) */
   PHONE_TAKEN: 'PHONE_TAKEN',
-  /** 403 FORBIDDEN — mandatory phone verification not yet completed */
-  PHONE_NOT_VERIFIED: 'PHONE_NOT_VERIFIED',
 } as const

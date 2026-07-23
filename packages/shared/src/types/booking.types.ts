@@ -64,6 +64,7 @@ export interface TravelerDetailItem {
   id: string
   name: string
   phone: string | null
+  phoneVerified: boolean
   age: number | null
   gender: string | null
   isPrimary: boolean
@@ -123,6 +124,7 @@ export interface MyBookingListItem {
     organizer: { id: string; businessName: string; rating: number; verified: boolean }
   }
   hasReview: boolean
+  hasVerifiedContact: boolean
   review: {
     id: string
     overallRating: number

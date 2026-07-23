@@ -3,6 +3,7 @@ import { idSchema } from './common.schema'
 import { APPROVE_REJECT_ACTIONS } from '../constants/verification-status'
 import { BOOKING_STATUSES, TRIP_REQUEST_STATUSES, TRIP_BOOKING_SORTS, MY_BOOKINGS_TABS } from '../constants/booking-status'
 import { PAYMENT_PROVIDERS } from '../constants/payment'
+import { verifyOtpSchema } from './auth.schema'
 
 /** Reusable traveler detail schema — shared between booking and trip request */
 export const travelerDetailSchema = z.object({
@@ -89,6 +90,19 @@ export const cancelBookingSchema = z.object({
 })
 
 // ─── Payment Verification ──────────────────────────
+
+// ─── Post-Payment Booking Contact Verification ──────
+
+/** Body for POST /bookings/:id/contact/send-otp — booking-scoped, never writes to User */
+export const bookingContactSchema = z.object({
+  name: travelerDetailSchema.shape.name,
+  phone: travelerDetailSchema.shape.phone,
+})
+
+/** Body for POST /bookings/:id/contact/verify-otp */
+export const bookingContactVerifyOtpSchema = bookingContactSchema.extend({
+  otp: verifyOtpSchema.shape.otp,
+})
 
 export const verifyPaymentSchema = z.object({
   provider: z.enum(PAYMENT_PROVIDERS).optional(),
