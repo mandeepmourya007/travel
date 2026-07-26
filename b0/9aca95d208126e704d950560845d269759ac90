@@ -1,0 +1,30 @@
+apps/api/src/config/dependencies.ts
+  s_0111a9c2149c42::t_67172652318ee6 203-204,227-235
+  s_0111a9c2149c42::t_666efba0f2e535 205-219
+"docs/codebase/Environment & Deployment.md"
+  s_0111a9c2149c42::t_f37f15256ee347 38-39
+  s_0111a9c2149c42::t_7ac09413d09fd3 36-37,40
+render.yaml
+  s_0111a9c2149c42::t_8324f21f50fdb1 136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "b09aca95d208126e704d950560845d269759ac90",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_0111a9c2149c42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ecd1a47-c859-4373-899b-32b542fe3f71",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
