@@ -133,7 +133,7 @@ services:
       - key: MSG91_WA_OTP_TEMPLATE
         sync: false   # Meta-approved OTP template name e.g. safarnama_otp
       - key: MSG91_WA_OTP_PREFER
-        value: "false" # set "true" to send OTP via WhatsApp instead of SMS
+        sync: false   # set "true" in the Render dashboard to send OTP via WhatsApp instead of SMS
       # Transactional notification template names (from Meta Business Manager via MSG91 dashboard)
       - key: MSG91_WA_TPL_BOOKING_CONFIRMED
         sync: false

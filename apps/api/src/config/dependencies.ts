@@ -200,6 +200,23 @@ export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organize
 const waOtpConfigured = !!(env.MSG91_AUTH_KEY && env.MSG91_WA_BUSINESS_NUMBER && env.MSG91_WA_OTP_TEMPLATE)
 const preferWhatsappOtp = env.MSG91_WA_OTP_PREFER === 'true'
 
+const smsOtpConfigured = !!(env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID)
+
+// Surface silent misconfiguration at boot instead of letting it look like a runtime bug:
+// operators frequently set the three MSG91_WA_* WhatsApp OTP vars and assume OTPs will
+// go out over WhatsApp, forgetting MSG91_WA_OTP_PREFER also has to be "true" — without
+// this log every OTP send just quietly uses SMS with no indication why.
+if (waOtpConfigured && !preferWhatsappOtp) {
+  logger.warn(
+    { MSG91_WA_OTP_PREFER: env.MSG91_WA_OTP_PREFER ?? null },
+    'WhatsApp OTP is fully configured (business number + template) but MSG91_WA_OTP_PREFER is not "true" — OTPs will be sent via SMS, not WhatsApp',
+  )
+} else if (!waOtpConfigured && preferWhatsappOtp) {
+  logger.warn(
+    'MSG91_WA_OTP_PREFER="true" but WhatsApp OTP is not fully configured (need MSG91_AUTH_KEY + MSG91_WA_BUSINESS_NUMBER + MSG91_WA_OTP_TEMPLATE) — falling back to SMS/mock',
+  )
+}
+
 const otpProvider = waOtpConfigured && preferWhatsappOtp
   ? new Msg91WhatsappOtpProvider(
       env.MSG91_AUTH_KEY!,
@@ -207,9 +224,15 @@ const otpProvider = waOtpConfigured && preferWhatsappOtp
       env.MSG91_WA_OTP_TEMPLATE!,
       logger,
     )
-  : env.MSG91_AUTH_KEY && env.MSG91_TEMPLATE_ID
-    ? new Msg91OtpProvider(env.MSG91_AUTH_KEY, env.MSG91_TEMPLATE_ID, logger)
-    : new MockOtpProvider(logger)
+  : smsOtpConfigured
+    ? new Msg91OtpProvider(env.MSG91_AUTH_KEY!, env.MSG91_TEMPLATE_ID!, logger)
+    : env.NODE_ENV !== 'production'
+      ? new MockOtpProvider(logger)
+      : (() => {
+          throw new Error(
+            'No OTP provider configured in production — set MSG91_AUTH_KEY + MSG91_TEMPLATE_ID (SMS) or MSG91_AUTH_KEY + MSG91_WA_BUSINESS_NUMBER + MSG91_WA_OTP_TEMPLATE (WhatsApp). Refusing to fall back to MockOtpProvider.',
+          )
+        })()
 
 const smtpConfigured = !!(env.RESEND_API_KEY || (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS))
 

@@ -33,6 +33,11 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 > [!warning] Production superRefine Rules
 > In prod: Razorpay webhook secret required when key set; Cashfree creds + webhook secret required when it's the active gateway; `REDIS_URL` required; SMTP and Firebase are each all-or-nothing.
 
+> [!warning] OTP provider fails loudly in production
+> `dependencies.ts` picks `Msg91WhatsappOtpProvider` → `Msg91OtpProvider` → `MockOtpProvider`, in that order, based on which MSG91 vars are set. In `NODE_ENV=production`, if neither is configured the app now **throws at boot** instead of silently falling back to `MockOtpProvider` (which used to log `[MOCK] OTP sent (dev mode)` + a generic `OTP sent` success line while sending no real SMS). Set `MSG91_AUTH_KEY` + `MSG91_TEMPLATE_ID` (SMS) or the WhatsApp trio to fix.
+>
+> `MSG91_WA_OTP_PREFER` is the only WhatsApp-OTP var that also needs an *explicit* `"true"` — having the other three WhatsApp vars set is not enough, since `waOtpConfigured && preferWhatsappOtp` is an AND. `render.yaml` now declares it `sync: false` (an operator-set dashboard secret, not a baked-in `value`) so it can be flipped per environment without editing/redeploying the blueprint. `dependencies.ts` also `logger.warn`s at boot if WhatsApp OTP is fully configured but not preferred (or preferred but not fully configured) — check for that line if OTPs are arriving via the wrong channel.
+
 > [!note] env.ts Bypasses
 > A few values read `process.env` directly: `WALLET_AUTO_CASHBACK_PERCENT/CAP`, `WALLET_CREDIT_EXPIRY_DAYS` (`utils/constants.ts`), `RENDER_EXTERNAL_URL` (cron keepalive).
 
