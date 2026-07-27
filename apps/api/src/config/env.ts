@@ -12,6 +12,13 @@ const envSchema = z.object({
   RAZORPAY_KEY_ID: z.string().startsWith('rzp_').optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
   RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  // Enables real Razorpay Route linked-account creation (POST /v2/accounts) against
+  // Razorpay's test-mode API outside production, where createPayoutAccount otherwise
+  // always returns a mock account ID (see razorpay.gateway.ts createPayoutAccount). Moves
+  // no real money — creating a linked account has no financial effect by itself, only
+  // transfers/payouts do. Leave false/unset unless you're specifically testing the
+  // organizer bank-verification flow against Razorpay's sandbox.
+  RAZORPAY_ENABLE_SANDBOX_ROUTE: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),

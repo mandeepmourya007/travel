@@ -92,4 +92,13 @@ Manual reconciliation: `POST /bookings/:id/sync-payment` polls the gateway and r
 > [!warning] Cashfree Go-Live
 > Before declaring the Cashfree integration production-ready, walk the go-live checklist in `.claude/skills/cashfree-skills/pg/go-live/SKILL.md` (domain whitelisting, webhook signature verification, env-var swap, backend re-verify, dead-code cleanup).
 
+> [!warning] Razorpay Go-Live
+> Razorpay has no bundled go-live skill in this repo — treat this inline checklist as the source of truth before declaring the integration production-ready:
+> - **Route must be explicitly activated for this merchant account** — confirmed via a real sandbox call (`RAZORPAY_ENABLE_SANDBOX_ROUTE=true`) that `createPayoutAccount` currently fails with `Route feature not enabled for the merchant` (400). This blocks BOTH organizer bank verification AND the commission-split/escrow flow. Must be requested from Razorpay (dashboard/support) for both Test Mode and Live Mode before either flow can work for real — this is a business/account-activation step, not a code issue.
+> - `RAZORPAY_WEBHOOK_SECRET` is configured for **both** Test Mode and Live Mode in the Razorpay dashboard (they are different secrets) and matches the deployed env var per environment.
+> - Route linked-account PAN/KYC is complete for at least one real organizer account — Route rejects `business_type: 'individual'` linked accounts without `legal_info.pan` (see `createPayoutAccount` in `razorpay.gateway.ts`).
+> - At least one real Route transfer with `on_hold` has been created and successfully released (`releaseTransferHold`) against a real (non-mock) linked account — the mock-account path (`RZP_MOCK_ACCOUNT_PREFIX`) is not a substitute for verifying the live transfer/escrow flow once.
+> - The production webhook URL (`/api/v1/webhooks/razorpay`) is registered and domain-whitelisted in the Razorpay dashboard for Live Mode.
+> - Dead-code cleanup done: `apps/api/src/middleware/webhook-verify.middleware.ts` removed (verification is centralized in `RazorpayGateway.verifyAndParseWebhook`).
+
 Related: [[API Backend]] · [[Database Schema]] · [[Background Jobs & Realtime]] · [[Environment & Deployment]]
