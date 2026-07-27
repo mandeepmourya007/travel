@@ -1,0 +1,43 @@
+apps/api/tests/unit/services/cache.service.test.ts
+  s_0111a9c2149c42::t_a851cfc0d9098d 105-135
+apps/api/tests/unit/services/trip.service.test.ts
+  s_0111a9c2149c42::t_ae983eeef97ef2 1104
+apps/api/src/services/destination.service.ts
+  s_0111a9c2149c42::t_b34ba5ba6fa8f4 37-39
+apps/api/tests/unit/services/destination.service.test.ts
+  s_0111a9c2149c42::t_d971a804b679db 331
+"docs/codebase/API Backend.md"
+  h_b3232c20134322 73,77,90
+"docs/codebase/Data Fetching & State.md"
+  s_0111a9c2149c42::t_c12727d5a8b555 17
+apps/api/src/services/trip.service.ts
+  s_0111a9c2149c42::t_ac7398bc061d91 91-93
+apps/web/src/app/destinations/[slug]/page.tsx
+  s_0111a9c2149c42::t_e3a5b3c7fef9a8 60-65
+apps/web/src/lib/api-server.ts
+  s_0111a9c2149c42::t_fb055c6a1b10fc 78-82
+apps/api/src/services/cache.service.ts
+  s_0111a9c2149c42::t_b7ca0af9f480de 27-32,57-65
+  s_0111a9c2149c42::t_eb390a7252e643 66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fe7861339669f8bcf0b934237fd38fe6d9452c35",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_0111a9c2149c42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ecd1a47-c859-4373-899b-32b542fe3f71",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
