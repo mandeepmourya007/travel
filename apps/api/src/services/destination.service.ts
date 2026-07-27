@@ -34,7 +34,9 @@ export class DestinationService {
 
     if (this.cache) {
       const key = options?.popular ? cacheKeys.destinationListPopular() : cacheKeys.destinationList()
-      return this.cache.getOrSet(key, CACHE_TTL.DESTINATION_LIST, fetcher)
+      return this.cache.getOrSet(key, CACHE_TTL.DESTINATION_LIST, fetcher, {
+        skipCacheIf: (v) => v.length === 0,
+      })
     }
     return fetcher()
   }

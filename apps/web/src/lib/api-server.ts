@@ -75,11 +75,14 @@ export async function fetchApi<T>(
  */
 export const getPopularTripsForStaticParams = cache(
   async (): Promise<{ slug: string; organizer: { slug: string } | null }[]> => {
-    const result = await fetchApi<{ data: { slug: string; organizer: { slug: string } | null }[] }>(
+    // fetchApi already unwraps the `{ success, data }` envelope, and GET /trips
+    // returns its array flat under `data` (not double-nested) — so the result
+    // here IS the trips array. Re-unwrapping via `.data` used to return
+    // `undefined`, which callers then tried to `.map()` over.
+    return fetchApi<{ slug: string; organizer: { slug: string } | null }[]>(
       '/trips?limit=50&sort=popularity',
       { revalidate: false, timeoutMs: 10_000 },
     )
-    return result.data
   },
 )
 

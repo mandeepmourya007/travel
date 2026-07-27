@@ -24,7 +24,12 @@ export class CacheService {
    * @param ttlSeconds — Time-to-live in seconds
    * @param fetcher    — Async function that produces the value on cache miss
    */
-  async getOrSet<T>(key: string, ttlSeconds: number, fetcher: () => Promise<T>): Promise<T> {
+  async getOrSet<T>(
+    key: string,
+    ttlSeconds: number,
+    fetcher: () => Promise<T>,
+    options?: { skipCacheIf?: (value: T) => boolean },
+  ): Promise<T> {
     if (!this.redis) {
       this.logger.warn({ key }, 'Redis not configured — skipping cache')
       return fetcher()
@@ -48,6 +53,16 @@ export class CacheService {
 
     this.logger.info({ key, ttlSeconds }, 'Cache MISS — fetching & caching')
     const value = await fetcher()
+
+    // Never pin a transiently-empty result (e.g. a query racing a cold DB
+    // connection pool right after deploy) for the full TTL — that would make
+    // every request for `ttlSeconds` see "no data" even once the underlying
+    // data is fine, with no error anywhere to signal it. Skip the write so
+    // the next request gets a fresh cache-aside attempt instead.
+    if (options?.skipCacheIf?.(value)) {
+      this.logger.warn({ key }, 'Fetcher returned an empty result — skipping cache write')
+      return value
+    }
 
     // Fire-and-forget: don't block the response waiting for the cache write.
     // On cross-region Redis (~95ms RTT), awaiting SET adds latency the caller

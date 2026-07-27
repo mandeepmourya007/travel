@@ -1101,6 +1101,7 @@ describe('TripService — Redis Cache', () => {
         expect.stringContaining('cache:trips:search:'),
         300,
         expect.any(Function),
+        { skipCacheIf: expect.any(Function) },
       )
       expect(mockTripRepo.search).not.toHaveBeenCalled()
     })

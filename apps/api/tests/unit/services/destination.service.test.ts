@@ -328,6 +328,7 @@ describe('DestinationService — Redis Cache', () => {
         'cache:destinations:list',
         3600,
         expect.any(Function),
+        { skipCacheIf: expect.any(Function) },
       )
       expect(mockDestinationRepo.findAll).not.toHaveBeenCalled()
     })

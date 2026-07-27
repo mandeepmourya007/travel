@@ -88,7 +88,9 @@ export class TripService {
     }
 
     if (this.cache) {
-      return this.cache.getOrSet(cacheKeys.tripSearch({ ...filters, page, limit }), CACHE_TTL.TRIP_SEARCH, fetcher)
+      return this.cache.getOrSet(cacheKeys.tripSearch({ ...filters, page, limit }), CACHE_TTL.TRIP_SEARCH, fetcher, {
+        skipCacheIf: (v) => v.data.length === 0,
+      })
     }
     return fetcher()
   }

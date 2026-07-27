@@ -14,7 +14,7 @@ tags:
 
 Configured in `apps/web/src/app/providers.tsx`: `staleTime: 60s`, `refetchOnWindowFocus: false`, query retry 2 (==no retry on 404==), mutations `retry: false`. Devtools dynamically imported in dev.
 
-Server-side fetching via `src/lib/api-server.ts` — `fetchApi`, `fetchApiWithPagination`, `getPopularTripsForStaticParams`; native `fetch` with Next ISR (`revalidate`, `tags`), React `cache()` wrapping, slow-fetch logging. Used by SSR pages, `sitemap.ts`, `generateStaticParams`.
+Server-side fetching via `src/lib/api-server.ts` — `fetchApi`, `fetchApiWithPagination`, `getPopularTripsForStaticParams`; native `fetch` with Next ISR (`revalidate`, `tags`), React `cache()` wrapping, slow-fetch logging. Used by SSR pages, `sitemap.ts`, `generateStaticParams`. `fetchApi<T>` already unwraps the `{ success, data }` envelope and resolves to `T` directly — callers passing a flat-array endpoint (e.g. `GET /destinations`, `GET /trips`) must **not** re-unwrap with `.data`; `getPopularTripsForStaticParams` and `destinations/[slug]/page.tsx`'s `generateStaticParams` both did this and silently threw (caught, returning `[]`, i.e. zero statically pre-rendered detail pages) until fixed.
 
 ## Query Keys
 

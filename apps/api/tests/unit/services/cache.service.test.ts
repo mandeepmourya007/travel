@@ -102,6 +102,37 @@ describe('CacheService', () => {
       expect(result).toEqual({ ok: true })
       expect(mockLogger.warn).toHaveBeenCalled()
     })
+
+    it('should skip caching a transiently-empty result when skipCacheIf matches', async () => {
+      redis.get.mockResolvedValue(null)
+      const fetcher = vi.fn().mockResolvedValue([])
+
+      const result = await cache.getOrSet('cache:destinations:list', 3600, fetcher, {
+        skipCacheIf: (v: unknown[]) => v.length === 0,
+      })
+
+      expect(result).toEqual([])
+      expect(redis.set).not.toHaveBeenCalled()
+      expect(mockLogger.warn).toHaveBeenCalled()
+    })
+
+    it('should still cache when skipCacheIf does not match', async () => {
+      redis.get.mockResolvedValue(null)
+      redis.set.mockResolvedValue('OK')
+      const fetcher = vi.fn().mockResolvedValue([{ id: '1' }])
+
+      const result = await cache.getOrSet('cache:destinations:list', 3600, fetcher, {
+        skipCacheIf: (v: unknown[]) => v.length === 0,
+      })
+
+      expect(result).toEqual([{ id: '1' }])
+      expect(redis.set).toHaveBeenCalledWith(
+        'cache:destinations:list',
+        JSON.stringify([{ id: '1' }]),
+        'EX',
+        3600,
+      )
+    })
   })
 
   // ─── get ────────────────────────────────────────────

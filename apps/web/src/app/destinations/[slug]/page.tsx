@@ -57,8 +57,12 @@ export async function generateMetadata({ params }: DestinationPageProps): Promis
 
 export async function generateStaticParams() {
   try {
-    const result = await fetchApi<{ data: { slug: string }[] }>('/destinations', { revalidate: false })
-    return result.data.map((d) => ({ slug: d.slug }))
+    // fetchApi already unwraps the `{ success, data }` envelope — `/destinations`
+    // returns a flat array under `data`, so the result here IS the array, not
+    // `{ data: [...] }`. The extra `.data` used to throw (caught below), so this
+    // silently pre-rendered zero destination detail pages at build.
+    const destinations = await fetchApi<{ slug: string }[]>('/destinations', { revalidate: false })
+    return destinations.map((d) => ({ slug: d.slug }))
   } catch {
     return []
   }
