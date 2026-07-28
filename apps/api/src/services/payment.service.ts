@@ -4,6 +4,8 @@ import { PaymentTransactionRepository } from '../repositories/payment-transactio
 import { WebhookEventRepository } from '../repositories/webhook-event.repository'
 import type { BookingRepository } from '../repositories/booking.repository'
 import type { NotificationService } from './notification.service'
+import type { WalletService } from './wallet.service'
+import type { RazorpayXClient } from '../providers/payout/razorpayx.client'
 import { PaymentError, ValidationError } from '../errors/app-error'
 import {
   CURRENCY,
@@ -12,10 +14,12 @@ import {
   WEBHOOK_SOURCE,
   WEBHOOK_STATUS,
   REFERENCE_MODEL,
+  PAYOUT_EVENT,
 } from '../utils/constants'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { BOOKING_STATUS, NOTIFICATION_TYPE, PAYMENT_PROVIDER } from '@shared/constants'
 import { NORMALIZED_EVENT_TYPE } from '../types/payment.types'
-import type { NormalizedWebhookEvent, PaymentProvider } from '../types/payment.types'
+import type { NormalizedWebhookEvent, NormalizedPayoutWebhookEvent, PaymentProvider } from '../types/payment.types'
 import type { IPaymentGateway, CreateOrderParams } from '../providers/payment/payment-gateway.interface'
 import type { StoredWebhookEvent } from '../types/razorpay.types'
 
@@ -47,6 +51,11 @@ export class PaymentService {
     private paymentTxRepo: PaymentTransactionRepository,
     private webhookEventRepo: WebhookEventRepository,
     private logger: Logger,
+    /** Dormant until a RazorpayX account exists — see providers/payout/razorpayx.client.ts */
+    private razorpayxClient: RazorpayXClient | null = null,
+    /** Needed only for the admin-triggered organizer wallet-ledger payout webhook
+     *  reversal handling (payout.reversed / payout.processed) — see handlePayoutReversed. */
+    private walletService: WalletService | null = null,
   ) {}
 
   /**
@@ -253,6 +262,74 @@ export class PaymentService {
   }
 
   /**
+   * Verifies and records an incoming RazorpayX Payouts webhook event for async
+   * processing. Cannot reuse handleWebhook — RazorpayX isn't in gatewayRegistry (it's
+   * not an IPaymentGateway), so verification is delegated directly to razorpayxClient
+   * instead of resolveGateway(). Reuses the same WebhookEvent idempotency infra
+   * (@@unique([source, externalEventId])) with source=RAZORPAYX.
+   *
+   * NOT YET LIVE — dormant until a RazorpayX account exists (razorpayxClient is null).
+   *
+   * @returns webhookEventId for async processing, or null if duplicate/not configured
+   */
+  async handleRazorpayxWebhook(
+    rawBody: Buffer,
+    headers: Record<string, string | string[] | undefined>,
+  ): Promise<{ webhookEventId: string | null; normalized: NormalizedPayoutWebhookEvent } | null> {
+    if (!this.razorpayxClient) {
+      this.logger.warn('RazorpayX webhook received but razorpayxClient is not configured')
+      return null
+    }
+
+    const timer = startTimer()
+    // Verify signature + parse in one call (throws AuthError on bad sig)
+    const normalized = this.razorpayxClient.verifyAndParseWebhook(rawBody, headers)
+
+    if (!normalized.externalEventId) {
+      throw new ValidationError('Webhook missing deduplication key')
+    }
+
+    const paymentTx = normalized.payoutId
+      ? await this.paymentTxRepo.findPayoutReleaseByGatewayTransferId(normalized.payoutId)
+      : null
+
+    try {
+      const webhookEvent = await this.webhookEventRepo.upsertBySourceAndEventId({
+        source: WEBHOOK_SOURCE.RAZORPAYX,
+        externalEventId: normalized.externalEventId,
+        eventType: normalized.rawEventName,
+        externalId: normalized.payoutId,
+        referenceModel: paymentTx ? REFERENCE_MODEL.BOOKING : null,
+        referenceId: paymentTx?.bookingId || null,
+        headers: Object.fromEntries(
+          Object.entries(headers).map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : (v ?? '')] as [string, string]),
+        ) as Record<string, string>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        payload: normalized.payload as any,
+        mode: normalized.mode,
+        status: WEBHOOK_STATUS.RECEIVED,
+      })
+
+      if (webhookEvent.attempts > 1) {
+        this.logger.info(
+          { externalEventId: normalized.externalEventId, attempts: webhookEvent.attempts },
+          'Duplicate RazorpayX webhook, skipping processing',
+        )
+        return { webhookEventId: null, normalized }
+      }
+
+      this.logger.info(
+        { webhookEventId: webhookEvent.id, durationMs: timer.elapsed() },
+        'RazorpayX webhook event recorded',
+      )
+      return { webhookEventId: webhookEvent.id, normalized }
+    } catch (err) {
+      this.logger.error({ externalEventId: normalized.externalEventId, err }, 'Failed to record RazorpayX webhook event')
+      throw err
+    }
+  }
+
+  /**
    * Processes a recorded webhook event asynchronously.
    * Called via setImmediate() AFTER 200 response is sent.
    *
@@ -285,6 +362,18 @@ export class PaymentService {
           break
         case NORMALIZED_EVENT_TYPE.REFUND_PROCESSED:
           await this.handleRefundProcessed(normalized)
+          break
+        case NORMALIZED_EVENT_TYPE.PAYOUT_PROCESSING:
+          await this.handlePayoutProcessing(normalized as unknown as NormalizedPayoutWebhookEvent)
+          break
+        case NORMALIZED_EVENT_TYPE.PAYOUT_PROCESSED:
+          await this.handlePayoutProcessed(normalized as unknown as NormalizedPayoutWebhookEvent)
+          break
+        case NORMALIZED_EVENT_TYPE.PAYOUT_REVERSED:
+          await this.handlePayoutReversed(normalized as unknown as NormalizedPayoutWebhookEvent)
+          break
+        case NORMALIZED_EVENT_TYPE.PAYOUT_FAILED:
+          await this.handlePayoutFailed(normalized as unknown as NormalizedPayoutWebhookEvent)
           break
         default:
           await this.webhookEventRepo.updateStatus(webhookEvent.id, WEBHOOK_STATUS.SKIPPED, {
@@ -533,6 +622,137 @@ export class PaymentService {
         })
         .catch((err) => this.logger.error({ err, bookingId: paymentTx.bookingId }, 'REFUND_PROCESSED: failed to fetch booking for status update and notification'))
     }
+  }
+
+  // ─── RazorpayX Payouts Webhook Event Handlers ──────────
+  // Find the PAYOUT_RELEASE transaction by gatewayTransferId (= RazorpayX payoutId) and
+  // update its status. NOT YET LIVE — dormant until a RazorpayX account exists.
+
+  async handlePayoutProcessing(event: NormalizedPayoutWebhookEvent) {
+    await this.updatePayoutReleaseStatus(event, PAYMENT_TX_STATUS.PROCESSING)
+  }
+
+  /**
+   * payout.processed: the automatic per-booking PAYOUT_RELEASE path (updatePayoutReleaseStatus)
+   * already recorded this at initiation — no wallet mutation for that path either way (the
+   * debit already happened optimistically at initiation, see releaseRazorpayXPayout).
+   * For the admin-triggered organizer wallet-ledger payout (§5), the debit ALSO already
+   * happened optimistically at initiation (PayoutService.releaseOrganizerWalletPayout) — so
+   * this is a no-op for that path too, but still logged at INFO for an audit trail (a
+   * payout's success confirmation should leave a log line, not silently pass through).
+   */
+  async handlePayoutProcessed(event: NormalizedPayoutWebhookEvent) {
+    await this.updatePayoutReleaseStatus(event, PAYMENT_TX_STATUS.CAPTURED)
+
+    if (event.payoutId && this.walletService) {
+      const walletTx = await this.walletService.findTransactionByReference(
+        WALLET_TX.ORGANIZER_PAYOUT,
+        WALLET_REFERENCE_MODELS.RAZORPAYX_PAYOUT,
+        event.payoutId,
+      )
+      if (walletTx) {
+        this.logger.info(
+          { organizerUserId: walletTx.wallet.userId, payoutId: event.payoutId, amount: walletTx.amount },
+          'Organizer wallet payout confirmed processed by RazorpayX',
+        )
+      }
+    }
+  }
+
+  /**
+   * payout.reversed: rare bank-side failure discovered after the payout already succeeded
+   * (per RazorpayX, can happen up to T+3 days later). The automatic per-booking
+   * PAYOUT_RELEASE path (updatePayoutReleaseStatus) has its own REVERSED status transition
+   * with no wallet involved. For the admin-triggered organizer wallet-ledger payout (§5),
+   * the wallet was already debited optimistically at initiation — this credits it back via
+   * WALLET_TX.ORGANIZER_PAYOUT_REVERSED so the organizer isn't out that money and admin can retry.
+   */
+  async handlePayoutReversed(event: NormalizedPayoutWebhookEvent) {
+    await this.updatePayoutReleaseStatus(event, PAYMENT_TX_STATUS.REVERSED)
+    await this.creditBackOrganizerWalletPayoutIfAny(event.payoutId, 'Payout reversed — funds returned')
+  }
+
+  /**
+   * H2 fix: payout.failed/payout.rejected means the money never left RazorpayX — but
+   * the admin-triggered organizer wallet-ledger payout (PayoutService.releaseOrganizerWalletPayout)
+   * already debited the organizer's wallet OPTIMISTICALLY at initiation, same as the
+   * reversed case above. Without this credit-back, a failed payout would leave the
+   * organizer's wallet permanently short by the debited amount even though they were
+   * never actually paid. Shares the same idempotency guarantee (unique on
+   * (type, referenceModel, referenceId)) via creditBackOrganizerWalletPayoutIfAny.
+   */
+  async handlePayoutFailed(event: NormalizedPayoutWebhookEvent) {
+    await this.updatePayoutReleaseStatus(event, PAYMENT_TX_STATUS.FAILED, event.failureReason ?? 'Payout failed')
+    await this.creditBackOrganizerWalletPayoutIfAny(event.payoutId, 'Payout failed — funds returned')
+  }
+
+  /**
+   * Shared by handlePayoutReversed and handlePayoutFailed — both represent "the
+   * admin-triggered organizer wallet-ledger payout did not actually reach the
+   * organizer's bank account, so credit the optimistically-debited amount back."
+   * No-op when there's no wallet-ledger ORGANIZER_PAYOUT transaction for this
+   * payoutId (i.e. this was the automatic per-booking PAYOUT_RELEASE path, which has
+   * no wallet involvement — see updatePayoutReleaseStatus above).
+   */
+  private async creditBackOrganizerWalletPayoutIfAny(payoutId: string | null | undefined, description: string): Promise<void> {
+    if (!payoutId || !this.walletService) return
+
+    const walletTx = await this.walletService.findTransactionByReference(
+      WALLET_TX.ORGANIZER_PAYOUT,
+      WALLET_REFERENCE_MODELS.RAZORPAYX_PAYOUT,
+      payoutId,
+    )
+    if (!walletTx) return
+
+    try {
+      await this.walletService.credit({
+        userId: walletTx.wallet.userId,
+        amount: walletTx.amount,
+        type: WALLET_TX.ORGANIZER_PAYOUT_REVERSED,
+        referenceModel: WALLET_REFERENCE_MODELS.RAZORPAYX_PAYOUT,
+        referenceId: payoutId,
+        description,
+      })
+      this.logger.info(
+        { organizerUserId: walletTx.wallet.userId, payoutId, amount: walletTx.amount, event: PAYOUT_EVENT.ORGANIZER_WALLET_REVERSED },
+        'Organizer wallet payout credited back',
+      )
+    } catch (err) {
+      // P2002 = ORGANIZER_PAYOUT_REVERSED already recorded for this payoutId (duplicate
+      // webhook delivery, or both payout.reversed and payout.failed arriving for the
+      // same payoutId) — safe to skip. Anything else is a genuine failure to
+      // reconcile and must be loud.
+      const isUniqueViolation = err instanceof Error && (err as { code?: unknown }).code === 'P2002'
+      if (!isUniqueViolation) {
+        this.logger.error({ err, payoutId, organizerUserId: walletTx.wallet.userId, event: PAYOUT_EVENT.ORGANIZER_WALLET_REVERSED }, 'Failed to credit back organizer wallet after payout failure/reversal — manual reconciliation required')
+      }
+    }
+  }
+
+  private async updatePayoutReleaseStatus(
+    event: NormalizedPayoutWebhookEvent,
+    status: (typeof PAYMENT_TX_STATUS)[keyof typeof PAYMENT_TX_STATUS],
+    failureReason?: string,
+  ): Promise<void> {
+    if (!event.payoutId) return
+
+    const paymentTx = await this.paymentTxRepo.findPayoutReleaseByGatewayTransferId(event.payoutId)
+    if (!paymentTx) {
+      this.logger.warn({ payoutId: event.payoutId }, 'No PAYOUT_RELEASE transaction found for RazorpayX payout')
+      return
+    }
+
+    // Never downgrade a terminal status (CAPTURED/REVERSED) on out-of-order delivery.
+    if (paymentTx.status === PAYMENT_TX_STATUS.CAPTURED || paymentTx.status === PAYMENT_TX_STATUS.REVERSED) {
+      this.logger.info(
+        { paymentTxId: paymentTx.id, currentStatus: paymentTx.status, incomingStatus: status },
+        'RazorpayX payout webhook received but tx already at a terminal status — skipping',
+      )
+      return
+    }
+
+    await this.paymentTxRepo.updateStatus(paymentTx.id, status, failureReason ? { failureReason } : undefined)
+    this.logger.info({ paymentTxId: paymentTx.id, payoutId: event.payoutId, status }, 'PAYOUT_RELEASE status updated')
   }
 
   // ─── Provider Resolution ─────────────────────────────
