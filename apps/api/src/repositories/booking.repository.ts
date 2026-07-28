@@ -466,6 +466,9 @@ export class BookingRepository {
       // Reseller feature — both optional/defaulted so existing callers/tests are unaffected.
       sublinkId?: string
       markupAmount?: number
+      // Frozen snapshot of trip.commissionRate at booking-creation time — every downstream
+      // entitlement/payout calculation must read THIS value, never a live organizer read.
+      commissionRate?: number
     },
     paymentTxData: {
       amount: number
@@ -512,6 +515,7 @@ export class BookingRepository {
           dropPointId: bookingData.dropPointId ?? null,
           sublinkId: bookingData.sublinkId ?? null,
           markupAmount: bookingData.markupAmount ?? 0,
+          ...(bookingData.commissionRate != null ? { commissionRate: bookingData.commissionRate } : {}),
           // [TravelerDetail] travelerDetails: { create: bookingData.travelers },
         },
         include: { travelerDetails: true },
@@ -654,6 +658,7 @@ export class BookingRepository {
             organizer: {
               select: {
                 id: true,
+                userId: true, // needed by BookingService.confirmBooking's razorpayx_payouts capture-time wallet credit
                 razorpayAccountId: true,
                 commissionRate: true,
                 businessName: true,
@@ -936,6 +941,50 @@ export class BookingRepository {
         issuedAt: cb?.issuedAt?.toISOString() ?? null,
       }
     })
+  }
+
+  /**
+   * M6 reconciliation cron support: CONFIRMED/COMPLETED bookings within the last
+   * `sinceDate` with a CAPTURED PAYMENT transaction, that do NOT yet have a matching
+   * ORGANIZER_EARNING WalletTransaction — the razorpayx_payouts strategy's capture-time
+   * credit hook (BookingService.confirmBooking) is fire-and-forget, so this is the
+   * safety net for whatever slipped through (transient wallet/DB failure, etc.).
+   * Used by: BookingService.reconcileOrganizerEarnings().
+   */
+  async findCapturedBookingsMissingOrganizerEarning(sinceDate: Date, limit: number) {
+    const candidates = await this.prisma.booking.findMany({
+      where: {
+        isDeleted: false,
+        bookingStatus: { in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED] },
+        createdAt: { gte: sinceDate },
+        paymentTransactions: { some: { type: PAYMENT_TX_TYPE.PAYMENT, status: PAYMENT_TX_STATUS.CAPTURED } },
+      },
+      select: {
+        id: true,
+        bookingRef: true,
+        totalAmount: true,
+        markupAmount: true,
+        commissionRate: true,
+        trip: { select: { organizer: { select: { userId: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })
+
+    if (candidates.length === 0) return []
+
+    const bookingIds = candidates.map((b) => b.id)
+    const existingEarnings = await this.prisma.walletTransaction.findMany({
+      where: {
+        type: WALLET_TX.ORGANIZER_EARNING,
+        referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+        referenceId: { in: bookingIds },
+      },
+      select: { referenceId: true },
+    })
+    const creditedIds = new Set(existingEarnings.map((e) => e.referenceId))
+
+    return candidates.filter((b) => !creditedIds.has(b.id))
   }
 
   /**

@@ -24,6 +24,8 @@ import type { OrganizerInviteRepository } from '../repositories/organizer-invite
 import type { IEmailProvider } from '../providers/email-provider.interface'
 import type { IPaymentGateway } from '../providers/payment/payment-gateway.interface'
 import { PAYOUT_ERROR } from '../providers/payment/payment.constants'
+import type { RazorpayXClient } from '../providers/payout/razorpayx.client'
+import { PAYOUT_STRATEGY } from '../utils/constants'
 import { organizerInviteTemplate } from '../templates'
 
 /** Prisma unique constraint violation code */
@@ -52,6 +54,8 @@ export class AuthService {
     private organizerInviteRepo?: OrganizerInviteRepository | null,
     private emailProvider?: IEmailProvider | null,
     private gateway?: IPaymentGateway | null,
+    /** Dormant until a RazorpayX account exists — see providers/payout/razorpayx.client.ts */
+    private razorpayxClient?: RazorpayXClient | null,
   ) {}
 
   private googleOAuthClient?: import('google-auth-library').OAuth2Client
@@ -317,6 +321,7 @@ export class AuthService {
           bankAccountLinked: this.gateway?.provider === 'cashfree'
             ? !!user.organizerProfile.cashfreeVendorId
             : !!user.organizerProfile.razorpayAccountId,
+          commissionRate: Number(user.organizerProfile.commissionRate),
           documents: (user.organizerProfile.documents as Record<string, string> | null) ?? null,
           documentReviews: ((user.organizerProfile as { documentReviews?: DocumentReviewRow[] }).documentReviews ?? []).map((dr) => ({
             ...dr,
@@ -491,7 +496,49 @@ export class AuthService {
     const masked = dto.accountNumber.slice(-4).padStart(dto.accountNumber.length, '*')
     this.logger.info({ userId, profileId: profile.id, provider }, 'Payout account linked')
 
+    // RazorpayX Payouts strategy: create the Contact + Fund Account alongside (not
+    // instead of) the Route linked account above, using the same submitted bank-form
+    // data — no new organizer-facing UI. Gated on PAYOUT_STRATEGY so we don't create
+    // RazorpayX contacts against a currently-nonexistent account while Route is still
+    // the live default. Never blocks/replaces the Route call, and never throws — a
+    // failure here must not fail the organizer's bank-linking request.
+    if (env.PAYOUT_STRATEGY === PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS && this.razorpayxClient) {
+      await this.linkRazorpayxAccount(userId, profile.id, dto, user.email)
+    }
+
     return { bankAccountLinked: true, maskedAccountNumber: masked }
+  }
+
+  /**
+   * Best-effort RazorpayX Contact + Fund Account creation, called from
+   * connectBankAccount when PAYOUT_STRATEGY=razorpayx_payouts. Never throws — logged
+   * and swallowed so a RazorpayX failure never fails the (already-succeeded) Route
+   * bank-linking request above.
+   */
+  private async linkRazorpayxAccount(
+    userId: string,
+    profileId: string,
+    dto: ConnectBankAccountDto,
+    email: string | null,
+  ): Promise<void> {
+    if (!this.razorpayxClient) return
+    try {
+      const { contactId } = await this.razorpayxClient.createContact({
+        name: dto.accountHolderName,
+        email: email ?? undefined,
+        referenceId: profileId,
+      })
+      const { fundAccountId } = await this.razorpayxClient.createFundAccount({
+        contactId,
+        accountNumber: dto.accountNumber,
+        ifsc: dto.ifscCode,
+        beneficiaryName: dto.beneficiaryName,
+      })
+      await this.organizerProfileRepo.linkRazorpayxAccount(profileId, contactId, fundAccountId)
+      this.logger.info({ userId, profileId, contactId, fundAccountId }, 'RazorpayX contact + fund account linked')
+    } catch (err) {
+      this.logger.error({ userId, profileId, err }, 'RazorpayX contact/fund account linking failed — Route account remains linked')
+    }
   }
 
   /**

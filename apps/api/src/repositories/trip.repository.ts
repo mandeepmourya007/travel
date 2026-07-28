@@ -619,8 +619,11 @@ export class TripRepository {
   }
 
   /**
-   * Fetches trip with organizer payment fields (razorpayAccountId, commissionRate).
+   * Fetches trip with organizer payment fields (razorpayAccountId).
    * Only used by BookingService — these fields are NOT exposed in public trip queries.
+   * Note: commissionRate for entitlement math comes from trip.commissionRate (the
+   * frozen snapshot, a plain scalar on Trip) — never from organizer.commissionRate,
+   * which is the organizer's live, admin-editable rate.
    */
   async findByIdForBooking(id: string) {
     return this.prisma.trip.findFirst({
@@ -637,7 +640,6 @@ export class TripRepository {
             verificationStatus: true,
             razorpayAccountId: true,
             cashfreeVendorId: true,
-            commissionRate: true,
           },
         },
         transferPoints: {

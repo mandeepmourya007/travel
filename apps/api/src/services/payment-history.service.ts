@@ -61,11 +61,15 @@ export class PaymentHistoryService {
 
   /** GET /payments/trip/:tripId/summary — Organizer's trip summary with commission */
   async getTripPaymentSummary(userId: string, tripId: string): Promise<TripPaymentSummary> {
-    const profile = await this.verifyTripOrganizer(userId, tripId)
+    const { trip } = await this.verifyTripOrganizer(userId, tripId)
 
     const raw = await this.paymentTxRepo.getTripSummary(tripId)
     const netRevenue = raw.totalRevenue - raw.totalRefunded
-    const commissionRate = (profile.commissionRate != null ? Number(profile.commissionRate) : DEFAULT_COMMISSION_RATE) / 100
+    // Every booking under this trip snapshots trip.commissionRate at booking-creation
+    // time (it never changes after trip creation), so the TRIP's own rate — not the
+    // organizer's possibly-since-changed live rate — is the value every booking here
+    // actually used, and the only one guaranteed correct for this specific trip.
+    const commissionRate = (trip.commissionRate != null ? Number(trip.commissionRate) : DEFAULT_COMMISSION_RATE) / 100
     const platformCommission = Math.round(netRevenue * commissionRate)
     const organizerEarnings = netRevenue - platformCommission
 
@@ -106,6 +110,13 @@ export class PaymentHistoryService {
     const profile = await this.verifyOrganizerProfile(userId)
     const raw = await this.paymentTxRepo.getOrganizerSummary(profile.id)
     const netRevenue = raw.totalRevenue - raw.totalRefunded
+    // Deliberate live read: this aggregates revenue across ALL of the organizer's trips,
+    // each of which may have its own frozen trip.commissionRate snapshot from whenever it
+    // was created. There is no single "correct" historical rate to apply to a sum spanning
+    // trips created under different rates — this is a current-state approximation ("what
+    // would this add up to at today's rate"), not a claim about actual historical payouts.
+    // Per-booking/per-trip figures (getTripPaymentSummary, payout statement, wallet credit)
+    // all correctly use each row's own frozen commissionRate snapshot instead.
     const commissionRate = (profile.commissionRate != null ? Number(profile.commissionRate) : DEFAULT_COMMISSION_RATE) / 100
     const platformCommission = Math.round(netRevenue * commissionRate)
     const organizerEarnings = netRevenue - platformCommission
@@ -143,7 +154,8 @@ export class PaymentHistoryService {
     const releasedTotal = released.reduce((sum, r) => sum + r.amount, 0)
 
     const pendingTotal = pendingPayments.reduce((sum, p) => {
-      const rawRate = p.booking.trip.organizer.commissionRate
+      // Frozen snapshot from booking-creation time — never the organizer's live rate.
+      const rawRate = p.booking.commissionRate
       const commissionRate = (rawRate != null ? Number(rawRate) : DEFAULT_COMMISSION_RATE) / 100
       return sum + Math.round(p.amount * (1 - commissionRate))
     }, 0)
@@ -256,7 +268,7 @@ export class PaymentHistoryService {
       throw new ForbiddenError('You can only manage your own trips')
     }
 
-    return profile
+    return { trip, profile }
   }
 }
 
