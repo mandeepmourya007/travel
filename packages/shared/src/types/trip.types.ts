@@ -45,6 +45,8 @@ export interface TripDetailReview {
 }
 
 export interface TripDetail extends Omit<TripSummary, 'organizer'> {
+  /** Frozen snapshot of the organizer's commissionRate at trip-creation time — never the organizer's current/live rate. */
+  commissionRate?: number
   description: string
   minGroupSize: number
   cancellationPolicy: CancellationPolicy

@@ -6,6 +6,7 @@ import type { SortOrder } from '../constants/sort'
 export type { SortOrder } from '../constants/sort'
 import type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy, AdminTravellerSort, AdminOrganizerSort, AdminTravellerStatus } from '../constants/admin'
 export type { AdminReviewSortBy, AdminBookingSortBy, AdminTripSortBy, AdminTravellerSort, AdminOrganizerSort, AdminTravellerStatus } from '../constants/admin'
+import type { OrganizerWalletTxType } from '../constants/wallet'
 
 // ─── Document Review ────────────────────────────────────
 
@@ -77,6 +78,10 @@ export interface OrganizerApprovalFilters {
 export interface ApproveRejectDto {
   action: ApproveRejectAction
   reason?: string
+}
+
+export interface UpdateCommissionDto {
+  commissionRate: number
 }
 
 // ─── Platform Stats ─────────────────────────────────────
@@ -421,9 +426,86 @@ export interface AdminOrganizerTripsDetail {
     verificationStatus: VerificationStatusFilter
     tripsCount: number
     createdAt: string
+    /** Organizer's CURRENT commissionRate (live, not a per-trip frozen snapshot). */
+    commissionRate: number
   }
   trips: {
     data: AdminOrganizerTripItem[]
     pagination: PaginationMeta
   }
+}
+
+// ─── Organizer Payouts (RazorpayX Payouts strategy) ──────────────────────
+// See docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+
+/** GET /admin/payouts/pending — one row per organizer with a positive Wallet balance */
+export interface AdminPendingPayoutItem {
+  organizerId: string
+  businessName: string
+  userId: string
+  userName: string
+  email: string | null
+  balance: number
+  currency: string
+  hasFundAccount: boolean
+  /** True if this organizer has a SUCCEEDED RazorpayX payout attempt that was never
+   *  followed by a matching wallet debit — the balance above still includes money
+   *  already sent; needs manual reconciliation before any further payout is released. */
+  hasUnreconciledPayout: boolean
+}
+
+/** Query params for GET /admin/payouts/pending */
+export interface AdminPendingPayoutFilters {
+  page?: number
+  limit?: number
+}
+
+/** Paginated response shape for GET /admin/payouts/pending */
+export interface AdminPendingPayoutsResponse {
+  data: AdminPendingPayoutItem[]
+  pagination: PaginationMeta
+}
+
+/** Filters query params for GET /admin/payouts */
+export interface AdminPayoutHistoryFilters {
+  organizerId?: string
+  /** Narrows to a single organizer-ledger transaction type (one of the four
+   *  ORGANIZER_* types — see ORGANIZER_WALLET_TX_TYPES). Unset = all four types. */
+  type?: OrganizerWalletTxType
+  page?: number
+  limit?: number
+}
+
+/** Single row in GET /admin/payouts — one WalletTransaction, enriched with organizer name */
+export interface AdminPayoutHistoryItem {
+  id: string
+  organizerId: string | null
+  organizerName: string
+  amount: number
+  type: string
+  referenceModel: string | null
+  referenceId: string | null
+  description: string
+  balanceBefore: number
+  balanceAfter: number
+  createdAt: string
+}
+
+/** Body for POST /admin/payouts/:organizerId/release */
+export interface ReleasePayoutDto {
+  /** Amount to release, in whole rupees (matches Wallet.balance's unit). Omitted = full balance. */
+  amount?: number
+}
+
+/** Response for POST /admin/payouts/:organizerId/release */
+export interface ReleasePayoutResult {
+  /**
+   * 'ledger_mismatch': the RazorpayX payout succeeded (real money left the platform) but
+   * the wallet-ledger debit that should follow it threw — the organizer's displayed
+   * balance is now out of sync with reality and needs manual reconciliation. Distinct
+   * from 'released' (clean success) and 'failed' (no money moved at all).
+   */
+  status: 'released' | 'insufficient_balance' | 'failed' | 'ledger_mismatch'
+  releasedAmount: number
+  payoutId?: string
 }

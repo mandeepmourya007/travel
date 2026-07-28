@@ -67,6 +67,8 @@ export interface OrganizerProfileResponse {
   totalReviews: number
   totalTripsCompleted: number
   bankAccountLinked: boolean
+  /** Percentage (e.g. 10 = 10%). Admin-editable via PATCH /admin/organizers/:id/commission. */
+  commissionRate: number
   documents: OrganizerDocuments | null
   documentReviews?: DocumentReviewItem[]
 }

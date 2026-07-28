@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculatePayoutSplit, assertPayoutSafe } from './payout'
+import { calculatePayoutSplit, assertPayoutSafe, calculateOrganizerEntitlement } from './payout'
 import { calculateRefundPercent } from './refund'
 import { ORGANIZER_DEPOSIT_PERCENT, MAX_REFUND_PERCENT, REFUND_CLIFF_DAYS } from '../constants/payment'
 import { CANCELLATION_POLICY } from '../constants/trip-types'
@@ -216,6 +216,91 @@ describe('calculatePayoutSplit', () => {
     expect(result.refundWindowClosed).toBe(true)
     expect(result.deposit).toBe(result.entitlement)
     expect(result.balance).toBe(0)
+  })
+})
+
+// ── calculateOrganizerEntitlement — drift-proof test ──────────────────────
+// Extracted from TripLifecycleService.resolveAndRelease's inline formula
+// (baseAmount = totalAmount - markupAmount; entitlement = round(baseAmount * (1 -
+// commissionRate/100))) so both the Route-strategy cron path and the razorpayx_payouts
+// capture-time credit hook (BookingService.confirmBooking) call the SAME function —
+// this table locks the formula's output so a future edit to either call site trips it
+// (see architect review note: prior incident of two payout-adjacent formulas disagreeing).
+describe('calculateOrganizerEntitlement', () => {
+  it.each([
+    // [totalAmount, markupAmount, commissionRate, expected]
+    [1000, 0, 10, 900], // zero markup, whole-number commission
+    [1000, 100, 10, 810], // non-zero markup: baseAmount=900, entitlement=round(900*0.9)=810
+    [1000, 0, 12.5, 875], // fractional commission rate
+    [999, 0, 12.5, 874], // rounding-boundary: 999*0.875=874.125 → rounds down to 874
+    [995, 0, 12.5, 871], // rounding-boundary: 995*0.875=870.625 → rounds up to 871
+    [100, 0, 0, 100], // zero commission — full entitlement
+    [100, 100, 10, 0], // markup equals total — base amount zero
+  ])('entitlement(%d, %d, %d) === %d', (totalAmount, markupAmount, commissionRate, expected) => {
+    expect(calculateOrganizerEntitlement(totalAmount, markupAmount, commissionRate)).toBe(expected)
+  })
+
+  it('matches the inline formula (baseAmount = totalAmount - markupAmount; round(baseAmount * (1 - commissionRate/100))) exactly, across a sweep of inputs', () => {
+    const cases: Array<{ totalAmount: number; markupAmount: number; commissionRate: number }> = [
+      { totalAmount: 12345, markupAmount: 0, commissionRate: 10 },
+      { totalAmount: 12345, markupAmount: 500, commissionRate: 10 },
+      { totalAmount: 12345, markupAmount: 500, commissionRate: 12.5 },
+      { totalAmount: 1, markupAmount: 0, commissionRate: 10 },
+      { totalAmount: 999999, markupAmount: 12345, commissionRate: 33.33 },
+    ]
+    for (const { totalAmount, markupAmount, commissionRate } of cases) {
+      const baseAmount = totalAmount - markupAmount
+      const expected = Math.round(baseAmount * (1 - commissionRate / 100))
+      expect(calculateOrganizerEntitlement(totalAmount, markupAmount, commissionRate)).toBe(expected)
+    }
+  })
+
+  // ── Net-earning → gross-price round-trip (trip-pricing-inversion plan, §2/§8) ──
+  // The trip form lets the organizer type the amount they want to EARN; the platform
+  // computes the traveller-facing gross price on top via
+  //   gross = round(netEarning / (1 - commissionRate/100))
+  // and that gross value is what actually gets stored as Trip.pricePerPerson. Later,
+  // calculateOrganizerEntitlement (this module, the SAME function used by both the
+  // capture-time wallet-credit hook and the trip-completion escrow release) re-derives
+  // the entitlement from that gross price. This test proves the round trip is faithful
+  // — netEarning in, (same) netEarning out — across a rate sweep capped at the new 50%
+  // admin bound (packages/shared/src/validators/admin.schema.ts's updateCommissionSchema),
+  // since commission rates >= 50% are documented above as an correctness break for this
+  // module's rounding guarantees.
+  describe('net-earning -> gross-price round trip (capped at the 50% admin bound)', () => {
+    function grossFromNetEarning(netEarning: number, commissionRate: number): number {
+      return Math.round(netEarning / (1 - commissionRate / 100))
+    }
+
+    it('reconstructs the exact netEarning via calculateOrganizerEntitlement for a broad sweep of amounts and rates', () => {
+      const rates = [0, 1, 5, 7.5, 10, 12.5, 15, 20, 25, 33.33, 40, 45, 49, 49.99]
+      const amounts = [1, 50, 100, 999, 1000, 2699, 12345, 50000, 99999, 200000]
+
+      let mismatches = 0
+      for (const rate of rates) {
+        for (const amount of amounts) {
+          const gross = grossFromNetEarning(amount, rate)
+          const entitlement = calculateOrganizerEntitlement(gross, 0, rate)
+          if (entitlement !== amount) mismatches++
+        }
+      }
+      // Structural guarantee: the commission factor (1 - rate/100) is always < 1 when
+      // rate > 0, which shrinks the rounding error introduced by grossFromNetEarning's
+      // round() below the 0.5 threshold on the way back through calculateOrganizerEntitlement's
+      // own round() — see the plan doc's 1.4M-combination brute force for the full proof.
+      expect(mismatches).toBe(0)
+    })
+
+    it('example from the plan: ₹2,699 earning at 10% commission -> ₹2,999 traveller price -> ₹2,699 entitlement', () => {
+      const gross = grossFromNetEarning(2699, 10)
+      expect(gross).toBe(2999)
+      expect(calculateOrganizerEntitlement(gross, 0, 10)).toBe(2699)
+    })
+
+    it('holds at the 50% admin bound boundary itself (not just below it)', () => {
+      const gross = grossFromNetEarning(1000, 50)
+      expect(calculateOrganizerEntitlement(gross, 0, 50)).toBe(1000)
+    })
   })
 })
 
