@@ -93,4 +93,46 @@ Blueprint "Safarnama", region oregon, free plan:
 | `docker-up.sh` / `docker-down.sh` | Dev compose lifecycle with Colima/daemon detection and health checks |
 | `deploy-prod.sh` | Full self-hosted production deploy (above) |
 
+## Seeding the local Docker DB
+
+`apps/api/prisma/seed.prod.ts` is a fully **idempotent** production-style seed — every insert is guarded by `upsert` on unique keys or `findFirst` guards, so re-runs never delete or duplicate rows. Adds new entries only for records appended to the file.
+
+### Preferred path — run inside the `travel-api` container
+
+Bypasses host-side Docker port-forwarding quirks entirely.
+
+```bash
+# 1. Deploy any pending migrations
+docker exec travel-api npx prisma migrate deploy
+
+# 2. Regenerate Prisma client if the schema changed since the container was built
+docker exec travel-api npx prisma generate
+
+# 3. Copy the latest seed file into the container (only needed if no volume mount)
+docker cp apps/api/prisma/seed.prod.ts travel-api:/app/apps/api/prisma/seed.prod.ts
+
+# 4. Run the seed
+docker exec travel-api npm run db:seed:prod
+```
+
+### From the host
+
+Only works if nothing else is holding port 5432 (see troubleshooting below).
+
+```bash
+cd apps/api
+npx prisma migrate deploy
+npm run db:seed:prod
+```
+
+### Troubleshooting
+
+- **`P1010: User was denied access` at `localhost:5432`** — a native Postgres (usually Homebrew's `postgresql@14`) is shadowing the Docker container on the same port. Stop it: `brew services stop postgresql@14`. Confirm with `lsof -nP -iTCP:5432 -sTCP:LISTEN`.
+- **`P1001: Can't reach database server at 127.0.0.1:5432`** after stopping the shadow — Docker Desktop's port-publisher on macOS can get stuck. Either **restart Docker Desktop**, or just use the container-exec path above.
+- **Migration fails with `enum label ... already exists`** — DB state drifted ahead of `_prisma_migrations`. Mark the offending migration as applied:
+  ```bash
+  docker exec travel-api npx prisma migrate resolve --applied <migration_name>
+  ```
+- **Seed fails with `Cannot read properties of undefined (reading 'findUnique')`** — the container's generated Prisma client is stale. Run `docker exec travel-api npx prisma generate` and re-seed.
+
 Related: [[Monorepo & Tooling]] · [[Database Schema#Migrations & Seeds]] · [[Payments & Webhooks]]

@@ -3,6 +3,7 @@
 import { Users, IndianRupee, Clock, Armchair } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/format'
+import { getOrganizerEarnings } from '@/lib/payment-calculator'
 import type { TripBookingSummary } from '@shared/types/booking.types'
 
 /** Props for the trip-level summary stats bar (Swiggy-style order summary) */
@@ -24,8 +25,8 @@ export function TripStatsBar({ summary }: TripStatsBarProps) {
         color={bookedRatio >= 1 ? 'red' : bookedRatio >= 0.8 ? 'amber' : 'green'}
       />
       <StatMini
-        label="Revenue"
-        value={formatCurrency(summary.revenue)}
+        label="Your Earnings"
+        value={formatCurrency(getOrganizerEarnings(summary.revenue, 0))}
         icon={<IndianRupee className="h-5 w-5" />}
         color="green"
       />
