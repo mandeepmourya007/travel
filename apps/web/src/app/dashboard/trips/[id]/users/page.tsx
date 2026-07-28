@@ -16,7 +16,9 @@ import { Pagination } from '@/components/shared/pagination'
 import { useTripBookings } from '@/hooks/use-trip-bookings'
 import { useTripRequests } from '@/hooks/use-trip-requests'
 import { useTripSummary } from '@/hooks/use-trip-summary'
+import { useTripDetail } from '@/hooks/use-trip-detail'
 import { useRespondToRequest } from '@/hooks/use-respond-request'
+import { getEffectivePrice } from '@/lib/trip-utils'
 import type { TripBookingListItem, BookingStatus } from '@shared/types/booking.types'
 import type { TripRequestListItem, TripRequestStatus } from '@shared/types/trip-request.types'
 
@@ -62,6 +64,9 @@ export default function TripUsersPage() {
 
   // ── Data hooks ──────────────────────────────────────
   const summary = useTripSummary(tripId)
+  // Fetch trip detail (via slug) to derive per-person price for RequestCard's expected-earnings display.
+  const tripDetail = useTripDetail(tripSlug ?? '')
+  const pricePerPerson = tripDetail.data ? getEffectivePrice(tripDetail.data) : undefined
   const bookingStatusFilter = activeTab === 'confirmed'
     ? (['CONFIRMED', 'COMPLETED'] as BookingStatus[])
     : (bookingStatus || undefined) as BookingStatus | undefined
@@ -159,6 +164,7 @@ export default function TripUsersPage() {
           isResponding={respondMutation.isPending}
           page={requestPage}
           onPageChange={setRequestPage}
+          pricePerPerson={pricePerPerson}
         />
       )}
 
@@ -305,6 +311,7 @@ function RequestsTab({
   isResponding,
   page,
   onPageChange,
+  pricePerPerson,
 }: {
   search: string
   status: string
@@ -321,6 +328,7 @@ function RequestsTab({
   isResponding: boolean
   page: number
   onPageChange: (p: number) => void
+  pricePerPerson?: number
 }) {
   return (
     <div className="space-y-4">
@@ -351,6 +359,7 @@ function RequestsTab({
                 onReject={onReject}
                 onViewDetails={onViewDetails}
                 isResponding={isResponding}
+                pricePerPerson={pricePerPerson}
               />
             ))}
           </div>

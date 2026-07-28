@@ -5,6 +5,7 @@ import { Check, X, Users, Eye, ChevronDown, ChevronUp, Phone, Armchair } from 'l
 import { Avatar } from '@/components/shared/avatar'
 import { cn } from '@/lib/utils'
 import { formatCurrency, timeAgo } from '@/lib/format'
+import { getOrganizerEarnings } from '@/lib/payment-calculator'
 import type { TripBookingListItem } from '@shared/types/booking.types'
 import type { TripRequestListItem } from '@shared/types/trip-request.types'
 
@@ -52,7 +53,9 @@ export function BookingCard({ booking, onViewDetails }: BookingCardProps) {
             <span className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" /> {booking.numTravelers} traveler{booking.numTravelers !== 1 ? 's' : ''}
             </span>
-            <span className="font-mono text-neutral-700">{formatCurrency(booking.totalAmount)}</span>
+            <span className="font-mono font-semibold text-success-600" title="Your earnings after platform fee">
+              {formatCurrency(getOrganizerEarnings(booking.totalAmount, 0))}
+            </span>
             <span className="text-xs">{timeAgo(booking.createdAt)}</span>
           </div>
         </div>
@@ -127,13 +130,18 @@ interface RequestCardProps {
   /** When omitted, the view-details control is hidden (never render a dead button) */
   onViewDetails?: (request: TripRequestListItem) => void
   isResponding?: boolean
+  /** Trip's effective per-person price — used to show organizer's expected earnings if request converts */
+  pricePerPerson?: number
 }
 
-export function RequestCard({ request, onApprove, onReject, onViewDetails, isResponding }: RequestCardProps) {
+export function RequestCard({ request, onApprove, onReject, onViewDetails, isResponding, pricePerPerson }: RequestCardProps) {
   const isPending = request.status === 'PENDING'
   const isApprovedAwaitingPayment = request.status === 'APPROVED'
   const [showTravelers, setShowTravelers] = useState(false)
   const travelers = request.travelerDetails
+  const expectedEarnings = pricePerPerson
+    ? getOrganizerEarnings(pricePerPerson * request.numTravelers, 0)
+    : null
 
   return (
     <div
@@ -171,10 +179,17 @@ export function RequestCard({ request, onApprove, onReject, onViewDetails, isRes
 
       {/* Row 3: Travelers count + action buttons */}
       <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="flex items-center gap-1.5 text-sm text-neutral-500">
-          <Users className="h-4 w-4" />
-          {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-3 text-sm text-neutral-500">
+          <span className="flex items-center gap-1.5">
+            <Users className="h-4 w-4" />
+            {request.numTravelers} traveler{request.numTravelers !== 1 ? 's' : ''}
+          </span>
+          {expectedEarnings !== null && (
+            <span className="font-mono font-semibold text-success-600" title="Your expected earnings if request converts">
+              {formatCurrency(expectedEarnings)}
+            </span>
+          )}
+        </div>
 
         <div className="flex shrink-0 items-center gap-2">
           {isPending ? (
