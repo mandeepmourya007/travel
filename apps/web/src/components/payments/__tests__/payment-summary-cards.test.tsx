@@ -44,14 +44,14 @@ describe('TripPaymentSummaryCards', () => {
   it('should render organizer-specific stats', () => {
     render(<TripPaymentSummaryCards {...makeTripSummary()} />)
 
-    expect(screen.getByText('Revenue')).toBeInTheDocument()
-    expect(screen.getByText('Refunds')).toBeInTheDocument()
     expect(screen.getByText('Your Earnings')).toBeInTheDocument()
-    expect(screen.getByText('Platform Fee')).toBeInTheDocument()
+    expect(screen.getByText('Refunds')).toBeInTheDocument()
+    expect(screen.queryByText('Revenue')).not.toBeInTheDocument()
+    expect(screen.queryByText('Platform Fee')).not.toBeInTheDocument()
   })
 
   it('should format large currency values', () => {
-    render(<TripPaymentSummaryCards {...makeTripSummary({ totalRevenue: 45000 })} />)
+    render(<TripPaymentSummaryCards {...makeTripSummary({ organizerEarnings: 45000 })} />)
 
     expect(screen.getByText('₹45,000')).toBeInTheDocument()
   })
