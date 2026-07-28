@@ -60,6 +60,10 @@ enum PaymentType {
   // above remains the Razorpay-only SafePay path and is unaffected by these.
   DEPOSIT_RELEASE
   BALANCE_RELEASE
+  // RazorpayX Payouts strategy analogue of ESCROW_RELEASE (see payout.service.ts
+  // releaseRazorpayXPayout) — kept distinct so queries can tell which payout
+  // strategy released a booking.
+  PAYOUT_RELEASE
 }
 
 enum PaymentStatus {
@@ -68,6 +72,12 @@ enum PaymentStatus {
   CAPTURED
   FAILED
   REFUNDED
+  // RazorpayX Payouts lifecycle only (see payout.service.ts / payment.service.ts
+  // handleRazorpayxWebhook) — PROCESSING on payout.processing/API-success,
+  // REVERSED on payout.reversed. INITIATED/CAPTURED/FAILED are reused for the
+  // rest of the PAYOUT_RELEASE lifecycle.
+  PROCESSING
+  REVERSED
 }
 
 enum Gender {
@@ -182,6 +192,12 @@ enum WalletTransactionType {
   ADMIN_DEBIT
   PROMOTIONAL_CREDIT
   EXPIRY
+  // Organizer earnings ledger (RazorpayX Payouts strategy) — see
+  // docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+  ORGANIZER_EARNING
+  ORGANIZER_EARNING_REVERSAL
+  ORGANIZER_PAYOUT
+  ORGANIZER_PAYOUT_REVERSED
 }
 
 // ─── Models (15 MVP Tables) ──────────────────────────────
@@ -250,6 +266,11 @@ model OrganizerProfile {
   commissionRate      Decimal            @default(10.0) @db.Decimal(5, 2)
   razorpayAccountId   String?
   cashfreeVendorId    String?   // Cashfree Easy Split vendor ID (equivalent of razorpayAccountId)
+  // RazorpayX Payouts strategy (PAYOUT_STRATEGY=razorpayx_payouts) — Contact/FundAccount
+  // pair created alongside (not instead of) the Route linked account above. See
+  // AuthService.connectBankAccount and docs/codebase/Payments & Webhooks.md.
+  razorpayxContactId     String?
+  razorpayxFundAccountId String?
   // Server-stamped, never client-supplied. No versioning/re-consent flow —
   // initial acceptance only, captured when organizer registration completes.
   organizerTncAcceptedAt DateTime? // Organizer Agreement acceptance
@@ -266,6 +287,7 @@ model OrganizerProfile {
   documentReviews   DocumentReview[]
   reviewComments    DocumentReviewComment[]
   resellerMainLinks ResellerMainLink[]
+  payoutAttempts    OrganizerPayoutAttempt[]
 
   @@index([verificationStatus])
 }
@@ -360,6 +382,10 @@ model Trip {
   hiddenReason         String?
   hiddenBy             UserRole?
   seatSelectionEnabled Boolean           @default(false)
+  // Snapshot of the organizer's commissionRate at trip-creation time — never
+  // read the organizer's live commissionRate for entitlement calc after this
+  // point (admin can change it later without retroactively affecting trips).
+  commissionRate Decimal @default(10.0) @db.Decimal(5, 2)
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
   createdAt DateTime  @default(now())
@@ -421,6 +447,11 @@ model Booking {
   sublinkId    String?
   sublink      ResellerSublink? @relation(fields: [sublinkId], references: [id])
   markupAmount Int              @default(0)
+
+  // Snapshot of trip.commissionRate at booking-creation time — used for every
+  // downstream entitlement/payout calc for this booking, never a live
+  // organizer.commissionRate read (see Trip.commissionRate comment above).
+  commissionRate Decimal @default(10.0) @db.Decimal(5, 2)
 
   isActive  Boolean   @default(true)
   isDeleted Boolean   @default(false)
@@ -617,6 +648,43 @@ model PaymentTransaction {
   //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'BALANCE_RELEASE'
   // Same reasoning as ESCROW_RELEASE: at most one DEPOSIT_RELEASE / BALANCE_RELEASE
   // row per booking — the hard DB backstop against a duplicate gateway payout call.
+  //   CREATE UNIQUE INDEX "PaymentTransaction_bookingId_payout_release_unique"
+  //   ON "PaymentTransaction"("bookingId") WHERE "type" = 'PAYOUT_RELEASE'
+  // Same reasoning: at most one PAYOUT_RELEASE row per booking — the hard DB backstop
+  // against a duplicate RazorpayX payout call (see 20260728010001_add_payout_release_unique_index).
+}
+
+// Ledger-before-gateway-call row for PayoutService.releaseOrganizerWalletPayout (the
+// admin-triggered organizer wallet-ledger payout) — written INSIDE the distributed lock,
+// BEFORE razorpayxClient.createPayout is called, mirroring the PaymentTransaction
+// ledger-before-gateway-call pattern used by releaseBalance/releaseRazorpayXPayout. See
+// docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+enum OrganizerPayoutAttemptStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+}
+
+model OrganizerPayoutAttempt {
+  id                String                       @id @default(uuid(7))
+  organizerId       String
+  organizer         OrganizerProfile             @relation(fields: [organizerId], references: [id])
+  // Derived from this row's own id (buildIdempotencyKey('ORG_WALLET_PAYOUT', id)) —
+  // NOT Date.now() — so retrying the same logical release attempt reuses the same
+  // gateway idempotency key. A genuinely new release attempt gets a new row + new key.
+  idempotencyKey    String                       @unique
+  requestedAmount   Int                          // whole rupees, matches Wallet.balance's unit
+  status            OrganizerPayoutAttemptStatus @default(INITIATED)
+  gatewayTransferId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId])
+  // Backs the "any recent INITIATED attempt for this organizer" pre-flight check that
+  // guards against a slow gateway call + expired lock letting a concurrent release
+  // re-read a stale balance (see PayoutService.releaseOrganizerWalletPayout).
+  @@index([organizerId, status, createdAt])
 }
 
 model Review {
