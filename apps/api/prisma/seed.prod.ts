@@ -337,6 +337,7 @@ async function main() {
       org1User, org2User, org3User, org4User, org7User, org8User,
       completedTrips, upcomingTrips,
     }) },
+    { name: 'Missing Entities (KYC, payouts, reseller, invites, broadcasts)', fn: () => seedMissingEntities({ admin }) },
   ]
 
   for (const section of seedSections) {
@@ -2487,6 +2488,322 @@ async function seedTripCategoriesAndRequests(deps: {
   } })
 
   console.log('  ✓ Created 7 trip edit history entries across 5 trips (price changes, date shifts, policy updates)')
+}
+
+// ══════════════════════════════════════════════════════════
+// ── MISSING ENTITIES: KYC docs, org earnings, payouts,
+//    reseller flow, invites, WA broadcasts ──────────────
+// ══════════════════════════════════════════════════════════
+// Amount math mirrors apps/web/src/lib/payment-calculator.ts:
+//   net           = totalAmount - markupAmount
+//   commission    = round(net * commissionRate / 100)
+//   organizer     = net - commission
+//   reseller/mkup = markupAmount (never split with organizer)
+
+async function seedMissingEntities(deps: { admin: { id: string } }) {
+  // ── A. Ensure every user has a wallet (org7/8 + extraTravelers were missing) ──
+  const users = await prisma.user.findMany({ where: { isDeleted: false }, select: { id: true } })
+  for (const u of users) {
+    await prisma.wallet.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id, balance: 0 } })
+  }
+  console.log(`  ✓ Ensured wallets for all ${users.length} users`)
+
+  // ── B. DocumentReview rows per organizer, tracking verificationStatus ──
+  const KYC_DOCS = ['aadhaarFront', 'aadhaarBack', 'panCard'] as const
+  const orgs = await prisma.organizerProfile.findMany({ select: { id: true, verificationStatus: true, userId: true } })
+  const reviewedOn = new Date(2025, 8, 15) // Sep 15, 2025 — historical review date
+  for (const org of orgs) {
+    const status = org.verificationStatus === 'APPROVED' ? 'APPROVED'
+      : org.verificationStatus === 'REJECTED' ? 'REJECTED'
+      : 'PENDING'
+    for (const dt of KYC_DOCS) {
+      await prisma.documentReview.upsert({
+        where: { organizerId_docType: { organizerId: org.id, docType: dt } },
+        update: {},
+        create: {
+          organizerId: org.id,
+          docType: dt,
+          status,
+          currentUrl: `https://res.cloudinary.com/dhng8qau8/image/upload/seed/kyc/${org.id.slice(0, 8)}-${dt}.jpg`,
+          reviewedAt: status === 'PENDING' ? null : reviewedOn,
+          reviewedBy: status === 'PENDING' ? null : deps.admin.id,
+        },
+      })
+    }
+  }
+  console.log(`  ✓ Created DocumentReview rows for ${orgs.length} organizers × 3 doc types`)
+
+  // ── C. DocumentReviewComment threads on rejected & pending orgs ──
+  const rejectedOrg = orgs.find(o => o.verificationStatus === 'REJECTED')
+  if (rejectedOrg) {
+    const exists = await prisma.documentReviewComment.findFirst({ where: { organizerId: rejectedOrg.id } })
+    if (!exists) {
+      await prisma.documentReviewComment.createMany({ data: [
+        { organizerId: rejectedOrg.id, authorId: deps.admin.id, authorRole: 'ADMIN', docType: 'aadhaarFront', comment: 'Uploaded image is blurry — please re-upload a clear scan of the front of your Aadhaar card.' },
+        { organizerId: rejectedOrg.id, authorId: deps.admin.id, authorRole: 'ADMIN', docType: 'panCard', comment: 'PAN card image is cropped — full card including name and PAN number must be visible.' },
+        { organizerId: rejectedOrg.id, authorId: rejectedOrg.userId, authorRole: 'ORGANIZER', comment: 'Understood — I will re-upload both documents this week. Thanks for the feedback.' },
+      ] })
+    }
+  }
+  const pendingOrg = orgs.find(o => o.verificationStatus === 'PENDING')
+  if (pendingOrg) {
+    const exists = await prisma.documentReviewComment.findFirst({ where: { organizerId: pendingOrg.id } })
+    if (!exists) {
+      await prisma.documentReviewComment.create({ data: { organizerId: pendingOrg.id, authorId: deps.admin.id, authorRole: 'ADMIN', comment: 'Application received. Our team will review your documents within 48 hours.' } })
+    }
+  }
+  console.log('  ✓ Created DocumentReviewComment threads (rejected + pending organizers)')
+
+  // ── D. Organizer earnings + payout attempts for every COMPLETED booking ──
+  // Formula matches payment-calculator.ts:
+  //   net = totalAmount - markupAmount ; commission = round(net * rate/100) ; earnings = net - commission
+  const completed = await prisma.booking.findMany({
+    where: { bookingStatus: 'COMPLETED', isDeleted: false },
+    select: {
+      id: true, totalAmount: true, markupAmount: true, commissionRate: true,
+      trip: { select: { organizer: { select: { id: true, userId: true } } } },
+    },
+  })
+
+  type OrgAcc = { orgId: string; userId: string; total: number; entries: { bookingId: string; earnings: number }[] }
+  const perOrg = new Map<string, OrgAcc>()
+  for (const b of completed) {
+    const rate = Number(b.commissionRate)
+    const net = b.totalAmount - b.markupAmount
+    const commission = Math.round(net * rate / 100)
+    const earnings = net - commission
+    const key = b.trip.organizer.id
+    const acc = perOrg.get(key) ?? { orgId: key, userId: b.trip.organizer.userId, total: 0, entries: [] }
+    acc.total += earnings
+    acc.entries.push({ bookingId: b.id, earnings })
+    perOrg.set(key, acc)
+  }
+
+  let payoutCount = 0
+  let earningTxCount = 0
+  for (const acc of perOrg.values()) {
+    const wallet = await prisma.wallet.findUnique({ where: { userId: acc.userId } })
+    if (!wallet) continue
+
+    // ORGANIZER_EARNING per booking — balance rolls forward
+    let bal = wallet.balance
+    for (const e of acc.entries) {
+      const existing = await prisma.walletTransaction.findFirst({ where: { walletId: wallet.id, type: 'ORGANIZER_EARNING', referenceModel: 'Booking', referenceId: e.bookingId } })
+      if (existing) { bal = existing.balanceAfter; continue }
+      const before = bal
+      const after = before + e.earnings
+      await prisma.walletTransaction.create({ data: {
+        walletId: wallet.id, amount: e.earnings, type: 'ORGANIZER_EARNING',
+        referenceModel: 'Booking', referenceId: e.bookingId,
+        description: `Organizer earnings released for booking ${e.bookingId.slice(0, 8)}`,
+        balanceBefore: before, balanceAfter: after,
+      } })
+      earningTxCount++
+      bal = after
+    }
+
+    // Ledger-before-gateway payout attempt (SUCCEEDED — historical seed data)
+    const idemp = `ORG_WALLET_PAYOUT-seed-${acc.orgId}`
+    let payout = await prisma.organizerPayoutAttempt.findUnique({ where: { idempotencyKey: idemp } })
+    if (!payout) {
+      payout = await prisma.organizerPayoutAttempt.create({ data: {
+        organizerId: acc.orgId, idempotencyKey: idemp,
+        requestedAmount: acc.total, status: 'SUCCEEDED',
+        gatewayTransferId: `pout_seed_${acc.orgId.slice(0, 8)}`,
+      } })
+    }
+
+    // ORGANIZER_PAYOUT — reduces wallet balance by the full payout total
+    const existingPayoutTx = await prisma.walletTransaction.findFirst({ where: { walletId: wallet.id, type: 'ORGANIZER_PAYOUT', referenceModel: 'OrganizerPayoutAttempt', referenceId: payout.id } })
+    if (!existingPayoutTx && bal >= acc.total) {
+      const before = bal
+      const after = before - acc.total
+      await prisma.walletTransaction.create({ data: {
+        walletId: wallet.id, amount: acc.total, type: 'ORGANIZER_PAYOUT',
+        referenceModel: 'OrganizerPayoutAttempt', referenceId: payout.id,
+        description: `Bank payout of ₹${acc.total.toLocaleString('en-IN')} to organizer`,
+        balanceBefore: before, balanceAfter: after,
+      } })
+      bal = after
+    }
+    await prisma.wallet.update({ where: { id: wallet.id }, data: { balance: bal } })
+
+    // PayoutTransaction per completed booking (PAYOUT_RELEASE ledger row)
+    for (const e of acc.entries) {
+      const exists = await prisma.paymentTransaction.findFirst({ where: { bookingId: e.bookingId, type: 'PAYOUT_RELEASE' } })
+      if (exists) continue
+      await prisma.paymentTransaction.create({ data: {
+        bookingId: e.bookingId, type: 'PAYOUT_RELEASE', amount: e.earnings,
+        status: 'CAPTURED', provider: 'razorpay',
+        razorpayTransferId: `trf_seed_${e.bookingId.slice(0, 8)}`,
+        gatewayTransferId: `trf_seed_${e.bookingId.slice(0, 8)}`,
+      } })
+    }
+    payoutCount++
+  }
+  console.log(`  ✓ Organizer earnings: ${earningTxCount} ORGANIZER_EARNING tx across ${payoutCount} organizers`)
+  console.log(`  ✓ ${payoutCount} OrganizerPayoutAttempt (SUCCEEDED) + matching ORGANIZER_PAYOUT wallet tx`)
+
+  // ── E. Reseller flow — 2 resellers × 2 trips each × 2 sublinks × 1 booking ──
+  // Data-driven so counts stay consistent. Each reseller resells 2 different trips;
+  // each trip gets 2 sublinks (varying markup) + 1 CONFIRMED booking via sub1.
+  type ResellerSeed = {
+    email: string
+    slugSuffix: string // used in tokens/bookingRefs for uniqueness
+    trips: Array<{
+      slug: string
+      sub1: { markup: number; label: string }
+      sub2: { markup: number; label: string }
+      booking: {
+        travelerEmail: string
+        numTravelers: number
+        primaryName: string
+        primaryPhone: string
+        secondaryName?: string
+      }
+    }>
+  }
+
+  const resellers: ResellerSeed[] = [
+    {
+      email: 'karan.singh@gmail.com', slugSuffix: 'karan',
+      trips: [
+        {
+          slug: 'goa-monsoon-beach-escape-jul-2026',
+          sub1: { markup: 300, label: 'Instagram promo' },
+          sub2: { markup: 500, label: 'College WhatsApp' },
+          booking: { travelerEmail: 'meera.bhat@gmail.com', numTravelers: 2, primaryName: 'Meera Bhat', primaryPhone: '+919876543217', secondaryName: 'Anaya Bhat' },
+        },
+        {
+          slug: 'kasol-kheerganga-trek-jun-2026',
+          sub1: { markup: 200, label: 'YouTube description' },
+          sub2: { markup: 400, label: 'Trekking Telegram group' },
+          booking: { travelerEmail: 'kavita.reddy@gmail.com', numTravelers: 1, primaryName: 'Kavita Reddy', primaryPhone: '+919876543213' },
+        },
+      ],
+    },
+    {
+      email: 'nikhil.verma@gmail.com', slugSuffix: 'nikhil',
+      trips: [
+        {
+          slug: 'manali-summer-adventure-jun-2026',
+          sub1: { markup: 400, label: 'LinkedIn post' },
+          sub2: { markup: 700, label: 'Corporate offsite pitch' },
+          booking: { travelerEmail: 'sneha.deshmukh@gmail.com', numTravelers: 2, primaryName: 'Sneha Deshmukh', primaryPhone: '+919876543211', secondaryName: 'Riya Deshmukh' },
+        },
+        {
+          slug: 'rishikesh-rafting-bungee-aug-2026',
+          sub1: { markup: 250, label: 'Adventure club WhatsApp' },
+          sub2: { markup: 450, label: 'Instagram story' },
+          booking: { travelerEmail: 'ananya.iyer@gmail.com', numTravelers: 3, primaryName: 'Ananya Iyer', primaryPhone: '+919876543215', secondaryName: 'Divya Iyer' },
+        },
+      ],
+    },
+  ]
+
+  let rslrBookingSeq = 0
+  let mainLinkCount = 0, sublinkCount = 0, attributionCount = 0, rslrBookingCount = 0
+
+  for (const r of resellers) {
+    const resellerUser = await prisma.user.findUnique({ where: { email: r.email } })
+    if (!resellerUser) continue
+    await prisma.user.update({ where: { id: resellerUser.id }, data: { isReseller: true } })
+
+    for (let ti = 0; ti < r.trips.length; ti++) {
+      const t = r.trips[ti]
+      const trip = await prisma.trip.findUnique({ where: { slug: t.slug }, select: { id: true, organizerId: true, pricePerPerson: true } })
+      if (!trip) continue
+
+      const mainLink = await prisma.resellerMainLink.upsert({
+        where: { tripId_resellerId: { tripId: trip.id, resellerId: resellerUser.id } },
+        update: {},
+        create: {
+          token: `rmlnk_seed_${r.slugSuffix}_${ti + 1}`,
+          tripId: trip.id, organizerId: trip.organizerId,
+          resellerId: resellerUser.id, resellerEmail: r.email,
+        },
+      })
+      mainLinkCount++
+
+      const sub1 = await prisma.resellerSublink.upsert({
+        where: { token: `rsub_seed_${r.slugSuffix}_${ti + 1}_a` },
+        update: {},
+        create: { token: `rsub_seed_${r.slugSuffix}_${ti + 1}_a`, mainLinkId: mainLink.id, resellerId: resellerUser.id, tripId: trip.id, markupAmount: t.sub1.markup, label: t.sub1.label },
+      })
+      await prisma.resellerSublink.upsert({
+        where: { token: `rsub_seed_${r.slugSuffix}_${ti + 1}_b` },
+        update: {},
+        create: { token: `rsub_seed_${r.slugSuffix}_${ti + 1}_b`, mainLinkId: mainLink.id, resellerId: resellerUser.id, tripId: trip.id, markupAmount: t.sub2.markup, label: t.sub2.label },
+      })
+      sublinkCount += 2
+
+      const traveler = await prisma.user.findUnique({ where: { email: t.booking.travelerEmail } })
+      if (!traveler) continue
+
+      await prisma.sublinkAttribution.upsert({
+        where: { userId_tripId: { userId: traveler.id, tripId: trip.id } },
+        update: {},
+        create: { userId: traveler.id, sublinkId: sub1.id, tripId: trip.id },
+      })
+      attributionCount++
+
+      // Booking math (matches payment-calculator.ts):
+      // totalAmount = pricePerPerson * numTravelers + markupPerPerson * numTravelers
+      const numTravelers = t.booking.numTravelers
+      const markupAmount = sub1.markupAmount * numTravelers
+      const totalAmount = trip.pricePerPerson * numTravelers + markupAmount
+      rslrBookingSeq++
+      const bookingRef = `SFN-2026-RSLR-${String(rslrBookingSeq).padStart(3, '0')}`
+      const existing = await prisma.booking.findUnique({ where: { bookingRef } })
+      if (existing) continue
+
+      const b = await prisma.booking.create({ data: {
+        bookingRef, tripId: trip.id, userId: traveler.id,
+        numTravelers, totalAmount,
+        sublinkId: sub1.id, markupAmount,
+        commissionRate: 10.0,
+        bookingStatus: 'CONFIRMED',
+      } })
+      await prisma.paymentTransaction.create({ data: {
+        bookingId: b.id, type: 'PAYMENT', amount: totalAmount, status: 'CAPTURED',
+        razorpayOrderId: `order_seed_rslr_${String(rslrBookingSeq).padStart(3, '0')}`,
+        razorpayPaymentId: `pay_seed_rslr_${String(rslrBookingSeq).padStart(3, '0')}`,
+      } })
+      const travelerRows: Prisma.TravelerDetailUncheckedCreateInput[] = [
+        { bookingId: b.id, name: t.booking.primaryName, phone: t.booking.primaryPhone, age: 27, gender: 'FEMALE', isPrimary: true, emergencyContactName: `${t.booking.primaryName.split(' ')[0]}'s Contact`, emergencyContactPhone: '+919876543299' },
+      ]
+      if (numTravelers >= 2 && t.booking.secondaryName) {
+        travelerRows.push({ bookingId: b.id, name: t.booking.secondaryName, age: 25, gender: 'FEMALE' })
+      }
+      for (let k = travelerRows.length; k < numTravelers; k++) {
+        travelerRows.push({ bookingId: b.id, name: `Companion ${k + 1}`, age: 28, gender: 'MALE' })
+      }
+      await prisma.travelerDetail.createMany({ data: travelerRows })
+      rslrBookingCount++
+    }
+  }
+  console.log(`  ✓ Reseller: ${resellers.length} resellers × ${resellers[0].trips.length} trips = ${mainLinkCount} main links, ${sublinkCount} sublinks, ${attributionCount} attributions, ${rslrBookingCount} reseller bookings`)
+
+  // ── F. Organizer email invites (2 pending, 1 accepted) ──
+  const inviteExists = await prisma.organizerInvite.findUnique({ where: { email: 'invitee1@safarnama.in' } })
+  if (!inviteExists) {
+    await prisma.organizerInvite.createMany({ skipDuplicates: true, data: [
+      { email: 'invitee1@safarnama.in', token: 'invtoken_seed_001', sentBy: deps.admin.id },
+      { email: 'invitee2@safarnama.in', token: 'invtoken_seed_002', sentBy: deps.admin.id },
+      { email: 'accepted@safarnama.in', token: 'invtoken_seed_003', sentBy: deps.admin.id, acceptedAt: d(2026, 3, 10) },
+    ] })
+    console.log('  ✓ Created 3 OrganizerInvite (2 pending, 1 accepted)')
+  }
+
+  // ── G. WhatsApp broadcasts (admin-initiated marketing sends) ──
+  const bcExists = await prisma.whatsappBroadcast.findFirst({ where: { createdByAdminId: deps.admin.id } })
+  if (!bcExists) {
+    await prisma.whatsappBroadcast.createMany({ data: [
+      { createdByAdminId: deps.admin.id, message: 'Monsoon trips are live! Book Kasol, Lonavala, Goa now with early-bird pricing.', templateName: 'monsoon_promo_v1', targetType: 'ROLE', targetRole: 'TRAVELER', totalCount: 250, successCount: 238, failureCount: 12, status: 'COMPLETED', completedAt: d(2026, 4, 20) },
+      { createdByAdminId: deps.admin.id, message: 'Reminder: complete your KYC to start receiving payouts.', templateName: 'organizer_kyc_reminder_v1', targetType: 'ROLE', targetRole: 'ORGANIZER', totalCount: 8, successCount: 8, failureCount: 0, status: 'COMPLETED', completedAt: d(2026, 4, 22) },
+    ] })
+    console.log('  ✓ Created 2 WhatsappBroadcast rows')
+  }
 }
 
 main()
