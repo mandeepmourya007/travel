@@ -95,44 +95,44 @@ sortBy?: MySort
 
 | Role | Slug | Output |
 |------|------|--------|
-| Product Manager | `travel-product-manager` | Docs (`docs/rnd/`) |
-| UI/UX Designer | `travel-designer` | Docs (`docs/rnd/`) |
-| Market Researcher | `travel-market-researcher` | Docs (`docs/rnd/`) |
-| Security Auditor | `travel-security-auditor` | Report only, no code |
-| Backend Engineer | `travel-backend-engineer` | Code (`apps/api/`) |
-| Frontend Engineer | `travel-frontend-engineer` | Code (`apps/web/`) |
-| Full Stack Engineer | `travel-fullstack-engineer` | Code (both apps) |
-| Infrastructure Engineer | `travel-infra-engineer` | Code (Docker/Render/CI) |
-| API Docs Engineer | `travel-api-docs-engineer` | Docs (`docs/codebase/API Routes Reference.md`) |
-| QA Engineer | `travel-qa-engineer` | Code (tests) |
-| Debugger | `travel-debugger` | Code (targeted fixes) |
-| UI/UX Engineer | `travel-ui-ux-engineer` | Code (`apps/web/`) |
+| Product Manager | `product-manager` | Docs (`docs/rnd/`) |
+| UI/UX Designer | `designer` | Docs (`docs/rnd/`) |
+| Market Researcher | `market-researcher` | Docs (`docs/rnd/`) |
+| Security Auditor | `security-auditor` | Report only, no code |
+| Backend Engineer | `backend-engineer` | Code (`apps/api/`) |
+| Frontend Engineer | `frontend-engineer` | Code (`apps/web/`) |
+| Full Stack Engineer | `fullstack-engineer` | Code (both apps) |
+| Infrastructure Engineer | `infra-engineer` | Code (Docker/Render/CI) |
+| API Docs Engineer | `api-docs-engineer` | Docs (`docs/codebase/API Routes Reference.md`) |
+| QA Engineer | `qa-engineer` | Code (tests) |
+| Debugger | `debugger` | Code (targeted fixes) |
+| UI/UX Engineer | `ui-ux-engineer` | Code (`apps/web/`) |
 
-**UX disambiguation:** spec before build → `travel-designer`; new page needing new API → `travel-fullstack-engineer`; UI-only, API exists → `travel-frontend-engineer`; polish a shipped page (states/spacing/a11y, no new routes) → `travel-ui-ux-engineer`.
+**UX disambiguation:** spec before build → `designer`; new page needing new API → `fullstack-engineer`; UI-only, API exists → `frontend-engineer`; polish a shipped page (states/spacing/a11y, no new routes) → `ui-ux-engineer`.
 
 ### Decision rules
 
 | Situation | Slug |
 |-----------|------|
-| What to build / specs / user stories | `travel-product-manager` |
-| How should this look / UX audit (spec only) | `travel-designer` |
-| Competitors / market gaps (group travel, India) | `travel-market-researcher` |
-| Pre-ship security review (auth, payments, escrow) | `travel-security-auditor` |
-| New feature needs API + UI | `travel-fullstack-engineer` |
-| API-only change | `travel-backend-engineer` |
-| UI-only, API exists | `travel-frontend-engineer` |
-| Docker / CI / Render / env changes | `travel-infra-engineer` |
-| `docs/codebase/API Routes Reference.md` out of sync | `travel-api-docs-engineer` |
-| Add tests / fix a flaky suite | `travel-qa-engineer` |
-| Errors / unexpected behaviour | `travel-debugger` |
-| Polish existing pages (no new routes) | `travel-ui-ux-engineer` |
+| What to build / specs / user stories | `product-manager` |
+| How should this look / UX audit (spec only) | `designer` |
+| Competitors / market gaps (group travel, India) | `market-researcher` |
+| Pre-ship security review (auth, payments, escrow) | `security-auditor` |
+| New feature needs API + UI | `fullstack-engineer` |
+| API-only change | `backend-engineer` |
+| UI-only, API exists | `frontend-engineer` |
+| Docker / CI / Render / env changes | `infra-engineer` |
+| `docs/codebase/API Routes Reference.md` out of sync | `api-docs-engineer` |
+| Add tests / fix a flaky suite | `qa-engineer` |
+| Errors / unexpected behaviour | `debugger` |
+| Polish existing pages (no new routes) | `ui-ux-engineer` |
 
 ### Parallelism
 
 **Run in parallel** (read-only, independent):
 ```
-Run travel-product-manager and travel-market-researcher in parallel.
-Run travel-security-auditor and travel-qa-engineer in parallel (audit vs test plan).
+Run product-manager and market-researcher in parallel.
+Run security-auditor and qa-engineer in parallel (audit vs test plan).
 ```
 
 **Sequential** (depends on output): Product Manager → you decide → Full Stack Engineer · Designer spec → you approve → Frontend Engineer · Backend Engineer → (route merged) → Frontend Engineer · Full Stack build → Security Auditor → QA Engineer.

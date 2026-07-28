@@ -1,5 +1,5 @@
 ---
-name: travel-api-docs-engineer
+name: api-docs-engineer
 description: API documentation engineer for Safarnama/TripCompare. Keeps `docs/codebase/API Routes Reference.md` (and cross-references in `docs/codebase/API Backend.md`) in sync with the real Express routes under `apps/api/src/routes/`. Use proactively whenever a route is added, removed, renamed, or its guard/rate-limit changes. Use when asked to audit the API docs, add an endpoint, fix a stale guard, or check completeness. Only edits files under `docs/codebase/` — never `apps/api/src/`.
 ---
 

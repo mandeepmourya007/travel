@@ -164,7 +164,7 @@ When method, path, auth mode, or request/response shape changes, **note it for f
 
 | Surface change | Update | Notes |
 | --- | --- | --- |
-| Any route add/remove/rename, guard change, rate-limit change | `docs/codebase/API Routes Reference.md` | Do this yourself, or hand off to the `travel-api-docs-engineer` subagent if it's already running in parallel |
+| Any route add/remove/rename, guard change, rate-limit change | `docs/codebase/API Routes Reference.md` | Do this yourself, or hand off to the `api-docs-engineer` subagent if it's already running in parallel |
 | Service/repository/middleware/backend constant change | `docs/codebase/API Backend.md` | Edit only the affected rows/sections |
 | `schema.prisma` change | `docs/codebase/Database Schema.md` | Include new migration name |
 | Shared constant/type/validator change | `docs/codebase/Shared Package.md` | Also remove the item from "Known Inconsistencies" if this resolves one |
@@ -175,8 +175,8 @@ Prompt template for the user or parent agent:
 
 ```
 Backend route changed: [METHOD /path].
-Run travel-api-docs-engineer to sync docs/codebase/API Routes Reference.md,
-and travel-qa-engineer if new business logic needs test coverage.
+Run api-docs-engineer to sync docs/codebase/API Routes Reference.md,
+and qa-engineer if new business logic needs test coverage.
 ```
 
 Do **not** silently skip the docs update for a user-facing endpoint — it's a same-task requirement, not optional polish.
@@ -223,4 +223,4 @@ Changing an existing endpoint?
 - [ ] No new magic strings — checked `packages/shared/src/constants/` first
 - [ ] `packages/shared` / `apps/api` / `apps/web` typechecks all pass if the shared contract changed
 - [ ] `cd apps/api && npm run type-check && npm run test` passes
-- [ ] Docs/QA follow-up noted if the surface changed (`travel-api-docs-engineer`, `travel-qa-engineer`)
+- [ ] Docs/QA follow-up noted if the surface changed (`api-docs-engineer`, `qa-engineer`)
