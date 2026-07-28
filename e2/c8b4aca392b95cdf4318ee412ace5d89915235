@@ -1,0 +1,29 @@
+apps/api/src/services/auth.service.ts
+  s_e14aa5b5dedd7d::t_4cf00da760ee70 321-322,324-325
+  s_e14aa5b5dedd7d::t_02baf1ab7e66e3 323
+  s_e14aa5b5dedd7d::t_228c04e9fffe55 527-531,539-542,558-562
+  s_e14aa5b5dedd7d::t_b1cda37d74e8f1 436,438-443,446-447,456-482,522
+apps/api/src/repositories/user.repository.ts
+  s_e14aa5b5dedd7d::t_b0b8dfda3e382a 134-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e2c8b4aca392b95cdf4318ee412ace5d89915235",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e14aa5b5dedd7d": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b4620fd7-ec75-4644-a14c-75821f28ad41",
+        "model": "Claude Haiku 4.5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
