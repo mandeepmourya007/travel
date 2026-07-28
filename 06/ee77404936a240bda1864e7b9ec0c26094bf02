@@ -1,0 +1,26 @@
+.env.example
+  s_7172e5915f5271::t_62149f5ac8abbd 128-142
+.mcp.json
+  s_7172e5915f5271::t_bd2c71d6c1c79d 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "06ee77404936a240bda1864e7b9ec0c26094bf02",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
