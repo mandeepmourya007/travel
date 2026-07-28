@@ -1,0 +1,42 @@
+apps/web/src/app/admin/payouts/error.tsx
+  s_7172e5915f5271::t_a3ebc27180a791 1-25
+apps/web/src/app/admin/users/organizers/[organizerId]/page.tsx
+  s_7172e5915f5271::t_b3e4c5a36fbb9d 6,8-9,23,25,28-29
+  s_7172e5915f5271::t_fdfa5535dd1de8 196-273
+  s_7172e5915f5271::t_83f2e86d1b0734 62
+  s_7172e5915f5271::t_66762fce60fd71 95-96
+  s_7172e5915f5271::t_fa020be4e6c875 30
+  s_7172e5915f5271::t_7a3dcb294f9617 63
+  s_7172e5915f5271::t_1a9dd3d8f03ace 274-276
+apps/web/src/app/admin/payouts/loading.tsx
+  s_7172e5915f5271::t_91438f4c64ca7c 1-33
+apps/web/src/app/dashboard/trips/[id]/edit/page.tsx
+  s_7172e5915f5271::t_cdc50c50d5dbd7 47-48
+  s_7172e5915f5271::t_a7b699fcbe286a 45-46,49
+  s_7172e5915f5271::t_adae3b918c941a 107
+apps/web/src/app/admin/payouts/page.tsx
+  s_7172e5915f5271::t_3bce5af8b6bfea 1-32,34-35,37-42,44-53,56-59,62-112
+  s_7172e5915f5271::t_7c63cde82be6dc 33,36,43
+  s_7172e5915f5271::t_7f02afb6a3bd75 54-55,60-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "da66bd83186e0ef183ddaa48e055a50ada66c5e9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
