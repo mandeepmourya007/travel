@@ -1,0 +1,33 @@
+apps/api/prisma/seed.prod.ts
+  s_3e4520a541ebc9::t_5964c5b2818e81 2600,2613,2626,2635,2640,2663,2760-2777,2780
+  s_46146eb65ea309::t_b581a5517dae79 340,2493-2599,2601-2612,2614-2625,2627-2634,2636-2639,2641-2662,2664-2759,2778-2779,2781-2808
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "305971c0b6d4b5d44d5f65f92b772bf98d699df8",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_3e4520a541ebc9": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "97fc6de6-b44b-474a-907b-1e7e830b36eb",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_46146eb65ea309": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "1373757c-a6ee-4b0a-83fa-8e6bdb95c7bb",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
