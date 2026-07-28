@@ -1,0 +1,30 @@
+apps/web/src/components/wallet/wallet-filters.tsx
+  s_7172e5915f5271::t_116d834553c29b 20-26
+apps/web/src/components/wallet/wallet-tx-type-badge.tsx
+  s_7172e5915f5271::t_2b1bd163067e70 19
+  s_7172e5915f5271::t_b9ccfa796b84ff 16-18,20-21
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_7172e5915f5271::t_e30df90c58328a 18
+  s_7172e5915f5271::t_a52a8d341feba1 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "fe9f494f9a4de5a4619aa5bf0c1384ba83e85dad",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
