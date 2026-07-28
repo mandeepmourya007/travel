@@ -1,0 +1,49 @@
+apps/api/src/services/admin.service.ts
+  s_7172e5915f5271::t_e0bfd27ecd14ed 21
+  s_7172e5915f5271::t_97e1052fc645af 49-50
+  s_7172e5915f5271::t_849aca317ed289 47-48
+  s_7172e5915f5271::t_0153720532378b 125-149
+  s_7172e5915f5271::t_b4ee1860678c64 17
+  s_7172e5915f5271::t_56d0e1707f0ddf 14,26
+  s_7172e5915f5271::t_2d5ae9f9969c4d 646-651
+  s_7172e5915f5271::t_57db018cbb2ac4 625-627
+  s_7172e5915f5271::t_ff6860fe04be89 636-645,652-660
+  s_7172e5915f5271::t_064057c40c65eb 632-635,661-699
+  s_7172e5915f5271::t_0932f54fc5773d 15
+apps/api/src/controllers/admin.controller.ts
+  s_7172e5915f5271::t_78ea10b9c58d3a 11
+  s_7172e5915f5271::t_df039a84a07827 234-241
+  s_7172e5915f5271::t_3df8ca9447bd41 220-225
+  s_7172e5915f5271::t_d40823f3a4c353 43-51,245
+  s_7172e5915f5271::t_b4997f8733a0d8 217-219,226-233,242-244,246
+  s_7172e5915f5271::t_a9fa507ef534e7 6
+apps/api/src/routes/admin.routes.ts
+  s_7172e5915f5271::t_0447184e15d1de 215-219,221-235
+  s_7172e5915f5271::t_dc050b50c1775b 220
+  s_7172e5915f5271::t_0d50f335e01812 64-69
+  s_7172e5915f5271::t_3a497597f7e275 29-30
+  s_7172e5915f5271::t_b68a587fbd5fe9 12
+  s_7172e5915f5271::t_e821f0efc4b443 33
+  s_7172e5915f5271::t_28bd97a1444ff1 236
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9118709b35c0b7c20fac5c6ca72ffaa2d5cf1174",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
