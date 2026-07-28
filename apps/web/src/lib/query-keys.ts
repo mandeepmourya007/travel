@@ -5,7 +5,7 @@ import type { PaymentHistoryFilters, AdminPaymentFilters, OrganizerPaymentFilter
 import type { WalletTransactionFilters } from '@shared/types/wallet.types'
 import type { ReviewListFilters, OrganizerReviewFilters } from '@shared/types/review.types'
 import type { ConversationListFilters } from '@shared/types/chat.types'
-import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters, AdminReviewFilters, AdminTravellerFilters, AdminOrganizerDirectoryFilters, AdminTravellerDetailFilters, AdminOrganizerDetailFilters } from '@shared/types/admin.types'
+import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters, AdminReviewFilters, AdminTravellerFilters, AdminOrganizerDirectoryFilters, AdminTravellerDetailFilters, AdminOrganizerDetailFilters, AdminPayoutHistoryFilters, AdminPendingPayoutFilters } from '@shared/types/admin.types'
 import type { ResellerSublinkFilters, ResellerLeadFilters, MyMainLinksFilters } from '@shared/types/reseller.types'
 
 /** Single source of truth for query key string segments. Exported for manual cache invalidation. */
@@ -56,6 +56,8 @@ export const QK = {
   LEADS: 'leads',
   RESOLVE: 'resolve',
   RESELLERS: 'resellers',
+  PAYOUTS: 'payouts',
+  PENDING: 'pending',
 } as const
 
 export const tripKeys = {
@@ -240,6 +242,16 @@ export const adminKeys = {
     [...adminKeys.organizerDirectoryBase(), filters] as const,
   organizerTripsDetail: (id: string, filters?: AdminOrganizerDetailFilters) =>
     [...adminKeys.organizerDirectoryBase(), QK.DETAIL, id, filters] as const,
+  payoutsPendingBase: () => [...adminKeys.all, QK.PAYOUTS, QK.PENDING] as const,
+  payoutsPending: (filters?: AdminPendingPayoutFilters) =>
+    filters
+      ? [...adminKeys.payoutsPendingBase(), filters] as const
+      : adminKeys.payoutsPendingBase(),
+  payoutsHistoryBase: () => [...adminKeys.all, QK.PAYOUTS, QK.HISTORY] as const,
+  payoutsHistory: (filters?: AdminPayoutHistoryFilters) =>
+    filters
+      ? [...adminKeys.payoutsHistoryBase(), filters] as const
+      : adminKeys.payoutsHistoryBase(),
 }
 
 export const docReviewKeys = {
