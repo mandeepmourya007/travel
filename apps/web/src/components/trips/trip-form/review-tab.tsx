@@ -21,6 +21,9 @@ import {
 import { cn } from '@/lib/utils'
 import { formatCurrency, formatDateRange } from '@/lib/format'
 import { useDestinations } from '@/hooks/use-destinations'
+// Reuse dates-pricing-tab's gross↔net conversion rather than duplicating the formula here —
+// this tab only reads the stored gross price, so it needs the same net-earning split shown there.
+import { computeNet } from './dates-pricing-tab'
 import type { CreateTripDto, ItineraryDay, CreateTransferPointDto } from '@shared/types/trip.types'
 
 const CANCELLATION_LABELS: Record<string, string> = {
@@ -37,7 +40,12 @@ function toList(val: string | string[] | undefined): string[] {
   return val.split('\n').map((s) => s.trim()).filter(Boolean)
 }
 
-export function ReviewTab() {
+interface ReviewTabProps {
+  /** Percentage (e.g. 10 = 10%) used to split the stored gross price into organizer earning + platform fee. */
+  commissionRate: number
+}
+
+export function ReviewTab({ commissionRate }: ReviewTabProps) {
   const { watch, formState: { errors } } = useFormContext<CreateTripDto>()
   const { data: destinations } = useDestinations()
   const values = watch()
@@ -143,13 +151,17 @@ export function ReviewTab() {
           <div className="divide-y divide-neutral-100">
             <PriceRow
               label="Price / person"
-              value={pricePerPerson ? formatCurrency(pricePerPerson) : '—'}
+              value={
+                pricePerPerson
+                  ? `Your earning: ${formatCurrency(computeNet(pricePerPerson, commissionRate))} · Traveller pays: ${formatCurrency(pricePerPerson)}`
+                  : '—'
+              }
               highlight
             />
             {hasEarlyBird && (
               <PriceRow
                 label="Early bird price"
-                value={formatCurrency(earlyBirdPrice!)}
+                value={`Your earning: ${formatCurrency(computeNet(earlyBirdPrice!, commissionRate))} · Traveller pays: ${formatCurrency(earlyBirdPrice!)}`}
               />
             )}
             {hasEarlyBird && earlyBirdDeadline && (
