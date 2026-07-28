@@ -1,0 +1,24 @@
+apps/api/src/repositories/booking.repository.ts
+  s_b85f6ea2c84a8c::t_b9d9667ba82e30 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9b49141b099070dad7ad1dc059d9b06b53afd276",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b85f6ea2c84a8c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "79b73b17-e55b-4230-9e1c-0364de6b311b",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
