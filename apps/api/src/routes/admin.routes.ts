@@ -9,6 +9,7 @@ import { adminRateLimit } from '../middleware/rate-limit.middleware'
 import {
   organizerApprovalFiltersSchema,
   approveRejectSchema,
+  updateCommissionSchema,
   adminBookingFiltersSchema,
   adminTripFiltersSchema,
   cashbackTripFiltersSchema,
@@ -25,9 +26,11 @@ import {
   adminOrganizerDirectoryFiltersSchema,
   adminTravellerDetailFiltersSchema,
   adminOrganizerDetailFiltersSchema,
+  adminPayoutHistoryFiltersSchema,
+  releasePayoutSchema,
 } from '@shared/validators/admin.schema'
 import { adminToggleBookingsSchema, adminSetVisibilitySchema } from '@shared/validators/trip.schema'
-import { cuidParamSchema, travellerIdParamSchema, organizerIdParamSchema } from '@shared/validators/common.schema'
+import { cuidParamSchema, travellerIdParamSchema, organizerIdParamSchema, paginationSchema } from '@shared/validators/common.schema'
 
 export function createAdminRoutes(
   adminController: AdminController,
@@ -56,6 +59,12 @@ export function createAdminRoutes(
     '/organizers/:id/status',
     validate(approveRejectSchema, 'body'),
     adminController.approveOrReject,
+  )
+
+  router.patch(
+    '/organizers/:id/commission',
+    validate(updateCommissionSchema, 'body'),
+    adminController.updateOrganizerCommission,
   )
 
   // ─── Document Review ────────────────────────────────
@@ -201,6 +210,28 @@ export function createAdminRoutes(
     validate(organizerIdParamSchema, 'params'),
     validate(adminOrganizerDetailFiltersSchema, 'query'),
     adminController.getOrganizerDetail,
+  )
+
+  // ─── Organizer Payouts (RazorpayX Payouts strategy) ────────────────
+  // See docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+  // Static routes registered before the /:organizerId route, per this codebase's convention.
+  router.get(
+    '/payouts/pending',
+    validate(paginationSchema, 'query'),
+    adminController.getPendingPayouts,
+  )
+
+  router.get(
+    '/payouts',
+    validate(adminPayoutHistoryFiltersSchema, 'query'),
+    adminController.getPayoutHistory,
+  )
+
+  router.post(
+    '/payouts/:organizerId/release',
+    validate(organizerIdParamSchema, 'params'),
+    validate(releasePayoutSchema, 'body'),
+    adminController.releasePayout,
   )
 
   return router
