@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BookingService } from '../../../src/services/booking.service'
-import { PaymentError } from '../../../src/errors/app-error'
+import { PaymentError, ValidationError } from '../../../src/errors/app-error'
 import { logger } from '../../../src/utils/logger'
 import { withLock } from '../../../src/utils/redis-lock'
 import * as payoutUtils from '@shared/utils/payout'
+import { calculateOrganizerEntitlement } from '@shared/utils/payout'
 
 // calculatePayoutSplit is left as the real implementation by default; individual
 // tests override it via mockReturnValueOnce to force an unsafe split and exercise
@@ -28,6 +29,11 @@ const mockEnv = {
   CASHFREE_ENV: 'sandbox' as 'sandbox' | 'production',
   CLIENT_URL: 'http://localhost:3000',
   NODE_ENV: 'test',
+  // Default to 'route' so existing tests (which construct BookingService without a
+  // walletService) exercise the exact same no-op path they always have — the
+  // ORGANIZER_EARNING credit/clawback describe blocks below explicitly flip this to
+  // 'razorpayx_payouts' and inject a fake walletService to exercise the real code path.
+  PAYOUT_STRATEGY: 'route' as 'route' | 'razorpayx_payouts',
 }
 
 vi.mock('../../../src/config/env', () => ({
@@ -52,6 +58,7 @@ const mockBookingRepo = {
   findExpiredPendingBookings: vi.fn(),
   findWithPaymentDetails: vi.fn(),
   findForBalanceRelease: vi.fn().mockResolvedValue(null),
+  findCapturedBookingsMissingOrganizerEarning: vi.fn(),
 }
 
 const mockTripRepo = {
@@ -93,6 +100,15 @@ const mockPaymentService = {
   resolveBookingIdFromOrder: vi.fn(),
   fetchPaymentIdForOrder: vi.fn(),
   resolveProviderFromTx: vi.fn().mockReturnValue('razorpay'),
+}
+
+// Organizer earnings ledger — see BookingService's confirmBooking (creditOrganizerEarning)
+// and cancelBooking (clawbackOrganizerEarning). Only exercised by tests that explicitly set
+// mockEnv.PAYOUT_STRATEGY = 'razorpayx_payouts' and construct a service with this injected.
+const mockWalletService = {
+  credit: vi.fn(),
+  debit: vi.fn(),
+  findTransactionByReference: vi.fn(),
 }
 
 // ── Test Data Factory ────────────────────────────────
@@ -140,6 +156,7 @@ let service: BookingService
 afterEach(() => {
   mockEnv.PAYMENT_GATEWAY = 'razorpay'
   mockEnv.CASHFREE_ENV = 'sandbox'
+  mockEnv.PAYOUT_STRATEGY = 'route'
 })
 
 beforeEach(() => {
@@ -994,6 +1011,118 @@ describe('BookingService', () => {
   })
 
   // ═══════════════════════════════════════════════════
+  // cancelBooking — ORGANIZER_EARNING clawback (razorpayx_payouts strategy)
+  // ═══════════════════════════════════════════════════
+  describe('cancelBooking — organizer earning clawback', () => {
+    // 10 days out — safely beyond the 7-day (168h) refund cliff, so refundPercent=50.
+    const futureTrip = {
+      ...createMockBooking().trip,
+      startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      cancellationPolicy: 'FLEXIBLE',
+    }
+
+    let walletBookingService: BookingService
+
+    beforeEach(() => {
+      mockEnv.PAYOUT_STRATEGY = 'razorpayx_payouts'
+      walletBookingService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        null, null, null, null, null,
+        mockWalletService as any,
+      )
+      mockBookingRepo.cancelAtomically.mockResolvedValue({ rows: 1, preCancelStatus: 'CONFIRMED' })
+      mockPaymentTxRepo.findByBookingId.mockResolvedValue([])
+      mockPaymentService.resolveProviderFromTx.mockReturnValue('razorpay')
+    })
+
+    it('debits Math.round(creditedAmount * refundPercent / 100), not the full credited amount (50% refund)', async () => {
+      const booking = createMockBooking({ trip: futureTrip }) // FLEXIBLE >=7d out → 50%
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockWalletService.findTransactionByReference.mockResolvedValue({
+        id: 'wtx-earning-1',
+        amount: 3333, // odd number to prove Math.round, not a plain division
+        wallet: { userId: 'organizer-user-1' },
+      })
+      mockWalletService.debit.mockResolvedValue({})
+
+      const result = await walletBookingService.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      expect(result.refundPercent).toBe(50)
+      // Math.round(3333 * 50 / 100) = Math.round(1666.5) = 1667 — NOT the full 3333
+      expect(mockWalletService.debit).toHaveBeenCalledWith(expect.objectContaining({
+        userId: 'organizer-user-1',
+        amount: 1667,
+        type: 'ORGANIZER_EARNING_REVERSAL',
+        referenceModel: 'Booking',
+        referenceId: 'booking-1',
+      }))
+    })
+
+    it('looks up the ORGANIZER_EARNING transaction and skips debit entirely when none exists', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockWalletService.findTransactionByReference.mockResolvedValue(null)
+
+      const result = await walletBookingService.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.bookingStatus).toBe('CANCELLED')
+      expect(mockWalletService.debit).not.toHaveBeenCalled()
+    })
+
+    it('does not clawback and does not block cancellation/refund when refundPercent is 0 (STRICT policy)', async () => {
+      const booking = createMockBooking({ trip: { ...futureTrip, cancellationPolicy: 'STRICT' } })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await walletBookingService.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundAmount).toBe(0)
+      // No refund happened (refundAmount=0), so clawback is never reached at all
+      expect(mockWalletService.findTransactionByReference).not.toHaveBeenCalled()
+      expect(mockWalletService.debit).not.toHaveBeenCalled()
+    })
+
+    it('swallows a clawback failure (insufficient organizer balance) — logs ERROR but the traveler cancellation/refund still succeeds', async () => {
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+      mockWalletService.findTransactionByReference.mockResolvedValue({
+        id: 'wtx-earning-2',
+        amount: 4000,
+        wallet: { userId: 'organizer-user-1' },
+      })
+      mockWalletService.debit.mockRejectedValue(new ValidationError('Insufficient wallet balance'))
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      const result = await walletBookingService.cancelBooking('user-1', 'booking-1', 'Changed plans')
+
+      // Cancellation is committed and the traveler's refund is unaffected by the clawback failure
+      expect(result.bookingStatus).toBe('CANCELLED')
+      expect(result.refundAmount).toBe(4500)
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ bookingId: 'booking-1', insufficientBalance: true }),
+        expect.stringContaining('Failed to claw back organizer earning'),
+      )
+    })
+
+    it('skips the clawback entirely when PAYOUT_STRATEGY=route even if a walletService is injected', async () => {
+      mockEnv.PAYOUT_STRATEGY = 'route'
+      const booking = createMockBooking({ trip: futureTrip })
+      mockBookingRepo.findById.mockResolvedValue(booking)
+
+      const result = await walletBookingService.cancelBooking('user-1', 'booking-1', 'reason')
+
+      expect(result.refundAmount).toBe(4500)
+      expect(mockWalletService.findTransactionByReference).not.toHaveBeenCalled()
+      expect(mockWalletService.debit).not.toHaveBeenCalled()
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
   // createBooking
   // ═══════════════════════════════════════════════════
   describe('createBooking', () => {
@@ -1024,11 +1153,12 @@ describe('BookingService', () => {
       isDeleted: false,
       isHidden: false,
       bookingsPausedReason: null,
+      // Frozen at trip-creation time — createBooking reads THIS, never organizer.commissionRate.
+      commissionRate: 10,
       organizer: {
         id: 'org-1',
         userId: 'organizer-user-1',
         razorpayAccountId: 'acc_org123',
-        commissionRate: 10,
         businessName: 'TripVibes',
       },
       transferPoints: [
@@ -1309,7 +1439,8 @@ describe('BookingService', () => {
         mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
         const cfTrip = {
           ...mockTrip,
-          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_1', commissionRate: 10 },
+          commissionRate: 10,
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_1' },
         }
         mockTripRepo.findByIdForBooking.mockResolvedValue(cfTrip)
         mockPaymentService.createOrder.mockResolvedValue({
@@ -1365,7 +1496,8 @@ describe('BookingService', () => {
         mockTripRepo.findByIdForBooking.mockResolvedValue({
           ...mockTrip,
           startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days out — within the 7-day cliff
-          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_2', commissionRate: 50 },
+          commissionRate: 50,
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_2' },
         })
         mockPaymentService.createOrder.mockResolvedValue({
           orderId: 'order_cf_lastmin',
@@ -1393,7 +1525,8 @@ describe('BookingService', () => {
         mockTripRepo.findByIdForBooking.mockResolvedValue({
           ...mockTrip,
           startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // within the 7-day cliff
-          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_3', commissionRate: 10 }, // realistic commission
+          commissionRate: 10, // realistic commission
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_3' },
         })
         mockPaymentService.createOrder.mockResolvedValue({
           orderId: 'order_cf_lastmin_lowcomm',
@@ -1433,7 +1566,8 @@ describe('BookingService', () => {
         mockBookingRepo.findActiveByUserAndTrip.mockResolvedValue(null)
         const cfTrip = {
           ...mockTrip,
-          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_unsafe', commissionRate: 10 },
+          commissionRate: 10,
+          organizer: { ...mockTrip.organizer, cashfreeVendorId: 'cf_vendor_prod_unsafe' },
         }
         mockTripRepo.findByIdForBooking.mockResolvedValue(cfTrip)
 
@@ -1824,6 +1958,151 @@ describe('BookingService', () => {
       expect(mockTripRepo.atomicDecrementBookings).toHaveBeenCalledWith('trip-1', 2)
       // capturePayment must NOT have been called — no payment ID to use
       expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // confirmBooking — ORGANIZER_EARNING credit (razorpayx_payouts strategy)
+  // ═══════════════════════════════════════════════════
+  describe('confirmBooking — ORGANIZER_EARNING credit', () => {
+    function createConfirmableBooking(overrides: Record<string, unknown> = {}) {
+      return {
+        id: 'booking-1',
+        userId: 'user-1',
+        bookingRef: 'TRP-2025-0001',
+        bookingStatus: 'PENDING_PAYMENT',
+        numTravelers: 2,
+        totalAmount: 8000,
+        markupAmount: 0,
+        commissionRate: 10,
+        trip: {
+          id: 'trip-1',
+          title: 'Goa Trip',
+          slug: 'goa-trip',
+          version: 0,
+          maxGroupSize: 20,
+          currentBookings: 5,
+          organizer: { userId: 'organizer-user-1' },
+        },
+        paymentTransactions: [{
+          id: 'ptx-1',
+          razorpayOrderId: 'order_abc',
+          razorpayPaymentId: 'pay_abc',
+          amount: 8000,
+          status: 'AUTHORIZED',
+        }],
+        travelerDetails: [],
+        tripRequest: null,
+        ...overrides,
+      }
+    }
+
+    let walletBookingService: BookingService
+
+    beforeEach(() => {
+      mockEnv.PAYOUT_STRATEGY = 'razorpayx_payouts'
+      walletBookingService = new BookingService(
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockTripRequestRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        { send: vi.fn().mockResolvedValue([]) } as any,
+        null, null, null, null, null,
+        mockWalletService as any,
+      )
+      mockBookingRepo.atomicConfirmGate.mockResolvedValue(1)
+      mockBookingRepo.revertConfirmGate.mockResolvedValue(undefined)
+      mockTripRepo.atomicIncrementBookings.mockResolvedValue(1)
+      mockPaymentService.capturePayment.mockResolvedValue({ status: 'captured' })
+      mockTripRequestRepo.findApprovedForUser.mockResolvedValue(null)
+    })
+
+    it('credits the organizer wallet with the entitlement computed via calculateOrganizerEntitlement', async () => {
+      const booking = createConfirmableBooking({ totalAmount: 8000, markupAmount: 0, commissionRate: 10 })
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+      mockWalletService.credit.mockResolvedValue({})
+
+      await walletBookingService.confirmBooking('booking-1')
+
+      const expectedEntitlement = calculateOrganizerEntitlement(8000, 0, 10) // round(8000 * 0.9) = 7200
+      expect(expectedEntitlement).toBe(7200)
+      expect(mockWalletService.credit).toHaveBeenCalledWith({
+        userId: 'organizer-user-1',
+        amount: 7200,
+        type: 'ORGANIZER_EARNING',
+        referenceModel: 'Booking',
+        referenceId: 'booking-1',
+        description: 'Earning — Booking #TRP-2025-0001',
+      })
+    })
+
+    it('skips the credit when commissionRate=100 (entitlement=0)', async () => {
+      const booking = createConfirmableBooking({ totalAmount: 8000, markupAmount: 0, commissionRate: 100 })
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+
+      await walletBookingService.confirmBooking('booking-1')
+
+      expect(calculateOrganizerEntitlement(8000, 0, 100)).toBe(0)
+      expect(mockWalletService.credit).not.toHaveBeenCalled()
+    })
+
+    it('credits the full base amount when commissionRate=0 (entitlement=baseAmount)', async () => {
+      const booking = createConfirmableBooking({ totalAmount: 8000, markupAmount: 0, commissionRate: 0 })
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+      mockWalletService.credit.mockResolvedValue({})
+
+      await walletBookingService.confirmBooking('booking-1')
+
+      expect(calculateOrganizerEntitlement(8000, 0, 0)).toBe(8000)
+      expect(mockWalletService.credit).toHaveBeenCalledWith(expect.objectContaining({ amount: 8000 }))
+    })
+
+    it('catches a P2002 (duplicate credit) from credit() and logs at INFO, not ERROR — does not throw', async () => {
+      const booking = createConfirmableBooking()
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+      mockWalletService.credit.mockRejectedValue(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+      const infoSpy = vi.spyOn(logger, 'info')
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      const result = await walletBookingService.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ bookingId: 'booking-1' }),
+        expect.stringContaining('already credited'),
+      )
+      expect(errorSpy).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.stringContaining('Failed to credit organizer earnings'),
+      )
+    })
+
+    it('logs a genuine (non-P2002) credit failure at ERROR and still does not throw / block confirmation', async () => {
+      const booking = createConfirmableBooking()
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+      mockWalletService.credit.mockRejectedValue(new Error('wallet DB connection lost'))
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      const result = await walletBookingService.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ bookingId: 'booking-1' }),
+        expect.stringContaining('Failed to credit organizer earnings'),
+      )
+    })
+
+    it('skips crediting entirely when PAYOUT_STRATEGY=route even if a walletService is injected', async () => {
+      mockEnv.PAYOUT_STRATEGY = 'route'
+      const booking = createConfirmableBooking()
+      mockBookingRepo.findWithPaymentDetails.mockResolvedValue(booking)
+
+      const result = await walletBookingService.confirmBooking('booking-1')
+
+      expect(result.bookingStatus).toBe('CONFIRMED')
+      expect(mockWalletService.credit).not.toHaveBeenCalled()
     })
   })
 
@@ -2705,6 +2984,111 @@ describe('syncPaymentStatus', () => {
       expect(mockPaymentService.capturePayment).not.toHaveBeenCalled()
     })
   })
+
+// ═══════════════════════════════════════════════════
+// reconcileOrganizerEarnings — M6 cron safety net for confirmBooking's fire-and-forget
+// ORGANIZER_EARNING credit hook.
+// ═══════════════════════════════════════════════════
+describe('reconcileOrganizerEarnings', () => {
+  let walletBookingService: BookingService
+
+  const candidateBooking = {
+    id: 'booking-42',
+    bookingRef: 'TRP-2025-0042',
+    totalAmount: 8000,
+    markupAmount: 0,
+    commissionRate: 10,
+    trip: { organizer: { userId: 'organizer-user-1' } },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockEnv.PAYOUT_STRATEGY = 'razorpayx_payouts'
+    walletBookingService = new BookingService(
+      mockBookingRepo as any,
+      mockTripRepo as any,
+      mockTripRequestRepo as any,
+      mockPaymentTxRepo as any,
+      mockPaymentService as any,
+      logger as any,
+      { send: vi.fn().mockResolvedValue([]) } as any,
+      null, null, null, null, null,
+      mockWalletService as any,
+    )
+  })
+
+  afterEach(() => {
+    mockEnv.PAYOUT_STRATEGY = 'route'
+  })
+
+  it('credits a booking missing its ORGANIZER_EARNING transaction and counts it in the result', async () => {
+    mockBookingRepo.findCapturedBookingsMissingOrganizerEarning.mockResolvedValue([candidateBooking])
+    // First call (race double-check, before credit): not yet credited.
+    // Second call (after credit): now credited.
+    mockWalletService.findTransactionByReference
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'wtx-1', amount: 7200, wallet: { userId: 'organizer-user-1' } })
+    mockWalletService.credit.mockResolvedValue({})
+
+    const result = await walletBookingService.reconcileOrganizerEarnings()
+
+    expect(result).toEqual({ checked: 1, credited: 1 })
+    expect(mockWalletService.credit).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'organizer-user-1',
+      amount: 7200, // calculateOrganizerEntitlement(8000, 0, 10)
+      type: 'ORGANIZER_EARNING',
+      referenceId: 'booking-42',
+    }))
+  })
+
+  it('skips a candidate that was already credited between the repo query and here (race) — not counted as credited', async () => {
+    mockBookingRepo.findCapturedBookingsMissingOrganizerEarning.mockResolvedValue([candidateBooking])
+    // Double-check finds it already credited (a concurrent webhook/cron won the race)
+    mockWalletService.findTransactionByReference.mockResolvedValue({
+      id: 'wtx-existing', amount: 7200, wallet: { userId: 'organizer-user-1' },
+    })
+
+    const result = await walletBookingService.reconcileOrganizerEarnings()
+
+    expect(result).toEqual({ checked: 1, credited: 0 })
+    expect(mockWalletService.credit).not.toHaveBeenCalled()
+  })
+
+  it('short-circuits to {checked: 0, credited: 0} without querying the repo when PAYOUT_STRATEGY=route', async () => {
+    mockEnv.PAYOUT_STRATEGY = 'route'
+
+    const result = await walletBookingService.reconcileOrganizerEarnings()
+
+    expect(result).toEqual({ checked: 0, credited: 0 })
+    expect(mockBookingRepo.findCapturedBookingsMissingOrganizerEarning).not.toHaveBeenCalled()
+  })
+
+  it('short-circuits to {checked: 0, credited: 0} without querying the repo when no walletService is injected', async () => {
+    const noWalletService = new BookingService(
+      mockBookingRepo as any,
+      mockTripRepo as any,
+      mockTripRequestRepo as any,
+      mockPaymentTxRepo as any,
+      mockPaymentService as any,
+      logger as any,
+      { send: vi.fn().mockResolvedValue([]) } as any,
+    )
+
+    const result = await noWalletService.reconcileOrganizerEarnings()
+
+    expect(result).toEqual({ checked: 0, credited: 0 })
+    expect(mockBookingRepo.findCapturedBookingsMissingOrganizerEarning).not.toHaveBeenCalled()
+  })
+
+  it('returns {checked: 0, credited: 0} when there are no candidates', async () => {
+    mockBookingRepo.findCapturedBookingsMissingOrganizerEarning.mockResolvedValue([])
+
+    const result = await walletBookingService.reconcileOrganizerEarnings()
+
+    expect(result).toEqual({ checked: 0, credited: 0 })
+    expect(mockWalletService.findTransactionByReference).not.toHaveBeenCalled()
+  })
+})
 
 // ═══════════════════════════════════════════════════
 // Post-Payment Booking Contact Verification

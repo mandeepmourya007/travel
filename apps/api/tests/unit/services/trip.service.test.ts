@@ -94,6 +94,7 @@ const mockTrip = {
   exclusions: ['insurance'],
   itinerary: [],
   cancellationPolicy: 'FLEXIBLE',
+  commissionRate: 10,
   transferPoints: [
     { id: 'tp-1', type: 'PICKUP', label: 'Pune Station', address: null, time: '06:00 AM', extraCharge: 0, sortOrder: 0 },
     { id: 'tp-2', type: 'DROP', label: 'Pune Station', address: null, time: '08:00 PM', extraCharge: 0, sortOrder: 0 },
@@ -208,6 +209,34 @@ describe('TripService', () => {
       expect(result.title).toBe('Goa Beach Getaway')
       expect(mockTripRepo.create).toHaveBeenCalled()
       expect(logger.info).toHaveBeenCalled()
+    })
+
+    it('snapshots the organizer\'s CURRENT commissionRate onto the new Trip row — never a client-submitted value', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({ ...mockOrganizer, commissionRate: 17.5 })
+      mockDestinationRepo.findBySlug.mockResolvedValue(mockDestination)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+
+      // createInput has no commissionRate field at all — proves the value can only have
+      // come from the server-side organizer profile lookup, never client input.
+      await service.createTrip('user-1', createInput)
+
+      expect(mockTripRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ commissionRate: 17.5 }),
+      )
+    })
+
+    it('falls back to PLATFORM_COMMISSION_PERCENT when the organizer profile has no commissionRate', async () => {
+      mockOrganizerProfileRepo.findByUserId.mockResolvedValue({ ...mockOrganizer, commissionRate: null })
+      mockDestinationRepo.findBySlug.mockResolvedValue(mockDestination)
+      mockTripRepo.slugExists.mockResolvedValue(false)
+      mockTripRepo.create.mockResolvedValue(mockTrip)
+
+      await service.createTrip('user-1', createInput)
+
+      expect(mockTripRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ commissionRate: 10 }),
+      )
     })
 
     it('should throw ForbiddenError if organizer profile not found', async () => {
