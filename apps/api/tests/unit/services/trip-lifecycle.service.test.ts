@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Prisma } from '@prisma/client'
 import { logger } from '../../../src/utils/logger'
+import { buildIdempotencyKey } from '../../../src/utils/idempotency'
 
 // Auto-cashback is env-gated (WALLET_AUTO_CASHBACK_PERCENT/CAP default to 0 in test
 // env, which would make the cashback path a permanent no-op). Enable it for this
@@ -40,6 +41,10 @@ const mockPaymentService = {
   fetchTransferId: vi.fn(),
 }
 
+const mockPayoutService = {
+  releaseRazorpayXPayout: vi.fn(),
+}
+
 // ── Test Data Factory ────────────────────────────────
 function createMockTrip(overrides: Record<string, unknown> = {}) {
   return {
@@ -62,8 +67,11 @@ function createMockCapturedPayment(overrides: Record<string, unknown> = {}) {
       totalAmount: 9000,
       markupAmount: 0,
       tripId: 'trip-1',
+      // Frozen snapshot at booking-creation time — resolveAndRelease reads THIS, never
+      // the organizer's live commissionRate.
+      commissionRate: 10,
       trip: {
-        organizer: { commissionRate: 10 },
+        organizer: {},
       },
     },
     ...overrides,
@@ -220,7 +228,7 @@ describe('TripLifecycleService', () => {
 
       const result = await service.releaseSafePayForTrip('trip-1')
 
-      expect(result).toEqual({ released: 0, failed: 0, skipped: 0 })
+      expect(result).toEqual({ released: 0, initiated: 0, failed: 0, skipped: 0 })
       expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
     })
 
@@ -234,7 +242,7 @@ describe('TripLifecycleService', () => {
 
       const result = await serviceNoPayment.releaseSafePayForTrip('trip-1')
 
-      expect(result).toEqual({ released: 0, failed: 0, skipped: 0 })
+      expect(result).toEqual({ released: 0, initiated: 0, failed: 0, skipped: 0 })
     })
 
     it('should lazy-fetch transfer ID when missing', async () => {
@@ -260,7 +268,8 @@ describe('TripLifecycleService', () => {
           totalAmount: 10000,
           markupAmount: 0,
           tripId: 'trip-1',
-          trip: { organizer: { commissionRate: 15 } },
+          commissionRate: 15,
+          trip: { organizer: {} },
         },
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
@@ -283,7 +292,8 @@ describe('TripLifecycleService', () => {
           totalAmount: 10000,
           markupAmount: 2000,
           tripId: 'trip-1',
-          trip: { organizer: { commissionRate: 10 } },
+          commissionRate: 10,
+          trip: { organizer: {} },
         },
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
@@ -301,7 +311,7 @@ describe('TripLifecycleService', () => {
 
     it('is byte-identical to a non-reseller booking when markupAmount is 0', async () => {
       const paymentNoMarkup = createMockCapturedPayment({
-        booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', trip: { organizer: { commissionRate: 10 } } },
+        booking: { totalAmount: 10000, markupAmount: 0, tripId: 'trip-1', commissionRate: 10, trip: { organizer: {} } },
       })
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([paymentNoMarkup])
       mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
@@ -343,7 +353,7 @@ describe('TripLifecycleService', () => {
 
       const result = await service.releaseUnreleasedSafePays()
 
-      expect(result).toEqual({ released: 0, failed: 0 })
+      expect(result).toEqual({ released: 0, initiated: 0, failed: 0 })
     })
 
     it('should return no-op when payment service is null', async () => {
@@ -356,7 +366,7 @@ describe('TripLifecycleService', () => {
 
       const result = await serviceNoPayment.releaseUnreleasedSafePays()
 
-      expect(result).toEqual({ released: 0, failed: 0 })
+      expect(result).toEqual({ released: 0, initiated: 0, failed: 0 })
     })
   })
 
@@ -379,11 +389,10 @@ describe('TripLifecycleService', () => {
           totalAmount: 10000,
           markupAmount: 0,
           tripId: 'trip-1',
+          // Simulate Prisma.Decimal as returned by the DB after Float→Decimal migration
+          commissionRate: new Prisma.Decimal('20.00'),
           trip: {
-            organizer: {
-              // Simulate Prisma.Decimal as returned by the DB after Float→Decimal migration
-              commissionRate: new Prisma.Decimal('20.00'),
-            },
+            organizer: {},
           },
         },
       })
@@ -403,8 +412,9 @@ describe('TripLifecycleService', () => {
           totalAmount: 10000,
           markupAmount: 0,
           tripId: 'trip-1',
+          commissionRate: null,
           trip: {
-            organizer: { commissionRate: null },
+            organizer: {},
           },
         },
       })
@@ -424,8 +434,9 @@ describe('TripLifecycleService', () => {
           totalAmount: 9999,
           markupAmount: 0,
           tripId: 'trip-1',
+          commissionRate: new Prisma.Decimal('12.50'),
           trip: {
-            organizer: { commissionRate: new Prisma.Decimal('12.50') },
+            organizer: {},
           },
         },
       })
@@ -437,6 +448,154 @@ describe('TripLifecycleService', () => {
       expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ amount: 8749 }),
       )
+    })
+  })
+
+  // ═══════════════════════════════════════════════════
+  // payoutStrategy branching — resolveAndRelease (via releaseSafePayForTrip)
+  // ═══════════════════════════════════════════════════
+  describe('resolveAndRelease — payoutStrategy branching', () => {
+    it('"route" strategy (explicit) is byte-identical to the default — never calls payoutService.releaseRazorpayXPayout', async () => {
+      const routeService = new TripLifecycleService(
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        null,
+        null,
+        null,
+        mockPayoutService as any,
+        'route',
+      )
+      const payment = createMockCapturedPayment()
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      mockPaymentService.releaseTransferHold.mockResolvedValue(undefined)
+      mockPaymentTxRepo.create.mockResolvedValue({})
+
+      const result = await routeService.releaseSafePayForTrip('trip-1')
+
+      expect(result.released).toBe(1)
+      expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_abc123')
+      expect(mockPaymentTxRepo.create).toHaveBeenCalledWith(expect.objectContaining({ type: 'ESCROW_RELEASE' }))
+      expect(mockPayoutService.releaseRazorpayXPayout).not.toHaveBeenCalled()
+    })
+
+    it('"razorpayx_payouts" strategy delegates to payoutService.releaseRazorpayXPayout when the organizer has a razorpayxFundAccountId, and does NOT write an inline ESCROW_RELEASE row', async () => {
+      const rzxService = new TripLifecycleService(
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        null,
+        null,
+        null,
+        mockPayoutService as any,
+        'razorpayx_payouts',
+      )
+      const payment = createMockCapturedPayment({
+        booking: {
+          bookingRef: 'TRP-2025-0099',
+          totalAmount: 9000,
+          markupAmount: 0,
+          tripId: 'trip-1',
+          commissionRate: 10,
+          trip: { organizer: { razorpayxFundAccountId: 'fa_org123' } },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      mockPayoutService.releaseRazorpayXPayout.mockResolvedValue('initiated')
+
+      const result = await rzxService.releaseSafePayForTrip('trip-1')
+
+      expect(result.initiated).toBe(1)
+      expect(result.released).toBe(0)
+      expect(mockPayoutService.releaseRazorpayXPayout).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bookingId: 'booking-1',
+          bookingRef: 'TRP-2025-0099',
+          fundAccountId: 'fa_org123',
+          amountPaise: 8100 * 100, // 9000 * (1 - 10/100) = 8100 rupees -> paise
+          // Hashed (not the raw `PAYOUT_${bookingId}` concatenation) — see
+          // src/utils/idempotency.ts: RazorpayX's X-Payout-Idempotency header
+          // caps at 36 chars, which a real UUIDv7 bookingId alone would exceed.
+          idempotencyKey: buildIdempotencyKey('PAYOUT', 'booking-1'),
+        }),
+      )
+      // No inline ESCROW_RELEASE write for this strategy — the entire ledger write is
+      // delegated to PayoutService, so paymentTxRepo.create must never be called here.
+      expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
+      expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
+    })
+
+    it('"razorpayx_payouts" strategy warns (not error) and returns failed when the organizer has no razorpayxFundAccountId — never calls payoutService', async () => {
+      const rzxService = new TripLifecycleService(
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        null,
+        null,
+        null,
+        mockPayoutService as any,
+        'razorpayx_payouts',
+      )
+      const payment = createMockCapturedPayment({
+        booking: {
+          bookingRef: 'TRP-2025-0100',
+          totalAmount: 9000,
+          markupAmount: 0,
+          tripId: 'trip-1',
+          commissionRate: 10,
+          trip: { organizer: { razorpayxFundAccountId: null } },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+      const warnSpy = vi.spyOn(logger, 'warn')
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      const result = await rzxService.releaseSafePayForTrip('trip-1')
+
+      expect(result.failed).toBe(1)
+      expect(result.released).toBe(0)
+      expect(mockPayoutService.releaseRazorpayXPayout).not.toHaveBeenCalled()
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ bookingId: 'booking-1' }),
+        expect.stringContaining('razorpayxFundAccountId'),
+      )
+      expect(errorSpy).not.toHaveBeenCalled()
+    })
+
+    it('"razorpayx_payouts" strategy returns failed (does not throw) when payoutService is not configured', async () => {
+      const rzxServiceNoPayout = new TripLifecycleService(
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockPaymentService as any,
+        logger as any,
+        null,
+        null,
+        null,
+        null,
+        'razorpayx_payouts',
+      )
+      const payment = createMockCapturedPayment({
+        booking: {
+          bookingRef: 'TRP-2025-0101',
+          totalAmount: 9000,
+          markupAmount: 0,
+          tripId: 'trip-1',
+          commissionRate: 10,
+          trip: { organizer: { razorpayxFundAccountId: 'fa_org123' } },
+        },
+      })
+      mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([payment])
+      mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
+
+      const result = await rzxServiceNoPayout.releaseSafePayForTrip('trip-1')
+
+      expect(result.failed).toBe(1)
     })
   })
 

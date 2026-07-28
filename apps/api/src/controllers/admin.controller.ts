@@ -3,11 +3,12 @@ import { asyncHandler } from '../utils/async-handler'
 import type { AdminService } from '../services/admin.service'
 import type { TripService } from '../services/trip.service'
 import type {
-  OrganizerApprovalFilters, ApproveRejectDto, AdminBookingFilters,
+  OrganizerApprovalFilters, ApproveRejectDto, UpdateCommissionDto, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters,
   ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminTripFilters, AdminReviewFilters,
   AdminTravellerFilters, AdminOrganizerDirectoryFilters,
   AdminTravellerDetailFilters, AdminOrganizerDetailFilters,
+  AdminPayoutHistoryFilters, ReleasePayoutDto, AdminPendingPayoutFilters,
 } from '@shared/types/admin.types'
 
 export class AdminController {
@@ -35,6 +36,15 @@ export class AdminController {
     const result = await this.adminService.approveOrReject(
       req.params.id,
       req.body as ApproveRejectDto,
+    )
+    res.json({ success: true, data: result })
+  })
+
+  /** PATCH /admin/organizers/:id/commission — Update an organizer's commission rate */
+  updateOrganizerCommission = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.updateOrganizerCommission(
+      req.params.id,
+      req.body as UpdateCommissionDto,
     )
     res.json({ success: true, data: result })
   })
@@ -202,6 +212,36 @@ export class AdminController {
       req.params.organizerId,
       req.query as AdminOrganizerDetailFilters,
     )
+    res.json({ success: true, data: result })
+  })
+
+  // ─── Organizer Payouts (RazorpayX Payouts strategy) ────────────────────
+
+  /** GET /admin/payouts/pending — paginated organizers with a positive wallet balance */
+  getPendingPayouts = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getPendingPayouts(
+      req.query as unknown as AdminPendingPayoutFilters,
+    )
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /** GET /admin/payouts — paginated organizer wallet-ledger activity */
+  getPayoutHistory = asyncHandler(async (req: Request, res: Response) => {
+    const result = await this.adminService.getPayoutHistory(req.query as AdminPayoutHistoryFilters)
+    res.json({ success: true, data: result.data, pagination: result.pagination })
+  })
+
+  /**
+   * POST /admin/payouts/:organizerId/release — trigger a real RazorpayX payout.
+   *
+   * `status: 'ledger_mismatch'` means the gateway payout succeeded (money already sent)
+   * but the wallet-ledger debit failed afterwards — neither a clean success nor a
+   * request failure, so it still gets a 200 (the payout DID go through) but is flagged
+   * distinctly in the body so the admin UI doesn't treat it as a plain success.
+   */
+  releasePayout = asyncHandler(async (req: Request, res: Response) => {
+    const { amount } = req.body as ReleasePayoutDto
+    const result = await this.adminService.releasePayout(req.params.organizerId, amount)
     res.json({ success: true, data: result })
   })
 }

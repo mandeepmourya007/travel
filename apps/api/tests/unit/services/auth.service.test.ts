@@ -57,6 +57,7 @@ function createMockOrganizerProfileRepo() {
     incrementTripCount: vi.fn(),
     slugExists: vi.fn().mockResolvedValue(false),
     linkPayoutAccount: vi.fn().mockResolvedValue({ count: 1 }),
+    linkRazorpayxAccount: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -1232,6 +1233,112 @@ describe('AuthService', () => {
 
       await expect(cashfreeService.connectBankAccount('user-123', BANK_DTO))
         .rejects.toThrow(ConflictError)
+    })
+
+    // ── RazorpayX dual-write ───────────────────────────
+    // env.PAYOUT_STRATEGY defaults to 'razorpayx_payouts' in this test environment
+    // (no override in tests/setup.ts / .env — see apps/api/src/config/env.ts), so no
+    // env mocking is needed here: injecting razorpayxClient is what actually gates
+    // the dual-write path (`env.PAYOUT_STRATEGY === RAZORPAYX_PAYOUTS && this.razorpayxClient`).
+    describe('RazorpayX dual-write (PAYOUT_STRATEGY=razorpayx_payouts)', () => {
+      const mockRazorpayxClient = {
+        createContact: vi.fn(),
+        createFundAccount: vi.fn(),
+      }
+
+      let serviceWithRazorpayx: AuthService
+
+      beforeEach(() => {
+        vi.clearAllMocks()
+        mockGateway.createPayoutAccount.mockResolvedValue({
+          accountId: 'acc_mock_orgp1',
+          provider: 'razorpay' as const,
+          status: 'mock',
+        })
+        userRepo.findById.mockResolvedValue(testUser)
+        organizerProfileRepo.findByUserId.mockResolvedValue(ORGANIZER_PROFILE)
+        organizerProfileRepo.linkPayoutAccount.mockResolvedValue({ count: 1 })
+        mockRazorpayxClient.createContact.mockResolvedValue({ contactId: 'cont_abc123', raw: {} })
+        mockRazorpayxClient.createFundAccount.mockResolvedValue({ fundAccountId: 'fa_abc123', raw: {} })
+
+        serviceWithRazorpayx = new AuthService(
+          userRepo as any,
+          refreshTokenRepo as any,
+          organizerProfileRepo as any,
+          walletRepo as any,
+          JWT_SECRET,
+          mockLogger,
+          'test-google-client-id',
+          loginAttemptTracker as any,
+          docReviewRepo as any,
+          undefined,
+          undefined,
+          mockGateway as any,
+          mockRazorpayxClient as any,
+        )
+      })
+
+      it('performs both the existing Route createPayoutAccount call AND the new RazorpayX contact->fundAccount->linkRazorpayxAccount chain', async () => {
+        const result = await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
+
+        expect(mockGateway.createPayoutAccount).toHaveBeenCalledOnce()
+        expect(organizerProfileRepo.linkPayoutAccount).toHaveBeenCalledWith(
+          ORGANIZER_PROFILE.id, 'razorpay', 'acc_mock_orgp1',
+        )
+        expect(mockRazorpayxClient.createContact).toHaveBeenCalledWith(expect.objectContaining({
+          name: BANK_DTO.accountHolderName,
+          referenceId: ORGANIZER_PROFILE.id,
+        }))
+        expect(mockRazorpayxClient.createFundAccount).toHaveBeenCalledWith({
+          contactId: 'cont_abc123',
+          accountNumber: BANK_DTO.accountNumber,
+          ifsc: BANK_DTO.ifscCode,
+          beneficiaryName: BANK_DTO.beneficiaryName,
+        })
+        expect(organizerProfileRepo.linkRazorpayxAccount).toHaveBeenCalledWith(
+          ORGANIZER_PROFILE.id, 'cont_abc123', 'fa_abc123',
+        )
+        expect(result.bankAccountLinked).toBe(true)
+      })
+
+      it('creates the RazorpayX contact AFTER the Route account is already linked (dual-write order: Route first, RazorpayX second, additive)', async () => {
+        const callOrder: string[] = []
+        organizerProfileRepo.linkPayoutAccount.mockImplementation(async () => {
+          callOrder.push('route-linked')
+          return { count: 1 }
+        })
+        mockRazorpayxClient.createContact.mockImplementation(async () => {
+          callOrder.push('razorpayx-contact-created')
+          return { contactId: 'cont_abc123', raw: {} }
+        })
+
+        await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
+
+        expect(callOrder).toEqual(['route-linked', 'razorpayx-contact-created'])
+      })
+
+      it('does not fail connectBankAccount when the RazorpayX half fails — Route linking has already succeeded', async () => {
+        mockRazorpayxClient.createContact.mockRejectedValue(new Error('RazorpayX API down'))
+
+        const result = await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
+
+        expect(result.bankAccountLinked).toBe(true)
+        expect(organizerProfileRepo.linkRazorpayxAccount).not.toHaveBeenCalled()
+        expect(mockLogger.error).toHaveBeenCalledWith(
+          expect.objectContaining({ userId: 'user-123' }),
+          expect.stringContaining('RazorpayX contact/fund account linking failed'),
+        )
+      })
+
+      it('regression: with razorpayxClient null/undefined (this suite\'s default), connectBankAccount stays Route-only and never touches linkRazorpayxAccount', async () => {
+        // serviceWithGateway (declared in the outer describe) is constructed WITHOUT a
+        // razorpayxClient — the pre-existing behavior for every other test in this file.
+        const result = await serviceWithGateway.connectBankAccount('user-123', BANK_DTO)
+
+        expect(result.bankAccountLinked).toBe(true)
+        expect(organizerProfileRepo.linkRazorpayxAccount).not.toHaveBeenCalled()
+        expect(mockRazorpayxClient.createContact).not.toHaveBeenCalled()
+      })
     })
   })
 })

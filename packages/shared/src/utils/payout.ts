@@ -97,6 +97,30 @@ export function calculatePayoutSplit(input: PayoutSplitInput): PayoutSplitResult
 }
 
 /**
+ * Organizer entitlement formula — single source of truth for both:
+ *   1. TripLifecycleService.resolveAndRelease (Route strategy, at trip completion)
+ *   2. BookingService.confirmBooking's capture-time credit hook (razorpayx_payouts
+ *      strategy — see docs/codebase/Payments & Webhooks.md "Organizer earnings via
+ *      Wallet ledger")
+ *
+ * E = round((totalAmount - markupAmount) * (1 - commissionRate/100))
+ *
+ * markupAmount is the reseller markup (track-only, 0 for non-reseller bookings) and
+ * must never enter the organizer's entitlement — same invariant as calculatePayoutSplit's
+ * baseAmount above. totalAmount/markupAmount/commissionRate are all in the same unit
+ * the caller passes them in (this codebase's Booking ledger uses whole rupees; a paise
+ * caller would get a paise result) — this function is unit-agnostic, integer rounding only.
+ */
+export function calculateOrganizerEntitlement(
+  totalAmount: number,
+  markupAmount: number,
+  commissionRate: number,
+): number {
+  const baseAmount = totalAmount - markupAmount
+  return Math.round(baseAmount * (1 - commissionRate / 100))
+}
+
+/**
  * Invariant guard — throws if the deposit about to be released to the organizer
  * exceeds the amount the platform is guaranteed to retain (platformRetained =
  * baseAmount - deposit, i.e. what's left after paying the deposit out).

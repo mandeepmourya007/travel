@@ -30,6 +30,46 @@ export class WebhookController {
     return this.handleWebhookRequest(req, res, PAYMENT_PROVIDER.CASHFREE)
   }
 
+  /**
+   * POST /api/v1/webhooks/razorpayx — raw body, verified inside RazorpayXClient.
+   * Cannot reuse handleWebhookRequest's gatewayRegistry-based resolution — RazorpayX
+   * isn't a registered IPaymentGateway by design (see providers/payout/razorpayx.client.ts).
+   * NOT YET LIVE — dormant until a RazorpayX account exists.
+   */
+  handleRazorpayx = async (req: Request, res: Response) => {
+    const log = req.log ?? logger
+
+    // Respond 200 immediately to avoid provider timeout
+    res.status(200).json({ received: true })
+
+    try {
+      const rawBody = req.body as Buffer
+      const headers = req.headers as Record<string, string | string[] | undefined>
+
+      const result = await this.paymentService.handleRazorpayxWebhook(rawBody, headers)
+      if (!result || !result.webhookEventId) {
+        log.info('Duplicate RazorpayX webhook event, skipping processing')
+        return
+      }
+
+      const { webhookEventId, normalized } = result
+      setImmediate(async () => {
+        try {
+          await this.paymentService.processWebhookEvent({
+            id: webhookEventId,
+            eventType: normalized.rawEventName,
+            normalizedType: normalized.type,
+            payload: normalized,
+          })
+        } catch (error) {
+          log.error({ webhookEventId, error }, 'Async RazorpayX webhook processing failed')
+        }
+      })
+    } catch (error) {
+      log.error({ error }, 'RazorpayX webhook handling error (200 already sent)')
+    }
+  }
+
   private handleWebhookRequest = async (req: Request, res: Response, provider: PaymentProvider) => {
     const log = req.log ?? logger
 

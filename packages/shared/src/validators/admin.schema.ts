@@ -10,6 +10,7 @@ import {
   ADMIN_TRAVELLER_STATUSES,
 } from '../constants/admin'
 import { USER_ROLES } from '../constants/roles'
+import { ORGANIZER_WALLET_TX_TYPES } from '../constants/wallet'
 import { paginationSchema, idSchema } from './common.schema'
 
 /** Validates query params for GET /admin/organizers */
@@ -21,6 +22,15 @@ export const organizerApprovalFiltersSchema = paginationSchema.extend({
 export const approveRejectSchema = z.object({
   action: z.enum(APPROVE_REJECT_ACTIONS),
   reason: z.string().max(500).trim().optional(),
+})
+
+/**
+ * Validates body for PATCH /admin/organizers/:id/commission.
+ * Bound is 0-50 (not 0-100): payout.test.ts documents a known correctness break in the
+ * entitlement/deposit-split math at commissionRate >= 50%.
+ */
+export const updateCommissionSchema = z.object({
+  commissionRate: z.number().min(0).max(50),
 })
 
 /** Validates query params for GET /admin/bookings */
@@ -155,4 +165,23 @@ export const adminTravellerDetailFiltersSchema = paginationSchema.extend({
 /** Validates query params for GET /admin/users/organizers/:organizerId — filters the trips-created sub-list */
 export const adminOrganizerDetailFiltersSchema = paginationSchema.extend({
   status: z.enum(TRIP_STATUSES).optional(),
+})
+
+// ─── Organizer Payouts (RazorpayX Payouts strategy) ──────────────────────
+
+/**
+ * Validates query params for GET /admin/payouts.
+ * M3 fix: narrowed from all WALLET_TRANSACTION_TYPES to the four organizer-ledger
+ * types this endpoint actually deals with — a traveler-facing type (e.g. CASHBACK,
+ * BOOKING_DEDUCTION) would previously pass validation but never match any row this
+ * admin endpoint returns.
+ */
+export const adminPayoutHistoryFiltersSchema = paginationSchema.extend({
+  organizerId: idSchema.optional(),
+  type: z.enum(ORGANIZER_WALLET_TX_TYPES).optional(),
+})
+
+/** Validates body for POST /admin/payouts/:organizerId/release */
+export const releasePayoutSchema = z.object({
+  amount: z.number().int().positive().optional(),
 })

@@ -8,11 +8,23 @@ export const PAYMENT_PROVIDER = Object.fromEntries(
   PAYMENT_PROVIDERS.map((s) => [s.toUpperCase(), s]),
 ) as { readonly RAZORPAY: 'razorpay'; readonly CASHFREE: 'cashfree' }
 
+/**
+ * RazorpayX Payouts — deliberately NOT a member of PAYMENT_PROVIDERS/PAYMENT_PROVIDER
+ * above (it is not an IPaymentGateway; see apps/api/src/providers/payout/razorpayx.client.ts
+ * and the gatewayRegistry in apps/api/src/config/dependencies.ts, which never registers it).
+ * PaymentTransaction.provider is a free-form String column (not a DB enum), so this is
+ * used purely to tag automatic PAYOUT_RELEASE ledger rows as distinct from a PG
+ * (`razorpay`/`cashfree`) transaction — see PayoutService.releaseRazorpayXPayout.
+ */
+export const PAYMENT_PROVIDER_RAZORPAYX = 'razorpayx' as const
+
 // ─── Payment Transaction Types ────────────────────────
 // ESCROW_RELEASE is stored in the DB and cannot be renamed without a data migration.
 // DEPOSIT_RELEASE / BALANCE_RELEASE back the Cashfree deposit/balance payout split
 // (see utils/payout.ts) — ESCROW_RELEASE remains the Razorpay-only SafePay path.
-export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE', 'DEPOSIT_RELEASE', 'BALANCE_RELEASE'] as const
+// PAYOUT_RELEASE backs the RazorpayX Payouts strategy (see apps/api payout.service.ts
+// releaseRazorpayXPayout) — the PAYOUT_STRATEGY=razorpayx_payouts analogue of ESCROW_RELEASE.
+export const PAYMENT_TYPES = ['PAYMENT', 'REFUND', 'ESCROW_RELEASE', 'DEPOSIT_RELEASE', 'BALANCE_RELEASE', 'PAYOUT_RELEASE'] as const
 export type PaymentTypeConst = (typeof PAYMENT_TYPES)[number]
 
 /** Object form for dot-access: PAYMENT_TYPE.PAYMENT — derived from array */
@@ -38,7 +50,10 @@ export const MAX_REFUND_PERCENT = 100 - ORGANIZER_DEPOSIT_PERCENT
 
 // ─── Payment Transaction Statuses ─────────────────────
 
-export const PAYMENT_STATUSES = ['INITIATED', 'AUTHORIZED', 'CAPTURED', 'REFUNDED', 'FAILED'] as const
+// PROCESSING / REVERSED back the RazorpayX Payouts lifecycle only (see apps/api
+// payout.service.ts / payment.service.ts handleRazorpayxWebhook) — INITIATED/CAPTURED/
+// FAILED are reused for the rest of that lifecycle.
+export const PAYMENT_STATUSES = ['INITIATED', 'AUTHORIZED', 'CAPTURED', 'REFUNDED', 'FAILED', 'PROCESSING', 'REVERSED'] as const
 export type PaymentStatusConst = (typeof PAYMENT_STATUSES)[number]
 
 /** Object form for dot-access: PAYMENT_STATUS.CAPTURED — derived from array */

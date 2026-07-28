@@ -29,6 +29,7 @@ Defined in `apps/api/src/utils/cron-jobs.ts`, started from `src/index.ts` via `s
 | release-cashfree-balances | 30m | Release held BALANCE tranche for Cashfree bookings past the 7-day refund cliff — see below |
 | expire-held-seats | 1m | Release seat holds past 10 minutes |
 | reconcile-wallets | 1h | Wallet drift detection (logs only, no auto-fix) |
+| ==reconcile-organizer-earnings== | 1h | Re-credits `ORGANIZER_EARNING` for recent CONFIRMED/COMPLETED bookings missing it (razorpayx_payouts strategy only) — see [[Payments & Webhooks]] |
 | trip-reminders | 1h | Reminders in the 24–48h pre-trip window (durable dedup via `tripReminderSentAt`) |
 | expire-wallet-credits | 6h | Void expired credits + warn ones approaching expiry (7-day warning) |
 | update-trending-scores | 2h (+ once at startup) | Recompute `Trip.trendingScore` via booking-velocity strategy |

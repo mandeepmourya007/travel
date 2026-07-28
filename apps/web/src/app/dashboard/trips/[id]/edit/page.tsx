@@ -42,6 +42,11 @@ export default function EditTripPage() {
     return <ErrorState title="Failed to load trip" message={error?.message || 'Could not load trip details for editing. Please try again.'} onRetry={() => refetch()} />
   }
 
+  // Trip's own locked commissionRate (frozen at creation) should drive the "your earning"
+  // pre-fill/preview here — NOT the organizer's current rate, which admin may have since
+  // changed. If absent, leave it unset so TripForm falls back to the organizer's current rate.
+  const tripCommissionRate = trip.commissionRate
+
   const defaultValues: Partial<CreateTripDto> = {
     title: trip.title,
     destinationId: trip.destination.id,
@@ -99,6 +104,7 @@ export default function EditTripPage() {
       <div className="card-static p-4 sm:p-6">
         <TripForm
           defaultValues={defaultValues}
+          commissionRate={tripCommissionRate}
           onSubmit={handleSubmit}
           isSubmitting={updateTrip.isPending}
           submitError={updateTrip.error?.message ?? null}

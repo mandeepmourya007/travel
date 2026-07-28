@@ -16,6 +16,8 @@ import { ReviewTab } from './review-tab'
 import { Alert } from '@/components/shared/alert'
 import { Modal } from '@/components/shared/modal'
 import { cn } from '@/lib/utils'
+import { useProfile } from '@/hooks/use-profile'
+import { FALLBACK_COMMISSION_RATE_PERCENT } from '@/lib/constants'
 import type { TripFormTabId } from './tab-navigation'
 import type { CreateTripDto } from '@shared/types/trip.types'
 import type { CreateVehicleDto } from '@shared/types/vehicle.types'
@@ -37,6 +39,18 @@ interface TripFormProps {
   storageKey?: string
   initialVehicleData?: CreateVehicleDto[] | null
   allowPublish?: boolean
+  /**
+   * Rate used for the "your earning" -> "traveller pays" conversion in DatesPricingTab
+   * and ReviewTab.
+   * - Create mode: leave unset — the organizer's CURRENT commissionRate (from
+   *   GET /auth/profile) is used, matching what the server will snapshot onto the new
+   *   trip.
+   * - Edit mode: pass the TRIP's own locked commissionRate (frozen at creation) so the
+   *   preview matches what will actually be paid out — not the organizer's possibly
+   *   since-changed current rate. Falls back to the organizer's current rate if the
+   *   trip doesn't carry its own (see edit page for the backend gap this covers).
+   */
+  commissionRate?: number
 }
 
 const STORAGE_DEBOUNCE_MS = 500
@@ -112,7 +126,12 @@ export function TripForm({
   storageKey = 'trip-form-draft',
   initialVehicleData,
   allowPublish = false,
+  commissionRate: commissionRateProp,
 }: TripFormProps) {
+  const { data: profile } = useProfile()
+  const resolvedCommissionRate =
+    commissionRateProp ?? profile?.organizerProfile?.commissionRate ?? FALLBACK_COMMISSION_RATE_PERCENT
+
   const draft = loadDraft(storageKey)
   const initialVehicle = initialVehicleData ?? loadVehicleDraft(storageKey)
   const [activeTab, setActiveTab] = useState<TripFormTabId>('basic')
@@ -230,7 +249,7 @@ export function TripForm({
 
         <div className="mt-6 min-h-[400px]">
           {activeTab === 'basic' && <BasicInfoTab />}
-          {activeTab === 'dates' && <DatesPricingTab />}
+          {activeTab === 'dates' && <DatesPricingTab commissionRate={resolvedCommissionRate} />}
           {activeTab === 'itinerary' && <ItineraryTab />}
           {activeTab === 'transfers' && <TransferPointsTab />}
           {/* VehicleTab is always mounted (never conditionally removed) so its internal
@@ -244,7 +263,7 @@ export function TripForm({
             />
           </div>
           {activeTab === 'media' && <MediaTab />}
-          {activeTab === 'review' && <ReviewTab />}
+          {activeTab === 'review' && <ReviewTab commissionRate={resolvedCommissionRate} />}
         </div>
 
         {submitAttempted && errorTabNames.length > 0 && (

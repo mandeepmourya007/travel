@@ -17,7 +17,7 @@ import { NotFoundError, ValidationError, ForbiddenError, ConflictError } from '.
 import { generateSlug, generateTripSlug } from '@shared/utils/slug'
 import { areDocsComplete } from '@shared/utils/organizer-docs'
 import type { OrganizerDocuments } from '@shared/types/user.types'
-import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL } from '../utils/constants'
+import { PAGINATION_DEFAULTS, APPROVAL_EXPIRY_HOURS, CACHE_TTL, PLATFORM_COMMISSION_PERCENT } from '../utils/constants'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { TRIP_STATUS, BOOKING_MODE, VERIFICATION_STATUS, TRIP_REQUEST_STATUS, TRANSFER_POINT_TYPE, NOTIFICATION_TYPE, USER_ROLE, REQUEST_BASED_BOOKING_ENABLED } from '@shared/constants'
 import type { ToggleBookingsDto, SetVisibilityDto } from '@shared/types/trip.types'
@@ -309,6 +309,14 @@ export class TripService {
       },
       itineraryDocUrl: input.itineraryDocUrl,
       bookingDeadline: input.bookingDeadline ? new Date(input.bookingDeadline) : undefined,
+      // Server-authoritative snapshot of the organizer's CURRENT commissionRate —
+      // never read a client-submitted commissionRate here. This freezes the rate
+      // for this trip's lifetime even if admin later edits the organizer's rate
+      // (AdminService.updateOrganizerCommission only touches OrganizerProfile.commissionRate).
+      // updateTrip's scalarFields list intentionally omits commissionRate — it is
+      // never re-snapshotted on edit, so an organizer/admin cannot change an
+      // already-published trip's payout math after the fact.
+      commissionRate: profile.commissionRate ?? PLATFORM_COMMISSION_PERCENT,
       organizer: { connect: { id: profile.id } },
       destination: { connect: { id: destination.id } },
     })
@@ -1200,6 +1208,9 @@ export class TripService {
   private toDetail(trip: TripWithDetail) {
     return {
       ...mapTripToSummary(trip),
+      // Frozen snapshot of the organizer's commissionRate at trip-creation time (never
+      // the organizer's current/live rate — see the comment on Trip.commissionRate).
+      commissionRate: Number(trip.commissionRate),
       description: trip.description,
       minGroupSize: trip.minGroupSize,
       cancellationPolicy: trip.cancellationPolicy,

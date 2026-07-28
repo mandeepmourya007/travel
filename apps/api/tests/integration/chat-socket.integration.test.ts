@@ -10,6 +10,7 @@ import { ConversationRepository } from '../../src/repositories/conversation.repo
 import { MessageRepository } from '../../src/repositories/message.repository'
 import { logger } from '../../src/utils/logger'
 import type { AuthService } from '../../src/services/auth.service'
+import { getIntegrationDbUrl } from '../helpers/test-db'
 
 /**
  * Integration test — real Socket.IO server + real Postgres.
@@ -34,9 +35,7 @@ import type { AuthService } from '../../src/services/auth.service'
 // rejections. Presence is out of scope here; chat itself never touches Redis.
 vi.mock('../../src/config/redis', () => ({ redis: null }))
 
-const DB_URL = process.env.INTEGRATION_DB_URL
-  ?? process.env.DIRECT_URL
-  ?? 'postgresql://travel_user:travel_pass@localhost:5432/travel_dev?schema=public'
+const DB_URL = getIntegrationDbUrl()
 
 const TEST_TOKEN = 'integration-test-token'
 

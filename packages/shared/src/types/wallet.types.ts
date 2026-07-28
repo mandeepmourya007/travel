@@ -8,6 +8,12 @@ export const WALLET_TRANSACTION_TYPES = [
   'ADMIN_DEBIT',
   'PROMOTIONAL_CREDIT',
   'EXPIRY',
+  // Organizer earnings ledger (RazorpayX Payouts strategy) — see
+  // docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+  'ORGANIZER_EARNING',
+  'ORGANIZER_EARNING_REVERSAL',
+  'ORGANIZER_PAYOUT',
+  'ORGANIZER_PAYOUT_REVERSED',
 ] as const
 
 export type WalletTransactionType = (typeof WALLET_TRANSACTION_TYPES)[number]
@@ -18,12 +24,16 @@ export const CREDIT_TYPES: WalletTransactionType[] = [
   'CASHBACK',
   'ADMIN_CREDIT',
   'PROMOTIONAL_CREDIT',
+  'ORGANIZER_EARNING',
+  'ORGANIZER_PAYOUT_REVERSED',
 ]
 
 export const DEBIT_TYPES: WalletTransactionType[] = [
   'BOOKING_DEDUCTION',
   'ADMIN_DEBIT',
   'EXPIRY',
+  'ORGANIZER_EARNING_REVERSAL',
+  'ORGANIZER_PAYOUT',
 ]
 
 // ─── API Response Types ──────────────────────────────

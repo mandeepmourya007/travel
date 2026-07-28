@@ -18,6 +18,16 @@ export const COMPANY_ADDRESS = 'Pune, Maharashtra, India'
 export const GRIEVANCE_OFFICER_NAME =
   process.env.NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME || 'Mandeep Mourya'
 
+// ─── Trip pricing ─────────────────────────────────
+/**
+ * Fallback platform commission percent used by the trip form while the organizer's
+ * real `commissionRate` (from GET /auth/profile) is still loading. Mirrors
+ * `PLATFORM_COMMISSION_PERCENT` in `apps/api/src/utils/constants.ts` — there is no
+ * shared constant importable from apps/web for this value, so it's duplicated here
+ * with this comment as the tripwire to keep both in sync.
+ */
+export const FALLBACK_COMMISSION_RATE_PERCENT = 10
+
 // ─── Data Fetching ───────────────────────────────
 export const API_TIMEOUT_MS = 15_000
 export const STALE_TIME_DEFAULT = 15_000

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Map } from 'lucide-react'
+import { ArrowLeft, Map, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Table,
@@ -18,8 +20,13 @@ import {
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
+import { NumberInput } from '@/components/shared/number-input'
 import { useAdminOrganizerTrips } from '@/hooks/use-admin-organizer-directory'
+import { useAdminUpdateCommission } from '@/hooks/use-admin-update-commission'
 import { TRIP_STATUS, type TripStatusConst } from '@shared/constants/trip-types'
+
+const COMMISSION_RATE_MIN = 0
+const COMMISSION_RATE_MAX = 50
 
 const TRIP_STATUS_OPTIONS: { value: 'all' | TripStatusConst; label: string }[] = [
   { value: 'all', label: 'All Statuses' },
@@ -52,6 +59,8 @@ export default function AdminOrganizerDetailPage() {
     )
   }
 
+  const organizerCommissionRate = data?.organizer.commissionRate
+
   return (
     <div className="space-y-6">
       <Link
@@ -82,6 +91,8 @@ export default function AdminOrganizerDetailPage() {
             <StatCard label="Trips Created" value={data.organizer.tripsCount} icon={<Map className="h-6 w-6" />} />
             <StatCard label="Verification Status" value={data.organizer.verificationStatus} compact={false} />
           </div>
+
+          <CommissionRateCard organizerId={organizerId} currentRate={organizerCommissionRate} />
 
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -179,6 +190,87 @@ export default function AdminOrganizerDetailPage() {
           </section>
         </>
       )}
+    </div>
+  )
+}
+
+function CommissionRateCard({ organizerId, currentRate }: { organizerId: string; currentRate?: number }) {
+  const [open, setOpen] = useState(false)
+  const [value, setValue] = useState('')
+  const updateCommission = useAdminUpdateCommission()
+
+  const openDialog = () => {
+    setValue(currentRate !== undefined ? String(currentRate) : '')
+    setOpen(true)
+  }
+
+  const numericValue = Number(value)
+  const isValid =
+    value.trim() !== '' &&
+    Number.isFinite(numericValue) &&
+    numericValue >= COMMISSION_RATE_MIN &&
+    numericValue <= COMMISSION_RATE_MAX
+  const outOfBounds = value.trim() !== '' && !isValid
+
+  const handleConfirm = () => {
+    if (!isValid) return
+    updateCommission.mutate(
+      { organizerId, dto: { commissionRate: numericValue } },
+      { onSuccess: () => setOpen(false) },
+    )
+  }
+
+  return (
+    <div className="card-static flex items-center justify-between gap-4 p-4">
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Commission Rate</p>
+        <p className="mt-0.5 text-lg font-semibold text-neutral-900">
+          {currentRate !== undefined ? `${currentRate}%` : '—'}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={openDialog} className="flex items-center gap-1.5">
+        <Pencil className="h-3.5 w-3.5" /> Edit
+      </Button>
+
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setValue('') }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Update commission rate</DialogTitle>
+            <DialogDescription>
+              This only affects trips this organizer creates from now on — it does not change the rate
+              locked into any trip or booking already created.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            <NumberInput
+              id="commission-rate"
+              value={value}
+              onChange={setValue}
+              min={COMMISSION_RATE_MIN}
+              max={COMMISSION_RATE_MAX}
+              allowDecimal
+              suffix="%"
+              autoFocus
+              placeholder="e.g. 10"
+            />
+            {outOfBounds && (
+              <p className="mt-1.5 text-xs font-medium text-error-500">
+                Must be between {COMMISSION_RATE_MIN}% and {COMMISSION_RATE_MAX}%
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={updateCommission.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm} disabled={!isValid || updateCommission.isPending}>
+              {updateCommission.isPending ? 'Saving…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -167,7 +167,7 @@ git add apps/web/src/hooks/use-trips.ts apps/web/src/components/trips/trip-card.
 ### Important
 
 - **Stage files explicitly** — never use `git add .` (may include unintended files)
-- **Escape special characters** in file paths — e.g., `\[slug\]` for Next.js dynamic routes
+- **Quote every path that has special characters** — single-quote (`'...'`) any path containing `[`, `]`, spaces, or `&` (Next.js dynamic route folders like `[slug]`, doc filenames like `"API Routes & Auth.md"`). Do **not** backslash-escape brackets (`\[slug\]`) — behavior there depends on the shell's glob/noglob settings and has caused failed/partial commits before. Single-quoting is unambiguous in bash, zsh, and sh alike. Example: `git add 'apps/web/src/app/trips/[id]/page.tsx' "docs/codebase/API Routes & Auth.md"`.
 - **Commit in dependency order** — shared types first, then BE, then FE, then tests, then docs, then config
 - **Print one fenced code block** — combine all `git add && git commit` pairs with `&&` into a single command string, plus the same set as separate one-line commands underneath in case the user wants to run/skip individually
 - **Never add `Co-Authored-By` trailers** — do not append any co-author lines to commit messages

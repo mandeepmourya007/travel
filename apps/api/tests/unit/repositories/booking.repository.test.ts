@@ -60,6 +60,21 @@ describe('BookingRepository.createWithPaymentTx', () => {
     )
   })
 
+  it('persists commissionRate onto the Booking row when provided (frozen snapshot from trip.commissionRate)', async () => {
+    await repo.createWithPaymentTx({ ...bookingData, commissionRate: 12.5 }, paymentTxData)
+
+    expect(mockPrisma.tx.booking.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ commissionRate: 12.5 }) }),
+    )
+  })
+
+  it('omits commissionRate from the create payload when not provided, letting the schema default apply', async () => {
+    await repo.createWithPaymentTx(bookingData, paymentTxData)
+
+    const createCallData = mockPrisma.tx.booking.create.mock.calls[0][0].data
+    expect(createCallData).not.toHaveProperty('commissionRate')
+  })
+
   it('writes the DEPOSIT_RELEASE row atomically (same $transaction) when depositRelease is provided, with the frozen startDate present in metadata', async () => {
     const computedSplit = {
       entitlement: 8100, deposit: 4050, balance: 4050, baseAmount: 9000, commissionRate: 10,

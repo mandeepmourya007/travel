@@ -19,11 +19,9 @@ import { BookingVelocityStrategy } from '../../src/services/trending/booking-vel
 import { TrendingScoreService } from '../../src/services/trending/trending-score.service'
 import { logger } from '../../src/utils/logger'
 import { TRENDING_SCORE_THRESHOLD } from '../../src/utils/constants'
+import { getIntegrationDbUrl } from '../helpers/test-db'
 
-const DB_URL =
-  process.env.INTEGRATION_DB_URL ??
-  process.env.DIRECT_URL ??
-  'postgresql://travel_user:travel_pass@localhost:5432/travel_dev?schema=public'
+const DB_URL = getIntegrationDbUrl()
 
 // ── Shared state ───────────────────────────────────────────────────────────
 

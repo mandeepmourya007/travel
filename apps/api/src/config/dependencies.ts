@@ -70,11 +70,14 @@ import { createWalletRoutes } from '../routes/wallet.routes'
 import { createChatRoutes } from '../routes/chat.routes'
 import { TripLifecycleService } from '../services/trip-lifecycle.service'
 import { PayoutService } from '../services/payout.service'
+import { OrganizerPayoutAttemptRepository } from '../repositories/organizer-payout-attempt.repository'
 import { NotificationRepository } from '../repositories/notification.repository'
 import { AdminService } from '../services/admin.service'
 import { AdminController } from '../controllers/admin.controller'
 import { createAdminRoutes } from '../routes/admin.routes'
 import { razorpayClient } from './razorpay'
+import Razorpay from 'razorpay'
+import { RazorpayXClient } from '../providers/payout/razorpayx.client'
 import { NotificationService } from '../services/notification.service'
 import { InAppNotificationProvider } from '../providers/in-app-notification.provider'
 import { EmailNotificationProvider } from '../providers/email-notification.provider'
@@ -132,6 +135,7 @@ const tripCategoryRepo = new TripCategoryRepository(prisma)
 const organizerInviteRepo = new OrganizerInviteRepository(prisma)
 const whatsappBroadcastRepo = new WhatsappBroadcastRepository(prisma)
 const resellerRepo = new ResellerRepository(prisma)
+const organizerPayoutAttemptRepo = new OrganizerPayoutAttemptRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
@@ -173,6 +177,39 @@ if (isCashfreeConfigured() && cashfreeConfig) {
   gatewayRegistry.set(PAYMENT_PROVIDER.CASHFREE, new CashfreeGateway(cashfreeConfig, logger))
 }
 
+// RazorpayX Payouts — standalone client, explicitly NOT added to gatewayRegistry
+// (not an IPaymentGateway; see providers/payout/razorpayx.client.ts). Uses a SEPARATE
+// SDK instance built from RAZORPAYX_KEY_ID/SECRET — its own signup, its own key pair,
+// distinct from the razorpayClient (PG) instance above. NOT YET LIVE — dormant until a
+// RazorpayX account exists; see docs/codebase/Payments & Webhooks.md.
+//
+// LOW-2 fix: this only requires KEY_ID + ACCOUNT_NUMBER to construct the client at all
+// (KEY_SECRET/WEBHOOK_SECRET fall back to '' below) — env.ts's superRefine gate (H3)
+// already fails the boot in every environment when PAYOUT_STRATEGY=razorpayx_payouts
+// (the default) and any of the four RAZORPAYX_* vars is missing, so a bare '' fallback
+// should be unreachable in practice. Still warn here as defense-in-depth: a partial
+// config (e.g. someone bypasses env.ts in a test harness, or a future PAYOUT_STRATEGY
+// value stops requiring all four) must never silently produce a client with an empty
+// secret instead of failing loudly.
+if (env.RAZORPAYX_KEY_ID && env.RAZORPAYX_ACCOUNT_NUMBER && (!env.RAZORPAYX_KEY_SECRET || !env.RAZORPAYX_WEBHOOK_SECRET)) {
+  logger.warn(
+    { hasKeySecret: !!env.RAZORPAYX_KEY_SECRET, hasWebhookSecret: !!env.RAZORPAYX_WEBHOOK_SECRET },
+    'RazorpayX Payouts partially configured (RAZORPAYX_KEY_ID + RAZORPAYX_ACCOUNT_NUMBER set) but RAZORPAYX_KEY_SECRET and/or RAZORPAYX_WEBHOOK_SECRET is missing — constructing the client with an empty secret, which will fail every real API call/webhook verification',
+  )
+}
+export const razorpayxClient: RazorpayXClient | null = (env.RAZORPAYX_KEY_ID && env.RAZORPAYX_ACCOUNT_NUMBER)
+  ? new RazorpayXClient(
+      new Razorpay({ key_id: env.RAZORPAYX_KEY_ID, key_secret: env.RAZORPAYX_KEY_SECRET || '' }),
+      env.RAZORPAYX_ACCOUNT_NUMBER,
+      env.RAZORPAYX_WEBHOOK_SECRET || '',
+      logger,
+    )
+  : null
+
+// Constructed early (only needs walletRepo + logger) so it can be injected into
+// paymentService/payoutService below without a circular dependency.
+export const walletService = new WalletService(walletRepo, logger)
+
 const activeProvider: PaymentProvider = env.PAYMENT_GATEWAY
 const activeGateway = gatewayRegistry.get(activeProvider)
   ?? (env.NODE_ENV !== 'production'
@@ -188,11 +225,12 @@ const paymentService = new PaymentService(
   paymentTxRepo,
   webhookEventRepo,
   logger,
+  razorpayxClient,
+  walletService,
 )
 
 const paymentHistoryService = new PaymentHistoryService(paymentTxRepo, tripRepo, organizerProfileRepo, logger)
 const reviewService = new ReviewService(reviewRepo, organizerProfileRepo, logger, cacheService)
-export const walletService = new WalletService(walletRepo, logger)
 export const chatService = new ChatService(conversationRepo, messageRepo, tripRepo, organizerProfileRepo, logger, getIo)
 // tripLifecycleService is constructed after notificationService — see below
 export const vehicleService = new VehicleService(vehicleRepo, tripRepo, organizerProfileRepo, logger)
@@ -284,6 +322,7 @@ export const authService = new AuthService(
   organizerInviteRepo,
   smtpConfigured ? emailProvider : null,
   activeGateway,
+  razorpayxClient,
 )
 
 // ── Notification Channel Providers ──────────────────
@@ -328,16 +367,19 @@ export const notificationService = new NotificationService(
 // and notificationService is constructed after paymentService — late-bind avoids the cycle.
 paymentService.setPostConstruct(bookingRepo, notificationService)
 
+// Deposit/balance payout orchestration (Cashfree) + RazorpayX Payouts release —
+// see services/payout.service.ts.
+export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger, razorpayxClient, organizerProfileRepo, walletService, organizerPayoutAttemptRepo)
+
 // Services that depend on notificationService (must be after it)
 const tripLifecycleService = new TripLifecycleService(
   tripRepo, paymentTxRepo, paymentService, logger,
   notificationService, walletService, bookingRepo,
+  payoutService, env.PAYOUT_STRATEGY,
 )
 export const tripCategoryService = new TripCategoryService(tripCategoryRepo, organizerProfileRepo, notificationService, logger, cacheService)
-// Deposit/balance payout orchestration (Cashfree only) — see services/payout.service.ts.
-export const payoutService = new PayoutService(bookingRepo, paymentTxRepo, paymentService, logger)
 const otpService = new OtpService(verifCodeRepo, userRepo, authService, otpProvider, emailProvider, logger)
-const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo, otpService)
+const bookingService = new BookingService(bookingRepo, tripRepo, tripRequestRepo, paymentTxRepo, paymentService, logger, notificationService, vehicleService, cacheService, userRepo, resellerRepo, otpService, walletService)
 const resellerService = new ResellerService(resellerRepo, userRepo, organizerProfileRepo, tripRepo, logger)
 const tripService = new TripService(tripRepo, destinationRepo, organizerProfileRepo, tripEditHistoryRepo, bookingRepo, tripRequestRepo, reviewRepo, logger, notificationService, tripCategoryService, cacheService)
 const adminService = new AdminService(
@@ -345,6 +387,8 @@ const adminService = new AdminService(
   paymentTxRepo, messageRepo,
   walletRepo, walletService, logger, notificationService,
   docReviewRepo, reviewRepo, organizerInviteRepo,
+  payoutService,
+  organizerPayoutAttemptRepo,
 )
 
 // ── Middleware ────────────────────────────────────────
@@ -406,11 +450,12 @@ export const webhookRoutes = (() => {
   if (!webhookController) return null
   const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''
   const cashfreeSecret = env.CASHFREE_WEBHOOK_SECRET || ''
-  if (!razorpaySecret && !cashfreeSecret) {
-    logger.warn('No webhook secrets configured (RAZORPAY_WEBHOOK_SECRET / CASHFREE_WEBHOOK_SECRET) — webhook routes will NOT be mounted.')
+  const razorpayxSecret = env.RAZORPAYX_WEBHOOK_SECRET || ''
+  if (!razorpaySecret && !cashfreeSecret && !razorpayxSecret) {
+    logger.warn('No webhook secrets configured (RAZORPAY_WEBHOOK_SECRET / CASHFREE_WEBHOOK_SECRET / RAZORPAYX_WEBHOOK_SECRET) — webhook routes will NOT be mounted.')
     return null
   }
-  return createWebhookRoutes(webhookController, razorpaySecret, cashfreeSecret)
+  return createWebhookRoutes(webhookController, razorpaySecret, cashfreeSecret, razorpayxSecret)
 })()
 
 // ── Sitemap Service ──────────────────────────────────

@@ -11,16 +11,19 @@ import type { NotificationService } from './notification.service'
 import type { DocumentReviewRepository, DocumentReviewCommentRow } from '../repositories/document-review.repository'
 import type { OrganizerInviteRepository } from '../repositories/organizer-invite.repository'
 import type { ReviewRepository } from '../repositories/review.repository'
+import type { PayoutService } from './payout.service'
+import type { OrganizerPayoutAttemptRepository } from '../repositories/organizer-payout-attempt.repository'
 import type {
-  OrganizerApprovalFilters, ApproveRejectDto, PlatformStatsResponse, AdminBookingFilters,
+  OrganizerApprovalFilters, ApproveRejectDto, UpdateCommissionDto, PlatformStatsResponse, AdminBookingFilters,
   CashbackTripFilters, IssueCashbackDto, CashbackHistoryFilters, CashbackTravelerItem,
   ReviewDocDto, AddDocCommentDto, OrganizerInviteFilters, AdminReviewFilters,
   AdminTravellerFilters, AdminOrganizerDirectoryFilters,
+  AdminPayoutHistoryFilters, AdminPendingPayoutFilters,
 } from '@shared/types/admin.types'
 import { REQUIRED_DOC_COUNT, DOC_LABELS } from '@shared/constants/upload'
 import { NotFoundError, ValidationError } from '../errors/app-error'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
-import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
+import { WALLET_TX, WALLET_REFERENCE_MODELS, ORGANIZER_WALLET_TX_TYPES } from '@shared/constants/wallet'
 import { VERIFICATION_STATUS, NOTIFICATION_TYPE, USER_ROLE } from '@shared/constants'
 import { paginate } from '../utils/constants'
 
@@ -41,6 +44,10 @@ export class AdminService {
     private docReviewRepo: DocumentReviewRepository,
     private reviewRepo: ReviewRepository,
     private organizerInviteRepo?: OrganizerInviteRepository,
+    /** Organizer wallet-ledger payouts (§7) — GET/POST /admin/payouts/*. */
+    private payoutService?: PayoutService,
+    /** Ops visibility for unreconciled SUCCEEDED payout attempts on GET /admin/payouts/pending. */
+    private payoutAttemptRepo?: OrganizerPayoutAttemptRepository,
   ) {}
 
   // ─── Organizer Approvals ──────────────────────────────
@@ -113,6 +120,31 @@ export class AdminService {
     )
 
     return { profileId, status: dto.action }
+  }
+
+  /**
+   * Updates an organizer's commission rate.
+   *
+   * This updates OrganizerProfile.commissionRate ONLY — it deliberately does NOT touch
+   * any existing Trip.commissionRate or Booking.commissionRate snapshots. Those are
+   * frozen at trip/booking-creation time so an organizer's already-placed bookings and
+   * already-published trips keep the economics they were created under; only trips
+   * created AFTER this change will snapshot the new rate.
+   */
+  async updateOrganizerCommission(profileId: string, dto: UpdateCommissionDto) {
+    const profile = await this.organizerProfileRepo.findById(profileId)
+    if (!profile) throw new NotFoundError('OrganizerProfile')
+
+    const updated = await this.organizerProfileRepo.update(profileId, {
+      commissionRate: dto.commissionRate,
+    })
+
+    this.logger.info(
+      { profileId, previousRate: profile.commissionRate, newRate: dto.commissionRate },
+      'Organizer commission rate updated',
+    )
+
+    return updated
   }
 
   // ─── Platform Stats ───────────────────────────────────
@@ -590,8 +622,79 @@ export class AdminService {
         verificationStatus: profile.verificationStatus,
         tripsCount: profile._count.trips,
         createdAt: profile.createdAt.toISOString(),
+        // Live current rate — NOT a frozen snapshot. Backs the admin commission-edit UI
+        // (PATCH /admin/organizers/:id/commission), unlike Trip.commissionRate which freezes.
+        commissionRate: Number(profile.commissionRate),
       },
       trips: { data, pagination: pg.meta(total) },
+    }
+  }
+
+  // ─── Organizer Payouts (RazorpayX Payouts strategy) ────────────────────
+  // See docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+
+  /**
+   * GET /admin/payouts/pending — paginated organizers with a positive Wallet balance.
+   *
+   * `hasUnreconciledPayout` flags organizers with a SUCCEEDED RazorpayX payout attempt
+   * that was never followed by a matching wallet debit (see
+   * OrganizerPayoutAttemptRepository.findUnreconciledSucceeded) — the balance shown for
+   * that organizer still includes money already sent, so an operator must reconcile
+   * manually before releasing anything further for them (releasePayout also refuses to
+   * call the gateway again for them, independent of this flag).
+   */
+  async getPendingPayouts(filters: AdminPendingPayoutFilters) {
+    const pg = paginate(filters)
+    const { data, total } = await this.walletRepo.findAllOrganizerWalletBalances({
+      skip: pg.skip,
+      take: pg.take,
+    })
+
+    const unreconciledCounts = this.payoutAttemptRepo
+      ? await this.payoutAttemptRepo.countUnreconciledByOrganizerIds(data.map((row) => row.organizerId))
+      : new Map<string, number>()
+
+    return {
+      data: data.map((row) => ({ ...row, hasUnreconciledPayout: (unreconciledCounts.get(row.organizerId) ?? 0) > 0 })),
+      pagination: pg.meta(total),
+    }
+  }
+
+  /**
+   * GET /admin/payouts — paginated organizer wallet-ledger activity (earning / clawback /
+   * payout / payout-reversed), optionally narrowed to one organizer or one transaction type.
+   */
+  async getPayoutHistory(filters: AdminPayoutHistoryFilters) {
+    const pg = paginate(filters)
+    const types = filters.type ? [filters.type] : [...ORGANIZER_WALLET_TX_TYPES]
+
+    const { data, total } = await this.walletRepo.findOrganizerWalletTransactionsAdmin(
+      { types, organizerId: filters.organizerId },
+      { skip: pg.skip, take: pg.take },
+    )
+
+    return { data, pagination: pg.meta(total) }
+  }
+
+  /**
+   * POST /admin/payouts/:organizerId/release — triggers a real RazorpayX payout for an
+   * organizer's accrued wallet-ledger earnings. Thin wrapper — all sequencing/locking
+   * logic lives in PayoutService.releaseOrganizerWalletPayout.
+   *
+   * @throws ValidationError if PayoutService is not configured (RazorpayX not set up)
+   */
+  async releasePayout(organizerId: string, amount?: number) {
+    if (!this.payoutService) {
+      throw new ValidationError('Payouts are not configured — RazorpayX is not set up')
+    }
+    const result = await this.payoutService.releaseOrganizerWalletPayout({
+      organizerId,
+      requestedAmountRupees: amount,
+    })
+    return {
+      status: result.status,
+      releasedAmount: result.releasedAmountRupees,
+      payoutId: result.payoutId,
     }
   }
 }

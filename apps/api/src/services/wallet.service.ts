@@ -192,6 +192,16 @@ export class WalletService {
   }
 
   /**
+   * Looks up a single WalletTransaction by its natural key (type + referenceModel +
+   * referenceId). Used by BookingService's refund clawback (find the ORGANIZER_EARNING
+   * credit for a cancelled booking) and PaymentService's payout.reversed webhook handler
+   * (find the ORGANIZER_PAYOUT debit for a reversed RazorpayX payout).
+   */
+  async findTransactionByReference(type: WalletTransactionType, referenceModel: string, referenceId: string) {
+    return this.walletRepo.findTransactionByReference(type, referenceModel, referenceId)
+  }
+
+  /**
    * Returns paginated CASHBACK transactions with trip names for the traveler.
    * Calls walletRepo.findCashbackTransactionsEnriched() which joins booking→trip.
    */

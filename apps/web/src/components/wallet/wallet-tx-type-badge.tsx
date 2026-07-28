@@ -13,6 +13,12 @@ const TYPE_CONFIG: Record<WalletTransactionType, { label: string; className: str
   ADMIN_DEBIT: { label: 'Admin Debit', className: 'bg-error-50 text-error-700' },
   PROMOTIONAL_CREDIT: { label: 'Promo', className: 'bg-highlight-50 text-highlight-700' },
   EXPIRY: { label: 'Expired', className: 'bg-neutral-100 text-neutral-600' },
+  // Organizer earnings ledger (RazorpayX Payouts strategy) — see travel-frontend-engineer's
+  // upcoming admin/payouts page for the full UI; these keep this exhaustive Record compiling.
+  ORGANIZER_EARNING: { label: 'Earning', className: 'bg-success-50 text-success-700' },
+  ORGANIZER_EARNING_REVERSAL: { label: 'Clawback', className: 'bg-warning-50 text-warning-700' },
+  ORGANIZER_PAYOUT: { label: 'Payout', className: 'bg-primary-50 text-primary-700' },
+  ORGANIZER_PAYOUT_REVERSED: { label: 'Payout Reversed', className: 'bg-error-50 text-error-700' },
 }
 
 export function WalletTxTypeBadge({ type }: WalletTxTypeBadgeProps) {

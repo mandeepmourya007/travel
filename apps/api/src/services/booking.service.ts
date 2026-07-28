@@ -16,13 +16,15 @@ import type { NotificationService } from './notification.service'
 import type { VehicleService } from './vehicle.service'
 import type { CacheService } from './cache.service'
 import type { OtpService } from './otp.service'
+import type { WalletService } from './wallet.service'
 import { cacheKeys, cacheInvalidation } from '../utils/cache-keys'
 import { NotFoundError, ForbiddenError, ValidationError, ConflictError, AuthError, PaymentError } from '../errors/app-error'
-import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT, RAZORPAY_ORDER_STATUS, NORMALIZED_ORDER_STATUS, CASHFREE_ENVIRONMENT, PAYOUT_EVENT } from '../utils/constants'
+import { PAGINATION_DEFAULTS, BOOKING_EXPIRY_MINUTES, BOOKING_LOCK_TTL_MS, PAYMENT_TX_TYPE, PAYMENT_TX_STATUS, CURRENCY, RAZORPAY_MOCK_KEY, BOOKING_ERROR_CODE, ESCROW_SAFETY_BUFFER_DAYS, PLATFORM_COMMISSION_PERCENT, RAZORPAY_ORDER_STATUS, NORMALIZED_ORDER_STATUS, CASHFREE_ENVIRONMENT, PAYOUT_EVENT, PAYOUT_STRATEGY, ORGANIZER_EARNING_RECONCILE_LOOKBACK_DAYS, ORGANIZER_EARNING_RECONCILE_BATCH_SIZE } from '../utils/constants'
 import { BOOKING_STATUS, BOOKING_MODE, TRIP_REQUEST_STATUS, TRIP_STATUS, TRANSFER_POINT_TYPE, VERIFICATION_STATUS, NOTIFICATION_TYPE, PAYMENT_PROVIDER } from '@shared/constants'
 import type { PaymentProviderConst } from '@shared/constants'
+import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { calculateRefundPercent } from '@shared/utils/refund'
-import { calculatePayoutSplit, assertPayoutSafe } from '@shared/utils/payout'
+import { calculatePayoutSplit, assertPayoutSafe, calculateOrganizerEntitlement } from '@shared/utils/payout'
 import { env } from '../config/env'
 import { withLock } from '../utils/redis-lock'
 
@@ -61,6 +63,9 @@ export class BookingService {
     private userRepo: UserRepository | null = null,
     private resellerRepo: ResellerRepository | null = null,
     private otpService: OtpService | null = null,
+    /** Organizer earnings ledger (razorpayx_payouts strategy only) — see confirmBooking
+     *  (capture-time credit) and cancelBooking (refund clawback). */
+    private walletService: WalletService | null = null,
   ) {}
 
   /** Invalidate trip search + detail caches after booking mutations. */
@@ -291,6 +296,7 @@ export class BookingService {
 
       if (refundAmount > 0) {
         await this.initiateBookingRefund(bookingId, refundAmount, reason, txList)
+        await this.clawbackOrganizerEarning(bookingId, booking.bookingRef, refundPercent)
       }
     }
 
@@ -441,6 +447,180 @@ export class BookingService {
     } catch (err) {
       // REFUND tx with INITIATED status remains — ops/admin can retry; gateway async may still process it
       this.logger.error({ err, bookingId, refundTxId: refundTx.id }, 'Gateway refund initiation failed — REFUND tx remains INITIATED for retry')
+    }
+  }
+
+  /**
+   * Credits the organizer's wallet-ledger earnings for a booking — razorpayx_payouts
+   * strategy only (Route holds the organizer's share in escrow until trip completion
+   * instead, via TripLifecycleService.resolveAndRelease, and must never be
+   * double-credited here). Shared by confirmBooking's capture-time credit hook and
+   * reconcileOrganizerEarnings (the cron safety net for M6 — see that method's docblock).
+   *
+   * Never throws — a credit failure here must never block booking confirmation or the
+   * reconcile cron's batch. A P2002 (ORGANIZER_EARNING already credited for this
+   * bookingId — the unique(type, referenceModel, referenceId) index on WalletTransaction)
+   * is the EXPECTED outcome of a duplicate webhook delivery or a race with the reconcile
+   * cron, not a real error, so it's logged at INFO rather than ERROR (LOW-3 fix).
+   */
+  private async creditOrganizerEarning(params: {
+    bookingId: string
+    bookingRef: string
+    totalAmount: number
+    markupAmount: number
+    commissionRate: Prisma.Decimal | number | null
+    organizerUserId: string | null | undefined
+  }): Promise<void> {
+    if (env.PAYOUT_STRATEGY !== PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS || !this.walletService) return
+
+    const { bookingId, bookingRef, totalAmount, markupAmount, commissionRate: rawRate, organizerUserId } = params
+    if (!organizerUserId) {
+      this.logger.warn({ bookingId }, 'Cannot credit organizer earnings — organizer.userId missing')
+      return
+    }
+
+    try {
+      // Read the booking's OWN frozen commissionRate snapshot (set at booking-creation
+      // time from trip.commissionRate) — never the organizer's live/current rate, which
+      // admin can edit at any time and must not retroactively change an already-placed
+      // booking's payout math.
+      const commissionRate = rawRate != null ? Number(rawRate) : PLATFORM_COMMISSION_PERCENT
+      const entitlement = calculateOrganizerEntitlement(totalAmount, markupAmount, commissionRate)
+      if (entitlement > 0) {
+        await this.walletService.credit({
+          userId: organizerUserId,
+          amount: entitlement,
+          type: WALLET_TX.ORGANIZER_EARNING,
+          referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+          referenceId: bookingId,
+          description: `Earning — Booking #${bookingRef}`,
+        })
+      }
+    } catch (err) {
+      // Expected on a duplicate webhook delivery or a race with the reconcile cron —
+      // not a real error. Anything else is a genuine failure and must stay loud.
+      const isUniqueViolation = err instanceof Error && (err as { code?: unknown }).code === 'P2002'
+      if (isUniqueViolation) {
+        this.logger.info({ bookingId }, 'ORGANIZER_EARNING already credited for this booking — skipping duplicate (expected on duplicate webhook delivery)')
+      } else {
+        this.logger.error({ err, bookingId }, 'Failed to credit organizer earnings — wallet reconcile cron is the safety net')
+      }
+    }
+  }
+
+  /**
+   * M6 fix: reconciliation cron safety net for the capture-time ORGANIZER_EARNING
+   * credit hook in confirmBooking. That hook is fire-and-forget with log-only failure
+   * handling (a wallet outage, a transient DB error, etc. leaves a CONFIRMED/COMPLETED
+   * booking permanently missing its organizer credit with nothing to retry it). This
+   * scans recent CONFIRMED/COMPLETED bookings with a CAPTURED payment under the
+   * razorpayx_payouts strategy for ones missing a matching ORGANIZER_EARNING
+   * WalletTransaction, and re-attempts the credit via the same creditOrganizerEarning
+   * helper confirmBooking uses — so a booking that already has the credit (the common
+   * case) is invisible to this query and a genuinely missing one gets exactly the
+   * same credit it should have received at capture time.
+   *
+   * Intentionally simple (per design decision) — not exhaustive back to the beginning
+   * of time, just a bounded recent-window batch, same shape as this codebase's other
+   * reconciliation crons (e.g. WalletService.reconcile, releaseUnreleasedSafePays).
+   *
+   * @returns { checked: number; credited: number } — credited counts successful
+   *   (re-)credits; a booking already credited or one whose credit legitimately fails
+   *   is not counted (the per-booking helper logs those cases itself).
+   */
+  async reconcileOrganizerEarnings(lookbackDays: number = ORGANIZER_EARNING_RECONCILE_LOOKBACK_DAYS): Promise<{ checked: number; credited: number }> {
+    if (env.PAYOUT_STRATEGY !== PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS || !this.walletService) {
+      return { checked: 0, credited: 0 }
+    }
+
+    const sinceDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+    const candidates = await this.bookingRepo.findCapturedBookingsMissingOrganizerEarning(
+      sinceDate,
+      ORGANIZER_EARNING_RECONCILE_BATCH_SIZE,
+    )
+
+    if (candidates.length === 0) return { checked: 0, credited: 0 }
+
+    this.logger.warn(
+      { count: candidates.length },
+      'reconcileOrganizerEarnings: found bookings missing ORGANIZER_EARNING credit — re-attempting',
+    )
+
+    let credited = 0
+    for (const booking of candidates) {
+      const before = await this.walletService.findTransactionByReference(
+        WALLET_TX.ORGANIZER_EARNING,
+        WALLET_REFERENCE_MODELS.BOOKING,
+        booking.id,
+      )
+      if (before) continue // credited between the repo query and here (race) — skip
+
+      await this.creditOrganizerEarning({
+        bookingId: booking.id,
+        bookingRef: booking.bookingRef,
+        totalAmount: booking.totalAmount,
+        markupAmount: booking.markupAmount,
+        commissionRate: booking.commissionRate,
+        organizerUserId: booking.trip.organizer?.userId,
+      })
+
+      const after = await this.walletService.findTransactionByReference(
+        WALLET_TX.ORGANIZER_EARNING,
+        WALLET_REFERENCE_MODELS.BOOKING,
+        booking.id,
+      )
+      if (after) credited++
+    }
+
+    return { checked: candidates.length, credited }
+  }
+
+  /**
+   * Claws back a proportional share of the organizer's wallet-ledger earning when a
+   * CONFIRMED booking is refunded — razorpayx_payouts strategy only (Route never credits
+   * at capture time, so it has nothing to claw back; see confirmBooking's matching credit
+   * above). Looks up the ORGANIZER_EARNING WalletTransaction recorded for this booking at
+   * capture time, computes clawback = round(creditedAmount * refundPercent / 100), and
+   * debits the organizer's wallet by that amount.
+   *
+   * CRITICAL: never let this block the traveller's cancellation/refund. If the organizer's
+   * wallet balance is now insufficient (e.g. they were already paid out), WalletService.debit
+   * throws ValidationError — caught here and logged at ERROR with full context for manual
+   * admin reconciliation. cancelBooking always proceeds regardless of this method's outcome.
+   */
+  private async clawbackOrganizerEarning(bookingId: string, bookingRef: string, refundPercent: number): Promise<void> {
+    if (env.PAYOUT_STRATEGY !== PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS || !this.walletService) return
+
+    try {
+      const earningTx = await this.walletService.findTransactionByReference(
+        WALLET_TX.ORGANIZER_EARNING,
+        WALLET_REFERENCE_MODELS.BOOKING,
+        bookingId,
+      )
+      if (!earningTx) {
+        // Expected if the organizer was never credited (e.g. strategy switched mid-flight,
+        // or the capture-time credit itself failed and was only logged) — nothing to claw back.
+        this.logger.info({ bookingId }, 'No ORGANIZER_EARNING transaction found for booking — skipping clawback')
+        return
+      }
+
+      const clawback = Math.round((earningTx.amount * refundPercent) / 100)
+      if (clawback <= 0) return
+
+      await this.walletService.debit({
+        userId: earningTx.wallet.userId,
+        amount: clawback,
+        type: WALLET_TX.ORGANIZER_EARNING_REVERSAL,
+        referenceModel: WALLET_REFERENCE_MODELS.BOOKING,
+        referenceId: bookingId,
+        description: `Refund clawback — Booking #${bookingRef} cancelled`,
+      })
+    } catch (err) {
+      const isInsufficientBalance = err instanceof ValidationError
+      this.logger.error(
+        { err, bookingId, refundPercent, insufficientBalance: isInsufficientBalance },
+        'Failed to claw back organizer earning on refund — traveller refund proceeds regardless; manual admin reconciliation required',
+      )
     }
   }
 
@@ -649,7 +829,10 @@ export class BookingService {
       // (no payout counterpart), so folding it into the split would over-pay the organizer.
       // When markup=0 this is byte-identical to the pre-reseller calculation.
       const baseAmountInPaise = baseTotal * 100
-      const commissionRate = Number(trip.organizer?.commissionRate ?? PLATFORM_COMMISSION_PERCENT)
+      // Snapshot trip.commissionRate (frozen at trip-creation time) ONCE here — reused
+      // both for the Cashfree deposit split below AND stored on the Booking row itself,
+      // never a live organizer.commissionRate read (admin can edit that at any time).
+      const commissionRate = Number(trip.commissionRate ?? PLATFORM_COMMISSION_PERCENT)
       const holdUntilEpochSec = Math.floor(
         new Date(trip.endDate).getTime() / 1000 + ESCROW_SAFETY_BUFFER_DAYS * 24 * 60 * 60,
       )
@@ -779,6 +962,7 @@ export class BookingService {
             // [TravelerDetail] travelers: input.travelers,
             sublinkId: sublink?.id,
             markupAmount: markupTotal,
+            commissionRate,
           },
           // Service owns these business decisions — type=PAYMENT, status=INITIATED
           {
@@ -1020,6 +1204,22 @@ export class BookingService {
     } catch (dbErr) {
       this.logger.warn({ dbErr, bookingId }, 'Could not persist CAPTURED status after capture — payment.captured webhook is safety net')
     }
+
+    // Credit the organizer's wallet-ledger earnings immediately at capture time —
+    // razorpayx_payouts strategy only. Route holds the organizer's share in escrow
+    // until trip completion (TripLifecycleService.resolveAndRelease) and must NOT be
+    // double-credited here. Non-critical: never let a wallet-credit failure block
+    // booking confirmation — the reconcile cron + admin's manual payout release are
+    // the safety net. See docs/codebase/Payments & Webhooks.md "Organizer earnings via
+    // Wallet ledger" and cancelBooking's matching claw-back below.
+    await this.creditOrganizerEarning({
+      bookingId,
+      bookingRef: booking.bookingRef,
+      totalAmount: booking.totalAmount,
+      markupAmount: booking.markupAmount,
+      commissionRate: booking.commissionRate,
+      organizerUserId: booking.trip.organizer?.userId,
+    })
 
     // Confirm held seats → BOOKED and auto-assign travelers
     if (this.vehicleService) {

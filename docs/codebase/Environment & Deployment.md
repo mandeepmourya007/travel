@@ -25,13 +25,14 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | SMS OTP | `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID` |
 | WhatsApp (optional) | `MSG91_WA_BUSINESS_NUMBER` (exact value from MSG91 dashboard — already includes its own country code, never re-prefixed by provider code), `MSG91_WA_OTP_TEMPLATE`, `MSG91_WA_OTP_PREFER` (`"true"` to prefer WA over SMS OTP), `MSG91_WA_TPL_<TYPE>` × 12 notification template names — all optional; system silently skips WhatsApp channel when unset |
 | Payments | `PAYMENT_GATEWAY` (razorpay\|cashfree), `RAZORPAY_KEY_ID` (must start `rzp_`) / `KEY_SECRET` / `WEBHOOK_SECRET`, `CASHFREE_APP_ID` / `SECRET_KEY` / `WEBHOOK_SECRET` / `CASHFREE_ENV`, `NEXT_PUBLIC_CASHFREE_ENV` |
+| Organizer payouts | `PAYOUT_STRATEGY` (route\|razorpayx_payouts, ==default `razorpayx_payouts`==), `RAZORPAYX_KEY_ID` / `KEY_SECRET` / `ACCOUNT_NUMBER` / `WEBHOOK_SECRET` (separate signup/key-pair from `RAZORPAY_KEY_ID`; sandbox/test-mode credentials configured, verified end-to-end with a real payout — see [[Payments & Webhooks]]) |
 | Media | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` |
 | Monitoring | `SENTRY_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `NEXT_PUBLIC_SENTRY_*`, `SENTRY_AUTH_TOKEN` (source maps) |
 | Legal (FE) | `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GRIEVANCE_EMAIL`, `NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME` |
 | SEO | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` |
 
 > [!warning] Production superRefine Rules
-> In prod: Razorpay webhook secret required when key set; Cashfree creds + webhook secret required when it's the active gateway; `REDIS_URL` required; SMTP and Firebase are each all-or-nothing.
+> In prod: Razorpay webhook secret required when key set; Cashfree creds + webhook secret required when it's the active gateway; `REDIS_URL` required; SMTP and Firebase are each all-or-nothing. The four `RAZORPAYX_*` vars, however, are required whenever `PAYOUT_STRATEGY=razorpayx_payouts` (the default) **in every environment, not just production** — dev/CI/staging fail to boot too unless either all four are set or `PAYOUT_STRATEGY=route` is set explicitly.
 
 > [!warning] OTP provider fails loudly in production
 > `dependencies.ts` picks `Msg91WhatsappOtpProvider` → `Msg91OtpProvider` → `MockOtpProvider`, in that order, based on which MSG91 vars are set. In `NODE_ENV=production`, if neither is configured the app now **throws at boot** instead of silently falling back to `MockOtpProvider` (which used to log `[MOCK] OTP sent (dev mode)` + a generic `OTP sent` success line while sending no real SMS). Set `MSG91_AUTH_KEY` + `MSG91_TEMPLATE_ID` (SMS) or the WhatsApp trio to fix.

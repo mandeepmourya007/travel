@@ -52,6 +52,12 @@ const mockWalletRepo = {
   getCashbackByUser: vi.fn(),
   getCashbackByTrip: vi.fn(),
   getCashbackForUserDetail: vi.fn(),
+  findAllOrganizerWalletBalances: vi.fn(),
+  findOrganizerWalletTransactionsAdmin: vi.fn(),
+}
+
+const mockPayoutService = {
+  releaseOrganizerWalletPayout: vi.fn(),
 }
 
 const mockWalletService = {
@@ -287,6 +293,58 @@ describe('AdminService — Approve/Reject', () => {
     mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
 
     await expect(service.approveOrReject('org_1', { action: 'REJECTED' })).rejects.toThrow('Profile is already REJECTED')
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// UPDATE ORGANIZER COMMISSION (admin-editable rate; never retroactive)
+// ═══════════════════════════════════════════════════════
+describe('AdminService — updateOrganizerCommission', () => {
+  it('throws NotFoundError for a non-existent profile ID', async () => {
+    mockOrganizerProfileRepo.findById.mockResolvedValue(null)
+
+    await expect(
+      service.updateOrganizerCommission('nonexistent', { commissionRate: 15 }),
+    ).rejects.toThrow('OrganizerProfile not found')
+    expect(mockOrganizerProfileRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('updates OrganizerProfile.commissionRate via the generic repo update', async () => {
+    const profile = makeOrganizerProfile({ commissionRate: 10 })
+    mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
+    mockOrganizerProfileRepo.update.mockResolvedValue({ ...profile, commissionRate: 15 })
+
+    const result = await service.updateOrganizerCommission('org_1', { commissionRate: 15 })
+
+    expect(mockOrganizerProfileRepo.update).toHaveBeenCalledWith('org_1', { commissionRate: 15 })
+    expect(result.commissionRate).toBe(15)
+  })
+
+  it('accepts the 50% upper bound (validator enforces the hard cap; service itself has no ceiling check)', async () => {
+    const profile = makeOrganizerProfile({ commissionRate: 10 })
+    mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
+    mockOrganizerProfileRepo.update.mockResolvedValue({ ...profile, commissionRate: 50 })
+
+    const result = await service.updateOrganizerCommission('org_1', { commissionRate: 50 })
+
+    expect(result.commissionRate).toBe(50)
+  })
+
+  it('does NOT touch any existing Trip or Booking commissionRate snapshot — only OrganizerProfile', async () => {
+    // The service only ever calls organizerProfileRepo.update — it has no dependency on
+    // tripRepo/bookingRepo wired for a write here, so there is no code path by which this
+    // method could reach an existing Trip/Booking row. This is the entire point of the
+    // frozen-snapshot design (see trip.service.ts createTrip / booking.service.ts
+    // createBooking) — asserting the absence of any such call is the correct regression
+    // guard at this layer.
+    const profile = makeOrganizerProfile({ commissionRate: 10 })
+    mockOrganizerProfileRepo.findById.mockResolvedValue(profile)
+    mockOrganizerProfileRepo.update.mockResolvedValue({ ...profile, commissionRate: 25 })
+
+    await service.updateOrganizerCommission('org_1', { commissionRate: 25 })
+
+    expect(mockTripRepo.findById).not.toHaveBeenCalled()
+    expect(mockBookingRepo.findByIdAdmin).not.toHaveBeenCalled()
   })
 })
 
@@ -1456,6 +1514,7 @@ function makeDirectoryOrganizerDetail(overrides: Record<string, unknown> = {}) {
     createdAt: new Date('2026-05-05'),
     user: { id: 'user_1', email: 'rahul@test.com', phone: '9876543210' },
     _count: { trips: 1 },
+    commissionRate: 10,
     ...overrides,
   }
 }
@@ -1488,6 +1547,7 @@ describe('AdminService — getOrganizerDetail', () => {
       verificationStatus: 'APPROVED',
       tripsCount: 1,
       createdAt: '2026-05-05T00:00:00.000Z',
+      commissionRate: 10,
     })
     expect(result.trips.data).toHaveLength(1)
     expect(result.trips.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 })
@@ -1559,6 +1619,196 @@ describe('AdminService — getOrganizerDetail', () => {
       { offset: 40, limit: 20 },
     )
     expect(result.trips.pagination.totalPages).toBe(3)
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// M4: Organizer Payouts (RazorpayX Payouts strategy) —
+// getPendingPayouts / getPayoutHistory / releasePayout
+// ═══════════════════════════════════════════════════════
+describe('AdminService — Organizer Payouts', () => {
+  describe('getPendingPayouts', () => {
+    it('returns paginated organizers with a positive Wallet balance from the repo', async () => {
+      const balances = [
+        { organizerId: 'org_1', userId: 'user_1', businessName: 'TripVibes', balance: 1500 },
+        { organizerId: 'org_2', userId: 'user_2', businessName: 'Desi Explorers', balance: 800 },
+      ]
+      mockWalletRepo.findAllOrganizerWalletBalances.mockResolvedValue({ data: balances, total: 2 })
+
+      const result = await service.getPendingPayouts({ page: 1, limit: 20 })
+
+      expect(mockWalletRepo.findAllOrganizerWalletBalances).toHaveBeenCalledWith({ skip: 0, take: 20 })
+      // `service` (top-level beforeEach) has no payoutAttemptRepo configured, so every
+      // row falls back to hasUnreconciledPayout: false rather than throwing.
+      expect(result.data).toEqual(balances.map((b) => ({ ...b, hasUnreconciledPayout: false })))
+      expect(result.pagination).toEqual({ page: 1, limit: 20, total: 2, totalPages: 1 })
+    })
+
+    it('flags hasUnreconciledPayout: true for an organizer with an unreconciled SUCCEEDED attempt when payoutAttemptRepo is configured', async () => {
+      const balances = [
+        { organizerId: 'org_1', userId: 'user_1', businessName: 'TripVibes', balance: 1500 },
+        { organizerId: 'org_2', userId: 'user_2', businessName: 'Desi Explorers', balance: 800 },
+      ]
+      mockWalletRepo.findAllOrganizerWalletBalances.mockResolvedValue({ data: balances, total: 2 })
+      const mockPayoutAttemptRepo = {
+        countUnreconciledByOrganizerIds: vi.fn().mockResolvedValue(new Map([['org_1', 1]])),
+      }
+      const serviceWithPayoutAttempts = new AdminService(
+        mockOrganizerProfileRepo as any,
+        mockUserRepo as any,
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockMessageRepo as any,
+        mockWalletRepo as any,
+        mockWalletService as any,
+        logger as any,
+        mockNotificationService as any,
+        mockDocReviewRepo as any,
+        mockReviewRepo as any,
+        undefined,
+        mockPayoutService as any,
+        mockPayoutAttemptRepo as any,
+      )
+
+      const result = await serviceWithPayoutAttempts.getPendingPayouts({ page: 1, limit: 20 })
+
+      expect(mockPayoutAttemptRepo.countUnreconciledByOrganizerIds).toHaveBeenCalledWith(['org_1', 'org_2'])
+      expect(result.data).toEqual([
+        { ...balances[0], hasUnreconciledPayout: true },
+        { ...balances[1], hasUnreconciledPayout: false },
+      ])
+    })
+
+    it('defaults to page=1, limit=20 when filters are empty', async () => {
+      mockWalletRepo.findAllOrganizerWalletBalances.mockResolvedValue({ data: [], total: 0 })
+
+      await service.getPendingPayouts({})
+
+      expect(mockWalletRepo.findAllOrganizerWalletBalances).toHaveBeenCalledWith({ skip: 0, take: 20 })
+    })
+  })
+
+  describe('getPayoutHistory', () => {
+    it('defaults to all four ORGANIZER_WALLET_TX_TYPES when no type filter is passed', async () => {
+      mockWalletRepo.findOrganizerWalletTransactionsAdmin.mockResolvedValue({ data: [], total: 0 })
+
+      await service.getPayoutHistory({ page: 1, limit: 20 })
+
+      expect(mockWalletRepo.findOrganizerWalletTransactionsAdmin).toHaveBeenCalledWith(
+        {
+          types: ['ORGANIZER_EARNING', 'ORGANIZER_EARNING_REVERSAL', 'ORGANIZER_PAYOUT', 'ORGANIZER_PAYOUT_REVERSED'],
+          organizerId: undefined,
+        },
+        { skip: 0, take: 20 },
+      )
+    })
+
+    it('narrows to a single type when an explicit type filter is passed', async () => {
+      mockWalletRepo.findOrganizerWalletTransactionsAdmin.mockResolvedValue({ data: [], total: 0 })
+
+      await service.getPayoutHistory({ type: 'ORGANIZER_PAYOUT', page: 1, limit: 20 })
+
+      expect(mockWalletRepo.findOrganizerWalletTransactionsAdmin).toHaveBeenCalledWith(
+        { types: ['ORGANIZER_PAYOUT'], organizerId: undefined },
+        { skip: 0, take: 20 },
+      )
+    })
+
+    it('passes organizerId through to scope history to a single organizer', async () => {
+      mockWalletRepo.findOrganizerWalletTransactionsAdmin.mockResolvedValue({ data: [], total: 0 })
+
+      await service.getPayoutHistory({ organizerId: 'org_1', page: 1, limit: 20 })
+
+      expect(mockWalletRepo.findOrganizerWalletTransactionsAdmin).toHaveBeenCalledWith(
+        expect.objectContaining({ organizerId: 'org_1' }),
+        { skip: 0, take: 20 },
+      )
+    })
+
+    it('returns paginated data and pagination meta from the repo result', async () => {
+      const rows = [{ id: 'wtx_1', type: 'ORGANIZER_PAYOUT', amount: 500 }]
+      mockWalletRepo.findOrganizerWalletTransactionsAdmin.mockResolvedValue({ data: rows, total: 1 })
+
+      const result = await service.getPayoutHistory({ page: 1, limit: 20 })
+
+      expect(result.data).toEqual(rows)
+      expect(result.pagination).toEqual({ page: 1, limit: 20, total: 1, totalPages: 1 })
+    })
+  })
+
+  describe('releasePayout', () => {
+    it('throws ValidationError when PayoutService is not configured (RazorpayX not set up)', async () => {
+      // `service` (from the top-level beforeEach) is constructed WITHOUT a payoutService —
+      // mirrors production when PAYOUT_STRATEGY !== 'razorpayx_payouts'.
+      await expect(service.releasePayout('org_1', 500)).rejects.toThrow(
+        'Payouts are not configured — RazorpayX is not set up',
+      )
+      expect(mockPayoutService.releaseOrganizerWalletPayout).not.toHaveBeenCalled()
+    })
+
+    it('delegates to payoutService.releaseOrganizerWalletPayout and reshapes the result when configured', async () => {
+      const serviceWithPayouts = new AdminService(
+        mockOrganizerProfileRepo as any,
+        mockUserRepo as any,
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockMessageRepo as any,
+        mockWalletRepo as any,
+        mockWalletService as any,
+        logger as any,
+        mockNotificationService as any,
+        mockDocReviewRepo as any,
+        mockReviewRepo as any,
+        undefined,
+        mockPayoutService as any,
+      )
+      mockPayoutService.releaseOrganizerWalletPayout.mockResolvedValue({
+        status: 'released',
+        releasedAmountRupees: 500,
+        payoutId: 'pout_1',
+      })
+
+      const result = await serviceWithPayouts.releasePayout('org_1', 500)
+
+      expect(mockPayoutService.releaseOrganizerWalletPayout).toHaveBeenCalledWith({
+        organizerId: 'org_1',
+        requestedAmountRupees: 500,
+      })
+      expect(result).toEqual({ status: 'released', releasedAmount: 500, payoutId: 'pout_1' })
+    })
+
+    it('omits requestedAmountRupees (full-balance release) when no amount is passed', async () => {
+      const serviceWithPayouts = new AdminService(
+        mockOrganizerProfileRepo as any,
+        mockUserRepo as any,
+        mockBookingRepo as any,
+        mockTripRepo as any,
+        mockPaymentTxRepo as any,
+        mockMessageRepo as any,
+        mockWalletRepo as any,
+        mockWalletService as any,
+        logger as any,
+        mockNotificationService as any,
+        mockDocReviewRepo as any,
+        mockReviewRepo as any,
+        undefined,
+        mockPayoutService as any,
+      )
+      mockPayoutService.releaseOrganizerWalletPayout.mockResolvedValue({
+        status: 'released',
+        releasedAmountRupees: 1500,
+        payoutId: 'pout_2',
+      })
+
+      await serviceWithPayouts.releasePayout('org_1')
+
+      expect(mockPayoutService.releaseOrganizerWalletPayout).toHaveBeenCalledWith({
+        organizerId: 'org_1',
+        requestedAmountRupees: undefined,
+      })
+    })
   })
 })
 

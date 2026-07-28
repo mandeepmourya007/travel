@@ -16,33 +16,33 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 
 ## Auth — `/api/v1/auth` *(authRateLimit)*
 
-| Method | Path | Purpose | Guard |
-| :--- | :--- | :--- | :--- |
-| GET | `/signup/:token` | Organizer-invite info by token | — |
-| POST | `/signup/:token` | Organizer signup via invite | — |
-| POST | `/signup` | Traveler signup | — |
-| POST | `/login` | Email/password login | — |
-| POST | `/refresh` | Rotate refresh token → new access token | cookie |
-| POST | `/logout` | Revoke current refresh token | — |
-| POST | `/logout-all` | Revoke all sessions | auth |
-| GET | `/me` | Current user | auth |
-| GET | `/profile` | Full profile | auth |
-| PATCH | `/profile` | Update profile | auth |
-| PATCH | `/profile/organizer` | Update organizer profile | ORGANIZER |
-| POST | `/profile/organizer/bank` | Connect bank/payout account | ORGANIZER |
-| POST | `/profile/organizer/doc-comments` | Add document comment | ORGANIZER |
-| GET | `/profile/organizer/doc-comments` | List document comments | ORGANIZER |
-| POST | `/organizer-invite` | Generate organizer invite | ADMIN |
-| POST | `/google` | Google OAuth login/signup | — |
-| POST | `/otp/send` | Send phone OTP *(otpRateLimit)* | — |
-| POST | `/otp/verify` | Verify phone OTP | — |
-| POST | `/otp/email/send` | Send email OTP | — |
-| POST | `/otp/email/verify` | Verify email OTP | — |
-| POST | `/otp/attach/send` | Send phone OTP to attach to the logged-in user's account *(otpRateLimit)* | auth |
-| POST | `/otp/attach/verify` | Verify + attach phone to the logged-in user — session-preserving, no tokens/cookie | auth |
-| POST | `/otp/attach-email/send` | Send email OTP to attach to the logged-in user's account *(otpRateLimit)* | auth |
-| POST | `/otp/attach-email/verify` | Verify + attach email to the logged-in user — session-preserving, no tokens/cookie | auth |
-| POST | `/firebase/verify` | Verify Firebase phone ID token *(conditional mount)* | — |
+| Method | Path                              | Purpose                                                                            | Guard     |
+| :-------| :----------------------------------| :-----------------------------------------------------------------------------------| :----------|
+| GET    | `/signup/:token`                  | Organizer-invite info by token                                                     | —         |
+| POST   | `/signup/:token`                  | Organizer signup via invite                                                        | —         |
+| POST   | `/signup`                         | Traveler signup                                                                    | —         |
+| POST   | `/login`                          | Email/password login                                                               | —         |
+| POST   | `/refresh`                        | Rotate refresh token → new access token                                            | cookie    |
+| POST   | `/logout`                         | Revoke current refresh token                                                       | —         |
+| POST   | `/logout-all`                     | Revoke all sessions                                                                | auth      |
+| GET    | `/me`                             | Current user                                                                       | auth      |
+| GET    | `/profile`                        | Full profile                                                                       | auth      |
+| PATCH  | `/profile`                        | Update profile                                                                     | auth      |
+| PATCH  | `/profile/organizer`              | Update organizer profile                                                           | ORGANIZER |
+| POST   | `/profile/organizer/bank`         | Connect bank/payout account                                                        | ORGANIZER |
+| POST   | `/profile/organizer/doc-comments` | Add document comment                                                               | ORGANIZER |
+| GET    | `/profile/organizer/doc-comments` | List document comments                                                             | ORGANIZER |
+| POST   | `/organizer-invite`               | Generate organizer invite                                                          | ADMIN     |
+| POST   | `/google`                         | Google OAuth login/signup                                                          | —         |
+| POST   | `/otp/send`                       | Send phone OTP *(otpRateLimit)*                                                    | —         |
+| POST   | `/otp/verify`                     | Verify phone OTP                                                                   | —         |
+| POST   | `/otp/email/send`                 | Send email OTP                                                                     | —         |
+| POST   | `/otp/email/verify`               | Verify email OTP                                                                   | —         |
+| POST   | `/otp/attach/send`                | Send phone OTP to attach to the logged-in user's account *(otpRateLimit)*          | auth      |
+| POST   | `/otp/attach/verify`              | Verify + attach phone to the logged-in user — session-preserving, no tokens/cookie | auth      |
+| POST   | `/otp/attach-email/send`          | Send email OTP to attach to the logged-in user's account *(otpRateLimit)*          | auth      |
+| POST   | `/otp/attach-email/verify`        | Verify + attach email to the logged-in user — session-preserving, no tokens/cookie | auth      |
+| POST   | `/firebase/verify`                | Verify Firebase phone ID token *(conditional mount)*                               | —         |
 
 ## Destinations — `/api/v1/destinations`
 
@@ -181,6 +181,7 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | GET | `/organizers` | Approval queue |
 | GET | `/organizers/:id` | Organizer detail |
 | PATCH | `/organizers/:id/status` | Approve/reject organizer |
+| PATCH | `/organizers/:id/commission` | Update an organizer's commission rate (0-50%; does not touch existing Trip/Booking snapshots) |
 | GET | `/organizers/:id/documents` | Document review detail |
 | PATCH | `/organizers/:id/documents/:docType/review` | Review a document |
 | POST | `/organizers/:id/comments` | Add doc comment |
@@ -202,6 +203,9 @@ All routes mounted in `apps/api/src/server.ts` under `/api/v1/*`. Guards shown a
 | GET | `/users/travellers/:travellerId` | Traveller detail — profile + booked trips (optional bookingStatus filter) + reviews written |
 | GET | `/users/organizers` | Paginated organizer directory (search/sort by name, tripsCount, joinedAt; optional verificationStatus filter) |
 | GET | `/users/organizers/:organizerId` | Organizer directory detail — profile summary (tripsCount = unfiltered total) + paginated trips created (optional trip status filter) |
+| GET | `/payouts/pending` | Paginated organizers with a positive wallet balance (RazorpayX Payouts strategy — see [[Payments & Webhooks]] "Organizer earnings via Wallet ledger"); filters: `page`, `limit`; `balance > 0` filter is a Prisma `where` clause, not an in-memory filter; each row also carries `hasUnreconciledPayout: boolean` flagging organizers with a `SUCCEEDED` RazorpayX payout attempt never followed by a matching wallet debit — see [[Payments & Webhooks]] "Second pre-gateway-call guard" |
+| GET | `/payouts` | Paginated organizer wallet-ledger activity (earning/clawback/payout/payout-reversed); filters: `organizerId?`, `type?`, `page`, `limit` |
+| POST | `/payouts/:organizerId/release` | Trigger a real RazorpayX payout of an organizer's accrued wallet balance; body `{ amount? }` in rupees, omitted = full balance |
 | GET | `/trip-categories` | List categories |
 | POST | `/trip-categories` | Create category |
 | PUT | `/trip-categories/:id` | Update category |
@@ -256,6 +260,7 @@ Reseller is NOT a new role — a `TRAVELER` with `User.isReseller=true`. `requir
 | :--- | :--- | :--- | :--- |
 | POST | `/razorpay` | Razorpay webhook | only if `RAZORPAY_WEBHOOK_SECRET` set |
 | POST | `/cashfree` | Cashfree webhook | only if `CASHFREE_WEBHOOK_SECRET` set |
+| POST | `/razorpayx` | RazorpayX Payouts webhook — `payout.processing/processed/reversed/failed` (sandbox/test-mode credentials configured, verified end-to-end with a real payout, see [[Payments & Webhooks#Organizer Payout Strategy — Route vs RazorpayX Payouts]]) | only if `RAZORPAYX_WEBHOOK_SECRET` set |
 
 > [!warning] Signature Verification
 > Verification happens inside each gateway's `verifyAndParseWebhook()` — not the standalone `webhook-verify.middleware.ts`. See [[Payments & Webhooks#Webhook Handling]].

@@ -17,6 +17,13 @@ const TYPE_LABELS: Record<WalletTransactionType, string> = {
   ADMIN_DEBIT: 'Admin Debit',
   PROMOTIONAL_CREDIT: 'Promo',
   EXPIRY: 'Expired',
+  // Organizer earnings ledger (RazorpayX Payouts strategy) — traveler-facing WalletFilters
+  // never actually shows these (a traveler's own wallet has no organizer-ledger rows), but
+  // WALLET_TRANSACTION_TYPES is shared, so this Record must stay exhaustive to compile.
+  ORGANIZER_EARNING: 'Earning',
+  ORGANIZER_EARNING_REVERSAL: 'Clawback',
+  ORGANIZER_PAYOUT: 'Payout',
+  ORGANIZER_PAYOUT_REVERSED: 'Payout Reversed',
 }
 
 export function WalletFilters({ activeType, onTypeChange }: WalletFiltersProps) {

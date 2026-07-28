@@ -72,6 +72,9 @@ function makeTrip(overrides: Record<string, unknown> = {}) {
     id: 'trip_1',
     title: 'Goa Beach Getaway',
     organizerId: 'org_profile_1',
+    // Frozen at trip-creation time — getTripPaymentSummary reads THIS, never the
+    // organizer's live commissionRate.
+    commissionRate: 10.0,
     ...overrides,
   }
 }
@@ -470,9 +473,10 @@ describe('PaymentHistoryService', () => {
 
   describe('Decimal commissionRate in getTripPaymentSummary', () => {
     it('correctly converts Prisma.Decimal commissionRate to a number for commission math', async () => {
-      const trip = makeTrip()
-      // Simulate what Prisma returns after the Float→Decimal migration
-      const profile = makeOrganizerProfile({ commissionRate: new Prisma.Decimal('12.5') })
+      // Simulate what Prisma returns after the Float→Decimal migration — this reads
+      // trip.commissionRate (the frozen snapshot), not the organizer profile's live rate.
+      const trip = makeTrip({ commissionRate: new Prisma.Decimal('12.5') })
+      const profile = makeOrganizerProfile()
       mockTripRepo.findById.mockResolvedValue(trip)
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
       mockPaymentTxRepo.getTripSummary.mockResolvedValue({
@@ -488,8 +492,8 @@ describe('PaymentHistoryService', () => {
     })
 
     it('falls back to DEFAULT_COMMISSION_RATE (10%) when commissionRate is null', async () => {
-      const trip = makeTrip()
-      const profile = makeOrganizerProfile({ commissionRate: null })
+      const trip = makeTrip({ commissionRate: null })
+      const profile = makeOrganizerProfile()
       mockTripRepo.findById.mockResolvedValue(trip)
       mockOrganizerProfileRepo.findByUserId.mockResolvedValue(profile)
       mockPaymentTxRepo.getTripSummary.mockResolvedValue({
@@ -514,9 +518,9 @@ describe('PaymentHistoryService', () => {
           id: 'pt_1',
           amount: 10000,
           booking: {
-            trip: {
-              organizer: { commissionRate: new Prisma.Decimal('15.00') },
-            },
+            // Frozen snapshot from booking-creation time — never the organizer's live rate.
+            commissionRate: new Prisma.Decimal('15.00'),
+            trip: {},
           },
         },
       ])
@@ -535,9 +539,8 @@ describe('PaymentHistoryService', () => {
           id: 'pt_1',
           amount: 5000,
           booking: {
-            trip: {
-              organizer: { commissionRate: null },
-            },
+            commissionRate: null,
+            trip: {},
           },
         },
       ])

@@ -22,6 +22,7 @@ export function createWebhookRoutes(
   controller: WebhookController,
   razorpayWebhookSecret: string,
   cashfreeWebhookSecret: string,
+  razorpayxWebhookSecret: string,
 ) {
   const router = Router()
 
@@ -40,6 +41,18 @@ export function createWebhookRoutes(
       express.raw({ type: 'application/json' }),
       webhookRateLimit,
       controller.handleCashfree,
+    )
+  }
+
+  // RazorpayX Payouts — separate namespace/secret from /razorpay above (PG webhooks).
+  // NOT YET LIVE — no RazorpayX account exists, so this route is dormant until
+  // RAZORPAYX_WEBHOOK_SECRET is configured. See docs/codebase/Payments & Webhooks.md.
+  if (razorpayxWebhookSecret) {
+    router.post(
+      '/razorpayx',
+      express.raw({ type: 'application/json' }),
+      webhookRateLimit,
+      controller.handleRazorpayx,
     )
   }
 

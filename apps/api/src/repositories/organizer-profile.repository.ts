@@ -172,6 +172,19 @@ export class OrganizerProfileRepository {
     })
   }
 
+  /**
+   * Persists the RazorpayX Contact + Fund Account IDs created alongside the Route
+   * linked account when PAYOUT_STRATEGY=razorpayx_payouts (see AuthService.connectBankAccount).
+   * Plain update, not a CAS — this is additive metadata for a dormant, non-competing
+   * payout strategy, not a competing provider selection like linkPayoutAccount above.
+   */
+  async linkRazorpayxAccount(id: string, contactId: string, fundAccountId: string) {
+    return this.prisma.organizerProfile.update({
+      where: { id },
+      data: { razorpayxContactId: contactId, razorpayxFundAccountId: fundAccountId },
+    })
+  }
+
   /** Count pending organizer approvals. Used by: AdminService.getPlatformStats() */
   async countPending(): Promise<number> {
     return this.prisma.organizerProfile.count({
