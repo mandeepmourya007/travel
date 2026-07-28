@@ -1,0 +1,69 @@
+apps/api/src/types/payment.types.ts
+  s_7172e5915f5271::t_2f197d2edb13d2 196-211
+  s_7172e5915f5271::t_17a1b152942a67 19-25
+  s_7172e5915f5271::t_7c756182a5b778 212
+apps/api/src/config/dependencies.ts
+  s_7172e5915f5271::t_289e108516f579 228
+  s_7172e5915f5271::t_e8e4888bbd8a36 138
+  s_7172e5915f5271::t_87cd28177cd6e5 391
+  s_7172e5915f5271::t_35758e3df813b9 229
+  s_7172e5915f5271::t_c4eb08f612c270 382,390
+  s_7172e5915f5271::t_798eb115186ff3 185-199
+  s_7172e5915f5271::t_49a4a465e1d0c9 209-212
+  s_7172e5915f5271::t_a90f0cf1675754 453-455,458
+  s_7172e5915f5271::t_3619d4a61b19e7 372
+  s_7172e5915f5271::t_0085626e91f879 370-371,378
+  s_7172e5915f5271::t_1f68bee84b5bee 79-80
+  s_7172e5915f5271::t_8adeea517fd29a 73
+  s_7172e5915f5271::t_941055e3272085 325
+  s_7172e5915f5271::t_881c4cef0db77d 180-184,200-208
+  s_7172e5915f5271::t_486352d0c56978 373
+apps/api/src/utils/cron-jobs.ts
+  s_7172e5915f5271::t_c97ffe91fdf3d7 468-490
+  s_7172e5915f5271::t_c55d75c57b8513 617-618
+  s_7172e5915f5271::t_92950df2fbeb14 467
+  s_7172e5915f5271::t_5b6af697793f00 616
+  s_7172e5915f5271::t_9baf8745b3ab6a 619-620
+apps/api/src/utils/constants.ts
+  s_7172e5915f5271::t_9a6887437e014a 237-239
+  s_7172e5915f5271::t_4e341552c6fb79 8-12
+  s_7172e5915f5271::t_3912b701bfaa3e 97-103
+  s_7172e5915f5271::t_e9fc38337cdf86 91-96
+  s_7172e5915f5271::t_9d9cfa2f9b3e5e 135-152
+  s_7172e5915f5271::t_a4558d771fca96 59-65
+  s_7172e5915f5271::t_408e329f9a537d 115-126,132-134
+  s_7172e5915f5271::t_d9671e1997cee7 66-74
+  s_7172e5915f5271::t_0604944e7dee8a 127-131
+  s_7172e5915f5271::t_97505b74ddec8b 75
+  s_7172e5915f5271::t_e6e11d82879c27 153
+apps/api/src/utils/idempotency.ts
+  s_7172e5915f5271::t_382646e7ed9927 1-14,25-27
+  s_7172e5915f5271::t_bdb23343ca5752 15-24
+apps/api/src/config/env.ts
+  s_7172e5915f5271::t_01a52f886a7638 3
+  s_7172e5915f5271::t_4f0a68178fbd83 22-26,28-33
+  s_7172e5915f5271::t_b705d029f81230 27
+  s_7172e5915f5271::t_6d905ba7215c48 114-128
+  s_7172e5915f5271::t_4a7d1b4a435a05 129-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4840d6810bb7c5a2ca2b252e4c656770b786d46f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
