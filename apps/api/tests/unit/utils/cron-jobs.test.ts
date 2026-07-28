@@ -55,6 +55,7 @@ const mockNotificationService = {
 
 const mockBookingService = {
   recoverPaidBooking: vi.fn().mockResolvedValue(undefined),
+  reconcileOrganizerEarnings: vi.fn().mockResolvedValue({ checked: 0, credited: 0 }),
 } as any // eslint-disable-line @typescript-eslint/no-explicit-any
 
 const mockPaymentTxRepo = {
@@ -207,6 +208,26 @@ describe('startCronJobs', () => {
     await vi.advanceTimersByTimeAsync(55 * 60 * 1000)
     expect(mockVerifCodeRepo.deleteExpired).toHaveBeenCalledTimes(1)
     expect(mockRefreshTokenRepo.deleteExpired).toHaveBeenCalledTimes(1)
+  })
+
+  it('should register and fire the hourly organizer-earnings reconciliation cron, calling bookingService.reconcileOrganizerEarnings()', async () => {
+    stopCrons = startCronJobs(createDeps())
+
+    // 5 min — not yet fired (hourly cron)
+    await vi.advanceTimersByTimeAsync(FIVE_MINUTES)
+    expect(mockBookingService.reconcileOrganizerEarnings).not.toHaveBeenCalled()
+
+    // 1 hour — hourly reconciliation cron fires
+    await vi.advanceTimersByTimeAsync(55 * 60 * 1000)
+    expect(mockBookingService.reconcileOrganizerEarnings).toHaveBeenCalledTimes(1)
+  })
+
+  it('should skip the organizer-earnings reconciliation cron entirely when bookingService is null (mock payment mode)', async () => {
+    stopCrons = startCronJobs({ ...createDeps(null), bookingService: null })
+
+    await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
+
+    expect(mockBookingService.reconcileOrganizerEarnings).not.toHaveBeenCalled()
   })
 
   it('should fire trip completion cron after 30 minutes', async () => {

@@ -31,6 +31,7 @@ const mockPaymentTxRepo = {
   findByRazorpayPaymentId: vi.fn(),
   updateStatus: vi.fn(),
   updatePaymentId: vi.fn(),
+  findPayoutReleaseByGatewayTransferId: vi.fn(),
 }
 
 const mockWebhookEventRepo = {
@@ -724,5 +725,136 @@ describe('PaymentService', () => {
       // Falls through to order ID inference since gateways.has('cashfree') === false
       expect(result).toBe('cashfree')
     })
+  })
+})
+
+// ═══════════════════════════════════════════════════
+// H6: payout.reversed / payout.failed — credit back the organizer wallet-ledger
+// payout that was debited optimistically at initiation (PayoutService.
+// releaseOrganizerWalletPayout). Both handlers share creditBackOrganizerWalletPayoutIfAny,
+// so a single set of tests against handlePayoutReversed (with a parallel check that
+// handlePayoutFailed shares the same behavior) covers the idempotency guarantee.
+// This is a distinct PaymentService instance (with a walletService fake wired) —
+// the shared `service`/beforeEach above deliberately constructs PaymentService
+// without walletService, since most other tests don't need it.
+// ═══════════════════════════════════════════════════
+describe('PaymentService — H6 payout reversal/failure wallet credit-back', () => {
+  const mockWalletService = {
+    credit: vi.fn(),
+    debit: vi.fn(),
+    findTransactionByReference: vi.fn(),
+  }
+
+  let h6Service: PaymentService
+
+  function createPayoutEvent(overrides: Partial<import('../../../src/types/payment.types').NormalizedPayoutWebhookEvent> = {}) {
+    return {
+      type: NORMALIZED_EVENT_TYPE.PAYOUT_REVERSED,
+      externalEventId: 'evt_payout_1',
+      payoutId: 'pout_abc123',
+      failureReason: null,
+      mode: 'test' as const,
+      rawEventName: 'payout.reversed',
+      payload: {},
+      ...overrides,
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    h6Service = new PaymentService(mockGateway as any, gatewayRegistry as any, mockPaymentTxRepo as any, mockWebhookEventRepo as any, mockLogger as any, null, mockWalletService as any)
+  })
+
+  const walletTx = { id: 'wtx-1', amount: 500, wallet: { userId: 'user-organizer-1' } }
+
+  it('handlePayoutReversed credits back WALLET_TX.ORGANIZER_PAYOUT_REVERSED when an ORGANIZER_PAYOUT wallet tx exists for the payoutId', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null) // no PAYOUT_RELEASE row (admin wallet path only)
+    mockWalletService.findTransactionByReference.mockResolvedValue(walletTx)
+    mockWalletService.credit.mockResolvedValue({})
+
+    await h6Service.handlePayoutReversed(createPayoutEvent())
+
+    expect(mockWalletService.findTransactionByReference).toHaveBeenCalledWith('ORGANIZER_PAYOUT', 'RazorpayXPayout', 'pout_abc123')
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(1)
+    expect(mockWalletService.credit).toHaveBeenCalledWith({
+      userId: 'user-organizer-1',
+      amount: 500,
+      type: 'ORGANIZER_PAYOUT_REVERSED',
+      referenceModel: 'RazorpayXPayout',
+      referenceId: 'pout_abc123',
+      description: 'Payout reversed — funds returned',
+    })
+  })
+
+  it('handlePayoutReversed is a no-op (no credit) when there is no ORGANIZER_PAYOUT wallet tx for this payoutId', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null)
+    mockWalletService.findTransactionByReference.mockResolvedValue(null)
+
+    await h6Service.handlePayoutReversed(createPayoutEvent())
+
+    expect(mockWalletService.credit).not.toHaveBeenCalled()
+  })
+
+  it('redelivering the same payout.reversed webhook twice does not double-credit — the second credit() P2002 is swallowed, not thrown, and no ERROR log is emitted', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null)
+    mockWalletService.findTransactionByReference.mockResolvedValue(walletTx)
+    mockWalletService.credit
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+
+    await h6Service.handlePayoutReversed(createPayoutEvent())
+    await expect(h6Service.handlePayoutReversed(createPayoutEvent())).resolves.toBeUndefined()
+
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(2)
+    expect(mockLogger.error).not.toHaveBeenCalled()
+  })
+
+  it('a genuine (non-P2002) credit-back failure IS logged at error level — this is the "loud, not swallowed" reconciliation path', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null)
+    mockWalletService.findTransactionByReference.mockResolvedValue(walletTx)
+    mockWalletService.credit.mockRejectedValue(new Error('DB connection lost'))
+
+    await expect(h6Service.handlePayoutReversed(createPayoutEvent())).resolves.toBeUndefined()
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ payoutId: 'pout_abc123', organizerUserId: 'user-organizer-1' }),
+      expect.stringContaining('manual reconciliation required'),
+    )
+  })
+
+  it('handlePayoutProcessed is a pure info-log-only no-op on the wallet side — no credit/debit call, just a PAYOUT_RELEASE lookup + log', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null) // no automatic per-booking PAYOUT_RELEASE row
+    mockWalletService.findTransactionByReference.mockResolvedValue(walletTx)
+
+    await h6Service.handlePayoutProcessed(createPayoutEvent({ type: NORMALIZED_EVENT_TYPE.PAYOUT_PROCESSED, rawEventName: 'payout.processed' }))
+
+    // A future accidental wallet mutation on this path should break this assertion.
+    expect(mockWalletService.credit).not.toHaveBeenCalled()
+    expect(mockWalletService.debit).not.toHaveBeenCalled()
+    expect(mockWalletService.findTransactionByReference).toHaveBeenCalledWith('ORGANIZER_PAYOUT', 'RazorpayXPayout', 'pout_abc123')
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ organizerUserId: 'user-organizer-1', payoutId: 'pout_abc123', amount: 500 }),
+      expect.stringContaining('confirmed processed'),
+    )
+  })
+
+  it('handlePayoutFailed shares the same credit-back + idempotency guarantee as handlePayoutReversed (same underlying helper)', async () => {
+    mockPaymentTxRepo.findPayoutReleaseByGatewayTransferId.mockResolvedValue(null)
+    mockWalletService.findTransactionByReference.mockResolvedValue(walletTx)
+    mockWalletService.credit
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+
+    const failedEvent = createPayoutEvent({ type: NORMALIZED_EVENT_TYPE.PAYOUT_FAILED, rawEventName: 'payout.failed', failureReason: 'insufficient funds' })
+
+    await h6Service.handlePayoutFailed(failedEvent)
+    await expect(h6Service.handlePayoutFailed(failedEvent)).resolves.toBeUndefined()
+
+    expect(mockWalletService.credit).toHaveBeenCalledTimes(2)
+    expect(mockWalletService.credit).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'ORGANIZER_PAYOUT_REVERSED', description: 'Payout failed — funds returned' }),
+    )
+    expect(mockLogger.error).not.toHaveBeenCalled()
   })
 })
