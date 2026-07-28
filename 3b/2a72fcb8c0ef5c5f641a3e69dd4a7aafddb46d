@@ -1,0 +1,24 @@
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_e14aa5b5dedd7d::t_c2e563cc5db89d 457-469,471-472
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3b2a72fcb8c0ef5c5f641a3e69dd4a7aafddb46d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e14aa5b5dedd7d": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b4620fd7-ec75-4644-a14c-75821f28ad41",
+        "model": "GPT-5 Low Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
