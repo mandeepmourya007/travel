@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import { Prisma, type BookingStatus, type Gender, type PaymentType, type PaymentStatus } from '@prisma/client'
+import { Prisma, type BookingStatus, type PaymentType, type PaymentStatus } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripBookingFilters } from '@shared/types/booking.types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
@@ -384,50 +384,6 @@ export class BookingRepository {
   }
 
   // ─── Payment Flow Methods ─────────────────────────────────
-
-  /**
-   * Creates a booking with nested traveler details in a single transaction.
-   *
-   * Generates a unique bookingRef (TRP-YYYY-NNNN format).
-   * Used by: BookingService.createBooking()
-   *
-   * Edge case: bookingRef collision is extremely unlikely (cuid-based counter fallback)
-   */
-  async create(data: {
-    tripId: string
-    userId: string
-    numTravelers: number
-    totalAmount: number
-    expiresAt: Date
-    pickupPointId?: string
-    dropPointId?: string
-    travelers: Array<{
-      name: string
-      phone: string
-      age: number
-      gender: Gender
-      isPrimary: boolean
-    }>
-  }) {
-    const bookingRef = this.generateBookingRef()
-    return this.prisma.booking.create({
-      data: {
-        bookingRef,
-        tripId: data.tripId,
-        userId: data.userId,
-        numTravelers: data.numTravelers,
-        totalAmount: data.totalAmount,
-        expiresAt: data.expiresAt,
-        bookingStatus: BOOKING_STATUS.PENDING_PAYMENT,
-        pickupPointId: data.pickupPointId ?? null,
-        dropPointId: data.dropPointId ?? null,
-        travelerDetails: {
-          create: data.travelers,
-        },
-      },
-      include: { travelerDetails: true },
-    })
-  }
 
   /**
    * Runs a callback inside a Prisma interactive transaction.
