@@ -122,6 +122,7 @@ export default function OrganizerPaymentsPage() {
         error={payments.error}
         onRetry={() => payments.refetch()}
         showUser
+        hideAmount
         page={page}
         onPageChange={setPage}
       />

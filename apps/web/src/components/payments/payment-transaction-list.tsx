@@ -3,6 +3,7 @@ import { PaymentTypeBadge } from './payment-type-badge'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { formatCurrency } from '@/lib/format'
+import { getOrganizerEarnings } from '@/lib/payment-calculator'
 import type { PaymentHistoryItem } from '@shared/types/payment.types'
 
 interface PaymentTransactionListProps {
@@ -12,6 +13,7 @@ interface PaymentTransactionListProps {
   error: Error | null
   onRetry?: () => void
   showUser?: boolean
+  hideAmount?: boolean
   page: number
   onPageChange: (page: number) => void
 }
@@ -23,6 +25,7 @@ export function PaymentTransactionList({
   error,
   onRetry,
   showUser = false,
+  hideAmount = false,
   page,
   onPageChange,
 }: PaymentTransactionListProps) {
@@ -53,7 +56,7 @@ export function PaymentTransactionList({
       {/* Mobile cards */}
       <div className="space-y-3 md:hidden">
         {data.map((tx) => (
-          <MobilePaymentCard key={tx.id} transaction={tx} showUser={showUser} />
+          <MobilePaymentCard key={tx.id} transaction={tx} showUser={showUser} hideAmount={hideAmount} />
         ))}
       </div>
 
@@ -76,9 +79,11 @@ export function PaymentTransactionList({
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Type
               </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                Amount
-              </th>
+              {!hideAmount && (
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                  Amount
+                </th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 Status
               </th>
@@ -89,7 +94,7 @@ export function PaymentTransactionList({
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {data.map((tx) => (
-              <PaymentRow key={tx.id} transaction={tx} showUser={showUser} />
+              <PaymentRow key={tx.id} transaction={tx} showUser={showUser} hideAmount={hideAmount} />
             ))}
           </tbody>
         </table>
@@ -114,13 +119,16 @@ export function PaymentTransactionList({
 function MobilePaymentCard({
   transaction,
   showUser,
+  hideAmount,
 }: {
   transaction: PaymentHistoryItem
   showUser: boolean
+  hideAmount: boolean
 }) {
   const isRefund = transaction.type === 'REFUND'
   const amountColor = isRefund ? 'text-success-600' : 'text-accent-600'
   const amountPrefix = isRefund ? '+' : ''
+  const displayAmount = hideAmount ? getOrganizerEarnings(transaction.amount, 0) : transaction.amount
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
@@ -137,7 +145,7 @@ function MobilePaymentCard({
           )}
         </div>
         <span className={`shrink-0 font-bold text-sm ${amountColor}`}>
-          {amountPrefix}{formatCurrency(transaction.amount)}
+          {amountPrefix}{formatCurrency(displayAmount)}
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between">
@@ -162,13 +170,16 @@ function MobilePaymentCard({
 function PaymentRow({
   transaction,
   showUser,
+  hideAmount,
 }: {
   transaction: PaymentHistoryItem
   showUser: boolean
+  hideAmount: boolean
 }) {
   const isRefund = transaction.type === 'REFUND'
   const amountColor = isRefund ? 'text-success-600' : 'text-accent-600'
   const amountPrefix = isRefund ? '+' : ''
+  const displayAmount = hideAmount ? getOrganizerEarnings(transaction.amount, 0) : transaction.amount
 
   return (
     <tr className="hover:bg-neutral-50">
@@ -187,7 +198,7 @@ function PaymentRow({
         <PaymentTypeBadge type={transaction.type} isPartialRefund={transaction.isPartialRefund} />
       </td>
       <td className={`whitespace-nowrap px-4 py-3 font-bold ${amountColor}`}>
-        {amountPrefix}{formatCurrency(transaction.amount)}
+        {amountPrefix}{formatCurrency(displayAmount)}
       </td>
       <td className="px-4 py-3">
         <PaymentStatusBadge status={transaction.status} />

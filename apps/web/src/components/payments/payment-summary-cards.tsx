@@ -76,11 +76,10 @@ interface TripSummaryProps {
 
 export function TripPaymentSummaryCards(props: TripSummaryProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
       <StatItem label="Revenue" value={props.totalRevenue} colorClass="text-primary-600" />
       <StatItem label="Refunds" value={props.totalRefunded} colorClass="text-accent-600" />
       <StatItem label="Your Earnings" value={props.organizerEarnings} colorClass="text-success-600" />
-      <StatItem label="Platform Fee" value={props.platformCommission} colorClass="text-neutral-500" />
     </div>
   )
 }

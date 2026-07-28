@@ -527,6 +527,7 @@ export class AuthService {
    * Creates RazorpayX Contact + Fund Account for organizer bank linking.
    * Called from connectBankAccount when PAYOUT_STRATEGY=razorpayx_payouts.
    * Throws on failure since this is the primary (and only) path for that strategy.
+   * Assumes caller has already verified this.razorpayxClient is configured.
    *
    * @throws {PaymentError} Contact or Fund Account creation failed
    */
@@ -536,17 +537,13 @@ export class AuthService {
     dto: ConnectBankAccountDto,
     email: string | null,
   ): Promise<void> {
-    if (!this.razorpayxClient) {
-      throw new PaymentError('RazorpayX client not available')
-    }
-
     try {
-      const { contactId } = await this.razorpayxClient.createContact({
+      const { contactId } = await this.razorpayxClient!.createContact({
         name: dto.accountHolderName,
         email: email ?? undefined,
         referenceId: profileId,
       })
-      const { fundAccountId } = await this.razorpayxClient.createFundAccount({
+      const { fundAccountId } = await this.razorpayxClient!.createFundAccount({
         contactId,
         accountNumber: dto.accountNumber,
         ifsc: dto.ifscCode,

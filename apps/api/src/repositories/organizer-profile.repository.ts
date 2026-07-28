@@ -173,15 +173,19 @@ export class OrganizerProfileRepository {
   }
 
   /**
-   * Persists the RazorpayX Contact + Fund Account IDs created alongside the Route
-   * linked account when PAYOUT_STRATEGY=razorpayx_payouts (see AuthService.connectBankAccount).
-   * Plain update, not a CAS — this is additive metadata for a dormant, non-competing
-   * payout strategy, not a competing provider selection like linkPayoutAccount above.
+   * Persists the RazorpayX Contact + Fund Account IDs when PAYOUT_STRATEGY=razorpayx_payouts
+   * (see AuthService.connectBankAccount). Also sets bankAccountLinked=true so the organizer
+   * can create trips. Plain update, not a CAS — this is additive metadata for a dormant,
+   * non-competing payout strategy, not a competing provider selection like linkPayoutAccount above.
    */
   async linkRazorpayxAccount(id: string, contactId: string, fundAccountId: string) {
     return this.prisma.organizerProfile.update({
       where: { id },
-      data: { razorpayxContactId: contactId, razorpayxFundAccountId: fundAccountId },
+      data: {
+        razorpayxContactId: contactId,
+        razorpayxFundAccountId: fundAccountId,
+        bankAccountLinked: true,
+      },
     })
   }
 
