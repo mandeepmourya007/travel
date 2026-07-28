@@ -1,0 +1,51 @@
+apps/web/src/components/payouts/__tests__/pending-payouts-table.test.tsx
+  s_7172e5915f5271::t_7116aaf27eac72 2-130
+  s_7172e5915f5271::t_91d4a311664bb0 1
+apps/web/src/components/payouts/__tests__/send-payout-modal.test.tsx
+  s_7172e5915f5271::t_b1bcdadc121aaf 1-93
+apps/web/src/test/mocks/handlers.ts
+  s_7172e5915f5271::t_d80da3f72b5216 3
+  s_7172e5915f5271::t_d51540c1c31078 104-129
+apps/web/src/app/admin/users/organizers/[organizerId]/__tests__/page.test.tsx
+  s_7172e5915f5271::t_7b7349d436cbac 1-32,34-196
+  s_7172e5915f5271::t_41a0793698d2cf 33
+apps/web/src/components/trips/trip-form/__tests__/review-tab.test.tsx
+  s_7172e5915f5271::t_620c3df9a47f02 1-69,71-82
+  s_7172e5915f5271::t_529f1e8df50498 70
+apps/web/src/app/dashboard/trips/[id]/edit/__tests__/page.test.tsx
+  s_7172e5915f5271::t_83127c14cf2ad9 4
+  s_7172e5915f5271::t_bb27eeb8c7eb13 30-33
+  s_7172e5915f5271::t_1cd0503e5e728a 1-3,5-29,34-76
+apps/web/src/test/factories/profile.factory.ts
+  s_7172e5915f5271::t_7dec085c84700f 14
+apps/web/src/test/factories/payout.factory.ts
+  s_7172e5915f5271::t_798c43691dea0a 1-32
+apps/web/src/app/dashboard/trips/create/__tests__/page.test.tsx
+  s_7172e5915f5271::t_42a6d26363fcff 87
+apps/web/src/components/trips/trip-form/__tests__/dates-pricing-tab.test.tsx
+  s_7172e5915f5271::t_3972487b6483cf 134-171
+  s_7172e5915f5271::t_882e9e94c2cfe7 1-133
+apps/web/src/hooks/__tests__/use-admin-payouts.test.tsx
+  s_7172e5915f5271::t_9841266dca9958 1-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "43020b3e9da6f08ec6a362a9926843dbadea24db",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
