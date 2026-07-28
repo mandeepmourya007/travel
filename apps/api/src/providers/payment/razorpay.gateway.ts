@@ -454,8 +454,22 @@ export class RazorpayGateway implements IPaymentGateway {
     if (!response.ok) {
       const errorText = await response.text()
       const sanitized = errorText.replace(/"account_number"\s*:\s*"[^"]+"/g, '"account_number":"[REDACTED]"')
+
+      // Try to extract a helpful provider description from the JSON body
+      let providerDescription: string | undefined
+      let providerError: unknown = undefined
+      try {
+        const parsed = JSON.parse(errorText) as { error?: { description?: string; code?: string; reason?: string; [k: string]: unknown } }
+        providerDescription = parsed?.error?.description || parsed?.error?.reason || parsed?.error?.code
+        providerError = parsed?.error ?? parsed
+      } catch {
+        // non-JSON body — fall back to sanitized text
+        providerError = sanitized
+      }
+
       this.logger.error({ statusCode: response.status, body: sanitized }, 'Razorpay linked account creation failed')
-      throw new PaymentError(`Failed to create payout account: ${response.status}`)
+      const suffix = providerDescription ? ` — ${providerDescription}` : ''
+      throw new PaymentError(`Failed to create payout account: ${response.status}${suffix}`, providerError)
     }
 
     const data = await response.json() as { id: string }
