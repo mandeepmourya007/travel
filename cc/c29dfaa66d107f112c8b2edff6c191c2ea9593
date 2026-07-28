@@ -1,0 +1,37 @@
+apps/api/tests/integration/trending-score.integration.test.ts
+  s_7172e5915f5271::t_bd752e6f191519 22,24
+apps/api/tests/integration/document-review.repository.test.ts
+  s_7172e5915f5271::t_7aa5dc3f1c62dd 4,14
+apps/api/tests/helpers/test-db.ts
+  s_7172e5915f5271::t_bb32dd514e68cb 1-19
+apps/api/tests/integration/chat-socket.integration.test.ts
+  s_7172e5915f5271::t_bec9564b083ede 13
+  s_7172e5915f5271::t_dce8bc738bf79d 38
+apps/api/tests/integration/webhook-razorpay.integration.test.ts
+  s_7172e5915f5271::t_dc0a801466cab3 37
+  s_7172e5915f5271::t_a2be4efa3a2edd 46
+apps/api/tests/setup.ts
+  s_7172e5915f5271::t_f270d381544e2c 14-23
+  s_7172e5915f5271::t_0f157afd2e20c3 12-13,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ccc29dfaa66d107f112c8b2edff6c191c2ea9593",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
