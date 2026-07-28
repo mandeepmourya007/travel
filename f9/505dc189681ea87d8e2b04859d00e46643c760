@@ -1,0 +1,41 @@
+apps/web/src/components/payouts/payout-activity-table.tsx
+  s_7172e5915f5271::t_d89f9795558582 8-9
+  s_7172e5915f5271::t_37593d6e71a5bb 1-2,4-7,10-93,101,108,118-134
+  s_7172e5915f5271::t_bd17cf50647ab5 3
+  s_7172e5915f5271::t_f16c2b5e6d7454 94-99,102-107,109-117
+  s_7172e5915f5271::t_8702826c7e99c9 100
+apps/web/src/components/payouts/pending-payouts-skeleton.tsx
+  s_7172e5915f5271::t_eec96c77efb752 1-28
+apps/web/src/components/payouts/send-payout-modal.tsx
+  s_7172e5915f5271::t_cb183f92bb5c81 1-35,37-38,47-94
+  s_7172e5915f5271::t_3717d9dd900c39 36
+  s_7172e5915f5271::t_5e9acb2f1272e5 39-46
+apps/web/src/components/payouts/pending-payouts-table.tsx
+  s_7172e5915f5271::t_d64b995c65e4a3 1-2,4-5,7-9,28-30,32-35,38-39,50-60,62-70,77-79,82-107,119-123,126-136,149-150
+  s_7172e5915f5271::t_0cafbca96a5c1c 3,11-27
+  s_7172e5915f5271::t_c297f03c5dfdd7 137-148
+  s_7172e5915f5271::t_6ab8ffb62d2a28 6,10,31,36-37,40-49,61
+  s_7172e5915f5271::t_1de8205b8d38fa 108-118,124-125
+  s_7172e5915f5271::t_ec324837002029 71-76,80-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "f9505dc189681ea87d8e2b04859d00e46643c760",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
