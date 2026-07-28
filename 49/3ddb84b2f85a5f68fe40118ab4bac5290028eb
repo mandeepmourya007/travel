@@ -1,0 +1,42 @@
+apps/web/src/components/trips/trip-form/trip-form.tsx
+  s_7172e5915f5271::t_af6e5ad571fbde 42-53
+  s_7172e5915f5271::t_82d77d64657fe2 129,131-134
+  s_7172e5915f5271::t_f8a09e9e632f3a 266
+  s_7172e5915f5271::t_67d9c53a0ff645 19-20
+  s_7172e5915f5271::t_99a270a85f4edf 252
+apps/web/src/components/trips/trip-form/dates-pricing-tab.tsx
+  s_7172e5915f5271::t_9c3133d095f45d 4,8,17-19,24-27,29-40,43-75,80-132
+  s_7172e5915f5271::t_74be44e77e5262 78
+  s_7172e5915f5271::t_6c9c8b9981d35a 20-23,28
+  s_7172e5915f5271::t_ea69cb41706c88 207-214,216-221,224-231,233-239,243
+  s_7172e5915f5271::t_e7c36f559cc618 76-77
+  s_7172e5915f5271::t_8fc1e15ff810a6 79,133
+apps/web/src/components/trips/trip-form/review-tab.tsx
+  s_7172e5915f5271::t_183c40dae46e0f 154-155,157-158
+  s_7172e5915f5271::t_a49b424f36f19f 43-48
+  s_7172e5915f5271::t_98a8baaf5a2c0f 26
+  s_7172e5915f5271::t_8488ffc55938b2 24-25
+  s_7172e5915f5271::t_6de4fb3cf82b7d 156
+  s_7172e5915f5271::t_8e28b1a277165c 164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "493ddb84b2f85a5f68fe40118ab4bac5290028eb",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
