@@ -1,0 +1,36 @@
+apps/web/src/hooks/use-admin-payouts.ts
+  s_7172e5915f5271::t_db299dcfd59c54 8,15-16,18,20-27
+  s_7172e5915f5271::t_e7cc01e35ce526 1-7,9-14,17,19,28-91,101-109
+  s_7172e5915f5271::t_c53d1005c391fb 92,96-100
+  s_7172e5915f5271::t_21263e3d6f2ff4 93-95
+apps/web/src/hooks/use-admin-update-commission.ts
+  s_7172e5915f5271::t_1858a90801208a 1-42
+apps/web/src/lib/constants.ts
+  s_7172e5915f5271::t_2dfdb2f3ade598 21-30
+apps/web/src/lib/query-keys.ts
+  s_7172e5915f5271::t_ee110042d4912a 8
+  s_7172e5915f5271::t_3b6f5b25a8208a 245,250-254
+  s_7172e5915f5271::t_df502047bdcdc8 59-60
+  s_7172e5915f5271::t_7750e5cdf43bd7 246-249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ef901d70bb1ccf6a554e562a1cf5b76bdac4693c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
