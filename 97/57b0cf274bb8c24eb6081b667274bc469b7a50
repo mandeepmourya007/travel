@@ -1,0 +1,52 @@
+.claude/agents/debugger.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-137
+.claude/agents/designer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-98
+.claude/agents/frontend-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-68
+.claude/agents/infra-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-134
+.claude/agents/api-docs-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-81
+.claude/agents/qa-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-134
+.claude/agents/ui-ux-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-181
+.claude/agents/product-manager.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-71
+.claude/agents/backend-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-113
+.claude/agents/market-researcher.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-61
+.claude/agents/fullstack-engineer.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-78
+CLAUDE.md
+  s_fc844df41a6568::t_0e7fbfc19b3b28 98-111,117-128,134-135
+.claude/skills/travel-api-route/SKILL.md
+  s_fc844df41a6568::t_b406f1df61322f 167,178-179,226
+.claude/agents/security-auditor.md
+  s_fc844df41a6568::t_8e60cb197718f0 1-169
+.claude/skills/travel-ui-stack/SKILL.md
+  s_fc844df41a6568::t_b406f1df61322f 80,145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9757b0cf274bb8c24eb6081b667274bc469b7a50",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fc844df41a6568": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e4921ea0-4148-4d05-9433-def7e12a8fd1",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
