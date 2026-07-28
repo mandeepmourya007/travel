@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 import { DocumentReviewRepository } from '../../src/repositories/document-review.repository'
+import { getIntegrationDbUrl } from '../helpers/test-db'
 
 /**
  * Integration test — runs against a real Postgres.
@@ -10,9 +11,7 @@ import { DocumentReviewRepository } from '../../src/repositories/document-review
  * Or inside Docker: docker compose exec api npx vitest run tests/integration/
  */
 
-const DB_URL = process.env.INTEGRATION_DB_URL
-  ?? process.env.DIRECT_URL
-  ?? 'postgresql://travel_user:travel_pass@localhost:5432/travel_dev?schema=public'
+const DB_URL = getIntegrationDbUrl()
 
 let prisma: PrismaClient
 let repo: DocumentReviewRepository

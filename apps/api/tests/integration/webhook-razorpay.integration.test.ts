@@ -34,6 +34,7 @@ import { webhookRateLimit } from '../../src/middleware/rate-limit.middleware'
 import { logger } from '../../src/utils/logger'
 import { PAYMENT_TX_STATUS, WEBHOOK_SOURCE } from '../../src/utils/constants'
 import type { NotificationService } from '../../src/services/notification.service'
+import { getIntegrationDbUrl } from '../helpers/test-db'
 
 // @prisma/client re-loads .env on import, undoing tests/setup.ts's
 // `delete process.env.REDIS_URL` — so without this mock webhookRateLimit would
@@ -42,10 +43,7 @@ import type { NotificationService } from '../../src/services/notification.servic
 // suite verifies.
 vi.mock('../../src/config/redis', () => ({ redis: null }))
 
-const DB_URL =
-  process.env.INTEGRATION_DB_URL ??
-  process.env.DIRECT_URL ??
-  'postgresql://travel_user:travel_pass@localhost:5432/travel_dev?schema=public'
+const DB_URL = getIntegrationDbUrl()
 
 const TEST_WEBHOOK_SECRET = 'test_webhook_secret_it'
 
