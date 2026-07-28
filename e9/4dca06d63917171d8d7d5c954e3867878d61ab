@@ -1,0 +1,83 @@
+"docs/codebase/Product Domain.md"
+  s_7172e5915f5271::t_6f49e463d91774 51
+"docs/codebase/Shared Package.md"
+  s_7172e5915f5271::t_2c1479c5d51ca3 84
+  s_7172e5915f5271::t_1357b8d31631f5 36
+  s_7172e5915f5271::t_13ac2556a589db 40
+  s_7172e5915f5271::t_1e1c43af1dd77f 67
+"docs/codebase/Data Fetching & State.md"
+  s_7172e5915f5271::t_7c1199ed30c22d 49
+  s_7172e5915f5271::t_8945ba4ed26cc7 35
+  s_7172e5915f5271::t_e630886a98e3d1 21
+"docs/codebase/Frontend Routes Reference.md"
+  s_7172e5915f5271::t_ce12ff2d5b3236 77
+"docs/codebase/Background Jobs & Realtime.md"
+  s_7172e5915f5271::t_5d2a1c86acd33c 32
+"docs/codebase/Environment & Deployment.md"
+  s_7172e5915f5271::t_f57280b828e906 35
+  s_7172e5915f5271::t_eb5a18b86aeb93 28
+"docs/codebase/Payments & Webhooks.md"
+  s_7172e5915f5271::t_7bde6196f3d455 85-91,94-97,99-100
+  s_7172e5915f5271::t_e9f2f2cc71a930 135
+  s_7172e5915f5271::t_9cc724bff589ba 92-93
+  s_7172e5915f5271::t_3e63e084bd784e 150
+  s_7172e5915f5271::t_22245523bd3d88 125-130,137-139
+  s_7172e5915f5271::t_9c46736c2093b7 115-116
+  s_7172e5915f5271::t_1c37d22e6a7900 98
+  s_7172e5915f5271::t_b4d0b0046eb2bc 105
+  s_7172e5915f5271::t_5d6ec44a43cb25 121,124
+  s_7172e5915f5271::t_e8ef8e5720b293 101-104,106-114,117-120,122-123,140-149,151
+  s_7172e5915f5271::t_29e45a6f4b0748 131-134,136
+"docs/codebase/Database Schema.md"
+  s_7172e5915f5271::t_93cca1b484b66b 44
+  s_7172e5915f5271::t_6fc211816e08d0 78
+  s_7172e5915f5271::t_29b5f230c7f9dc 30-31
+  s_7172e5915f5271::t_85558ad711840d 12
+  s_7172e5915f5271::t_dec0c046b23d16 73
+  s_7172e5915f5271::t_a49dcdeb99ea7f 105
+  s_7172e5915f5271::t_3f94568d8b6acd 94
+  s_7172e5915f5271::t_2c24857701e25b 45
+  s_7172e5915f5271::t_c3409a34f5725a 102
+  s_7172e5915f5271::t_acbd37ebe82887 86
+"docs/codebase/API Backend.md"
+  s_7172e5915f5271::t_12847f081ed6d5 133
+  s_7172e5915f5271::t_c233b81b28438a 78,80,82
+  s_7172e5915f5271::t_3e3d6b23e8b72b 38
+  s_7172e5915f5271::t_6c71f700a943d4 86
+"docs/codebase/API Routes Reference.md"
+  s_7172e5915f5271::t_c022d4f3384107 206
+  s_7172e5915f5271::t_552b829d34f3c0 184
+  s_7172e5915f5271::t_cc7794f3217322 263
+  h_b3232c20134322 20,41-43
+  s_7172e5915f5271::t_9f80c4e12e0247 207-208
+  s_87842498f487a5::t_642c625a66a241 19,21-40,44-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e94dca06d63917171d8d7d5c954e3867878d61ab",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_87842498f487a5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a06f038c95ec4ed31",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
