@@ -15,6 +15,7 @@ import {
   Map,
   Star,
   Share2,
+  Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +32,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'users', label: 'Users', href: '/admin/users', icon: UsersRound },
   { id: 'bookings', label: 'Bookings', href: '/admin/bookings', icon: Package },
   { id: 'payments', label: 'Payments', href: '/admin/payments', icon: CreditCard },
+  { id: 'payouts', label: 'Payouts', href: '/admin/payouts', icon: Wallet },
   { id: 'trip-types', label: 'Trip Types', href: '/admin/trip-types', icon: Tags },
   { id: 'cashback', label: 'Cashback', href: '/admin/cashback', icon: Gift },
   { id: 'reviews', label: 'Reviews', href: '/admin/reviews', icon: Star },
