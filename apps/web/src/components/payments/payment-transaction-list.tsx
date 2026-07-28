@@ -1,9 +1,11 @@
+import { useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { PaymentStatusBadge } from './payment-status-badge'
 import { PaymentTypeBadge } from './payment-type-badge'
 import { Pagination } from '@/components/shared/pagination'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 import { formatCurrency } from '@/lib/format'
-import { getOrganizerEarnings } from '@/lib/payment-calculator'
+import { getPaymentBreakdown } from '@/lib/payment-calculator'
 import type { PaymentHistoryItem } from '@shared/types/payment.types'
 
 interface PaymentTransactionListProps {
@@ -125,10 +127,12 @@ function MobilePaymentCard({
   showUser: boolean
   hideAmount: boolean
 }) {
+  const [expanded, setExpanded] = useState(false)
   const isRefund = transaction.type === 'REFUND'
   const amountColor = isRefund ? 'text-success-600' : 'text-accent-600'
   const amountPrefix = isRefund ? '+' : ''
-  const displayAmount = hideAmount ? getOrganizerEarnings(transaction.amount, 0) : transaction.amount
+  const breakdown = getPaymentBreakdown(transaction.amount, 0)
+  const displayAmount = hideAmount ? breakdown.organizerEarnings : transaction.amount
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
@@ -161,6 +165,31 @@ function MobilePaymentCard({
           })}
         </span>
       </div>
+
+      {/* Breakdown section (organizer view only) */}
+      {hideAmount && (
+        <div className="mt-3 border-t border-neutral-100 pt-3">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-2 text-xs font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            Payment Breakdown
+          </button>
+          {expanded && (
+            <div className="mt-2 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-neutral-600">Trip payment</span>
+                <span className="font-semibold text-success-600">{formatCurrency(breakdown.organizerEarnings)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-600">Platform fee</span>
+                <span className="font-semibold text-neutral-500">{formatCurrency(breakdown.platformCommission)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -176,40 +205,70 @@ function PaymentRow({
   showUser: boolean
   hideAmount: boolean
 }) {
+  const [expanded, setExpanded] = useState(false)
   const isRefund = transaction.type === 'REFUND'
   const amountColor = isRefund ? 'text-success-600' : 'text-accent-600'
   const amountPrefix = isRefund ? '+' : ''
-  const displayAmount = hideAmount ? getOrganizerEarnings(transaction.amount, 0) : transaction.amount
+  const breakdown = getPaymentBreakdown(transaction.amount, 0)
+  const displayAmount = hideAmount ? breakdown.organizerEarnings : transaction.amount
 
   return (
-    <tr className="hover:bg-neutral-50">
-      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-500">
-        {transaction.booking.bookingRef}
-      </td>
-      <td className="px-4 py-3 font-semibold text-neutral-800">
-        {transaction.booking.trip.title}
-      </td>
-      {showUser && (
-        <td className="px-4 py-3 text-neutral-700">
-          {transaction.booking.user?.name ?? '—'}
+    <>
+      <tr className="hover:bg-neutral-50">
+        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-500">
+          {transaction.booking.bookingRef}
         </td>
+        <td className="px-4 py-3 font-semibold text-neutral-800">
+          {transaction.booking.trip.title}
+        </td>
+        {showUser && (
+          <td className="px-4 py-3 text-neutral-700">
+            {transaction.booking.user?.name ?? '—'}
+          </td>
+        )}
+        <td className="px-4 py-3">
+          <PaymentTypeBadge type={transaction.type} isPartialRefund={transaction.isPartialRefund} />
+        </td>
+        <td className={`whitespace-nowrap px-4 py-3 font-bold ${amountColor}`}>
+          {amountPrefix}{formatCurrency(displayAmount)}
+        </td>
+        <td className="px-4 py-3">
+          <PaymentStatusBadge status={transaction.status} />
+        </td>
+        <td className="whitespace-nowrap px-4 py-3 text-sm text-neutral-500">
+          {new Date(transaction.createdAt).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })}
+        </td>
+        {hideAmount && (
+          <td className="px-4 py-3">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs font-medium text-neutral-600 hover:text-neutral-900 transition-colors"
+            >
+              <ChevronDown className={`h-3.5 w-3.5 inline transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+          </td>
+        )}
+      </tr>
+      {hideAmount && expanded && (
+        <tr className="bg-neutral-50">
+          <td colSpan={showUser ? 7 : 6} className="px-4 py-3">
+            <div className="space-y-1.5 text-xs">
+              <div className="flex justify-between max-w-xs">
+                <span className="text-neutral-600">Trip payment</span>
+                <span className="font-semibold text-success-600">{formatCurrency(breakdown.organizerEarnings)}</span>
+              </div>
+              <div className="flex justify-between max-w-xs">
+                <span className="text-neutral-600">Platform fee</span>
+                <span className="font-semibold text-neutral-500">{formatCurrency(breakdown.platformCommission)}</span>
+              </div>
+            </div>
+          </td>
+        </tr>
       )}
-      <td className="px-4 py-3">
-        <PaymentTypeBadge type={transaction.type} isPartialRefund={transaction.isPartialRefund} />
-      </td>
-      <td className={`whitespace-nowrap px-4 py-3 font-bold ${amountColor}`}>
-        {amountPrefix}{formatCurrency(displayAmount)}
-      </td>
-      <td className="px-4 py-3">
-        <PaymentStatusBadge status={transaction.status} />
-      </td>
-      <td className="whitespace-nowrap px-4 py-3 text-sm text-neutral-500">
-        {new Date(transaction.createdAt).toLocaleDateString('en-IN', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-        })}
-      </td>
-    </tr>
+    </>
   )
 }

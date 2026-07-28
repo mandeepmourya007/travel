@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 import { useAdminBookingDetail } from '@/hooks/use-admin-bookings'
 import { formatCurrency } from '@/lib/format'
+import { getPaymentBreakdown } from '@/lib/payment-calculator'
 import { BOOKING_STATUS_VARIANT, PAYMENT_STATUS_VARIANT } from '@/lib/admin-utils'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
 
@@ -116,6 +117,32 @@ export default function AdminBookingDetailPage() {
               <span className="text-neutral-500">Booked On</span>
               <span>{formatDate(data.createdAt)}</span>
             </div>
+
+            {/* Payment Breakdown */}
+            {(() => {
+              const breakdown = getPaymentBreakdown(data.totalAmount, 0)
+              return (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-neutral-900">Payment Breakdown</h4>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Traveler paid</span>
+                      <span className="font-mono font-medium">{formatCurrency(breakdown.travelerPaid)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Organizer receives</span>
+                      <span className="font-mono text-success-600 font-medium">{formatCurrency(breakdown.organizerEarnings)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Platform fee</span>
+                      <span className="font-mono text-neutral-500">{formatCurrency(breakdown.platformCommission)}</span>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
+
             {data.cancellationReason && (
               <>
                 <Separator />
