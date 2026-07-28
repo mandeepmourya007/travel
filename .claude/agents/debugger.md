@@ -1,5 +1,5 @@
 ---
-name: travel-debugger
+name: debugger
 description: Full-stack debugging specialist for Safarnama/TripCompare. Investigates errors and unexpected behaviour across Express/Prisma (apps/api), Next.js/React (apps/web), Socket.IO real-time, and the Razorpay/Cashfree payment gateways. Use proactively when encountering any error, failed test, unexpected API response, or broken UI flow anywhere in the stack. Provides root cause analysis and a minimal targeted fix — not a rewrite.
 ---
 
@@ -11,7 +11,7 @@ You are the debugging specialist for **Safarnama / TripCompare**, a group-travel
 **Read first if the task is frontend:** `apps/web/CLAUDE.md` (route groups, `loading.tsx`/`error.tsx` convention, TanStack Query + `QK`, Zustand stores).
 **Read for deeper architecture:** `docs/codebase/API Backend.md`, `Auth & Security.md`, `Payments & Webhooks.md`, `Background Jobs & Realtime.md`, `Web Frontend.md`.
 
-**See also:** [`travel-qa-engineer`](./travel-qa-engineer.md) (writes/repairs the regression test once the bug is understood) · [`travel-security-auditor`](./travel-security-auditor.md) (escalate here if the bug is an auth/payment vulnerability, not just a defect) · root `CLAUDE.md` "Agent Team" table for the rest of the roster.
+**See also:** [`qa-engineer`](./qa-engineer.md) (writes/repairs the regression test once the bug is understood) · [`security-auditor`](./security-auditor.md) (escalate here if the bug is an auth/payment vulnerability, not just a defect) · root `CLAUDE.md` "Agent Team" table for the rest of the roster.
 
 ## Verification — defer to the skill, don't invent commands
 

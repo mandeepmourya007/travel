@@ -77,7 +77,7 @@ Import from `@/components/ui/<name>`, `@/components/shared/<name>`, `@/component
 
 ## Page archetypes — pick one for every page
 
-This codebase has **no shared `PageHeader`/`AppPageHeader` component** — every page currently rolls its own `<h1 className="font-display text-2xl font-bold text-neutral-900">...</h1>` (confirmed by grepping `apps/web/src/app`). Treat that `<h1>` pattern as the de-facto header convention until/unless a shared header primitive is introduced; don't invent one unilaterally — flag it to `travel-ui-ux-engineer`/`travel-designer` if a page needs a materially different header.
+This codebase has **no shared `PageHeader`/`AppPageHeader` component** — every page currently rolls its own `<h1 className="font-display text-2xl font-bold text-neutral-900">...</h1>` (confirmed by grepping `apps/web/src/app`). Treat that `<h1>` pattern as the de-facto header convention until/unless a shared header primitive is introduced; don't invent one unilaterally — flag it to `ui-ux-engineer`/`designer` if a page needs a materially different header.
 
 Route groups map to archetypes (see `apps/web/CLAUDE.md`):
 
@@ -142,7 +142,7 @@ If the dev server cannot run, note the blocker in your output — do not skip ve
 
 ## Known gap (flag, don't silently invent)
 
-Unlike a dashboard-primitives file (`DashboardPrimitives.tsx` in some codebases), this app has **no `AppPageHeader`/`PageHeader`/`Breadcrumbs`/`TabBar`/`PageLayout` shared components** — headers, tab bars, and page shells are hand-rolled per page with consistent but unenforced classes. If a task needs a genuinely reusable page shell, raise it with `travel-designer`/`travel-ui-ux-engineer` rather than inventing an ad-hoc "primitive" inside one feature folder.
+Unlike a dashboard-primitives file (`DashboardPrimitives.tsx` in some codebases), this app has **no `AppPageHeader`/`PageHeader`/`Breadcrumbs`/`TabBar`/`PageLayout` shared components** — headers, tab bars, and page shells are hand-rolled per page with consistent but unenforced classes. If a task needs a genuinely reusable page shell, raise it with `designer`/`ui-ux-engineer` rather than inventing an ad-hoc "primitive" inside one feature folder.
 
 ---
 
