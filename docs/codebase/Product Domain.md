@@ -48,7 +48,7 @@ tags:
 
 ## Business Model
 
-Free to list for organizers (zero upfront cost, no lock-in). Platform takes ==10% commission== (`PLATFORM_COMMISSION_PERCENT`, per-organizer override via `OrganizerProfile.commissionRate`) on protected payments; cashback drives retention.
+Free to list for organizers (zero upfront cost, no lock-in). Platform takes ==10% commission== (`PLATFORM_COMMISSION_PERCENT`, per-organizer override via `OrganizerProfile.commissionRate`, admin-editable at any time via `PATCH /admin/organizers/:id/commission`, capped 0-50%) on protected payments; cashback drives retention. Rate changes are never retroactive: `OrganizerProfile.commissionRate` is snapshotted onto `Trip.commissionRate` at trip-creation time and again onto `Booking.commissionRate` at booking-creation time, so every entitlement/payout calculation for an existing trip or booking keeps using the rate that was in effect when it was created — see [[Database Schema]] and [[Payments & Webhooks]].
 
 ## Refund Policy Matrix
 
