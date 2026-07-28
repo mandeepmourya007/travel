@@ -1,0 +1,42 @@
+apps/api/prisma/migrations/20260728020000_add_organizer_earning_wallet_transaction_types/migration.sql
+  s_7172e5915f5271::t_97ad9260f5c397 1-18
+apps/api/prisma/schema.prisma
+  s_7172e5915f5271::t_d6d07b157a9574 195-200
+  s_7172e5915f5271::t_50032ceea0f6e5 290
+  s_7172e5915f5271::t_fe2067de9a05f1 451-455
+  s_7172e5915f5271::t_6a5565298994d0 269-273
+  s_7172e5915f5271::t_1ebccfbed3f6e2 385-388
+  s_7172e5915f5271::t_5318abf1c8843f 63-66,75-80
+  s_7172e5915f5271::t_7ea701422e4c49 655,657-687
+  s_7172e5915f5271::t_a92063ca53f0f2 651-654
+  s_7172e5915f5271::t_c0ec5a48c60c12 656
+apps/api/prisma/migrations/20260728010001_add_payout_release_unique_index/migration.sql
+  s_7172e5915f5271::t_251ee22b50fc28 1-17
+apps/api/prisma/migrations/20260728010000_add_razorpayx_payouts_enums_and_columns/migration.sql
+  s_7172e5915f5271::t_c44860bfd5288e 1-26
+apps/api/prisma/migrations/20260728050000_add_organizer_payout_attempt/migration.sql
+  s_7172e5915f5271::t_8e7d4cb7694c09 1-35
+apps/api/prisma/migrations/20260728040805_add_commission_rate_snapshot_to_trip_and_booking/migration.sql
+  s_7172e5915f5271::t_8087d77cfab6a6 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "8ce806a70ef408ebd38646c871918949413d6661",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
