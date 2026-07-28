@@ -1,0 +1,70 @@
+packages/shared/src/utils/payout.ts
+  s_7172e5915f5271::t_67bed39b539c4b 100-122
+  s_7172e5915f5271::t_b6e520720980bc 99
+packages/shared/src/utils/payout.test.ts
+  s_7172e5915f5271::t_005821181ee84c 236
+  s_7172e5915f5271::t_4af5dfddae4e9b 222-235,237-256,305-306
+  s_7172e5915f5271::t_5c997d67f47c13 257-304
+  s_7172e5915f5271::t_96fdacca7d53bf 2
+packages/shared/src/constants/payment.ts
+  s_7172e5915f5271::t_a7a1bab7a09c95 11-20
+  s_7172e5915f5271::t_17cf82bc43c078 25-27
+  s_7172e5915f5271::t_2867610f345d8a 53-56
+packages/shared/src/types/admin.types.ts
+  s_7172e5915f5271::t_808d33512f0e4b 502-508
+  s_7172e5915f5271::t_d2df229fef0290 83-86
+  s_7172e5915f5271::t_7d7ef2dddadb7e 457-468
+  s_7172e5915f5271::t_d7c1cb3571cf48 472-474
+  s_7172e5915f5271::t_2bd8323bba886b 9
+  s_7172e5915f5271::t_4b8608ae95a628 451-454
+  s_7172e5915f5271::t_374e04ebebcbe6 429-430
+  s_7172e5915f5271::t_715b9567d0d76d 437-450,455-456,469-471,475-501,509-511
+packages/shared/src/types/user.types.ts
+  s_7172e5915f5271::t_38c8110626ad09 70-71
+packages/shared/src/validators/admin.schema.ts
+  s_7172e5915f5271::t_8df1dea2c20aee 169-171,173-174,176-181
+  s_7172e5915f5271::t_ffa5bfda65cca4 27-35
+  s_7172e5915f5271::t_8ff838a8b51abb 13
+  s_7172e5915f5271::t_f494fcafe1c930 172
+  s_7172e5915f5271::t_41a32b1c83174e 175
+  s_7172e5915f5271::t_82c86ca2407fe3 182-184
+  s_94a7a422d37c53::t_3792296d285d34 185-187
+packages/shared/src/types/trip.types.ts
+  s_7172e5915f5271::t_c374662d9f3948 49
+  s_7172e5915f5271::t_cb96122bf8886d 48
+packages/shared/src/types/wallet.types.ts
+  s_7172e5915f5271::t_aecc07d9464094 11-16,27-28,35-36
+packages/shared/src/constants/wallet.ts
+  s_7172e5915f5271::t_9783ad40026e97 38-39
+  s_7172e5915f5271::t_d906e8b2ab797e 6-7,22-27,30-36
+  s_7172e5915f5271::t_71fd2a15ace376 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "53c34cf04ab31ebc875389e11741f79912c43e2d",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_94a7a422d37c53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a4361a3b2ad407cbf",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
