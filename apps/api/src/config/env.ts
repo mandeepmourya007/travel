@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PAYMENT_PROVIDERS, PAYMENT_PROVIDER } from '@shared/constants'
-import { CASHFREE_ENVIRONMENT } from '../utils/constants'
+import { CASHFREE_ENVIRONMENT, PAYOUT_STRATEGY } from '../utils/constants'
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -19,6 +19,18 @@ const envSchema = z.object({
   // transfers/payouts do. Leave false/unset unless you're specifically testing the
   // organizer bank-verification flow against Razorpay's sandbox.
   RAZORPAY_ENABLE_SANDBOX_ROUTE: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // ── Payout Strategy Selection ──────────────────────
+  // Route is blocked on this merchant account (RBI turnover eligibility gate — see
+  // docs/codebase/Payments & Webhooks.md). razorpayx_payouts (default) uses a separate
+  // Contact→FundAccount→Payout flow via RazorpayX — see providers/payout/razorpayx.client.ts.
+  // Route's existing code stays reachable via PAYOUT_STRATEGY=route.
+  PAYOUT_STRATEGY: z.enum([PAYOUT_STRATEGY.ROUTE, PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS]).default(PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS),
+  // RazorpayX has its OWN key pair — a separate signup from the main Razorpay PG account
+  // (RAZORPAY_KEY_ID/SECRET above). Do not reuse those here.
+  RAZORPAYX_KEY_ID: z.string().optional(),
+  RAZORPAYX_KEY_SECRET: z.string().optional(),
+  RAZORPAYX_ACCOUNT_NUMBER: z.string().optional(),
+  RAZORPAYX_WEBHOOK_SECRET: z.string().optional(),
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
@@ -97,6 +109,23 @@ const envSchema = z.object({
       code: z.ZodIssueCode.custom,
       message: 'FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY must all be set together',
     })
+  }
+
+  // H3 fix: RazorpayX Payouts is the DEFAULT PAYOUT_STRATEGY (razorpayx_payouts) — an
+  // operator who never touches PAYOUT_STRATEGY but also never configures the four
+  // RAZORPAYX_* vars would previously only get caught by this gate in production,
+  // meaning dev/test/staging silently ran with a dormant, non-functional payout path
+  // (razorpayxClient stays null everywhere it's injected — see dependencies.ts) and no
+  // signal that anything was wrong. This gate now runs in ALL environments: anyone who
+  // wants to run without RazorpayX configured must explicitly set
+  // PAYOUT_STRATEGY=route (see docs/codebase/Payments & Webhooks.md).
+  if (data.PAYOUT_STRATEGY === PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS) {
+    if (!data.RAZORPAYX_KEY_ID || !data.RAZORPAYX_KEY_SECRET || !data.RAZORPAYX_ACCOUNT_NUMBER || !data.RAZORPAYX_WEBHOOK_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'RAZORPAYX_KEY_ID, RAZORPAYX_KEY_SECRET, RAZORPAYX_ACCOUNT_NUMBER, and RAZORPAYX_WEBHOOK_SECRET are all required when PAYOUT_STRATEGY=razorpayx_payouts (the default) — set PAYOUT_STRATEGY=route explicitly if RazorpayX is not yet configured',
+      })
+    }
   }
 
   if (data.NODE_ENV === 'production') {

@@ -5,6 +5,11 @@ export const BOOKING_EXPIRY_MINUTES = 60
 // Must always be > Razorpay SDK timeout to avoid lock-expiry races.
 export const BOOKING_LOCK_TTL_MS = 60_000
 
+// Lock held across the entire balance-check -> gateway-call -> debit sequence in
+// PayoutService.releaseOrganizerWalletPayout — generous above worst-case RazorpayX API
+// round-trip time, since the lock must span a real network call, not just the DB write.
+export const ORGANIZER_PAYOUT_LOCK_TTL_MS = 30_000
+
 export const APPROVAL_EXPIRY_HOURS = 48
 
 export const MAX_COMPARE_TRIPS = 3
@@ -51,6 +56,23 @@ export const TRENDING_SCORE_THRESHOLD = 20
 export const ESCROW_SAFETY_BUFFER_DAYS = 90
 export const TRIP_COMPLETION_BATCH_SIZE = 50
 
+// ─── Organizer Earnings Reconciliation (M6) ──────────
+// BookingService.reconcileOrganizerEarnings — bounded recent-window safety net for the
+// fire-and-forget capture-time ORGANIZER_EARNING credit hook in confirmBooking. See
+// docs/codebase/Payments & Webhooks.md "Organizer earnings via Wallet ledger".
+export const ORGANIZER_EARNING_RECONCILE_LOOKBACK_DAYS = 7
+export const ORGANIZER_EARNING_RECONCILE_BATCH_SIZE = 100
+
+// ─── Organizer Payout Strategy ───────────────────────
+// Mirrors the env.PAYOUT_STRATEGY z.enum(['route', 'razorpayx_payouts']) in config/env.ts —
+// single source of truth for the literal strings so TripLifecycleService/dependencies.ts
+// never hardcode them. See docs/codebase/Payments & Webhooks.md "RazorpayX Payouts".
+export const PAYOUT_STRATEGY = {
+  ROUTE: 'route',
+  RAZORPAYX_PAYOUTS: 'razorpayx_payouts',
+} as const
+export type PayoutStrategy = (typeof PAYOUT_STRATEGY)[keyof typeof PAYOUT_STRATEGY]
+
 // ─── Payout (Deposit/Balance Split) Events ──────────
 // Fixed structured-logging event tags for payout.service.ts and the booking.service.ts
 // deposit-attachment step — see docs/codebase/Payments & Webhooks.md.
@@ -66,6 +88,19 @@ export const PAYOUT_EVENT = {
   REFUND_INITIATED: 'payout.refund.initiated',
   REFUND_NO_CLAWBACK: 'payout.refund.no_clawback',
   INVARIANT_VIOLATED: 'payout.invariant.violated',
+  // RazorpayX Payouts strategy (PayoutService.releaseRazorpayXPayout) — see
+  // docs/codebase/Payments & Webhooks.md "RazorpayX Payouts" section.
+  RAZORPAYX_INITIATED: 'payout.razorpayx.initiated',
+  RAZORPAYX_PROCESSING: 'payout.razorpayx.processing',
+  RAZORPAYX_SKIPPED_DUPLICATE: 'payout.razorpayx.skipped_duplicate',
+  RAZORPAYX_FAILED: 'payout.razorpayx.failed',
+  // Admin-triggered organizer wallet-ledger payout (PayoutService.releaseOrganizerWalletPayout)
+  // — distinct from RAZORPAYX_* above, which is the automatic per-booking release.
+  ORGANIZER_WALLET_RELEASED: 'payout.organizer_wallet.released',
+  ORGANIZER_WALLET_INSUFFICIENT_BALANCE: 'payout.organizer_wallet.insufficient_balance',
+  ORGANIZER_WALLET_FAILED: 'payout.organizer_wallet.failed',
+  ORGANIZER_WALLET_DEBIT_AFTER_PAYOUT_FAILED: 'payout.organizer_wallet.debit_after_payout_failed',
+  ORGANIZER_WALLET_REVERSED: 'payout.organizer_wallet.reversed',
 } as const
 export type PayoutEvent = (typeof PAYOUT_EVENT)[keyof typeof PAYOUT_EVENT]
 
@@ -76,6 +111,45 @@ export const SITEMAP_MAX_TRIPS = 50_000
 
 // ─── Vehicle / Seat ─────────────────────────────────
 export const SEAT_HOLD_MINUTES = 10
+
+// ─── Release Result (payout / SafePay release outcome) ─
+// Single source of truth for the string discriminants returned by
+// PayoutService (payout.service.ts) and TripLifecycleService's SafePay
+// release helpers (trip-lifecycle.service.ts) — avoids the same literal
+// being retyped (and potentially mistyped) across both files.
+export const RELEASE_RESULT = {
+  RELEASED: 'released',
+  FAILED: 'failed',
+  SKIPPED: 'skipped',
+  INITIATED: 'initiated',
+  TRANSFERRED: 'transferred',
+  INSUFFICIENT_BALANCE: 'insufficient_balance',
+  // Gateway payout succeeded (real money left the platform) but the wallet-ledger debit
+  // that should have followed it threw — the ledger is now out of sync with reality.
+  // Distinct from RELEASED (clean success) and FAILED (no money moved) so callers can't
+  // conflate a needs-reconciliation state with either.
+  LEDGER_MISMATCH: 'ledger_mismatch',
+} as const
+export type ReleaseResult = (typeof RELEASE_RESULT)[keyof typeof RELEASE_RESULT]
+
+// ─── Organizer Payout Attempt (ledger-before-gateway-call row for the
+// admin-triggered organizer wallet-ledger payout) ─────
+// Mirrors the Prisma OrganizerPayoutAttemptStatus enum — single source of truth for
+// the literal strings so payout.service.ts / organizer-payout-attempt.repository.ts
+// never hardcode them.
+export const ORGANIZER_PAYOUT_ATTEMPT_STATUS = {
+  INITIATED: 'INITIATED',
+  SUCCEEDED: 'SUCCEEDED',
+  FAILED: 'FAILED',
+} as const
+export type OrganizerPayoutAttemptStatus = (typeof ORGANIZER_PAYOUT_ATTEMPT_STATUS)[keyof typeof ORGANIZER_PAYOUT_ATTEMPT_STATUS]
+
+// Recency window for the "any recent INITIATED attempt for this organizer" pre-flight
+// check in PayoutService.releaseOrganizerWalletPayout — guards against a slow gateway
+// call outliving the Redis lock's TTL and letting a concurrent release re-read a stale
+// balance. Matches ORGANIZER_PAYOUT_LOCK_TTL_MS so the check covers exactly the window
+// during which the lock might have already expired.
+export const ORGANIZER_PAYOUT_ATTEMPT_RECENCY_WINDOW_MS = ORGANIZER_PAYOUT_LOCK_TTL_MS
 
 // ─── Wallet ──────────────────────────────────────────
 export const WALLET_CASHBACK_PERCENT = 5
@@ -160,6 +234,9 @@ export const WEBHOOK_STATUS = {
 
 export const WEBHOOK_SOURCE = {
   RAZORPAY: 'RAZORPAY',
+  // RazorpayX Payouts — separate webhook namespace/secret from the RAZORPAY (PG) source
+  // above; see PaymentService.handleRazorpayxWebhook and providers/payout/razorpayx.client.ts.
+  RAZORPAYX: 'RAZORPAYX',
 } as const
 
 export const RAZORPAY_ORDER_STATUS = {

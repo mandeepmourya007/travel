@@ -465,6 +465,30 @@ async function expireWalletCreditsAndWarn(
 }
 
 /**
+ * M6 fix: safety net for the fire-and-forget capture-time ORGANIZER_EARNING credit
+ * hook in BookingService.confirmBooking (razorpayx_payouts strategy). Re-attempts the
+ * credit for any recent CONFIRMED/COMPLETED, CAPTURED-payment booking that's missing
+ * its ORGANIZER_EARNING WalletTransaction. No-op (both counts 0) when
+ * PAYOUT_STRATEGY=route — see BookingService.reconcileOrganizerEarnings.
+ *
+ * Intended to be called via setInterval() every hour.
+ */
+async function reconcileOrganizerEarnings(bookingService: BookingService | null) {
+  if (!bookingService) return
+  await Sentry.withMonitor('cron-reconcile-organizer-earnings', async () => {
+    try {
+      const { checked, credited } = await bookingService.reconcileOrganizerEarnings()
+      if (checked > 0) {
+        logger.warn({ checked, credited }, 'Organizer earnings reconciliation: re-credited bookings missing ORGANIZER_EARNING')
+      }
+    } catch (error) {
+      logger.error({ error }, 'Organizer earnings reconciliation job failed')
+      throw error
+    }
+  }, { schedule: { type: 'interval', value: 1, unit: 'hour' }, checkinMargin: 5, maxRuntime: 15 })
+}
+
+/**
  * Recomputes trending scores for all ACTIVE/FULL trips every 2 hours.
  * The score formula is encapsulated in the injected strategy — the cron itself
  * has no knowledge of how scores are calculated.
@@ -587,6 +611,11 @@ export function startCronJobs(deps: {
     setInterval(
       () => guard('cron:reconcile-wallets', withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
         () => reconcileWallets(deps.walletService))),
+      ONE_HOUR,
+    ),
+    setInterval(
+      () => guard('cron:reconcile-organizer-earnings', withLock('cron:reconcile-organizer-earnings', LOCK_TTL_1HOUR,
+        () => reconcileOrganizerEarnings(deps.bookingService))),
       ONE_HOUR,
     ),
     setInterval(

@@ -16,6 +16,13 @@ export const NORMALIZED_EVENT_TYPE = {
   ORDER_PAID: 'ORDER_PAID',
   PAYMENT_FAILED: 'PAYMENT_FAILED',
   REFUND_PROCESSED: 'REFUND_PROCESSED',
+  // RazorpayX Payouts webhook events (payout.processing/processed/reversed/failed —
+  // see providers/payout/razorpayx.client.ts verifyAndParseWebhook). Distinct from the
+  // traveller-payment event types above — these only ever apply to PAYOUT_RELEASE txs.
+  PAYOUT_PROCESSING: 'PAYOUT_PROCESSING',
+  PAYOUT_PROCESSED: 'PAYOUT_PROCESSED',
+  PAYOUT_REVERSED: 'PAYOUT_REVERSED',
+  PAYOUT_FAILED: 'PAYOUT_FAILED',
   UNKNOWN: 'UNKNOWN',
 } as const
 
@@ -185,4 +192,21 @@ export interface NormalizedPayoutAccount {
   /** Raw provider status string — informational only */
   status?: string
   raw?: unknown
+}
+
+// ─── RazorpayX Payouts (Contact -> Fund Account -> Payout) ──
+// Deliberately NOT part of IPaymentGateway/gatewayRegistry — RazorpayXClient is a
+// one-directional organizer-money-out client with its own resource model and webhook
+// namespace. See providers/payout/razorpayx.client.ts.
+
+export interface NormalizedPayoutWebhookEvent {
+  type: NormalizedEventType
+  /** RazorpayX-supplied deduplication key (x-razorpay-event-id equivalent, or synthesized) */
+  externalEventId: string
+  /** RazorpayX payout entity ID (pout_xxx) — matched against PaymentTransaction.gatewayTransferId */
+  payoutId: string | null
+  failureReason: string | null
+  mode: 'test' | 'live'
+  rawEventName: string
+  payload: unknown
 }
