@@ -1,0 +1,64 @@
+apps/api/src/services/booking.service.ts
+  s_7172e5915f5271::t_1e21cb74b69c3d 965
+  s_7172e5915f5271::t_ed304530ace761 453,579,581-626
+  s_7172e5915f5271::t_a50271effbb178 1208-1214
+  s_7172e5915f5271::t_18f30315c47d27 66-68
+  s_7172e5915f5271::t_1598f01e4f3727 1215-1222
+  s_7172e5915f5271::t_31fb5c0e25ff22 19,25,27
+  s_7172e5915f5271::t_cee84a2bce3e2a 299
+  s_7172e5915f5271::t_313f591be1c039 454-578
+  s_7172e5915f5271::t_d83dce00b50cb4 580
+  s_7172e5915f5271::t_d4069a83fc9194 22
+  s_7172e5915f5271::t_495a673b7fb6a8 832-835
+  s_7172e5915f5271::t_fc4d180db63b4c 1223
+apps/api/src/services/trip.service.ts
+  s_7172e5915f5271::t_6929389fc3b1c8 1211-1213
+  s_7172e5915f5271::t_8f0ce34e665322 314-318
+  s_7172e5915f5271::t_287aaf563ee40b 312-313,319
+  s_7172e5915f5271::t_fb450a3484b138 20
+apps/api/src/repositories/organizer-profile.repository.ts
+  s_7172e5915f5271::t_7336cceb589225 175-187
+apps/api/src/services/auth.service.ts
+  s_7172e5915f5271::t_3dd0154647e88c 27-28
+  s_7172e5915f5271::t_4e786a2c58f3f5 57-58
+  s_7172e5915f5271::t_a685db6d51a43b 324
+  s_7172e5915f5271::t_265af80584b2fa 499-508,512-541
+  s_7172e5915f5271::t_f877fb67980301 542-543
+apps/api/src/repositories/trip.repository.ts
+  s_7172e5915f5271::t_acabee4f43b3a7 622,624-626
+apps/api/src/services/payment-history.service.ts
+  s_7172e5915f5271::t_35f5abc20a27c1 113-119
+  s_7172e5915f5271::t_18892cdbbb6584 271
+  s_7172e5915f5271::t_463ae7cfdb92b5 157-158
+  s_7172e5915f5271::t_66f14b71d5bf20 64,68-72
+apps/api/src/repositories/booking.repository.ts
+  s_7172e5915f5271::t_714461ed1cd05f 518
+  s_7172e5915f5271::t_9497c3bdfca7b4 661
+  s_7172e5915f5271::t_b91cefbfea683e 469-471
+  s_7172e5915f5271::t_6f3f6e17c6f507 947-987
+  s_7172e5915f5271::t_04a72c63b74372 946
+  s_7172e5915f5271::t_191e19b0cc2c59 988-989
+apps/api/src/repositories/user.repository.ts
+  s_7172e5915f5271::t_741adc8efcd7e2 134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3134479d6eecb66a87ce6928488c957cba04dde9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
