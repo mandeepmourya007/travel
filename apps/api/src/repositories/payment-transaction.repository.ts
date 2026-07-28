@@ -124,6 +124,25 @@ export class PaymentTransactionRepository {
   }
 
   /**
+   * Finds the PAYOUT_RELEASE transaction by gateway transfer ID (= RazorpayX payoutId).
+   * Scoped to type=PAYOUT_RELEASE so this never matches an ESCROW_RELEASE row that
+   * happens to share the razorpayTransferId column (different strategy, different meaning).
+   *
+   * Used by: PaymentService's RazorpayX Payouts webhook handlers.
+   */
+  async findPayoutReleaseByGatewayTransferId(transferId: string) {
+    return this.prisma.paymentTransaction.findFirst({
+      where: {
+        type: PAYMENT_TX_TYPE.PAYOUT_RELEASE,
+        OR: [
+          { gatewayTransferId: transferId },
+          { razorpayTransferId: transferId },
+        ],
+      },
+    })
+  }
+
+  /**
    * Updates payment transaction status with optional metadata.
    *
    * Used by: Every payment state transition (INITIATED→AUTHORIZED→CAPTURED, FAILED, REFUNDED)
@@ -516,12 +535,16 @@ export class PaymentTransactionRepository {
         razorpayPaymentId: true,
         booking: {
           select: {
+            bookingRef: true,
             totalAmount: true,
             markupAmount: true,
+            // Frozen snapshot from booking-creation time — entitlement math must read
+            // THIS, never the organizer's live commissionRate (admin-editable at any time).
+            commissionRate: true,
             trip: {
               select: {
                 organizer: {
-                  select: { commissionRate: true },
+                  select: { razorpayxFundAccountId: true },
                 },
               },
             },
@@ -567,13 +590,17 @@ export class PaymentTransactionRepository {
         razorpayPaymentId: true,
         booking: {
           select: {
+            bookingRef: true,
             tripId: true,
             totalAmount: true,
             markupAmount: true,
+            // Frozen snapshot from booking-creation time — entitlement math must read
+            // THIS, never the organizer's live commissionRate (admin-editable at any time).
+            commissionRate: true,
             trip: {
               select: {
                 organizer: {
-                  select: { commissionRate: true },
+                  select: { razorpayxFundAccountId: true },
                 },
               },
             },
@@ -679,8 +706,12 @@ export class PaymentTransactionRepository {
         amount: true,
         booking: {
           select: {
+            // Frozen snapshot from booking-creation time — pending-payout estimate must
+            // match what will actually be credited at release time, never the
+            // organizer's live (admin-editable) rate.
+            commissionRate: true,
             trip: {
-              select: { id: true, title: true, organizerId: true, organizer: { select: { commissionRate: true } } },
+              select: { id: true, title: true, organizerId: true },
             },
           },
         },

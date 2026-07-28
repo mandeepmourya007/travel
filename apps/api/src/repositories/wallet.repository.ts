@@ -564,6 +564,143 @@ export class WalletRepository {
     })
   }
 
+  /**
+   * Looks up a single WalletTransaction by its natural key (type + referenceModel +
+   * referenceId) — matches the @@unique([type, referenceModel, referenceId]) index.
+   * Includes wallet.userId so callers (BookingService's refund clawback, PaymentService's
+   * payout.reversed webhook handler) can act on the owning user without a separate
+   * OrganizerProfile join.
+   *
+   * Used by: BookingService.cancelBooking (ORGANIZER_EARNING lookup for clawback),
+   * PaymentService (ORGANIZER_PAYOUT lookup for the payout.reversed webhook credit-back).
+   */
+  async findTransactionByReference(
+    type: WalletTransactionType,
+    referenceModel: string,
+    referenceId: string,
+  ) {
+    return this.prisma.walletTransaction.findUnique({
+      where: { type_referenceModel_referenceId: { type, referenceModel, referenceId } },
+      include: { wallet: { select: { id: true, userId: true, balance: true } } },
+    })
+  }
+
+  /**
+   * Admin: organizers with a positive Wallet balance, for the "Pending Payouts" view
+   * (GET /admin/payouts/pending). Joins OrganizerProfile -> User -> Wallet — organizerId
+   * in the response is OrganizerProfile.id (matches this codebase's other admin
+   * organizer-scoped endpoints), userId is the Wallet's owning User.id (what
+   * WalletService.credit/debit and PayoutService.releaseOrganizerWalletPayout expect).
+   *
+   * The `balance > 0` filter is expressed in the WHERE clause (not filtered in JS after
+   * the fact) so pagination/count are both accurate against the real result set.
+   */
+  async findAllOrganizerWalletBalances(pagination: { skip: number; take: number }) {
+    const where: Prisma.OrganizerProfileWhereInput = {
+      isDeleted: false,
+      user: { wallet: { balance: { gt: 0 } } },
+    }
+
+    const [rows, total] = await Promise.all([
+      this.prisma.organizerProfile.findMany({
+        where,
+        select: {
+          id: true,
+          businessName: true,
+          razorpayxFundAccountId: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              wallet: { select: { balance: true, currency: true } },
+            },
+          },
+        },
+        orderBy: { businessName: 'asc' },
+        skip: pagination.skip,
+        take: pagination.take,
+      }),
+      this.prisma.organizerProfile.count({ where }),
+    ])
+
+    const data = rows.map((r) => ({
+      organizerId: r.id,
+      businessName: r.businessName,
+      userId: r.user.id,
+      userName: r.user.name,
+      email: r.user.email,
+      balance: r.user.wallet!.balance,
+      currency: r.user.wallet!.currency,
+      hasFundAccount: !!r.razorpayxFundAccountId,
+    }))
+
+    return { data, total }
+  }
+
+  /**
+   * Admin: paginated WalletTransaction history filtered by type(s), and optionally by
+   * organizerId — for GET /admin/payouts (the "Organizer Wallet Activity" table). Resolves
+   * organizerId (OrganizerProfile.id) -> Wallet via User, since WalletTransaction only
+   * carries walletId. Enriches rows with the organizer's businessName for display.
+   */
+  async findOrganizerWalletTransactionsAdmin(
+    filters: { types: WalletTransactionType[]; organizerId?: string; status?: string },
+    pagination: { skip: number; take: number },
+  ) {
+    let walletId: string | undefined
+    if (filters.organizerId) {
+      const organizer = await this.prisma.organizerProfile.findFirst({
+        where: { id: filters.organizerId, isDeleted: false },
+        select: { user: { select: { wallet: { select: { id: true } } } } },
+      })
+      // No matching organizer/wallet — return an empty page rather than falling through
+      // to an unfiltered (all-organizers) query.
+      if (!organizer?.user.wallet) return { data: [], total: 0 }
+      walletId = organizer.user.wallet.id
+    }
+
+    const where: Prisma.WalletTransactionWhereInput = {
+      type: { in: filters.types },
+      ...(walletId ? { walletId } : {}),
+    }
+
+    const [txns, total] = await Promise.all([
+      this.prisma.walletTransaction.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.take,
+        include: {
+          wallet: {
+            select: {
+              userId: true,
+              user: { select: { name: true, organizerProfile: { select: { id: true, businessName: true } } } },
+            },
+          },
+        },
+      }),
+      this.prisma.walletTransaction.count({ where }),
+    ])
+
+    return {
+      data: txns.map((tx) => ({
+        id: tx.id,
+        amount: tx.amount,
+        type: tx.type as string,
+        referenceModel: tx.referenceModel,
+        referenceId: tx.referenceId,
+        description: tx.description,
+        balanceBefore: tx.balanceBefore,
+        balanceAfter: tx.balanceAfter,
+        createdAt: tx.createdAt.toISOString(),
+        organizerId: tx.wallet.user.organizerProfile?.id ?? null,
+        organizerName: tx.wallet.user.organizerProfile?.businessName ?? tx.wallet.user.name,
+      })),
+      total,
+    }
+  }
+
   private buildTransactionWhere(
     walletId: string,
     filters: Omit<WalletTransactionFilters, 'page' | 'limit'>,
