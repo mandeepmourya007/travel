@@ -131,6 +131,8 @@ export class UserRepository {
             bankAccountLinked: true,
             cashfreeVendorId: true,
             razorpayAccountId: true,
+            razorpayxContactId: true,
+            razorpayxFundAccountId: true,
             commissionRate: true,
             documents: true,
             isDeleted: true,

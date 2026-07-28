@@ -318,9 +318,11 @@ export class AuthService {
           rating: user.organizerProfile.rating,
           totalReviews: user.organizerProfile.totalReviews,
           totalTripsCompleted: user.organizerProfile.totalTripsCompleted,
-          bankAccountLinked: this.gateway?.provider === 'cashfree'
-            ? !!user.organizerProfile.cashfreeVendorId
-            : !!user.organizerProfile.razorpayAccountId,
+          bankAccountLinked: env.PAYOUT_STRATEGY === PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS
+            ? !!user.organizerProfile.razorpayxFundAccountId
+            : this.gateway?.provider === PAYMENT_PROVIDER.CASHFREE
+              ? !!user.organizerProfile.cashfreeVendorId
+              : !!user.organizerProfile.razorpayAccountId,
           commissionRate: Number(user.organizerProfile.commissionRate),
           documents: (user.organizerProfile.documents as Record<string, string> | null) ?? null,
           documentReviews: ((user.organizerProfile as { documentReviews?: DocumentReviewRow[] }).documentReviews ?? []).map((dr) => ({
@@ -431,26 +433,53 @@ export class AuthService {
   }
 
   /**
-   * Links the organizer's bank account via the active payment gateway.
-   * Delegates to gateway.createPayoutAccount() — provider-specific logic lives there.
+   * Links the organizer's bank account.
    *
-   * Re-link guard: blocks only if the current gateway's provider column is already set,
-   * so switching gateways allows linking a new payout account without being blocked.
+   * Strategy selection:
+   * - PAYOUT_STRATEGY=razorpayx_payouts: Create RazorpayX Contact + Fund Account only (skips Route).
+   * - PAYOUT_STRATEGY=route: Call gateway.createPayoutAccount (Route for Razorpay, Cashfree for Cashfree).
+   *
+   * Re-link guard: blocks only if the current strategy's provider column is already set,
+   * so switching strategies allows linking a new payout account without being blocked.
    *
    * @throws {NotFoundError} OrganizerProfile or User not found
-   * @throws {ConflictError} Payout account already linked for the active gateway
-   * @throws {PaymentError} Gateway API failure
+   * @throws {ConflictError} Payout account already linked for the active strategy
+   * @throws {PaymentError} Gateway API failure (only when using Route strategy)
    */
   async connectBankAccount(
     userId: string,
     dto: ConnectBankAccountDto,
   ): Promise<ConnectBankAccountResponse> {
-    if (!this.gateway) throw new PaymentError(PAYOUT_ERROR.GATEWAY_NOT_CONFIGURED)
-
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
 
-    // Provider-aware re-link guard — check the active gateway's own column
+    const user = await this.userRepo.findById(userId)
+    if (!user) throw new NotFoundError('User')
+
+    const masked = dto.accountNumber.slice(-4).padStart(dto.accountNumber.length, '*')
+
+    // RazorpayX Payouts strategy: create Contact + Fund Account, skip Route entirely.
+    // This is the primary path when PAYOUT_STRATEGY=razorpayx_payouts.
+    if (env.PAYOUT_STRATEGY === PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS) {
+      if (!this.razorpayxClient) {
+        throw new PaymentError('RazorpayX client not configured for razorpayx_payouts strategy')
+      }
+
+      // Re-link guard for RazorpayX: check if Fund Account already exists
+      if (profile.razorpayxFundAccountId) {
+        throw new ConflictError(PAYOUT_ERROR.ALREADY_LINKED)
+      }
+
+      // Create Contact + Fund Account (throws on failure)
+      await this.linkRazorpayxAccount(userId, profile.id, dto, user.email)
+
+      this.logger.info({ userId, profileId: profile.id, strategy: 'razorpayx_payouts' }, 'Payout account linked via RazorpayX')
+      return { bankAccountLinked: true, maskedAccountNumber: masked }
+    }
+
+    // Route strategy (default): use the active payment gateway (Razorpay or Cashfree)
+    if (!this.gateway) throw new PaymentError(PAYOUT_ERROR.GATEWAY_NOT_CONFIGURED)
+
     const provider = this.gateway.provider
     const alreadyLinked = provider === 'cashfree'
       ? !!profile.cashfreeVendorId
@@ -464,9 +493,6 @@ export class AuthService {
     if (provider === PAYMENT_PROVIDER.RAZORPAY && !dto.pan) {
       throw new ValidationError('PAN is required to link a Razorpay payout account')
     }
-
-    const user = await this.userRepo.findById(userId)
-    if (!user) throw new NotFoundError('User')
 
     const acct = await this.gateway.createPayoutAccount({
       referenceId: profile.id,
@@ -493,27 +519,16 @@ export class AuthService {
       throw new ConflictError(PAYOUT_ERROR.ALREADY_LINKED)
     }
 
-    const masked = dto.accountNumber.slice(-4).padStart(dto.accountNumber.length, '*')
-    this.logger.info({ userId, profileId: profile.id, provider }, 'Payout account linked')
-
-    // RazorpayX Payouts strategy: create the Contact + Fund Account alongside (not
-    // instead of) the Route linked account above, using the same submitted bank-form
-    // data — no new organizer-facing UI. Gated on PAYOUT_STRATEGY so we don't create
-    // RazorpayX contacts against a currently-nonexistent account while Route is still
-    // the live default. Never blocks/replaces the Route call, and never throws — a
-    // failure here must not fail the organizer's bank-linking request.
-    if (env.PAYOUT_STRATEGY === PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS && this.razorpayxClient) {
-      await this.linkRazorpayxAccount(userId, profile.id, dto, user.email)
-    }
-
+    this.logger.info({ userId, profileId: profile.id, provider, strategy: 'route' }, 'Payout account linked via Route')
     return { bankAccountLinked: true, maskedAccountNumber: masked }
   }
 
   /**
-   * Best-effort RazorpayX Contact + Fund Account creation, called from
-   * connectBankAccount when PAYOUT_STRATEGY=razorpayx_payouts. Never throws — logged
-   * and swallowed so a RazorpayX failure never fails the (already-succeeded) Route
-   * bank-linking request above.
+   * Creates RazorpayX Contact + Fund Account for organizer bank linking.
+   * Called from connectBankAccount when PAYOUT_STRATEGY=razorpayx_payouts.
+   * Throws on failure since this is the primary (and only) path for that strategy.
+   *
+   * @throws {PaymentError} Contact or Fund Account creation failed
    */
   private async linkRazorpayxAccount(
     userId: string,
@@ -521,7 +536,10 @@ export class AuthService {
     dto: ConnectBankAccountDto,
     email: string | null,
   ): Promise<void> {
-    if (!this.razorpayxClient) return
+    if (!this.razorpayxClient) {
+      throw new PaymentError('RazorpayX client not available')
+    }
+
     try {
       const { contactId } = await this.razorpayxClient.createContact({
         name: dto.accountHolderName,
@@ -537,7 +555,11 @@ export class AuthService {
       await this.organizerProfileRepo.linkRazorpayxAccount(profileId, contactId, fundAccountId)
       this.logger.info({ userId, profileId, contactId, fundAccountId }, 'RazorpayX contact + fund account linked')
     } catch (err) {
-      this.logger.error({ userId, profileId, err }, 'RazorpayX contact/fund account linking failed — Route account remains linked')
+      this.logger.error({ userId, profileId, err }, 'RazorpayX contact/fund account linking failed')
+      throw new PaymentError(
+        `Failed to create RazorpayX payout account: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        err,
+      )
     }
   }
 
