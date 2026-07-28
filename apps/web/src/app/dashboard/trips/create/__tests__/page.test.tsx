@@ -84,6 +84,7 @@ function mockApprovedOrganizerProfile() {
             totalReviews: 120,
             totalTripsCompleted: 45,
             bankAccountLinked: true,
+            commissionRate: 10,
             documents: {
               aadhaarFront: 'https://example.com/aadhaar-front.jpg',
               aadhaarBack: 'https://example.com/aadhaar-back.jpg',

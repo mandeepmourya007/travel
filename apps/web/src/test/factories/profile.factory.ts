@@ -11,6 +11,7 @@ export function makeOrganizerProfile(overrides: Partial<OrganizerProfileResponse
     totalReviews: 120,
     totalTripsCompleted: 45,
     bankAccountLinked: true,
+    commissionRate: 10,
     documents: null,
     ...overrides,
   }

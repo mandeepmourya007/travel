@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { makeTripDetail } from '../factories/trip.factory'
+import { makePendingPayoutItem, makeReleasePayoutResult } from '../factories/payout.factory'
 import { API_BASE_URL as API } from '../test-constants'
 
 export const handlers = [
@@ -98,6 +99,32 @@ export const handlers = [
         tokens: { accessToken: 'google-jwt', expiresIn: 900 },
         isNewUser: true,
       },
+    })
+  }),
+
+  // GET /admin/payouts/pending — paginated organizers with a positive wallet balance
+  http.get(`${API}/admin/payouts/pending`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: [makePendingPayoutItem()],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    })
+  }),
+
+  // GET /admin/payouts — paginated organizer wallet-ledger activity
+  http.get(`${API}/admin/payouts`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+    })
+  }),
+
+  // POST /admin/payouts/:organizerId/release — trigger a RazorpayX payout
+  http.post(`${API}/admin/payouts/:organizerId/release`, () => {
+    return HttpResponse.json({
+      success: true,
+      data: makeReleasePayoutResult(),
     })
   }),
 ]
