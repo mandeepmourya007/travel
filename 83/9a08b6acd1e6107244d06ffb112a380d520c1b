@@ -1,0 +1,26 @@
+apps/api/scripts/verify-razorpayx-payout.ts
+  s_7172e5915f5271::t_a1c007ff6a4c51 13
+  s_7172e5915f5271::t_549e9892709f16 1-12,14-59,61-77
+  s_7172e5915f5271::t_525914f838395b 60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "839a08b6acd1e6107244d06ffb112a380d520c1b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_7172e5915f5271": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8de3af0f-a543-4417-b2cf-422261a36438",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
