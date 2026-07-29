@@ -1,0 +1,85 @@
+packages/shared/src/validators/organizer-lead.schema.ts
+  s_dc0a4e875aff70::t_d90b2a935a5836 1-29
+apps/web/src/components/admin/admin-sidebar.tsx
+  s_dc0a4e875aff70::t_caac06e8c39ccc 44
+  s_dc0a4e875aff70::t_f22172eb116f18 19
+apps/api/src/controllers/organizer-lead.controller.ts
+  s_dc0a4e875aff70::t_c21a95bfee324a 1-30
+apps/api/src/routes/organizer-lead.routes.ts
+  s_dc0a4e875aff70::t_d4f12ec4243e40 1-42
+packages/shared/src/types/index.ts
+  s_dc0a4e875aff70::t_cc727cc1092eaa 18
+apps/web/src/components/home/why-book-section.tsx
+  s_dc0a4e875aff70::t_ee8aab9a32d245 45
+  s_dc0a4e875aff70::t_eb40adbe54b638 2
+apps/web/src/components/home/organizer-waitlist-modal.tsx
+  s_dc0a4e875aff70::t_7cb4910deaabb1 1-184
+apps/web/src/lib/query-keys.ts
+  s_dc0a4e875aff70::t_ce62e5bc2e072b 10
+  s_dc0a4e875aff70::t_45b3a81a4fc594 282-286
+packages/shared/src/validators/index.ts
+  s_dc0a4e875aff70::t_67f911ab47cfb1 15
+apps/api/src/middleware/rate-limit.middleware.ts
+  s_dc0a4e875aff70::t_cd3b6072098adb 128-129
+apps/web/src/components/home/organizer-cta.tsx
+  s_dc0a4e875aff70::t_c5f1c12e5be1eb 1-25
+packages/shared/src/constants/organizer-lead.ts
+  s_dc0a4e875aff70::t_ec572e2235c839 1-7
+packages/shared/src/types/organizer-lead.types.ts
+  s_dc0a4e875aff70::t_5efde1423a924f 1-36
+apps/web/src/app/admin/organizer-leads/error.tsx
+  s_dc0a4e875aff70::t_e93f50adced5ac 1-24
+.gitignore
+  h_b3232c20134322 58
+apps/api/src/config/dependencies.ts
+  s_dc0a4e875aff70::t_9de1808b7bb2ac 111-114
+  s_dc0a4e875aff70::t_d3c6311fd8c290 143
+  s_dc0a4e875aff70::t_b0242732700b62 456-457
+  s_dc0a4e875aff70::t_e0751cdb190bcf 426-427
+apps/api/prisma/schema.prisma
+  s_dc0a4e875aff70::t_31d1f0e309634e 1135-1160
+apps/api/prisma/migrations/20260729162506_add_organizer_leads/migration.sql
+  s_dc0a4e875aff70::t_3f2390a52debf2 1-28
+apps/web/src/hooks/use-organizer-lead.ts
+  s_dc0a4e875aff70::t_9b63d148f472a3 1-74
+apps/api/src/services/organizer-lead.service.ts
+  s_dc0a4e875aff70::t_66208e8cc5805e 11
+  s_dc0a4e875aff70::t_232cc09c5e1de5 1-10,12-24,26-27,37,48-91
+  s_dc0a4e875aff70::t_f545630660ec45 25,28-36,38-47
+apps/api/src/repositories/organizer-lead.repository.ts
+  s_dc0a4e875aff70::t_c7d620ccc357f4 1-84
+apps/api/src/server.ts
+  s_dc0a4e875aff70::t_71e544f2a087c1 13
+  s_dc0a4e875aff70::t_377a069b0fd4ae 78-79
+apps/web/src/app/admin/organizer-leads/page.tsx
+  s_dc0a4e875aff70::t_aea6bc922e7a70 261
+  s_dc0a4e875aff70::t_851f5f86626551 1-260,262-270
+apps/api/tests/unit/services/organizer-lead.service.test.ts
+  s_dc0a4e875aff70::t_2d1943715b597c 1-74,77-149
+  s_dc0a4e875aff70::t_cef1ff6974a362 75-76
+skills-lock.json
+  s_dc0a4e875aff70::t_e8c2c40b2c7ee2 9-14
+packages/shared/src/constants/index.ts
+  s_dc0a4e875aff70::t_0e4cbd2258879a 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e28179dd9a79ba6f3f7a687fb51cf6658252b885",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_dc0a4e875aff70": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b046067c-435b-4a52-85eb-b305c73ab1cd",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
