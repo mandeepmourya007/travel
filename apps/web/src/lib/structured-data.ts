@@ -1,4 +1,5 @@
 import type { TripDetail, TripSummary } from '@shared/types/trip.types'
+import { CONTACT_EMAIL } from './constants'
 
 /**
  * Schema.org JSON-LD builder functions for SEO structured data.
@@ -72,20 +73,28 @@ export function buildTripJsonLd(trip: TripDetail, siteUrl: string) {
   if (trip.startDate) jsonLd.startDate = trip.startDate
   if (trip.endDate) jsonLd.endDate = trip.endDate
 
-  // Ratings — key trust signal for both Google rich results and AI citations
-  if (trip.organizer.totalReviews > 0) {
+  // Ratings & reviews — MUST reflect this trip specifically, not the organizer.
+  // Google flags misleading structured data if aggregateRating scope doesn't match the
+  // itemReviewed. Organizer-level rating belongs on the Organization JSON-LD (organizer profile page).
+  //
+  // Only reviews with a numeric `overallRating` are included — a review without a
+  // rating cannot be represented as schema.org/Rating without emitting `null`,
+  // which Google's structured-data validator flags as invalid.
+  const ratedReviews = trip.reviews.filter(
+    (r): r is typeof r & { overallRating: number } => typeof r.overallRating === 'number',
+  )
+  if (ratedReviews.length > 0) {
+    const avg = ratedReviews.reduce((sum, r) => sum + r.overallRating, 0) / ratedReviews.length
     jsonLd.aggregateRating = {
       '@type': 'AggregateRating',
-      ratingValue: trip.organizer.rating.toFixed(1),
-      reviewCount: trip.organizer.totalReviews,
+      ratingValue: avg.toFixed(1),
+      reviewCount: ratedReviews.length,
       bestRating: 5,
       worstRating: 1,
     }
-  }
 
-  // Top reviews — AI uses reviewer names + text as authenticity signals
-  if (trip.reviews.length > 0) {
-    jsonLd.review = trip.reviews.slice(0, 5).map((r) => ({
+    // Top reviews — AI uses reviewer names + text as authenticity signals
+    jsonLd.review = ratedReviews.slice(0, 5).map((r) => ({
       '@type': 'Review',
       reviewRating: {
         '@type': 'Rating',
@@ -245,7 +254,7 @@ export function buildOrganizationJsonLd(siteUrl: string, appName: string) {
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer support',
-      email: 'support@safarnama.in',
+      email: CONTACT_EMAIL,
       availableLanguage: ['English', 'Hindi'],
     },
     knowsAbout: [
