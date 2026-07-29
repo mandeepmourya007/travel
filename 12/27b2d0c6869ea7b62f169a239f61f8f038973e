@@ -1,0 +1,31 @@
+apps/api/src/config/dependencies.ts
+  s_91c1e549e441e4::t_4dd990b6824658 302,311
+apps/api/src/templates/index.ts
+  s_91c1e549e441e4::t_da1d23ddd6c9c1 3
+apps/api/src/repl.ts
+  s_91c1e549e441e4::t_fdeb0117f5dc6f 4,6
+apps/api/src/services/admin.service.ts
+  s_91c1e549e441e4::t_4426adb263b520 104,357
+  s_91c1e549e441e4::t_b269c3768b79b9 28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1227b2d0c6869ea7b62f169a239f61f8f038973e",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_91c1e549e441e4": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "3baee494-23af-4134-aa23-4ad1ee405ced",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
