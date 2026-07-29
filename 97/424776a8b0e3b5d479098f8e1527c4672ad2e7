@@ -1,0 +1,28 @@
+apps/web/src/app/layout.tsx
+  s_91c1e549e441e4::t_3cc3a34cae0411 62-68
+apps/web/src/app/trips/page.tsx
+  s_91c1e549e441e4::t_76d8620a469a78 10-12,17-47,59-69,77,103-104
+  s_91c1e549e441e4::t_4309fa8e81201e 1,5,48-58,70-76,78-97
+  s_91c1e549e441e4::t_93fe858987e9c7 98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "97424776a8b0e3b5d479098f8e1527c4672ad2e7",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_91c1e549e441e4": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "3baee494-23af-4134-aa23-4ad1ee405ced",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
