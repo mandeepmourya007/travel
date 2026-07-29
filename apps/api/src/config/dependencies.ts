@@ -108,6 +108,10 @@ import { ResellerRepository } from '../repositories/reseller.repository'
 import { ResellerService } from '../services/reseller.service'
 import { ResellerController } from '../controllers/reseller.controller'
 import { createResellerRoutes } from '../routes/reseller.routes'
+import { OrganizerLeadRepository } from '../repositories/organizer-lead.repository'
+import { OrganizerLeadService } from '../services/organizer-lead.service'
+import { OrganizerLeadController } from '../controllers/organizer-lead.controller'
+import { createPublicOrganizerLeadRoutes, createAdminOrganizerLeadRoutes } from '../routes/organizer-lead.routes'
 
 // JWT secrets are validated at startup by config/env.ts (min 32 chars)
 const { JWT_SECRET } = env
@@ -136,6 +140,7 @@ const organizerInviteRepo = new OrganizerInviteRepository(prisma)
 const whatsappBroadcastRepo = new WhatsappBroadcastRepository(prisma)
 const resellerRepo = new ResellerRepository(prisma)
 const organizerPayoutAttemptRepo = new OrganizerPayoutAttemptRepository(prisma)
+const organizerLeadRepo = new OrganizerLeadRepository(prisma)
 
 // ── Cache ───────────────────────────────────────────
 export const cacheService = new CacheService(redis, logger)
@@ -418,6 +423,8 @@ const whatsappBroadcastService = new WhatsappBroadcastService(
 )
 const whatsappBroadcastController = new WhatsappBroadcastController(whatsappBroadcastService)
 const resellerController = new ResellerController(resellerService)
+const organizerLeadService = new OrganizerLeadService(organizerLeadRepo, logger)
+const organizerLeadController = new OrganizerLeadController(organizerLeadService)
 
 // ── Routes ───────────────────────────────────────────
 export const authRoutes = createAuthRoutes(authController, otpController, authMiddleware, requireRole)
@@ -446,6 +453,8 @@ export const publicTripCategoryRoutes = createPublicTripCategoryRoutes(tripCateg
 export const adminTripCategoryRoutes = createAdminTripCategoryRoutes(tripCategoryController, authMiddleware, requireRole)
 export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRoutes(tripCategoryController, authMiddleware, requireRole)
 export const resellerRoutes = createResellerRoutes(resellerController, authMiddleware, requireRole)
+export const publicOrganizerLeadRoutes = createPublicOrganizerLeadRoutes(organizerLeadController)
+export const adminOrganizerLeadRoutes = createAdminOrganizerLeadRoutes(organizerLeadController, authMiddleware, requireRole)
 export const webhookRoutes = (() => {
   if (!webhookController) return null
   const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''

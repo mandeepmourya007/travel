@@ -16,6 +16,7 @@ import {
   Star,
   Share2,
   Wallet,
+  UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +41,7 @@ const ADMIN_NAV: NavItem[] = [
   { id: 'invites', label: 'Invites', href: '/admin/invites', icon: Mail },
   { id: 'trips', label: 'Trips', href: '/admin/trips', icon: Map },
   { id: 'reseller-links', label: 'Reseller Links', href: '/admin/reseller-links', icon: Share2 },
+  { id: 'organizer-leads', label: 'Organizer Leads', href: '/admin/organizer-leads', icon: UserPlus },
 ]
 
 // Reseller Links intentionally omitted — MOBILE_NAV is capped at 4 primary items.

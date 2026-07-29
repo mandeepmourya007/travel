@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "skills/nextjs-best-practices/SKILL.md",
       "computedHash": "5344522f15f544513456e77b858377368f24e680732af5efeb5a67bbab021bc1"
+    },
+    "seo": {
+      "source": "agricidaniel/claude-seo",
+      "sourceType": "github",
+      "skillPath": "skills/seo/SKILL.md",
+      "computedHash": "6e90740e31c9882ae3f847c2b4deb9ee5ee5b4d1a6a7d5ea9e891f4df6ec8e49"
     }
   }
 }

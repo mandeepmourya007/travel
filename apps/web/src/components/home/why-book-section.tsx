@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { WHY_BOOK_COPY, WHY_BOOK_FEATURES } from '@/lib/home-content'
+import { OrganizerCta } from './organizer-cta'
 
 export function WhyBookSection() {
   const { organizer } = WHY_BOOK_COPY
@@ -42,13 +42,7 @@ export function WhyBookSection() {
           <p className="mt-3 text-primary-100 max-w-lg mx-auto">
             {organizer.body}
           </p>
-          <Link
-            href={organizer.ctaHref}
-            prefetch={false}
-            className="mt-6 inline-block rounded-lg bg-white px-8 py-3 text-sm font-semibold text-primary-700 shadow-sm transition-all hover:bg-neutral-50"
-          >
-            {organizer.cta}
-          </Link>
+          <OrganizerCta label={organizer.cta} />
         </div>
       </div>
     </section>

@@ -125,3 +125,5 @@ export const bookingRateLimit = createRateLimiter('booking', 20, 60)
 // Admin search endpoints can trigger expensive ILIKE queries; cap at 30/min
 // per authenticated session to prevent accidental or malicious scan loops.
 export const adminRateLimit = createRateLimiter('admin', 30, 60)
+// Public lead/waitlist form — 5 submissions per minute per IP.
+export const leadRateLimit = createRateLimiter('lead', 5, 60)

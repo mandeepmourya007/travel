@@ -7,6 +7,7 @@ import type { ReviewListFilters, OrganizerReviewFilters } from '@shared/types/re
 import type { ConversationListFilters } from '@shared/types/chat.types'
 import type { OrganizerApprovalFilters, AdminBookingFilters, CashbackTripFilters, CashbackHistoryFilters, OrganizerInviteFilters, AdminReviewFilters, AdminTravellerFilters, AdminOrganizerDirectoryFilters, AdminTravellerDetailFilters, AdminOrganizerDetailFilters, AdminPayoutHistoryFilters, AdminPendingPayoutFilters } from '@shared/types/admin.types'
 import type { ResellerSublinkFilters, ResellerLeadFilters, MyMainLinksFilters } from '@shared/types/reseller.types'
+import type { OrganizerLeadFilters } from '@shared/types/organizer-lead.types'
 
 /** Single source of truth for query key string segments. Exported for manual cache invalidation. */
 export const QK = {
@@ -276,6 +277,11 @@ export const resellerKeys = {
     [...resellerKeys.all, QK.RESELLERS, QK.SEARCH, q, page, limit] as const,
   organizerSearch: (q: string, page: number, limit: number) =>
     [...resellerKeys.all, QK.ORGANIZERS, QK.SEARCH, q, page, limit] as const,
+}
+
+export const organizerLeadKeys = {
+  all: ['organizerLeads'] as const,
+  list: (filters?: OrganizerLeadFilters) => [...organizerLeadKeys.all, QK.LIST, filters] as const,
 }
 
 export const leadKeys = {
