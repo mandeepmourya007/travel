@@ -1,0 +1,26 @@
+apps/web/src/app/llms.txt/route.ts
+  s_91c1e549e441e4::t_5a1fafb474ea80 6-25
+  s_91c1e549e441e4::t_e2d1fc28f92cbd 3-5
+  s_91c1e549e441e4::t_2b30e09be426ba 26-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "e0069c3d6163a698c325f1eb82a700f6c624bf6f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_91c1e549e441e4": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "3baee494-23af-4134-aa23-4ad1ee405ced",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
