@@ -1,0 +1,27 @@
+apps/web/src/lib/legal-content.ts
+  s_91c1e549e441e4::t_cabefd1b8ebd08 1400
+apps/web/src/components/home/organizer-waitlist-modal.tsx
+  s_91c1e549e441e4::t_11d2f711983876 11
+  s_91c1e549e441e4::t_6a98ee3a931be2 81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "6cb8ebafd08dcde1f56874eb510678039187629c",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_91c1e549e441e4": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "3baee494-23af-4134-aa23-4ad1ee405ced",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
