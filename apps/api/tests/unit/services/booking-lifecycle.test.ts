@@ -530,7 +530,12 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     }))
   })
 
-  it('should release SafePay after trip completion with correct organizer amount', async () => {
+  // Skipped while auto-payout on trip completion is disabled — the release path
+  // is no longer triggered from `completeEndedTrips` (payouts go via the admin
+  // portal). Direct-invocation unit coverage of `releaseSafePayForTrip` lives in
+  // tests/unit/services/trip-lifecycle.service.test.ts. Un-skip when the release
+  // block inside `completeEndedTrips` is uncommented.
+  it.skip('should release SafePay after trip completion with correct organizer amount', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'FULL' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -577,7 +582,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     }))
   })
 
-  it('should NOT rollback trip completion when Razorpay SafePay release fails', async () => {
+  // Skipped: auto-release path disabled — see note above.
+  it.skip('should NOT rollback trip completion when Razorpay SafePay release fails', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -627,7 +633,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     expect(mockPaymentTxRepo.create).not.toHaveBeenCalled()
   })
 
-  it('should lazy-fetch transfer ID if missing on captured payment', async () => {
+  // Skipped: auto-release path disabled — see note above.
+  it.skip('should lazy-fetch transfer ID if missing on captured payment', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -654,7 +661,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     expect(mockPaymentService.releaseTransferHold).toHaveBeenCalledWith('trf_lazy_fetched')
   })
 
-  it('should fail SafePay if transfer ID cannot be fetched', async () => {
+  // Skipped: auto-release path disabled — see note above.
+  it.skip('should fail SafePay if transfer ID cannot be fetched', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])
@@ -694,7 +702,8 @@ describe('Flow 3: Trip EndDate → Cron Completes → SafePay Released', () => {
     expect(result.completed).toBe(1)
   })
 
-  it('should use PLATFORM_COMMISSION_PERCENT when organizer has no custom rate', async () => {
+  // Skipped: auto-release path disabled — see note above.
+  it.skip('should use PLATFORM_COMMISSION_PERCENT when organizer has no custom rate', async () => {
     const trip = { id: 'trip-1', organizerId: 'org-1', destinationId: 'dest-1', status: 'ACTIVE' }
     const lifecycleTripRepo = (lifecycleService as any).tripRepo
     lifecycleTripRepo.findTripsToComplete.mockResolvedValue([trip])

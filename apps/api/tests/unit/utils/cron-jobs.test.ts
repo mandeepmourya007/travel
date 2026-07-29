@@ -240,7 +240,9 @@ describe('startCronJobs', () => {
     // 30 min — trip completion fires
     await vi.advanceTimersByTimeAsync(25 * 60 * 1000)
     expect(mockTripLifecycleService.completeEndedTrips).toHaveBeenCalledTimes(1)
-    expect(mockTripLifecycleService.releaseUnreleasedSafePays).toHaveBeenCalledTimes(1)
+    // Auto-payout is disabled — the crash-recovery release sweep must NOT run.
+    // Payouts are triggered manually via the admin portal.
+    expect(mockTripLifecycleService.releaseUnreleasedSafePays).not.toHaveBeenCalled()
   })
 
   it('should NOT fire webhook event cleanup before 24 hours', async () => {
@@ -266,7 +268,11 @@ describe('startCronJobs', () => {
 
 // ── releaseCashfreeBalances (S3-S5: balance-release cron) ──
 
-describe('releaseCashfreeBalances (via cron)', () => {
+// Skipped while auto-payout is disabled — the setInterval registration for
+// releaseCashfreeBalances is commented out in startCronJobs (payouts go via the
+// admin portal). The function itself is retained for easy re-enable. Un-skip this
+// block together with the setInterval registration in cron-jobs.ts.
+describe.skip('releaseCashfreeBalances (via cron)', () => {
   it('S5: should do nothing when no eligible bookings exist', async () => {
     mockPaymentTxRepo.findBalanceReleaseEligibleBookings.mockResolvedValue([])
     stopCrons = startCronJobs(createDeps(null))

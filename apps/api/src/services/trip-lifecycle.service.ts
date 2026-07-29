@@ -45,9 +45,17 @@ export class TripLifecycleService {
    *
    * For each trip:
    * 1. DB Transaction: trip→COMPLETED, bookings→COMPLETED, organizer stats++, destination tripCount--
-   * 2. Release SafePay (outside tx — Razorpay failure must not rollback DB changes)
+   * 2. Post-completion side-effects (notifications, cashback) fired fire-and-forget
    *
-   * @returns { completed: number; safePayReleased: number; safePayFailed: number }
+   * NOTE: Auto-payout on trip completion is currently DISABLED — organizers need
+   * partial upfront funds (hotels, flights), so payouts are triggered manually via
+   * the admin portal. The `safePay*` fields in the return payload are retained as
+   * zero for backward compatibility with existing callers/log consumers. Re-enable
+   * by uncommenting the release block in the loop below and the matching call in
+   * cron-jobs.ts (`releaseUnreleasedSafePays`).
+   *
+   * @returns { completed, safePayReleased, safePayInitiated, safePayFailed } —
+   *   safePay* fields are always 0 while auto-payout is disabled.
    */
   async completeEndedTrips() {
     const trips = await this.tripRepo.findTripsToComplete(TRIP_COMPLETION_BATCH_SIZE)
@@ -57,14 +65,11 @@ export class TripLifecycleService {
     this.logger.info({ count: trips.length }, 'Processing trip completions')
 
     let completed = 0
-    let safePayReleased = 0
-    // LOW-5 fix: RazorpayX Payouts' releaseViaRazorpayX returns INITIATED (its actual,
-    // non-terminal state — final CAPTURED arrives later via webhook), not RELEASED.
-    // Tracking it separately keeps this cron's summary log honest about how many
-    // releases are actually confirmed (Route's near-synchronous ESCROW_RELEASE) vs.
-    // merely kicked off and awaiting webhook confirmation.
-    let safePayInitiated = 0
-    let safePayFailed = 0
+    // Auto-payout disabled — counters retained (const 0) so the return contract
+    // and log shape are unchanged for callers/monitors. See loop body below.
+    const safePayReleased = 0
+    const safePayInitiated = 0
+    const safePayFailed = 0
 
     for (const trip of trips) {
       try {
@@ -95,15 +100,21 @@ export class TripLifecycleService {
         completed++
         this.logger.info({ tripId: trip.id }, 'Trip marked COMPLETED')
 
-        // Release SafePay outside transaction — Razorpay failure must not rollback
-        try {
-          const result = await this.releaseSafePayForTrip(trip.id)
-          safePayReleased += result.released
-          safePayInitiated += result.initiated
-          safePayFailed += result.failed
-        } catch (error) {
-          this.logger.error({ tripId: trip.id, error }, 'SafePay release failed for trip — will retry next cycle')
-        }
+        // Auto-payout on trip completion is DISABLED — organizers need partial
+        // payments upfront (hotels, flight bookings, etc.), so payouts are now
+        // triggered manually via the admin portal. Trip still transitions to
+        // COMPLETED so cashback, notifications and stats still fire; only the
+        // gateway payout call is skipped. Re-enable by uncommenting below and
+        // the releaseUnreleasedSafePays call in cron-jobs.ts.
+        //
+        // try {
+        //   const result = await this.releaseSafePayForTrip(trip.id)
+        //   safePayReleased += result.released
+        //   safePayInitiated += result.initiated
+        //   safePayFailed += result.failed
+        // } catch (error) {
+        //   this.logger.error({ tripId: trip.id, error }, 'SafePay release failed for trip — will retry next cycle')
+        // }
 
         // Post-completion side-effects (notifications + cashback).
         // All are fire-and-forget — failures must not affect trip-completion outcome.

@@ -153,18 +153,25 @@ describe('TripLifecycleService', () => {
       expect(result.completed).toBe(1)
     })
 
-    it('should not rollback trip completion when SafePay release fails', async () => {
+    it('should NOT invoke auto-payout on trip completion (admin-manual payout mode)', async () => {
+      // Auto-payout is disabled — completeEndedTrips must NOT reach into
+      // releaseSafePayForTrip, so no captured-transfer lookup and no gateway
+      // release call should fire, even when captured payments exist.
       mockTripRepo.findTripsToComplete.mockResolvedValue([createMockTrip()])
       mockPaymentTxRepo.findCapturedTransfersForTrip.mockResolvedValue([createMockCapturedPayment()])
       mockPaymentTxRepo.findReleasedBookingIdsForTrip.mockResolvedValue(new Set())
-      mockPaymentService.releaseTransferHold.mockRejectedValue(new Error('Razorpay down'))
 
       const result = await service.completeEndedTrips()
 
-      // Trip was completed even though SafePay failed
       expect(result.completed).toBe(1)
-      expect(result.safePayFailed).toBe(1)
+      // safePay* counters are contractually retained at 0 while auto-payout is off
+      expect(result.safePayReleased).toBe(0)
+      expect(result.safePayInitiated).toBe(0)
+      expect(result.safePayFailed).toBe(0)
       expect(mockTripRepo.withTransaction).toHaveBeenCalled()
+      // The whole payout pipeline must be untouched
+      expect(mockPaymentTxRepo.findCapturedTransfersForTrip).not.toHaveBeenCalled()
+      expect(mockPaymentService.releaseTransferHold).not.toHaveBeenCalled()
     })
   })
 

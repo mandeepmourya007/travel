@@ -200,8 +200,13 @@ async function cleanupOldWebhookEvents(webhookEventRepo: WebhookEventRepository)
 }
 
 /**
- * Completes ACTIVE/FULL trips past their endDate and releases SafePay.
- * Also performs crash-recovery sweep for previously-failed SafePay releases.
+ * Completes ACTIVE/FULL trips past their endDate.
+ *
+ * NOTE: Auto-payout on completion is currently DISABLED — payouts are triggered
+ * manually via the admin portal because organizers need partial upfront funds
+ * (hotels, flights). The crash-recovery sweep (`releaseUnreleasedSafePays`) is
+ * also disabled to prevent it from retroactively paying out older trips. Re-enable
+ * both this call and the release block inside `completeEndedTrips` together.
  *
  * Intended to be called via setInterval() every 30 minutes.
  */
@@ -209,7 +214,10 @@ async function completeTripsAndReleaseSafePay(tripLifecycleService: TripLifecycl
   await Sentry.withMonitor('cron-complete-trips-safepay', async () => {
     try {
       await tripLifecycleService.completeEndedTrips()
-      await tripLifecycleService.releaseUnreleasedSafePays()
+      // Auto-payout disabled — organizers need partial upfront funds (hotels,
+      // flights, etc.), so payouts are triggered manually via the admin portal.
+      // Re-enable together with the release call inside completeEndedTrips.
+      // await tripLifecycleService.releaseUnreleasedSafePays()
     } catch (error) {
       logger.error({ error }, 'Trip completion / SafePay release job failed')
       throw error
@@ -228,6 +236,9 @@ async function completeTripsAndReleaseSafePay(tripLifecycleService: TripLifecycl
  *
  * Intended to be called via setInterval() every 30 minutes.
  */
+// Retained (unused) while auto-payout is disabled — see comment on the setInterval
+// registration in startCronJobs. Re-enables cleanly by uncommenting that block.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function releaseCashfreeBalances(
   paymentTxRepo: PaymentTransactionRepository,
   payoutService: PayoutService,
@@ -562,6 +573,11 @@ export function startCronJobs(deps: {
   guard('cron:update-trending-scores', withLock('cron:update-trending-scores', LOCK_TTL_90MIN,
     () => updateTrendingScores(deps.trendingScoreService)))
 
+  // Retains `releaseCashfreeBalances` past tsc's noUnusedLocals check while its
+  // setInterval registration is commented out (auto-payout disabled — payouts go
+  // via the admin portal). Drop this line when the setInterval is uncommented.
+  void releaseCashfreeBalances
+
   const intervals = [
     setInterval(
       () => guard('cron:expire-stale-bookings', withLock('cron:expire-stale-bookings', LOCK_TTL_5MIN,
@@ -603,11 +619,15 @@ export function startCronJobs(deps: {
         () => expireHeldSeats(deps.vehicleService))),
       ONE_MINUTE,
     ),
-    setInterval(
-      () => guard('cron:release-cashfree-balances', withLock('cron:release-cashfree-balances', LOCK_TTL_30MIN,
-        () => releaseCashfreeBalances(deps.paymentTxRepo, deps.payoutService))),
-      THIRTY_MINUTES,
-    ),
+    // Auto-payout disabled — Cashfree balance release cron is skipped for symmetry
+    // with the RazorpayX auto-payout disable in `completeEndedTrips`. Payouts are
+    // now triggered manually via the admin portal. Re-enable together with the
+    // RazorpayX release calls when auto-payout is turned back on.
+    // setInterval(
+    //   () => guard('cron:release-cashfree-balances', withLock('cron:release-cashfree-balances', LOCK_TTL_30MIN,
+    //     () => releaseCashfreeBalances(deps.paymentTxRepo, deps.payoutService))),
+    //   THIRTY_MINUTES,
+    // ),
     setInterval(
       () => guard('cron:reconcile-wallets', withLock('cron:reconcile-wallets', LOCK_TTL_1HOUR,
         () => reconcileWallets(deps.walletService))),
