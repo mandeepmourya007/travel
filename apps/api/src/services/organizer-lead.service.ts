@@ -1,4 +1,5 @@
 import type { Logger } from 'pino'
+import { Prisma } from '@prisma/client'
 import type {
   CreateOrganizerLeadDto,
   OrganizerLeadFilters,
@@ -8,6 +9,10 @@ import type {
 import { OrganizerLeadRepository } from '../repositories/organizer-lead.repository'
 import { ConflictError, NotFoundError } from '../errors/app-error'
 import { PAGINATION_DEFAULTS } from '../utils/constants'
+
+const DUPLICATE_LEAD_MESSAGE =
+  "This email is already on our organizer waitlist. We'll be in touch soon!"
+const DUPLICATE_LEAD_SUBCODE = 'LEAD_ALREADY_SUBMITTED'
 
 type OrganizerLeadRow = Awaited<ReturnType<OrganizerLeadRepository['findById']>>
 
@@ -20,25 +25,36 @@ export class OrganizerLeadService {
   async submit(dto: CreateOrganizerLeadDto): Promise<OrganizerLeadItem> {
     const email = dto.email.trim().toLowerCase()
 
+    // Fast-path duplicate check for a helpful message. The unique constraint on
+    // OrganizerLead.email is the actual backstop — two concurrent submissions can
+    // both pass this check and race on create(), so we translate the resulting
+    // P2002 into the same ConflictError below (matches the check-then-catch
+    // pattern in ResellerService.createMainLink / OtpService.setPhone).
     const existing = await this.leadRepo.findByEmail(email)
     if (existing) {
-      throw new ConflictError(
-        'This email is already on our organizer waitlist. We\'ll be in touch soon!',
-        'LEAD_ALREADY_SUBMITTED',
-      )
+      throw new ConflictError(DUPLICATE_LEAD_MESSAGE, DUPLICATE_LEAD_SUBCODE)
     }
 
-    const lead = await this.leadRepo.create({
-      fullName: dto.fullName.trim(),
-      email,
-      phone: dto.phone.trim(),
-      businessName: dto.businessName?.trim() || null,
-      city: dto.city?.trim() || null,
-      notes: dto.notes?.trim() || null,
-    })
+    try {
+      const lead = await this.leadRepo.create({
+        fullName: dto.fullName.trim(),
+        email,
+        phone: dto.phone.trim(),
+        businessName: dto.businessName?.trim() || null,
+        city: dto.city?.trim() || null,
+        notes: dto.notes?.trim() || null,
+      })
 
-    this.logger.info({ leadId: lead.id }, 'Organizer lead submitted')
-    return this.toItem(lead)
+      this.logger.info({ leadId: lead.id }, 'Organizer lead submitted')
+      return this.toItem(lead)
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        // Concurrent duplicate raced the findByEmail check above — surface the
+        // same ConflictError the fast path would have thrown.
+        throw new ConflictError(DUPLICATE_LEAD_MESSAGE, DUPLICATE_LEAD_SUBCODE)
+      }
+      throw err
+    }
   }
 
   async listForAdmin(filters: OrganizerLeadFilters) {

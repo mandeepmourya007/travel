@@ -12,6 +12,7 @@ import type {
 import type { PaginationMeta } from '@shared/types/api-response.types'
 
 export function useSubmitOrganizerLead() {
+  const queryClient = useQueryClient()
   const { toast } = useToast()
 
   return useMutation({
@@ -23,6 +24,8 @@ export function useSubmitOrganizerLead() {
       return res.data.data
     },
     onSuccess: () => {
+      // Keep any open admin list view in sync (e.g. admin submits from another tab).
+      queryClient.invalidateQueries({ queryKey: organizerLeadKeys.all })
       toast({
         variant: 'success',
         title: 'Thanks! You\'re on the list',

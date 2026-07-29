@@ -175,9 +175,6 @@ export function OrganizerWaitlistModal({ open, onClose }: OrganizerWaitlistModal
           />
           {errors.notes && <p className="text-xs text-error-600">{errors.notes.message}</p>}
         </div>
-
-        {/* Hidden submit button so Enter submits the form even though the visible action lives in the footer. */}
-        <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
       </form>
     </Modal>
   )

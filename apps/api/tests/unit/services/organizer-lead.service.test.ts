@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
 import { OrganizerLeadService } from '../../../src/services/organizer-lead.service'
 import { logger } from '../../../src/utils/logger'
 import { ConflictError, NotFoundError } from '../../../src/errors/app-error'
@@ -72,6 +73,47 @@ describe('OrganizerLeadService.submit', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictError)
     expect(mockRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('translates Prisma P2002 unique-violation race into ConflictError', async () => {
+    // Fast-path check misses (returns null) but a concurrent request has already
+    // inserted the row — Prisma throws P2002 on our create. Must surface the
+    // same LEAD_ALREADY_SUBMITTED ConflictError, not a raw 500.
+    mockRepo.findByEmail.mockResolvedValue(null)
+    const p2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: 'test',
+      meta: { target: ['email'] },
+    })
+    mockRepo.create.mockRejectedValue(p2002)
+
+    await expect(
+      service.submit({
+        fullName: 'Amit',
+        email: 'amit@example.com',
+        phone: '+919876543210',
+      }),
+    ).rejects.toMatchObject({
+      constructor: ConflictError,
+      subCode: 'LEAD_ALREADY_SUBMITTED',
+    })
+  })
+
+  it('rethrows non-P2002 Prisma errors as-is', async () => {
+    mockRepo.findByEmail.mockResolvedValue(null)
+    const otherErr = new Prisma.PrismaClientKnownRequestError('Connection lost', {
+      code: 'P1001',
+      clientVersion: 'test',
+    })
+    mockRepo.create.mockRejectedValue(otherErr)
+
+    await expect(
+      service.submit({
+        fullName: 'Amit',
+        email: 'amit@example.com',
+        phone: '+919876543210',
+      }),
+    ).rejects.toBe(otherErr)
   })
 
   it('coerces empty optional strings to null', async () => {

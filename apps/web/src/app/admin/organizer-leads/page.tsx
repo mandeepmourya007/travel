@@ -258,7 +258,7 @@ function StatusSelect({ value, disabled, onChange }: StatusSelectProps) {
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as OrganizerLeadStatus)}
-      className={`input h-9 min-w-[120px] text-xs font-medium ${STATUS_BADGE[value]}`}
+      className={`w-full min-w-[120px] cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium outline-none transition-colors focus:ring-2 focus:ring-primary-100 disabled:cursor-not-allowed disabled:opacity-60 ${STATUS_BADGE[value]}`}
     >
       {ORGANIZER_LEAD_STATUSES.map((s) => (
         <option key={s} value={s} className="bg-white text-neutral-800">

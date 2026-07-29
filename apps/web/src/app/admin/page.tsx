@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import { Users, Package, IndianRupee, Map, AlertTriangle, MessageSquare, Tags, Gift, Mail } from 'lucide-react'
+import { Users, Package, IndianRupee, Map, AlertTriangle, MessageSquare, Tags, Gift, Mail, UserPlus } from 'lucide-react'
 import { useAdminStats } from '@/hooks/use-admin-stats'
 import { StatCard, StatCardSkeleton } from '@/components/dashboard/stat-card'
 import { ErrorState, EmptyState } from '@/components/shared/data-states'
@@ -192,4 +192,5 @@ const MANAGE_LINKS = [
   { href: '/admin/cashback', label: 'Cashback', icon: Gift, description: 'Issue rewards' },
   { href: '/admin/chat', label: 'Chat', icon: MessageSquare, description: 'Review flagged messages' },
   { href: '/admin/invites', label: 'Invites', icon: Mail, description: 'Send organizer invites' },
+  { href: '/admin/organizer-leads', label: 'Organizer Leads', icon: UserPlus, description: 'Waitlist submissions' },
 ]
