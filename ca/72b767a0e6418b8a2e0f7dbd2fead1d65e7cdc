@@ -1,0 +1,24 @@
+apps/api/src/utils/constants.ts
+  s_fb4b7075d840cf::t_f117355066fbf8 41,44-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ca72b767a0e6418b8a2e0f7dbd2fead1d65e7cdc",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_fb4b7075d840cf": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "0dfea049-199e-4ec7-8a1c-457d85ee0489",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": null
+    }
+  }
+}
