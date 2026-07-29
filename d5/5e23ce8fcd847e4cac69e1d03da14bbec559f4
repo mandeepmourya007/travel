@@ -1,0 +1,39 @@
+apps/api/src/utils/cron-jobs.ts
+  s_147bb9be3f1014::t_c2c3523424dfac 217-220
+  s_147bb9be3f1014::t_06da043c507e2e 576-579
+  s_147bb9be3f1014::t_37945a33bf7495 203-209,622-630
+  s_147bb9be3f1014::t_1258dd5b693783 239-241
+  s_147bb9be3f1014::t_f36c1c28617a4f 580
+apps/api/src/services/trip-lifecycle.service.ts
+  s_147bb9be3f1014::t_360817a597d871 48,50-58
+  s_147bb9be3f1014::t_fec2bd076afab7 103-117
+  s_147bb9be3f1014::t_b42bad24739e37 68-72
+apps/api/tests/unit/services/trip-lifecycle.service.test.ts
+  s_147bb9be3f1014::t_f8bb90f01b93b4 156-159,167-170,172-174
+apps/api/tests/unit/utils/cron-jobs.test.ts
+  s_147bb9be3f1014::t_0a6a8b7d87dff7 271-275
+  s_147bb9be3f1014::t_f6a32ece83a66a 243-245
+apps/api/tests/unit/services/booking-lifecycle.test.ts
+  s_147bb9be3f1014::t_004a2ec3dd84bb 533-538,585-586,636-637,664-665,705-706
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d55e23ce8fcd847e4cac69e1d03da14bbec559f4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_147bb9be3f1014": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "8aeaff72-e41a-410a-a930-a58cc220d380",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
