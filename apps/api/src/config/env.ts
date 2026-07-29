@@ -65,6 +65,10 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
   // Reply-To shown on all outgoing email — real, monitored address improves inbox placement.
   SUPPORT_EMAIL: z.string().email().optional(),
+  // Platform display name — used in email templates, notification bodies, SMTP From header,
+  // and any user-facing string that names the platform. Kept env-driven so the brand can be
+  // renamed without a code change (must still be in sync with NEXT_PUBLIC_APP_NAME on the web app).
+  APP_NAME: z.string().default('Safarnama'),
   FIREBASE_PROJECT_ID: z.string().optional(),
   FIREBASE_CLIENT_EMAIL: z.string().optional(),
   FIREBASE_PRIVATE_KEY: z.string().optional(),

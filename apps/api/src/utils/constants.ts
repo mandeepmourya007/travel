@@ -1,3 +1,5 @@
+import { env } from '../config/env'
+
 export const BOOKING_EXPIRY_MINUTES = 60
 
 // 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
@@ -37,6 +39,11 @@ export const PAGINATION_DEFAULTS = {
 // Reply-To fallback when SUPPORT_EMAIL is unset — must be a real, monitored inbox
 // on the sending domain (never a free-mail address) to avoid hurting deliverability.
 export const DEFAULT_SUPPORT_EMAIL = 'support@safarnama.store'
+
+// Platform display name — sourced from env so a rename is a config change, not a code change.
+// Re-exported here so the rest of the codebase can `import { APP_NAME } from '../utils/constants'`
+// alongside other config-y constants, rather than reaching into `../config/env` from every service.
+export const APP_NAME: string = env.APP_NAME
 
 export const OTP_LENGTH = 4
 export const OTP_EXPIRY_MINUTES = 10
