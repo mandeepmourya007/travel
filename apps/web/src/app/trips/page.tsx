@@ -1,30 +1,107 @@
-export const dynamic = 'force-dynamic'
-
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { fetchApiWithPagination } from '@/lib/api-server'
-import { SITE_URL } from '@/lib/constants'
+import { APP_NAME, SITE_URL } from '@/lib/constants'
 import { buildItemListJsonLd, buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { TripsPageClient } from '@/components/trips/trips-page-client'
 import type { TripSummary } from '@shared/types/trip.types'
 
+// `searchParams` is a Next 15 dynamic API, which already opts the route into
+// dynamic rendering — no `export const dynamic = 'force-dynamic'` needed.
+
 interface TripsPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+/** Max length for a user-supplied search label reflected into <title>/<meta description>. */
+const MAX_SEARCH_LABEL_LENGTH = 60
+
+/**
+ * Parse the /trips query string into a normalised, typed shape.
+ *
+ * Extracted from the page component so `generateMetadata` and the page body
+ * see the same parsed values (single source of truth). Numeric fields (page)
+ * are coerced; string fields are only accepted as `string` (arrays rejected).
+ */
+function parseTripsSearchParams(sp: Record<string, string | string[] | undefined>) {
+  const s = (key: string): string | undefined => (typeof sp[key] === 'string' ? (sp[key] as string) : undefined)
+  return {
+    q: s('q'),
+    destination: s('destination'),
+    destinationId: s('destinationId'),
+    tripType: s('tripType'),
+    minPrice: s('minPrice'),
+    maxPrice: s('maxPrice'),
+    bookingMode: s('bookingMode'),
+    sort: s('sort') ?? 'newest',
+    page: typeof sp.page === 'string' ? Number(sp.page) || 1 : 1,
+  }
+}
+
+/** Strip control chars / HTML-ish chars and cap length — prevents junk SERP entries from crafted `?q=` values. */
+function sanitizeSearchLabel(raw: string | undefined): string | undefined {
+  if (!raw) return undefined
+  const cleaned = raw.replace(/[<>\r\n\t]/g, '').trim()
+  if (!cleaned) return undefined
+  return cleaned.length > MAX_SEARCH_LABEL_LENGTH ? cleaned.slice(0, MAX_SEARCH_LABEL_LENGTH) : cleaned
+}
+
+/**
+ * SEO metadata for /trips.
+ *
+ * Canonical strategy: filtered/search views are non-canonical (they consolidate
+ * to /trips) to avoid diluting rankings across near-duplicate query permutations.
+ * Filtered views also carry noindex to keep query-space out of the index while
+ * still being crawlable via internal links + sitemap trip URLs.
+ */
+export async function generateMetadata({ searchParams: searchParamsPromise }: TripsPageProps): Promise<Metadata> {
+  const params = parseTripsSearchParams(await searchParamsPromise)
+  const label = sanitizeSearchLabel(params.q || params.destination)
+  const isFiltered = Boolean(
+    label ||
+      params.tripType ||
+      params.minPrice ||
+      params.maxPrice ||
+      params.destinationId ||
+      params.bookingMode,
+  )
+  const isPaginated = params.page > 1
+
+  const title = label
+    ? `${label} — Group Trips in India | ${APP_NAME}`
+    : `Group Trips in India — Compare & Book | ${APP_NAME}`
+
+  const description = label
+    ? `Compare group trips to ${label}. Verified organizers, transparent pricing, real traveler reviews. Book with secure payments on ${APP_NAME}.`
+    : `Browse group trip packages across Indian destinations. Weekend getaways from Pune, Mumbai, Delhi & Bangalore. Verified organizers, secure payments, real reviews.`
+
+  return {
+    title,
+    description,
+    alternates: {
+      // Filtered/paginated views collapse to /trips to prevent near-duplicate ranking dilution.
+      canonical: '/trips',
+    },
+    // Keep filtered/paginated permutations crawlable but out of index.
+    robots: isFiltered || isPaginated ? { index: false, follow: true } : undefined,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: '/trips',
+      siteName: APP_NAME,
+      locale: 'en_IN',
+    },
+  }
 }
 
 export default async function TripsPage({ searchParams: searchParamsPromise }: TripsPageProps) {
   const searchParams = await searchParamsPromise
   // `q` is the free-text search from the hero form; `destination` is the legacy
   // destination-name param (still supported for back-compat with existing links).
-  const q = typeof searchParams.q === 'string' ? searchParams.q : undefined
-  const destination = typeof searchParams.destination === 'string' ? searchParams.destination : undefined
-  const destinationId = typeof searchParams.destinationId === 'string' ? searchParams.destinationId : undefined
-  const tripType = typeof searchParams.tripType === 'string' ? searchParams.tripType : undefined
-  const minPrice = typeof searchParams.minPrice === 'string' ? searchParams.minPrice : undefined
-  const maxPrice = typeof searchParams.maxPrice === 'string' ? searchParams.maxPrice : undefined
-  const bookingMode = typeof searchParams.bookingMode === 'string' ? searchParams.bookingMode : undefined
-  const page = typeof searchParams.page === 'string' ? Number(searchParams.page) : 1
-  const sort = typeof searchParams.sort === 'string' ? searchParams.sort : 'newest'
+  const { q, destination, destinationId, tripType, minPrice, maxPrice, bookingMode, sort, page } =
+    parseTripsSearchParams(searchParams)
 
   // Server-side fetch for SEO — Google sees real trip content
   let trips: TripSummary[] = []

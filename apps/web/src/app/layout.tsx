@@ -59,6 +59,13 @@ export const metadata: Metadata = {
     description:
       `India's group travel aggregator. Compare trips from verified organizers, book with secure payments, and travel with confidence. Weekend getaways, treks & adventure tours.`,
   },
+  // NOTE: Do NOT set `alternates.canonical` or `alternates.languages` at the root.
+  // Next.js shallow-merges metadata parent → child, so any child page that does
+  // not explicitly override `alternates` would inherit the root's canonical/hreflang
+  // — mis-canonicalising every dashboard/admin/private route to `/`. Canonicals
+  // live per-page (see individual `page.tsx` files under (public), /trips, /destinations, etc.).
+  // hreflang for a single-locale (en-IN) site is a self-referential no-op; skip it here
+  // and add per-page only if / when we introduce a second locale.
   robots: {
     index: true,
     follow: true,
