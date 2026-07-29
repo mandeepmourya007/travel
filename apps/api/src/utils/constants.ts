@@ -1,5 +1,3 @@
-import { env } from '../config/env'
-
 export const BOOKING_EXPIRY_MINUTES = 60
 
 // 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
@@ -40,10 +38,14 @@ export const PAGINATION_DEFAULTS = {
 // on the sending domain (never a free-mail address) to avoid hurting deliverability.
 export const DEFAULT_SUPPORT_EMAIL = 'support@safarnama.store'
 
-// Platform display name — sourced from env so a rename is a config change, not a code change.
+// Platform display name — sourced from process.env so a rename is a config change, not a code change.
 // Re-exported here so the rest of the codebase can `import { APP_NAME } from '../utils/constants'`
 // alongside other config-y constants, rather than reaching into `../config/env` from every service.
-export const APP_NAME: string = env.APP_NAME
+// Read directly from process.env (not env.APP_NAME) to avoid a circular import: env.ts imports
+// PAYOUT_STRATEGY/CASHFREE_ENVIRONMENT from this file, so this file MUST NOT depend on env at
+// module load — otherwise `env` sits in the TDZ during first-load and throws
+// `ReferenceError: Cannot access 'env' before initialization` (Sentry API-EXPRESS-16).
+export const APP_NAME: string = process.env.APP_NAME ?? 'Safarnama'
 
 export const OTP_LENGTH = 4
 export const OTP_EXPIRY_MINUTES = 10
