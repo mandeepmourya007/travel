@@ -1397,7 +1397,7 @@ export const legalDocuments: LegalDocument[] = [
   {
     href: '/terms',
     title: 'Terms of Service',
-    description: 'The full agreement between you and Safarnama — your rights, our rules, platform usage, and liability limits.',
+    description: `The full agreement between you and ${APP_NAME} — your rights, our rules, platform usage, and liability limits.`,
     lastUpdated: LAST_UPDATED.terms,
     audience: 'All users',
     required: true,

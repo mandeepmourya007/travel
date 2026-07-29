@@ -8,6 +8,7 @@ import { useSubmitOrganizerLead } from '@/hooks/use-organizer-lead'
 import { cn } from '@/lib/utils'
 import { createOrganizerLeadSchema } from '@shared/validators/organizer-lead.schema'
 import type { CreateOrganizerLeadDto } from '@shared/types/organizer-lead.types'
+import { APP_NAME } from '@/lib/constants'
 
 interface OrganizerWaitlistModalProps {
   open: boolean
@@ -77,7 +78,7 @@ export function OrganizerWaitlistModal({ open, onClose }: OrganizerWaitlistModal
       }
     >
       <p className="mb-4 text-sm text-neutral-500">
-        Tell us about yourself and we&apos;ll reach out with next steps to list your trips on Safarnama.
+        Tell us about yourself and we&apos;ll reach out with next steps to list your trips on {APP_NAME}.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
