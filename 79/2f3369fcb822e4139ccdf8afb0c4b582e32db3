@@ -1,0 +1,40 @@
+apps/api/tests/setup.ts
+  s_147bb9be3f1014::t_1a4b23413eeb0a 14-22
+apps/api/tests/unit/services/organizer-lifecycle.test.ts
+  s_147bb9be3f1014::t_144f5b6fd9c230 12,17-32
+  s_147bb9be3f1014::t_1737ca122e0761 459-460
+  s_147bb9be3f1014::t_d896399dfa221f 474-477
+apps/api/tests/unit/services/auth.service.test.ts
+  s_147bb9be3f1014::t_61c1872b317a38 1254-1268,1306,1309-1313,1330,1336-1342,1346-1350,1353-1356,1359-1362,1364-1366,1370,1372-1381,1383-1392
+  s_147bb9be3f1014::t_ecbe016b0d7c41 1095-1108
+  s_ea581da6b5c62c::t_5caf4a0505098f 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "792f3369fcb822e4139ccdf8afb0c4b582e32db3",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_147bb9be3f1014": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "8aeaff72-e41a-410a-a930-a58cc220d380",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_ea581da6b5c62c": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "598b0cd6-7d44-459a-bf53-965f1081174f",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
