@@ -299,7 +299,7 @@ export const emailProvider = env.RESEND_API_KEY
       env.RESEND_API_KEY,
       resolveWithWarning(
         env.RESEND_FROM,
-        'Safarnama <onboarding@resend.dev>',
+        `${env.APP_NAME} <onboarding@resend.dev>`,
         'RESEND_FROM not set — falling back to Resend\'s shared sandbox domain, which hurts deliverability',
       ),
       supportEmailReplyTo,
@@ -308,7 +308,7 @@ export const emailProvider = env.RESEND_API_KEY
   : env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS
     ? new NodemailerEmailProvider(
         { host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } },
-        env.SMTP_FROM || `Safarnama <${env.SMTP_USER}>`,
+        env.SMTP_FROM || `${env.APP_NAME} <${env.SMTP_USER}>`,
         supportEmailReplyTo,
         logger,
       )

@@ -1,8 +1,7 @@
 import type { NotificationType } from '@prisma/client'
 import { env } from '../config/env'
-import { DEFAULT_SUPPORT_EMAIL } from '../utils/constants'
+import { APP_NAME, DEFAULT_SUPPORT_EMAIL } from '../utils/constants'
 
-const APP_NAME = 'Safarnama'
 const CLIENT_URL = env.CLIENT_URL
 const SUPPORT_EMAIL = env.SUPPORT_EMAIL || DEFAULT_SUPPORT_EMAIL
 

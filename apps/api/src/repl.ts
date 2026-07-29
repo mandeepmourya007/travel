@@ -1,8 +1,9 @@
 import repl from 'node:repl'
 import { prisma } from './lib/prisma'
 import { emailProvider, authService, walletService, notificationService, chatService } from './config/dependencies'
+import { APP_NAME } from './utils/constants'
 
-console.log('\n🚀 Safarnama REPL')
+console.log(`\n🚀 ${APP_NAME} REPL`)
 console.log('─'.repeat(40))
 console.log('Available globals:')
 console.log('  prisma          — Prisma client (await prisma.user.findFirst())')

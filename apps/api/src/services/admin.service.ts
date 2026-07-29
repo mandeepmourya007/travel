@@ -25,7 +25,7 @@ import { NotFoundError, ValidationError } from '../errors/app-error'
 import { TRIP_STATUS } from '@shared/constants/trip-types'
 import { WALLET_TX, WALLET_REFERENCE_MODELS, ORGANIZER_WALLET_TX_TYPES } from '@shared/constants/wallet'
 import { VERIFICATION_STATUS, NOTIFICATION_TYPE, USER_ROLE } from '@shared/constants'
-import { paginate } from '../utils/constants'
+import { paginate, APP_NAME } from '../utils/constants'
 
 const ORGANIZER_APPROVED_TITLE = 'Your organizer profile has been approved!'
 
@@ -101,7 +101,7 @@ export class AdminService {
       ? ORGANIZER_APPROVED_TITLE
       : 'Your organizer profile has been rejected'
     const body = isApproved
-      ? 'Congratulations! You can now create and publish trips on Safarnama.'
+      ? `Congratulations! You can now create and publish trips on ${APP_NAME}.`
       : dto.reason
         ? `Your organizer application was rejected. Reason: ${dto.reason}`
         : 'Your organizer application was rejected. Please contact support for details.'
@@ -354,7 +354,7 @@ export class AdminService {
           userId: profile.userId,
           type: NOTIFICATION_TYPE.ORGANIZER_APPROVED,
           title: ORGANIZER_APPROVED_TITLE,
-          body: 'All documents verified. You can now create and publish trips on Safarnama.',
+          body: `All documents verified. You can now create and publish trips on ${APP_NAME}.`,
           data: { profileId: organizerId },
         }).catch((err) => this.logger.error({ err, organizerId }, 'Failed to send approval notification'))
       }
