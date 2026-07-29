@@ -9,11 +9,27 @@
  *   5. Bank account linking → bankAccountLinked=true, razorpayAccountId set
  *   6. Edge cases: duplicate bank link, missing profile, already approved
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
 import jwt from 'jsonwebtoken'
 import { AuthService } from '../../../src/services/auth.service'
 import { AdminService } from '../../../src/services/admin.service'
 import { ConflictError, NotFoundError } from '../../../src/errors/app-error'
+import { env } from '../../../src/config/env'
+import { PAYOUT_STRATEGY } from '../../../src/utils/constants'
+
+// Force Route strategy for this file's lifecycle tests. The suite was written when
+// PAYOUT_STRATEGY=route was the default; on Jul 29 the code was refactored to make
+// razorpayx_payouts the default and exclusive path (commits e2c8b4a / ad8ccf5).
+// Tests weren't migrated (they were hidden by an unrelated env init bug in constants.ts
+// until Jul 30). Override the strategy at file scope so these Route-oriented tests
+// continue exercising the Route branch of connectBankAccount / getFullProfile.
+const ORIGINAL_PAYOUT_STRATEGY = env.PAYOUT_STRATEGY
+beforeAll(() => {
+  env.PAYOUT_STRATEGY = PAYOUT_STRATEGY.ROUTE
+})
+afterAll(() => {
+  env.PAYOUT_STRATEGY = ORIGINAL_PAYOUT_STRATEGY
+})
 
 // ── Shared constants ────────────────────────────────
 const JWT_SECRET = 'test-jwt-secret-that-is-at-least-32-characters'
@@ -440,8 +456,8 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
       await authService.connectBankAccount('user-org-1', BANK_DTO)
 
       expect(mockLogger.info).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user-org-1', profileId: 'orgp-1', provider: 'razorpay' }),
-        'Payout account linked',
+        expect.objectContaining({ userId: 'user-org-1', profileId: 'orgp-1', provider: 'razorpay', strategy: 'route' }),
+        'Payout account linked via Route',
       )
     })
   })
@@ -455,6 +471,10 @@ describe('Organizer Lifecycle — Full Signup Flow', () => {
         bankAccountLinked: true,
         razorpayAccountId: 'acc_existing_123',
       })
+      // Post-refactor (commit e2c8b4a) connectBankAccount now fetches the user
+      // BEFORE the re-link guard runs, so we must mock userRepo.findById here or
+      // NotFoundError('User') is thrown first and shadows the ConflictError.
+      userRepo.findById.mockResolvedValue(ORGANIZER_USER)
 
       await expect(
         authService.connectBankAccount('user-org-1', BANK_DTO),

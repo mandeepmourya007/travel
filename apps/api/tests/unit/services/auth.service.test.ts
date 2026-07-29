@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest'
+import { env } from '../../../src/config/env'
+import { PAYOUT_STRATEGY } from '../../../src/utils/constants'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { AuthService } from '../../../src/services/auth.service'
@@ -1090,6 +1092,20 @@ describe('AuthService', () => {
   // ── connectBankAccount ─────────────────────────────
 
   describe('connectBankAccount', () => {
+    // Force Route strategy for all tests in this describe. Prior to commit e2c8b4a
+    // (Jul 29 2026) PAYOUT_STRATEGY=route was effectively the tested default; the
+    // refactor made razorpayx_payouts the default and exclusive. These tests were
+    // written to exercise the Route branch (gateway.createPayoutAccount, PAN gate,
+    // Cashfree provider check, CAS race). The inner 'RazorpayX-exclusive' describe
+    // below flips the strategy back to razorpayx_payouts for its own tests.
+    const ORIGINAL_PAYOUT_STRATEGY = env.PAYOUT_STRATEGY
+    beforeAll(() => {
+      env.PAYOUT_STRATEGY = PAYOUT_STRATEGY.ROUTE
+    })
+    afterAll(() => {
+      env.PAYOUT_STRATEGY = ORIGINAL_PAYOUT_STRATEGY
+    })
+
     const BANK_DTO = {
       accountHolderName: 'Rahul Sharma',
       ifscCode: 'SBIN0001234',
@@ -1235,12 +1251,21 @@ describe('AuthService', () => {
         .rejects.toThrow(ConflictError)
     })
 
-    // ── RazorpayX dual-write ───────────────────────────
-    // env.PAYOUT_STRATEGY defaults to 'razorpayx_payouts' in this test environment
-    // (no override in tests/setup.ts / .env — see apps/api/src/config/env.ts), so no
-    // env mocking is needed here: injecting razorpayxClient is what actually gates
-    // the dual-write path (`env.PAYOUT_STRATEGY === RAZORPAYX_PAYOUTS && this.razorpayxClient`).
-    describe('RazorpayX dual-write (PAYOUT_STRATEGY=razorpayx_payouts)', () => {
+    // ── RazorpayX-exclusive (PAYOUT_STRATEGY=razorpayx_payouts) ─────────
+    // Post-refactor (commit e2c8b4a — Jul 29 2026): razorpayx_payouts is now an
+    // EXCLUSIVE path. connectBankAccount early-returns after creating a RazorpayX
+    // Contact + Fund Account and NEVER calls the Route gateway's createPayoutAccount.
+    // A missing razorpayxClient under this strategy is a hard error (PaymentError),
+    // not a silent fallback to Route. This inner describe restores the parent-scope
+    // strategy override to razorpayx_payouts for its tests.
+    describe('RazorpayX-exclusive (PAYOUT_STRATEGY=razorpayx_payouts)', () => {
+      beforeAll(() => {
+        env.PAYOUT_STRATEGY = PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS
+      })
+      afterAll(() => {
+        env.PAYOUT_STRATEGY = PAYOUT_STRATEGY.ROUTE
+      })
+
       const mockRazorpayxClient = {
         createContact: vi.fn(),
         createFundAccount: vi.fn(),
@@ -1278,13 +1303,14 @@ describe('AuthService', () => {
         )
       })
 
-      it('performs both the existing Route createPayoutAccount call AND the new RazorpayX contact->fundAccount->linkRazorpayxAccount chain', async () => {
+      it('creates RazorpayX Contact + Fund Account and SKIPS the Route createPayoutAccount call entirely', async () => {
         const result = await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
 
-        expect(mockGateway.createPayoutAccount).toHaveBeenCalledOnce()
-        expect(organizerProfileRepo.linkPayoutAccount).toHaveBeenCalledWith(
-          ORGANIZER_PROFILE.id, 'razorpay', 'acc_mock_orgp1',
-        )
+        // Route branch is skipped
+        expect(mockGateway.createPayoutAccount).not.toHaveBeenCalled()
+        expect(organizerProfileRepo.linkPayoutAccount).not.toHaveBeenCalled()
+
+        // RazorpayX branch runs end-to-end
         expect(mockRazorpayxClient.createContact).toHaveBeenCalledWith(expect.objectContaining({
           name: BANK_DTO.accountHolderName,
           referenceId: ORGANIZER_PROFILE.id,
@@ -1301,42 +1327,69 @@ describe('AuthService', () => {
         expect(result.bankAccountLinked).toBe(true)
       })
 
-      it('creates the RazorpayX contact AFTER the Route account is already linked (dual-write order: Route first, RazorpayX second, additive)', async () => {
+      it('invokes the RazorpayX chain in order: createContact → createFundAccount → linkRazorpayxAccount', async () => {
         const callOrder: string[] = []
-        organizerProfileRepo.linkPayoutAccount.mockImplementation(async () => {
-          callOrder.push('route-linked')
-          return { count: 1 }
-        })
         mockRazorpayxClient.createContact.mockImplementation(async () => {
           callOrder.push('razorpayx-contact-created')
           return { contactId: 'cont_abc123', raw: {} }
         })
+        mockRazorpayxClient.createFundAccount.mockImplementation(async () => {
+          callOrder.push('razorpayx-fund-account-created')
+          return { fundAccountId: 'fa_abc123', raw: {} }
+        })
+        organizerProfileRepo.linkRazorpayxAccount.mockImplementation(async () => {
+          callOrder.push('razorpayx-persisted')
+        })
 
         await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
 
-        expect(callOrder).toEqual(['route-linked', 'razorpayx-contact-created'])
+        expect(callOrder).toEqual([
+          'razorpayx-contact-created',
+          'razorpayx-fund-account-created',
+          'razorpayx-persisted',
+        ])
       })
 
-      it('does not fail connectBankAccount when the RazorpayX half fails — Route linking has already succeeded', async () => {
+      it('propagates PaymentError when the RazorpayX chain fails — no silent fallback to Route', async () => {
+        // Under the razorpayx-exclusive path a RazorpayX failure MUST fail the
+        // bank-linking request (previously best-effort under dual-write; changed in
+        // commit e2c8b4a — linkRazorpayxAccount now throws instead of swallowing).
         mockRazorpayxClient.createContact.mockRejectedValue(new Error('RazorpayX API down'))
 
-        const result = await serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO)
+        await expect(serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO))
+          .rejects.toThrow(PaymentError)
+        await expect(serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO))
+          .rejects.toThrow(/Failed to create RazorpayX payout account/)
 
-        expect(result.bankAccountLinked).toBe(true)
+        // Route fallback NEVER runs
+        expect(mockGateway.createPayoutAccount).not.toHaveBeenCalled()
+        expect(organizerProfileRepo.linkPayoutAccount).not.toHaveBeenCalled()
         expect(organizerProfileRepo.linkRazorpayxAccount).not.toHaveBeenCalled()
-        expect(mockLogger.error).toHaveBeenCalledWith(
-          expect.objectContaining({ userId: 'user-123' }),
-          expect.stringContaining('RazorpayX contact/fund account linking failed'),
-        )
       })
 
-      it('regression: with razorpayxClient null/undefined (this suite\'s default), connectBankAccount stays Route-only and never touches linkRazorpayxAccount', async () => {
+      it('throws PaymentError when razorpayxClient is null under razorpayx_payouts strategy (no silent fallback)', async () => {
         // serviceWithGateway (declared in the outer describe) is constructed WITHOUT a
-        // razorpayxClient — the pre-existing behavior for every other test in this file.
-        const result = await serviceWithGateway.connectBankAccount('user-123', BANK_DTO)
+        // razorpayxClient. Under the exclusive razorpayx_payouts strategy this is a
+        // hard configuration error — connectBankAccount fails fast without touching
+        // any repos or the Route gateway.
+        await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
+          .rejects.toThrow(PaymentError)
+        await expect(serviceWithGateway.connectBankAccount('user-123', BANK_DTO))
+          .rejects.toThrow(/RazorpayX client not configured/)
 
-        expect(result.bankAccountLinked).toBe(true)
+        expect(mockGateway.createPayoutAccount).not.toHaveBeenCalled()
+        expect(organizerProfileRepo.linkPayoutAccount).not.toHaveBeenCalled()
         expect(organizerProfileRepo.linkRazorpayxAccount).not.toHaveBeenCalled()
+      })
+
+      it('blocks re-link when razorpayxFundAccountId is already set', async () => {
+        organizerProfileRepo.findByUserId.mockResolvedValue({
+          ...ORGANIZER_PROFILE,
+          razorpayxFundAccountId: 'fa_already_linked',
+        })
+
+        await expect(serviceWithRazorpayx.connectBankAccount('user-123', BANK_DTO))
+          .rejects.toThrow(ConflictError)
         expect(mockRazorpayxClient.createContact).not.toHaveBeenCalled()
       })
     })

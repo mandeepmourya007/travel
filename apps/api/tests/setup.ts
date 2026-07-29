@@ -11,12 +11,15 @@ delete process.env.REDIS_URL
 
 // env.ts's RAZORPAYX_* superRefine gate now runs in every environment (H3 fix — see
 // docs/codebase/Payments & Webhooks.md), not just production, because PAYOUT_STRATEGY
-// defaults to 'razorpayx_payouts'. Several existing tests (e.g. auth.service.test.ts's
-// "RazorpayX dual-write" suite) deliberately rely on env.PAYOUT_STRATEGY defaulting to
-// 'razorpayx_payouts' — so rather than overriding PAYOUT_STRATEGY itself, set dummy
-// values for the four RAZORPAYX_* vars (satisfying the gate) so the module-load-time
-// `envSchema.parse(process.env)` in config/env.ts doesn't throw before a single test
-// runs, while preserving the schema default every existing test already assumes.
+// defaults to 'razorpayx_payouts'. Set dummy values for the four RAZORPAYX_* vars
+// (satisfying the gate) so the module-load-time `envSchema.parse(process.env)` in
+// config/env.ts doesn't throw before a single test runs.
+//
+// PAYOUT_STRATEGY itself is left at its schema default ('razorpayx_payouts'). Individual
+// test files that exercise the Route branch (auth.service.test.ts::connectBankAccount and
+// organizer-lifecycle.test.ts) mutate `env.PAYOUT_STRATEGY` inside their describe blocks
+// via beforeAll/afterAll. The prior "RazorpayX dual-write" suite was replaced on Jul 30
+// with a "RazorpayX-exclusive" suite matching commit e2c8b4a's refactor.
 process.env.RAZORPAYX_KEY_ID = process.env.RAZORPAYX_KEY_ID || 'rzp_test_dummy_key_id'
 process.env.RAZORPAYX_KEY_SECRET = process.env.RAZORPAYX_KEY_SECRET || 'dummy_key_secret'
 process.env.RAZORPAYX_ACCOUNT_NUMBER = process.env.RAZORPAYX_ACCOUNT_NUMBER || '0000000000000000'
