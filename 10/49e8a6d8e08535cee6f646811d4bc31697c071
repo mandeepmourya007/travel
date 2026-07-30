@@ -1,0 +1,37 @@
+apps/web/src/lib/constants.ts
+  s_ecd271178f8a45::t_e19f6dae672628 4
+  s_ecd271178f8a45::t_be7689c2201f83 12-13
+docker/web.prod.Dockerfile
+  s_ecd271178f8a45::t_4c85cb33809c3f 42,62
+render.yaml
+  s_ecd271178f8a45::t_f7097cf7a563ba 201
+scripts/deploy-prod.sh
+  s_ecd271178f8a45::t_6b730d1bbacaa1 181
+.env.prod.example
+  s_ecd271178f8a45::t_6e51be502a2e93 17
+apps/api/src/config/env.ts
+  s_ecd271178f8a45::t_67c2c22b3b8dbb 70
+docker-compose.prod.yml
+  s_ecd271178f8a45::t_2bb63aab3bbbc0 137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1049e8a6d8e08535cee6f646811d4bc31697c071",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ecd271178f8a45": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "d0b534c5-aad4-41ac-accc-f778ac505886",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
