@@ -1,0 +1,24 @@
+apps/api/src/repositories/trip.repository.ts
+  s_26c99eb1212abe::t_17364bd423a392 392,434,492,522
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "cdb7ce4664a41afcd42fa296949709637d82e2db",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_26c99eb1212abe": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "392ec822-f130-420f-ac0c-71ed440a7fa6",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
