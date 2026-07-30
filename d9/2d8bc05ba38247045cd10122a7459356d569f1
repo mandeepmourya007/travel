@@ -1,0 +1,32 @@
+.gitignore
+  h_b3232c20134322 23
+apps/api/prisma/seed.prod.ts
+  s_ef6fb0a85c0a0f::t_6d14963fb034c7 1260-1267
+  s_ef6fb0a85c0a0f::t_ef5d18b59cde97 1251-1259
+  s_ef6fb0a85c0a0f::t_6ba5c526a16058 1010-1011,1013-1014,1016,1018-1019,1022-1025,1027,1029-1032,1034
+  s_ef6fb0a85c0a0f::t_3026d56883436a 277-293
+  s_ef6fb0a85c0a0f::t_0489a94ac1ddf5 397,422,443,465,591,619,639,662,685,710,733,782,830,853
+scripts/upload-seed-images.js
+  s_ef6fb0a85c0a0f::t_0e7e1b2539f4f2 1-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "d92d8bc05ba38247045cd10122a7459356d569f1",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ef6fb0a85c0a0f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b703d2ae-8543-473b-a705-7400bdc57750",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
