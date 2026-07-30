@@ -198,7 +198,7 @@ services:
         sync: false   # your API service URL — used for Socket.IO connections
       - key: API_URL_INTERNAL
         sync: false   # http://safarnama-api:10000
-      - key: NEXT_PUBLIC_APP_NAME
+      - key: APP_NAME
         value: Safarnama
       - key: NEXT_PUBLIC_SITE_URL
         sync: false   # https://safarnama-web.onrender.com
