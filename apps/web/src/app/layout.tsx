@@ -78,7 +78,9 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'NCRkUGRq6YtK7iit0nZ_dolWgx8tR96q5rKlFMx2YpY',
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+      google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    }),
     // Bing verification — add value here once obtained from bing.com/webmasters
     // ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION && {
     //   other: { 'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION },
