@@ -1,0 +1,30 @@
+scripts/deploy-prod.sh
+  s_ef6fb0a85c0a0f::t_a5bad78fce3127 204-212
+  s_ef6fb0a85c0a0f::t_eca30b76a01bbd 405,408,411,460-466,469-471,474,479
+  s_ef6fb0a85c0a0f::t_16b37f521e432b 507,509
+  s_ef6fb0a85c0a0f::t_0ee7f21b3c263e 402-403,467
+  s_ef6fb0a85c0a0f::t_80af76953bd391 473
+  s_ef6fb0a85c0a0f::t_7dd1c817473241 505,508,510-511
+  s_ef6fb0a85c0a0f::t_f9fd67496e88b5 468
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "9aa5899629833b51b3a4a2bcb656fe38085aeb6b",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ef6fb0a85c0a0f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b703d2ae-8543-473b-a705-7400bdc57750",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
