@@ -1,0 +1,24 @@
+apps/web/next.config.js
+  s_ecd271178f8a45::t_245ceb1738627d 7-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "7a3eacca9fd450f1d78481f17a8e1774222a97e0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ecd271178f8a45": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "d0b534c5-aad4-41ac-accc-f778ac505886",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
