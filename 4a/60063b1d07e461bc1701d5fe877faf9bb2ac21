@@ -1,0 +1,28 @@
+.env.prod.example
+  s_4a55047242c61c::t_bb6f96f550ca7a 15-17,70,72-73,79-80,88-115,125-148,160,162-164,171,173-181
+scripts/deploy-prod.sh
+  s_4a55047242c61c::t_af1faef24ab2a7 180-181
+apps/api/src/templates/index.ts
+  s_4a55047242c61c::t_f8414af962036a 103-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4a60063b1d07e461bc1701d5fe877faf9bb2ac21",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4a55047242c61c": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "f9d8a1da-9353-4350-b1f9-7fa9cdf533f7",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
