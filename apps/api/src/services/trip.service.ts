@@ -253,6 +253,7 @@ export class TripService {
   }
 
   async createTrip(userId: string, input: CreateTripDto) {
+    this.logger.info({ userId, destinationId: input.destinationId, title: input.title }, 'createTrip: started')
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new ForbiddenError('Organizer profile not found')
     if (profile.verificationStatus !== VERIFICATION_STATUS.APPROVED) {
@@ -321,12 +322,13 @@ export class TripService {
       destination: { connect: { id: destination.id } },
     })
 
-    this.logger.info({ tripId: trip.id, slug }, 'Trip created')
+    this.logger.info({ tripId: trip.id, slug, userId }, 'createTrip: completed')
     await this.invalidateTripCaches()
     return mapTripToSummary(trip)
   }
 
   async updateTrip(userId: string, tripId: string, input: UpdateTripDto) {
+    this.logger.info({ tripId, userId }, 'updateTrip: started')
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.status !== TRIP_STATUS.DRAFT && trip.status !== TRIP_STATUS.ACTIVE) {
@@ -616,6 +618,7 @@ export class TripService {
   }
 
   async publishTrip(userId: string, tripId: string) {
+    this.logger.info({ tripId, userId }, 'publishTrip: started')
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.status !== TRIP_STATUS.DRAFT) {
@@ -623,14 +626,21 @@ export class TripService {
     }
 
     if (!trip.title || !trip.description || !trip.pricePerPerson) {
+      this.logger.warn({ tripId, userId }, 'publishTrip: validation failed — missing title/description/price')
       throw new ValidationError('Trip must have title, description, and price before publishing')
     }
 
     const tripWithPoints = trip as typeof trip & { transferPoints?: { type: string }[] }
     const hasPickup = tripWithPoints.transferPoints?.some((p) => p.type === TRANSFER_POINT_TYPE.PICKUP)
     const hasDrop = tripWithPoints.transferPoints?.some((p) => p.type === TRANSFER_POINT_TYPE.DROP)
-    if (!hasPickup) throw new ValidationError('Trip must have at least one pickup point before publishing')
-    if (!hasDrop) throw new ValidationError('Trip must have at least one drop point before publishing')
+    if (!hasPickup) {
+      this.logger.warn({ tripId, userId }, 'publishTrip: validation failed — no pickup point')
+      throw new ValidationError('Trip must have at least one pickup point before publishing')
+    }
+    if (!hasDrop) {
+      this.logger.warn({ tripId, userId }, 'publishTrip: validation failed — no drop point')
+      throw new ValidationError('Trip must have at least one drop point before publishing')
+    }
 
     const updated = await this.tripRepo.withTransaction(async (tx) => {
       const result = await tx.trip.update({
@@ -651,6 +661,7 @@ export class TripService {
   }
 
   async deleteTrip(userId: string, tripId: string) {
+    this.logger.info({ tripId, userId }, 'deleteTrip: started')
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     if (trip.currentBookings > 0) {
@@ -687,6 +698,7 @@ export class TripService {
    * @throws ForbiddenError — caller doesn't own the trip or isn't an approved organizer
    */
   async duplicateTrip(userId: string, sourceTripId: string) {
+    this.logger.info({ sourceTripId, userId }, 'duplicateTrip: started')
     const { trip: source, profile } = await this.verifyTripOwnership(userId, sourceTripId)
 
     // Build a unique slug for the duplicate
@@ -842,6 +854,7 @@ export class TripService {
     action: 'APPROVED' | 'REJECTED',
     responseNote?: string,
   ) {
+    this.logger.info({ tripId, requestId, action, userId }, 'respondToTripRequest: started')
     const { trip } = await this.verifyTripOwnership(userId, tripId)
 
     const request = await this.tripRequestRepo.findById(requestId)

@@ -38,6 +38,7 @@ export class WebhookController {
    */
   handleRazorpayx = async (req: Request, res: Response) => {
     const log = req.log ?? logger
+    log.info({ provider: 'razorpayx', contentLength: req.headers['content-length'] }, 'webhook: received')
 
     // Respond 200 immediately to avoid provider timeout
     res.status(200).json({ received: true })
@@ -53,6 +54,7 @@ export class WebhookController {
       }
 
       const { webhookEventId, normalized } = result
+      log.info({ webhookEventId, eventType: normalized.rawEventName, payoutId: normalized.payoutId }, 'webhook: parsed')
       setImmediate(async () => {
         try {
           await this.paymentService.processWebhookEvent({
@@ -72,6 +74,7 @@ export class WebhookController {
 
   private handleWebhookRequest = async (req: Request, res: Response, provider: PaymentProvider) => {
     const log = req.log ?? logger
+    log.info({ provider, contentLength: req.headers['content-length'] }, 'webhook: received')
 
     // Respond 200 immediately to avoid provider timeout
     res.status(200).json({ received: true })
@@ -89,6 +92,7 @@ export class WebhookController {
       }
 
       const { webhookEventId, normalized } = result
+      log.info({ webhookEventId, eventType: normalized.rawEventName, orderId: normalized.orderId, paymentId: normalized.paymentId, provider }, 'webhook: parsed')
 
       // Process asynchronously after 200 response
       setImmediate(async () => {

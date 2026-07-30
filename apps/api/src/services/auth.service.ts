@@ -65,6 +65,7 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const timer = startTimer()
+    this.logger.info({ role: dto.role }, 'signup: started')
     const exists = await this.userRepo.emailExists(dto.email)
     if (exists) {
       throw new ConflictError('An account with this email already exists')
@@ -106,11 +107,13 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const timer = startTimer()
+    this.logger.info('login: started')
 
     // Check brute-force lockout before any DB work
     if (this.loginAttemptTracker) {
       const lockoutRemaining = await this.loginAttemptTracker.isLocked(dto.email)
       if (lockoutRemaining > 0) {
+        this.logger.warn('login: account locked due to too many attempts')
         throw new AuthError(
           `Account temporarily locked due to too many failed attempts. Try again in ${Math.ceil(lockoutRemaining / 60)} minutes.`,
         )
@@ -121,9 +124,11 @@ export class AuthService {
     if (!user) {
       // Record failure even for non-existent emails to prevent email enumeration timing attacks
       await this.loginAttemptTracker?.recordFailure(dto.email)
+      this.logger.info('login: failed — email not found')
       throw new AuthError('Invalid email or password')
     }
     if (!user.passwordHash) {
+      this.logger.info({ userId: user.id, hasGoogleId: !!user.googleId }, 'login: failed — no password hash')
       throw new AuthError(
         user.googleId
           ? 'This account uses Google sign-in. Please use the Google button.'
@@ -134,10 +139,12 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash)
     if (!valid) {
       await this.loginAttemptTracker?.recordFailure(dto.email)
+      this.logger.info({ userId: user.id }, 'login: failed — invalid password')
       throw new AuthError('Invalid email or password')
     }
 
     if (!user.isActive) {
+      this.logger.warn({ userId: user.id }, 'login: failed — account deactivated')
       throw new AuthError('Account is deactivated')
     }
 
@@ -450,6 +457,7 @@ export class AuthService {
     userId: string,
     dto: ConnectBankAccountDto,
   ): Promise<ConnectBankAccountResponse> {
+    this.logger.info({ userId, strategy: env.PAYOUT_STRATEGY }, 'connectBankAccount: started')
     const profile = await this.organizerProfileRepo.findByUserId(userId)
     if (!profile) throw new NotFoundError('OrganizerProfile')
 
@@ -494,20 +502,26 @@ export class AuthService {
       throw new ValidationError('PAN is required to link a Razorpay payout account')
     }
 
-    const acct = await this.gateway.createPayoutAccount({
-      referenceId: profile.id,
-      businessName: profile.businessName,
-      contactName: dto.accountHolderName,
-      email: user.email ?? `organizer-${profile.id}@placeholder.local`,
-      phone: user.phone,
-      pan: dto.pan,
-      accountType: dto.accountType,
-      bank: {
-        accountNumber: dto.accountNumber,
-        ifsc: dto.ifscCode,
-        beneficiaryName: dto.beneficiaryName,
-      },
-    })
+    let acct: Awaited<ReturnType<IPaymentGateway['createPayoutAccount']>>
+    try {
+      acct = await this.gateway.createPayoutAccount({
+        referenceId: profile.id,
+        businessName: profile.businessName,
+        contactName: dto.accountHolderName,
+        email: user.email ?? `organizer-${profile.id}@placeholder.local`,
+        phone: user.phone,
+        pan: dto.pan,
+        accountType: dto.accountType,
+        bank: {
+          accountNumber: dto.accountNumber,
+          ifsc: dto.ifscCode,
+          beneficiaryName: dto.beneficiaryName,
+        },
+      })
+    } catch (err) {
+      this.logger.error({ err, userId, profileId: profile.id, provider }, 'connectBankAccount: gateway createPayoutAccount failed')
+      throw err
+    }
 
     // Atomic CAS — prevents race condition when two requests pass the check above
     const { count } = await this.organizerProfileRepo.linkPayoutAccount(profile.id, acct.provider, acct.accountId)
@@ -572,6 +586,7 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string; isNewUser: boolean }> {
     const google = await this.verifyGoogleToken(dto.idToken)
+    this.logger.info('googleAuth: started')
 
     // Case A: existing user by googleId
     let user = await this.userRepo.findByGoogleId(google.sub)
@@ -775,6 +790,7 @@ export class AuthService {
     meta: { userAgent?: string; ip?: string },
   ): Promise<{ auth: AuthResponse; refreshToken: string }> {
     const { email } = this.verifyOrganizerInviteToken(token)
+    this.logger.info('organizerSignup: started')
 
     const exists = await this.userRepo.emailExists(email)
     if (exists) {

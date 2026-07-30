@@ -249,9 +249,16 @@ export class BookingService {
    */
   async cancelBooking(userId: string, bookingId: string, reason: string): Promise<CancelBookingResult> {
     const timer = startTimer()
+    this.logger.info({ bookingId, userId, reason }, 'cancelBooking: started')
     const booking = await this.bookingRepo.findById(bookingId)
-    if (!booking) throw new NotFoundError('Booking')
-    if (booking.userId !== userId) throw new ForbiddenError('You can only cancel your own bookings')
+    if (!booking) {
+      this.logger.warn({ bookingId, userId }, 'cancelBooking: booking not found')
+      throw new NotFoundError('Booking')
+    }
+    if (booking.userId !== userId) {
+      this.logger.warn({ bookingId, userId, ownerUserId: booking.userId }, 'cancelBooking: forbidden — not owner')
+      throw new ForbiddenError('You can only cancel your own bookings')
+    }
 
     // CRITICAL fix: use the trip startDate FROZEN at deposit-release time (if a
     // DEPOSIT_RELEASE tx exists for this booking), not the live trip.startDate. An
@@ -270,6 +277,7 @@ export class BookingService {
     const hoursUntilTrip = (refundRelevantStartDate.getTime() - Date.now()) / (1000 * 60 * 60)
     const refundPercent = calculateRefundPercent(booking.trip.cancellationPolicy, hoursUntilTrip)
     const refundAmount = Math.round((booking.totalAmount * refundPercent) / 100)
+    this.logger.info({ bookingId, userId, tripId: booking.trip.id, preCancelStatus: booking.bookingStatus, refundPercent, refundAmount, hoursUntilTrip: Math.round(hoursUntilTrip), totalAmount: booking.totalAmount }, 'cancelBooking: refund calculated')
 
     // Atomic gate with SELECT FOR UPDATE: captures the true pre-cancel status and atomically
     // decrements trip seats if it was CONFIRMED — all in one transaction.
@@ -590,6 +598,7 @@ export class BookingService {
    */
   private async clawbackOrganizerEarning(bookingId: string, bookingRef: string, refundPercent: number): Promise<void> {
     if (env.PAYOUT_STRATEGY !== PAYOUT_STRATEGY.RAZORPAYX_PAYOUTS || !this.walletService) return
+    this.logger.debug({ bookingId, refundPercent }, 'clawbackOrganizerEarning: started')
 
     try {
       const earningTx = await this.walletService.findTransactionByReference(
@@ -660,6 +669,7 @@ export class BookingService {
     },
   ): Promise<CreateBookingResponse> {
     const timer = startTimer()
+    this.logger.info({ userId, tripId: input.tripId, numTravelers: input.numTravelers, seatCount: input.seatIds?.length ?? 0 }, 'createBooking: started')
     const paymentSvc = this.requirePaymentService()
 
     // 1. Fast-path idempotency check (no lock needed — read-only, skips lock overhead)
@@ -723,14 +733,21 @@ export class BookingService {
       }
 
       const trip = await this.tripRepo.findByIdForBooking(input.tripId)
-      if (!trip) throw new NotFoundError('Trip')
+      if (!trip) {
+        this.logger.warn({ userId, tripId: input.tripId }, 'createBooking: trip not found')
+        throw new NotFoundError('Trip')
+      }
+      this.logger.debug({ tripId: trip.id, tripStatus: trip.status, capacity: trip.maxGroupSize, currentBookings: trip.currentBookings, bookingMode: trip.bookingMode }, 'createBooking: trip loaded')
       if (trip.isHidden) {
+        this.logger.warn({ userId, tripId: input.tripId }, 'createBooking: trip is hidden')
         throw new ValidationError('This trip is not available for booking')
       }
       if (trip.status !== TRIP_STATUS.ACTIVE) {
+        this.logger.warn({ userId, tripId: input.tripId, tripStatus: trip.status }, 'createBooking: trip not active')
         throw new ValidationError('This trip is not accepting bookings')
       }
       if (!trip.acceptingBookings) {
+        this.logger.warn({ userId, tripId: input.tripId }, 'createBooking: bookings paused')
         throw new ValidationError(
           trip.bookingsPausedReason
             ? `Bookings are closed: ${trip.bookingsPausedReason}`
@@ -738,9 +755,11 @@ export class BookingService {
         )
       }
       if (trip.bookingDeadline && new Date(trip.bookingDeadline) < new Date()) {
+        this.logger.warn({ userId, tripId: input.tripId }, 'createBooking: booking deadline passed')
         throw new ValidationError('Booking deadline has passed')
       }
       if (trip.currentBookings + input.numTravelers > trip.maxGroupSize) {
+        this.logger.warn({ userId, tripId: input.tripId, capacity: trip.maxGroupSize, currentBookings: trip.currentBookings, requested: input.numTravelers }, 'createBooking: not enough seats')
         throw new ValidationError('Not enough seats available')
       }
       if (trip.organizer?.userId === userId) {
@@ -814,6 +833,7 @@ export class BookingService {
       const markupTotal = markupPerPerson * input.numTravelers
       const totalAmount = baseTotal + markupTotal
       const amountInPaise = totalAmount * 100
+      this.logger.debug({ userId, tripId: input.tripId, pricePerPerson, baseTotal, markupTotal, totalAmount, earlyBird: !!isEarlyBird }, 'createBooking: price calculated')
 
       // Pre-check seat availability (optimistic — atomic hold happens after booking creation)
       if (input.seatIds?.length && this.vehicleService) {
@@ -821,6 +841,7 @@ export class BookingService {
         if (!availableSeats) {
           throw new ConflictError('One or more selected seats are no longer available', BOOKING_ERROR_CODE.SEAT_CONFLICT)
         }
+        this.logger.debug({ userId, tripId: input.tripId, seatIds: input.seatIds }, 'createBooking: seat pre-check passed')
       }
 
       // 7. Create payment order. Cashfree Easy Split wires vendor payout at order creation.
@@ -1029,7 +1050,9 @@ export class BookingService {
       if (input.seatIds?.length && this.vehicleService) {
         try {
           await this.vehicleService.holdSeats(input.seatIds, userId, booking.id)
+          this.logger.info({ bookingId: booking.id, seatIds: input.seatIds }, 'createBooking: seats held')
         } catch (seatErr) {
+          this.logger.error({ err: seatErr, bookingId: booking.id, seatIds: input.seatIds }, 'createBooking: seat hold failed — expiring booking')
           // Expire the booking — Razorpay order expires naturally
           await this.bookingRepo.updateStatus(booking.id, BOOKING_STATUS.EXPIRED)
             .catch((cancelErr: unknown) => this.logger.error({ cancelErr, bookingId: booking.id }, 'Failed to expire booking after seat hold failure'))
@@ -1107,10 +1130,14 @@ export class BookingService {
     preloadedBooking?: Awaited<ReturnType<BookingRepository['findWithPaymentDetails']>>,
   ): Promise<VerifyPaymentResponse> {
     const timer = startTimer()
+    this.logger.info({ bookingId, userId: preloadedBooking?.userId }, 'confirmBooking: started')
     this.requirePaymentService()
 
     const booking = preloadedBooking ?? await this.bookingRepo.findWithPaymentDetails(bookingId)
-    if (!booking) throw new NotFoundError('Booking')
+    if (!booking) {
+      this.logger.warn({ bookingId }, 'confirmBooking: booking not found')
+      throw new NotFoundError('Booking')
+    }
 
     // Idempotent — already confirmed
     if (booking.bookingStatus === BOOKING_STATUS.CONFIRMED) {
@@ -1130,12 +1157,14 @@ export class BookingService {
 
     const paymentTx = booking.paymentTransactions[0]
     if (!paymentTx) {
+      this.logger.error({ bookingId, userId: booking.userId, tripId: booking.trip.id }, 'confirmBooking: no payment transaction found')
       throw new ValidationError('No payment transaction found for this booking')
     }
 
     // Atomic gate — only the first concurrent call transitions PENDING_PAYMENT→CONFIRMED.
     // Subsequent retries see CONFIRMED and return idempotently without re-incrementing seats.
     const gateRows = await this.bookingRepo.atomicConfirmGate(bookingId)
+    this.logger.debug({ bookingId, userId: booking.userId, tripId: booking.trip.id, gateRows }, 'confirmBooking: atomic gate result')
     if (gateRows === 0) {
       // Lost the race — re-read to return idempotent response
       const fresh = await this.bookingRepo.findWithPaymentDetails(bookingId)
@@ -1152,6 +1181,7 @@ export class BookingService {
 
     // We won the gate — proceed with seat increment then capture
     const rowsUpdated = await this.tripRepo.atomicIncrementBookings(booking.trip.id, booking.numTravelers)
+    this.logger.debug({ bookingId, tripId: booking.trip.id, numTravelers: booking.numTravelers, rowsUpdated }, 'confirmBooking: seats incremented')
     if (rowsUpdated === 0) {
       // Trip is at capacity — revert the gate so the customer can be refunded or retry later
       await this.bookingRepo.revertConfirmGate(bookingId)
@@ -1194,6 +1224,8 @@ export class BookingService {
         this.logger.error({ err: gateResult.reason, bookingId }, 'Failed to revert confirmation gate during capture-failure rollback — booking stuck in CONFIRMED')
       throw error
     }
+
+    this.logger.info({ bookingId, userId: booking.userId, tripId: booking.trip.id, paymentTxId: paymentTx.id, provider: txProvider, amountPaise: paymentTx.amount * 100 }, 'confirmBooking: payment captured')
 
     // Persist CAPTURED status immediately after a successful Razorpay capture so that
     // sweepOrphanedConfirmedBookings never reverts this booking to PENDING_PAYMENT and
@@ -1254,11 +1286,9 @@ export class BookingService {
 
     // Auto-transition ACTIVE → FULL if trip is at capacity (atomic, no TOCTOU)
     const fullRows = await this.tripRepo.markFullIfAtCapacity(booking.trip.id)
-    if (fullRows > 0) {
-      this.logger.info({ tripId: booking.trip.id }, 'Trip auto-transitioned to FULL')
-    }
+    this.logger.info({ bookingId, tripId: booking.trip.id, markedFull: fullRows > 0 }, 'confirmBooking: capacity check')
 
-    this.logger.info({ bookingId, durationMs: timer.elapsed() }, 'Booking confirmed')
+    this.logger.info({ bookingId, userId: booking.userId, tripId: booking.trip.id, durationMs: timer.elapsed() }, 'confirmBooking: completed')
 
     // Fire-and-forget: notify traveler
     this.notificationService.send({
