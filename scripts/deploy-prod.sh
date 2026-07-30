@@ -201,7 +201,15 @@ EXISTING_DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' 
 if [ -n "$EXISTING_DOMAIN" ]; then
   # Strip protocol and trailing slashes in case it was stored incorrectly
   DOMAIN=$(echo "$EXISTING_DOMAIN" | sed 's|^https\?://||' | sed 's|/.*||')
-  echo "   ✅ Using domain from ${ENV_FILE}: $DOMAIN"
+  read -rp "   Found domain: $DOMAIN — use this? (y/n) [y]: " USE_DOMAIN
+  if [[ "$USE_DOMAIN" == "n" || "$USE_DOMAIN" == "N" ]]; then
+    read -rp "   Enter new domain (or leave empty to skip): " NEW_DOMAIN_OVERRIDE
+    if [ -n "$NEW_DOMAIN_OVERRIDE" ]; then
+      DOMAIN=$(echo "$NEW_DOMAIN_OVERRIDE" | sed 's|^https\?://||' | sed 's|/.*||')
+    else
+      DOMAIN=""
+    fi
+  fi
 else
   read -rp "   No domain set. Enter domain (or leave empty to skip): " NEW_DOMAIN
   if [ -n "$NEW_DOMAIN" ]; then
@@ -391,24 +399,16 @@ _wait_healthy() {
   exit 1
 }
 
-# ── Build API image (old containers stay up — zero build-time downtime) ──
-echo "📦 Building API image..."
-$DC build api
+# ── Clean up orphan containers from previous configs ──
+$DC up -d --remove-orphans 2>/dev/null || true
 
-# Tag with git SHA for rollback capability
-docker tag travel-api:prod "travel-api:$GIT_SHA" 2>/dev/null || true
-docker image prune -f 2>/dev/null || true
-
-# ── Stop existing containers (start of actual downtime) ──
-$DC down --remove-orphans 2>/dev/null || true
-
-# ── Start infrastructure (Redis + optional Postgres) ──
+# ── Ensure infrastructure is running ──────────────────
 echo ""
 if [ "$DB_MODE" = "docker" ]; then
-  echo "🗄️  Starting Postgres + Redis..."
+  echo "🗄️  Starting/ensuring Postgres + Redis..."
   $DC up -d postgres redis
 else
-  echo "🗄️  Starting Redis..."
+  echo "🗄️  Starting/ensuring Redis..."
   $DC up -d redis
 fi
 
@@ -457,17 +457,26 @@ else
   echo "  ⏭️  Seed skipped"
 fi
 
-# ── Start API (must be healthy before building web) ────
-# The web image build runs `next build` with --network=host so ISR pages can
-# prerender against the live API (http://127.0.0.1:4001/api/v1).
+# ── Build API image (old containers stay up — zero build-time downtime) ──
 echo ""
-echo "🔧 Starting API..."
-$DC up -d api
+echo "📦 Building API image (old API stays live)..."
+$DC build api
+
+# Tag with git SHA for rollback capability
+docker tag travel-api:prod "travel-api:$GIT_SHA" 2>/dev/null || true
+docker image prune -f 2>/dev/null || true
+
+# ── Rolling restart API ────────────────────────────────
+# Recreate only the API container with the new image — Nginx keeps serving
+# until the new container is healthy.
+echo ""
+echo "🔄 Rolling restart API..."
+$DC up -d --no-deps --force-recreate api
 _wait_healthy api travel-api-prod
 
 # ── Build Web image (API is live — ISR prerenders get real data) ──
 echo ""
-echo "📦 Building Web image..."
+echo "📦 Building Web image (old Web stays live)..."
 $DC build web
 
 # Tag with git SHA for rollback capability
@@ -493,10 +502,13 @@ else
   cp docker/nginx/templates/default.conf.template.http-only docker/nginx/templates/default.conf.template
 fi
 
-# ── Start Web + Nginx ─────────────────────────────
+# ── Rolling restart Web + Nginx ───────────────────
 echo ""
-echo "🔧 Starting Web + Nginx..."
-$DC up -d web nginx
+echo "🔄 Rolling restart Web..."
+$DC up -d --no-deps --force-recreate web
+_wait_healthy web travel-web-prod
+echo "🔄 Restarting Nginx..."
+$DC up -d --no-deps --force-recreate nginx
 
 # ── Health check all services (parallel) ─────────────
 echo ""
