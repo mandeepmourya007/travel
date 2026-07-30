@@ -4,6 +4,11 @@ const { withSentryConfig } = require('@sentry/nextjs')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Expose APP_NAME to client-side code without the NEXT_PUBLIC_ prefix.
+  // Value is baked in at build time — rebuild to update.
+  env: {
+    APP_NAME: process.env.APP_NAME || 'Safarnama',
+  },
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
