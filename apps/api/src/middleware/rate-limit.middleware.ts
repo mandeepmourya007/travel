@@ -117,7 +117,9 @@ function createRateLimiter(prefix: string, maxRequests: number, windowSeconds: n
 export const generalRateLimit = createRateLimiter('general', 100, 60)
 export const authRateLimit = createRateLimiter('auth', 10, 60)
 export const otpRateLimit = createRateLimiter('otp', 5, 60)
-export const webhookRateLimit = createRateLimiter('webhook', 50, 60)
+// Webhook endpoints are HMAC-verified, so rate limit is abuse-prevention only.
+// 200/min allows payment surges (flash sales) without 429ing legit Razorpay retries.
+export const webhookRateLimit = createRateLimiter('webhook', 200, 60)
 // Stricter tier for money-sensitive endpoints (booking creation, payment
 // verification, cancellation). 20/min per IP stops brute-force payment
 // attempts while leaving headroom for legitimate multi-leg bookings.
