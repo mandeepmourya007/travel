@@ -1,0 +1,30 @@
+apps/web/src/app/icon.svg
+  s_ecd271178f8a45::t_96c494ff3eb318 1-2,4-6
+apps/web/public/logo.svg
+  s_ecd271178f8a45::t_779f4abfd25428 1-11
+  s_ecd271178f8a45::t_a8634e0c4ec783 12
+apps/web/src/components/layout/header.tsx
+  s_ecd271178f8a45::t_798d840cb34371 121-122
+  s_ecd271178f8a45::t_399cf2ccc250cc 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "c76d8ba09c65a5cc63d28dd108d6a6af35c59126",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ecd271178f8a45": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "d0b534c5-aad4-41ac-accc-f778ac505886",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
