@@ -7,12 +7,12 @@ import { v2 as cloudinary } from 'cloudinary'
 
 // Only mock: env config (module-level, can't be injected)
 const mockEnv = vi.hoisted(() => ({
-  NODE_ENV: 'test' as 'development' | 'production' | 'test',
+  NODE_ENV: 'development' as 'development' | 'production' | 'staging',
   CLOUDINARY_CLOUD_NAME: 'test-cloud',
   CLOUDINARY_API_KEY: 'test-api-key',
   CLOUDINARY_API_SECRET: 'test-api-secret',
 }))
-vi.mock('../../../src/config/env', () => ({ env: mockEnv }))
+vi.mock('../../../src/config/env', () => ({ env: mockEnv, isProduction: false }))
 
 import { UploadService } from '../../../src/services/upload.service'
 import { ValidationError } from '../../../src/errors/app-error'
@@ -21,7 +21,7 @@ describe('UploadService', () => {
   let service: UploadService
 
   beforeEach(() => {
-    mockEnv.NODE_ENV = 'test'
+    mockEnv.NODE_ENV = 'development'
     mockEnv.CLOUDINARY_CLOUD_NAME = 'test-cloud'
     mockEnv.CLOUDINARY_API_KEY = 'test-api-key'
     mockEnv.CLOUDINARY_API_SECRET = 'test-api-secret'
@@ -43,8 +43,8 @@ describe('UploadService', () => {
       expect(result.signature).toMatch(/^[a-f0-9]{40}$/) // SHA-1 hex
     })
 
-    it('prefixes folder with dev/ in non-production (test)', () => {
-      mockEnv.NODE_ENV = 'test'
+    it('prefixes folder with dev/ in non-production (development)', () => {
+      mockEnv.NODE_ENV = 'development'
       expect(service.generateSignature('trips').folder).toBe('dev/trips')
     })
 

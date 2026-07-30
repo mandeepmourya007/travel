@@ -28,7 +28,7 @@ const mockEnv = {
   PAYMENT_GATEWAY: 'razorpay' as 'razorpay' | 'cashfree',
   CASHFREE_ENV: 'sandbox' as 'sandbox' | 'production',
   CLIENT_URL: 'http://localhost:3000',
-  NODE_ENV: 'test',
+  NODE_ENV: 'development',
   // Default to 'route' so existing tests (which construct BookingService without a
   // walletService) exercise the exact same no-op path they always have — the
   // ORGANIZER_EARNING credit/clawback describe blocks below explicitly flip this to
@@ -38,6 +38,7 @@ const mockEnv = {
 
 vi.mock('../../../src/config/env', () => ({
   get env() { return mockEnv },
+  isProduction: false,
 }))
 
 // ── Mock Repositories ─────────────────────────────────

@@ -15,11 +15,12 @@ import { PaymentService } from '../../../src/services/payment.service'
 
 vi.mock('../../../src/config/env', () => ({
   env: {
-    NODE_ENV: 'test',
+    NODE_ENV: 'development',
     RAZORPAY_KEY_ID: 'rzp_test_key',
     RAZORPAY_KEY_SECRET: 'test_secret',
     RAZORPAY_WEBHOOK_SECRET: 'test_webhook_secret',
   },
+  isProduction: false,
 }))
 
 const mockRazorpayGateway = {

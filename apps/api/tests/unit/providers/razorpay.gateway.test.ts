@@ -16,16 +16,16 @@ import { AuthError, PaymentError } from '../../../src/errors/app-error'
 import { NORMALIZED_EVENT_TYPE } from '../../../src/types/payment.types'
 import { RZP_MOCK_ACCOUNT_PREFIX } from '../../../src/providers/payment/payment.constants'
 
-vi.mock('../../../src/config/env', () => ({
-  env: {
-    NODE_ENV: 'test',
-    RAZORPAY_KEY_ID: 'rzp_test_key',
-    RAZORPAY_KEY_SECRET: 'test_secret',
-    RAZORPAY_WEBHOOK_SECRET: 'test_webhook_secret',
-  },
+const mockEnvData = vi.hoisted(() => ({
+  NODE_ENV: 'development',
+  RAZORPAY_KEY_ID: 'rzp_test_key',
+  RAZORPAY_KEY_SECRET: 'test_secret',
+  RAZORPAY_WEBHOOK_SECRET: 'test_webhook_secret',
 }))
-
-import { env } from '../../../src/config/env'
+vi.mock('../../../src/config/env', () => ({
+  env: mockEnvData,
+  get isProduction() { return mockEnvData.NODE_ENV === 'production' || mockEnvData.NODE_ENV === 'staging' },
+}))
 
 const WEBHOOK_SECRET = 'wh_secret_test'
 const KEY_SECRET = 'key_secret_test'
@@ -433,7 +433,7 @@ describe('createPayoutAccount', () => {
   })
 
   it('calls Razorpay /v2/accounts in production and returns normalized account', async () => {
-    ;(env as Record<string, unknown>)['NODE_ENV'] = 'production'
+    mockEnvData.NODE_ENV = 'production'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -455,13 +455,13 @@ describe('createPayoutAccount', () => {
       expect(result.provider).toBe('razorpay')
       expect(result.status).toBe('active')
     } finally {
-      ;(env as Record<string, unknown>)['NODE_ENV'] = 'test'
+      mockEnvData.NODE_ENV = 'development'
       vi.unstubAllGlobals()
     }
   })
 
   it('throws PaymentError when Razorpay /v2/accounts returns non-2xx in production', async () => {
-    ;(env as Record<string, unknown>)['NODE_ENV'] = 'production'
+    mockEnvData.NODE_ENV = 'production'
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 422,
@@ -471,7 +471,7 @@ describe('createPayoutAccount', () => {
     try {
       await expect(gateway.createPayoutAccount(params)).rejects.toThrow(PaymentError)
     } finally {
-      ;(env as Record<string, unknown>)['NODE_ENV'] = 'test'
+      mockEnvData.NODE_ENV = 'development'
       vi.unstubAllGlobals()
     }
   })

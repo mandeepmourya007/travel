@@ -28,12 +28,13 @@ import {
 
 vi.mock('../../../src/config/env', () => ({
   env: {
-    NODE_ENV: 'test',
+    NODE_ENV: 'development',
     CASHFREE_APP_ID: 'cf_test_app',
     CASHFREE_SECRET_KEY: 'cf_test_secret',
     CASHFREE_WEBHOOK_SECRET: 'cf_webhook_secret',
     CASHFREE_ENV: 'sandbox',
   },
+  isProduction: false,
 }))
 
 const CF_WEBHOOK_SECRET = 'cf_webhook_secret'

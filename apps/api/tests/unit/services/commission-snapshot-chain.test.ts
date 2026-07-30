@@ -33,10 +33,11 @@ const mockEnv = {
   PAYMENT_GATEWAY: 'razorpay' as const,
   CASHFREE_ENV: 'sandbox' as const,
   CLIENT_URL: 'http://localhost:3000',
-  NODE_ENV: 'test',
+  NODE_ENV: 'development',
 }
 vi.mock('../../../src/config/env', () => ({
   get env() { return mockEnv },
+  isProduction: false,
 }))
 
 const RATE_A = 10 // organizer's rate at the time the trip is created
