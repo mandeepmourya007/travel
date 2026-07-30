@@ -1,6 +1,7 @@
 'use client'
 
 import { useLogError } from '@/hooks/use-log-error'
+import { APP_NAME } from '@/lib/constants'
 
 export default function GlobalError({
   error,
@@ -29,7 +30,7 @@ export default function GlobalError({
             borderRadius: '0.75rem',
             backgroundColor: '#fff',
             border: '1px solid #e5e5e5',
-            padding: '2.5rem',
+            padding: '1.5rem',
             textAlign: 'center',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
           }}>
@@ -40,22 +41,44 @@ export default function GlobalError({
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#737373' }}>
               An unexpected error occurred. Please try again or refresh the page.
             </p>
-            <button
-              onClick={reset}
-              style={{
-                marginTop: '1.5rem',
-                padding: '0.625rem 1.5rem',
-                borderRadius: '0.5rem',
-                border: '1px solid #d4d4d4',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                color: '#171717',
-              }}
-            >
-              Try Again
-            </button>
+            <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'stretch' }}>
+              <button
+                onClick={reset}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  border: 'none',
+                  backgroundColor: '#0FBAB5',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: '#fff',
+                }}
+              >
+                Try Again
+              </button>
+              <a
+                href="/"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #d4d4d4',
+                  backgroundColor: '#fff',
+                  textDecoration: 'none',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  color: '#171717',
+                }}
+              >
+                Go Home
+              </a>
+            </div>
+            <p style={{ marginTop: '2rem', fontSize: '0.75rem', color: '#a3a3a3' }}>
+              {APP_NAME}
+            </p>
           </div>
         </div>
       </body>
