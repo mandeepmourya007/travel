@@ -204,7 +204,7 @@ export class TripService {
     const reviewsOffset = (reviewsPage - 1) * reviewsLimit
 
     const [tripsResult, reviewResult, ratingStats, distribution] = await Promise.all([
-      this.tripRepo.findByOrganizerIdPaginated(organizerId, TRIP_STATUS.ACTIVE, { offset: tripsOffset, limit: tripsLimit }),
+      this.tripRepo.findByOrganizerIdPaginated(organizerId, [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED], { offset: tripsOffset, limit: tripsLimit }),
       this.reviewRepo.findByOrganizerId(organizerId, { offset: reviewsOffset, limit: reviewsLimit }),
       this.reviewRepo.getOrganizerRatingStats(organizerId),
       this.reviewRepo.getRatingDistributionByOrganizer(organizerId),

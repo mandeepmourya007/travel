@@ -1,4 +1,4 @@
-import { Prisma, BookingStatus, TripRequestStatus } from '@prisma/client'
+import { Prisma, BookingStatus, TripRequestStatus, TripStatus } from '@prisma/client'
 import type { ExtendedPrismaClient, TransactionClient } from '../lib/prisma'
 import type { TripFilters } from '@shared/types/trip.types'
 import type { DestinationTripFilters } from '@shared/types/destination.types'
@@ -312,13 +312,16 @@ export class TripRepository {
 
   async findByOrganizerIdPaginated(
     organizerId: string,
-    status: string | undefined,
+    status: string | string[] | undefined,
     pagination: { offset: number; limit: number },
   ) {
+    const statusFilter = Array.isArray(status)
+      ? { in: status as TripStatus[] }
+      : status as TripStatus | undefined
     const where: Prisma.TripWhereInput = {
       organizerId,
       isDeleted: false,
-      ...(status && { status: status as Prisma.EnumTripStatusFilter }),
+      ...(statusFilter && { status: statusFilter }),
     }
     const [data, total] = await Promise.all([
       this.prisma.trip.findMany({
