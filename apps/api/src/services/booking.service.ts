@@ -25,7 +25,7 @@ import type { PaymentProviderConst } from '@shared/constants'
 import { WALLET_TX, WALLET_REFERENCE_MODELS } from '@shared/constants/wallet'
 import { calculateRefundPercent } from '@shared/utils/refund'
 import { calculatePayoutSplit, assertPayoutSafe, calculateOrganizerEntitlement } from '@shared/utils/payout'
-import { env } from '../config/env'
+import { env, isProduction } from '../config/env'
 import { withLock } from '../utils/redis-lock'
 
 // Matches a real Razorpay linked account ID: "acc_" + 14+ alphanumeric chars.
@@ -728,7 +728,7 @@ export class BookingService {
       }
 
       // 3. Validations
-      if (!env.RAZORPAY_KEY_ID && env.NODE_ENV === 'production') {
+      if (!env.RAZORPAY_KEY_ID && isProduction) {
         throw new ValidationError('Payment configuration is missing — contact support')
       }
 

@@ -8,6 +8,7 @@ import { redis } from './config/redis'
 import { basePrisma } from './lib/prisma'
 import { startCronJobs } from './utils/cron-jobs'
 import { cronDeps, authService, chatService, setIoInstance } from './config/dependencies'
+import { NODE_ENV } from './utils/constants'
 import { createSocketServer } from './socket'
 import { env } from './config/env'
 
@@ -27,7 +28,7 @@ httpServer.headersTimeout = 66_000
 
 // ── Socket.IO ─────────────────────────────────────────
 const corsOrigins = [env.CLIENT_URL]
-if (env.NODE_ENV === 'development') {
+if (env.NODE_ENV === NODE_ENV.DEVELOPMENT) {
   corsOrigins.push('http://localhost:3000')
 }
 const io = createSocketServer(httpServer, authService, chatService, corsOrigins)

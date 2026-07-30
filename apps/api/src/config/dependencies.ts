@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma'
-import { env } from './env'
+import { env, isProduction } from './env'
 import { logger } from '../utils/logger'
 import { DEFAULT_SUPPORT_EMAIL } from '../utils/constants'
 import { UserRepository } from '../repositories/user.repository'
@@ -217,7 +217,7 @@ export const walletService = new WalletService(walletRepo, logger)
 
 const activeProvider: PaymentProvider = env.PAYMENT_GATEWAY
 const activeGateway = gatewayRegistry.get(activeProvider)
-  ?? (env.NODE_ENV !== 'production'
+  ?? (!isProduction
     ? (() => {
         logger.warn(`No gateway configured for provider="${activeProvider}" — using MockPaymentGateway. Payments will be simulated.`)
         return new MockPaymentGateway(logger)
@@ -269,7 +269,7 @@ const otpProvider = waOtpConfigured && preferWhatsappOtp
     )
   : smsOtpConfigured
     ? new Msg91OtpProvider(env.MSG91_AUTH_KEY!, env.MSG91_TEMPLATE_ID!, logger)
-    : env.NODE_ENV !== 'production'
+    : !isProduction
       ? new MockOtpProvider(logger)
       : (() => {
           throw new Error(

@@ -16,7 +16,7 @@ import { WalletService } from '../services/wallet.service'
 import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE, REFUND_CLIFF_DAYS } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
-import { NORMALIZED_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS } from './constants'
+import { NORMALIZED_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS, NODE_ENV } from './constants'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // ── Intervals (ms) ───────────────────────────────────
@@ -524,7 +524,7 @@ async function updateTrendingScores(trendingScoreService: TrendingScoreService) 
  */
 async function keepAlive() {
   const url = process.env.RENDER_EXTERNAL_URL
-  if (!url || process.env.NODE_ENV !== 'production') return
+  if (!url || (process.env.NODE_ENV !== NODE_ENV.PRODUCTION && process.env.NODE_ENV !== NODE_ENV.STAGING)) return
   try {
     await fetch(`${url}/health`)
   } catch {

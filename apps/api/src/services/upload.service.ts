@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary'
 import { env } from '../config/env'
 import { ValidationError } from '../errors/app-error'
-import { CLOUDINARY_TRANSFORM } from '../utils/constants'
+import { CLOUDINARY_TRANSFORM, NODE_ENV } from '../utils/constants'
 import { ALLOWED_UPLOAD_FOLDERS } from '@shared/constants'
 import type { UploadFolder } from '@shared/constants'
 
@@ -33,7 +33,7 @@ export class UploadService {
       throw new ValidationError(`Invalid upload folder: ${folder}`)
     }
 
-    const envPrefix = env.NODE_ENV === 'production' ? 'prod' : 'dev'
+    const envPrefix = env.NODE_ENV === NODE_ENV.PRODUCTION ? 'prod' : env.NODE_ENV === NODE_ENV.STAGING ? 'staging' : 'dev'
     const fullFolder = `${envPrefix}/${folder}`
 
     const timestamp = Math.round(Date.now() / 1000)

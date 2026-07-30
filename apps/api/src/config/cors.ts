@@ -1,12 +1,13 @@
 import cors from 'cors'
 import { env } from './env'
+import { NODE_ENV } from '../utils/constants'
 import { logger } from '../utils/logger'
 
 const origins = new Set([env.CLIENT_URL])
 if (env.ALLOWED_ORIGINS) {
   env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean).forEach(o => origins.add(o))
 }
-if (env.NODE_ENV === 'development') {
+if (env.NODE_ENV === NODE_ENV.DEVELOPMENT) {
   origins.add('http://localhost:3000')
   origins.add('http://localhost:3001')
 }

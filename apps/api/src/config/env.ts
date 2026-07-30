@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { PAYMENT_PROVIDERS, PAYMENT_PROVIDER } from '@shared/constants'
-import { CASHFREE_ENVIRONMENT, PAYOUT_STRATEGY } from '../utils/constants'
+import { CASHFREE_ENVIRONMENT, PAYOUT_STRATEGY, NODE_ENV as NODE_ENV_CONST } from '../utils/constants'
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum([NODE_ENV_CONST.DEVELOPMENT, NODE_ENV_CONST.PRODUCTION, NODE_ENV_CONST.STAGING]).default(NODE_ENV_CONST.DEVELOPMENT),
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().url(),
   JWT_SECRET: z.string().min(32),
@@ -132,7 +132,7 @@ const envSchema = z.object({
     }
   }
 
-  if (data.NODE_ENV === 'production') {
+  if (data.NODE_ENV === NODE_ENV_CONST.PRODUCTION || data.NODE_ENV === NODE_ENV_CONST.STAGING) {
     // P0-3: Webhook secret required in prod — empty secret allows anyone to forge signed events
     if (data.RAZORPAY_KEY_ID && !data.RAZORPAY_WEBHOOK_SECRET) {
       ctx.addIssue({
@@ -166,3 +166,6 @@ const envSchema = z.object({
 })
 
 export const env = envSchema.parse(process.env)
+
+// Helper — true for both 'production' and 'staging' (deployed environments)
+export const isProduction = env.NODE_ENV === NODE_ENV_CONST.PRODUCTION || env.NODE_ENV === NODE_ENV_CONST.STAGING

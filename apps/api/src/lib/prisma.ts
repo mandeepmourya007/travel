@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { logger as pinoLogger } from '../utils/logger'
+import { NODE_ENV } from '../utils/constants'
 import * as Sentry from '@sentry/node'
 
 const SLOW_QUERY_LOG = process.env.SLOW_QUERY_LOG === 'true'
@@ -108,4 +109,4 @@ export type TransactionClient = Parameters<Parameters<ExtendedPrismaClient['$tra
 
 // Singleton for Next.js hot-reload (prevents connection leaks in dev)
 const globalForPrisma = globalThis as unknown as { prisma: ExtendedPrismaClient }
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+if (process.env.NODE_ENV !== NODE_ENV.PRODUCTION && process.env.NODE_ENV !== NODE_ENV.STAGING) globalForPrisma.prisma = prisma

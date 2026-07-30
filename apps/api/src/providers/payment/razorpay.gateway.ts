@@ -17,7 +17,7 @@ import type {
 } from './payment-gateway.interface'
 import { startTimer } from '../../utils/perf-timer'
 import { PAYMENT_PROVIDER } from '@shared/constants'
-import { env } from '../../config/env'
+import { env, isProduction } from '../../config/env'
 import { RAZORPAY_PAYMENT_STATUS, RZP_MOCK_ACCOUNT_PREFIX } from './payment.constants'
 
 /**
@@ -405,7 +405,7 @@ export class RazorpayGateway implements IPaymentGateway {
    * @throws PaymentError — Razorpay API failure
    */
   async createPayoutAccount(params: CreatePayoutAccountParams): Promise<NormalizedPayoutAccount> {
-    if (!this.keyId || !this.keySecret || (env.NODE_ENV !== 'production' && !env.RAZORPAY_ENABLE_SANDBOX_ROUTE)) {
+    if (!this.keyId || !this.keySecret || (!isProduction && !env.RAZORPAY_ENABLE_SANDBOX_ROUTE)) {
       const accountId = `${RZP_MOCK_ACCOUNT_PREFIX}${params.referenceId.slice(0, 8)}`
       this.logger.warn({ accountId }, '[Razorpay] Non-production — returning mock payout account')
       return { accountId, provider: PAYMENT_PROVIDER.RAZORPAY, status: 'mock' }

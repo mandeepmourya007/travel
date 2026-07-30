@@ -2,6 +2,7 @@ import pinoHttp, { type Options } from 'pino-http'
 import { v4 as uuidv4, validate as isUuid } from 'uuid'
 import type { Request, Response, NextFunction } from 'express'
 import { logger } from '../utils/logger'
+import { NODE_ENV } from '../utils/constants'
 import { requestContext } from '../utils/request-context'
 
 function sanitizeRequestId(req: { headers: Record<string, string | string[] | undefined> }): string {
@@ -10,7 +11,7 @@ function sanitizeRequestId(req: { headers: Record<string, string | string[] | un
   return uuidv4()
 }
 
-const isProd = process.env.NODE_ENV === 'production'
+const isProd = process.env.NODE_ENV === NODE_ENV.PRODUCTION || process.env.NODE_ENV === NODE_ENV.STAGING
 
 const options: Options<Request, Response> = {
   logger,

@@ -1,4 +1,5 @@
 import pino from 'pino'
+import { NODE_ENV } from './constants'
 import { getRequestLogger } from './request-context'
 
 // pino.transport() spawns a worker thread for all I/O so log writes never
@@ -6,7 +7,7 @@ import { getRequestLogger } from './request-context'
 // in the main thread — still blocks under load. Worker thread is the fix.
 // destination: 1 = stdout (standard for Docker containers).
 const transport = pino.transport(
-  process.env.NODE_ENV === 'production'
+  process.env.NODE_ENV === NODE_ENV.PRODUCTION || process.env.NODE_ENV === NODE_ENV.STAGING
     ? { target: 'pino/file', options: { destination: 1 } }
     : { target: 'pino-pretty', options: { colorize: true } },
 )

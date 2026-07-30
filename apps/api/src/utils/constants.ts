@@ -1,3 +1,10 @@
+// ── Environment ───────────────────────────────────────
+export const NODE_ENV = {
+  DEVELOPMENT: 'development',
+  PRODUCTION: 'production',
+  STAGING: 'staging',
+} as const
+
 export const BOOKING_EXPIRY_MINUTES = 60
 
 // 60s covers Razorpay createOrder worst-case timeout (30s SDK default)
@@ -329,7 +336,7 @@ export const REFERENCE_MODEL = {
 // until the hydration refresh completes — a noticeable UX flicker.
 export const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.NODE_ENV === NODE_ENV.PRODUCTION || process.env.NODE_ENV === NODE_ENV.STAGING,
   sameSite: 'lax' as const,
   maxAge: REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000,
   path: '/api/v1/auth',
@@ -338,7 +345,7 @@ export const COOKIE_OPTIONS = {
 // clearCookie must echo the same Secure + SameSite + path used at set-time;
 // mismatched attributes cause browsers to silently ignore the clear.
 export const CLEAR_COOKIE_OPTIONS = {
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.NODE_ENV === NODE_ENV.PRODUCTION || process.env.NODE_ENV === NODE_ENV.STAGING,
   sameSite: 'lax' as const,
   path: '/api/v1/auth',
 }
