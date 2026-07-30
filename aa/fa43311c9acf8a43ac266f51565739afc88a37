@@ -1,0 +1,24 @@
+apps/web/src/components/home/welcome-modal.tsx
+  s_729abb8abc5f94::t_7302b8c0506520 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "aafa43311c9acf8a43ac266f51565739afc88a37",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_729abb8abc5f94": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "31eb192a-afdf-4177-b183-7ecc130c1f3a",
+        "model": "Claude Opus 4.7 Medium"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
