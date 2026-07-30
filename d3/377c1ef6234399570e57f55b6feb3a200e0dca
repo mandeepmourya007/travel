@@ -1,0 +1,24 @@
+apps/web/src/app/layout.tsx
+  s_e8469c9c2796ef::t_960b7877397ed0 81-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "d3377c1ef6234399570e57f55b6feb3a200e0dca",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e8469c9c2796ef": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "cc78e22e-1a83-4ba1-a2e3-a0d7b13c62c0",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
