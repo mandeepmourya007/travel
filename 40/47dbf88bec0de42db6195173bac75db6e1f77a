@@ -1,0 +1,39 @@
+apps/api/src/services/booking.service.ts
+  s_4a55047242c61c::t_4341307dada5fd 844
+  s_4a55047242c61c::t_5048ca70a82e61 252,1229,1289
+  s_4a55047242c61c::t_4dc4bdaf6f1ab2 254-261,736-739,742,746,750,758,762,1137-1140
+  s_4a55047242c61c::t_e7ad49a7ccc078 280,1133,1160,1167,1228,1291
+  s_4a55047242c61c::t_07fadfa36cfbf3 601,836,1184
+  s_4a55047242c61c::t_4b9e9a2f2ca55d 672,740,1053,1055
+apps/api/src/services/auth.service.ts
+  s_4a55047242c61c::t_c2ad804e15bf81 460
+  s_4a55047242c61c::t_d662f898d78ed1 147,505-524
+  s_4a55047242c61c::t_d669c7fb00be73 68,110,116,127,131,142,589,793
+apps/api/src/services/trip.service.ts
+  s_4a55047242c61c::t_ec16291bd06f75 629,637,641
+  s_4a55047242c61c::t_8b9b13e9a856fe 256,325,331,621,636,638-640,642-643,664,701,857
+apps/api/src/controllers/webhook.controller.ts
+  s_4a55047242c61c::t_2d2f526d697c0c 57
+  s_4a55047242c61c::t_cb836922005782 41,77,95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "4047dbf88bec0de42db6195173bac75db6e1f77a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_4a55047242c61c": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "f9d8a1da-9353-4350-b1f9-7fa9cdf533f7",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
