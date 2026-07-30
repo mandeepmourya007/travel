@@ -20,6 +20,7 @@ build/
 .env.production.local
 .env.docker
 .env.prod
+.env.staging
 
 # IDE
 .vscode/
