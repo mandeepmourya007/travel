@@ -1,0 +1,48 @@
+apps/api/prisma/seed.prod.ts
+  s_ef6fb0a85c0a0f::t_f5d2a169a847c4 587-588
+  s_ef6fb0a85c0a0f::t_2a47169b366f53 1526,1534
+  s_ef6fb0a85c0a0f::t_9e9329ea2ce620 1517,1519
+  s_ef6fb0a85c0a0f::t_aad833e13ea738 688
+  s_ef6fb0a85c0a0f::t_931dfc094d35e2 713
+  s_ef6fb0a85c0a0f::t_ad879afe6d7b10 826
+  s_ef6fb0a85c0a0f::t_a3e57d47143725 177-178
+  s_ef6fb0a85c0a0f::t_1c5fdee0519e5f 1588,1594,1606,1618,1624,1630
+  s_ef6fb0a85c0a0f::t_bc38c6d1d95781 615-616
+  s_ef6fb0a85c0a0f::t_2413dccbd90c3e 594
+  s_ef6fb0a85c0a0f::t_6cb3d0497282e2 642
+  s_ef6fb0a85c0a0f::t_29c6a54d0e96fe 658-659
+  s_ef6fb0a85c0a0f::t_d525d300847115 665
+  s_ef6fb0a85c0a0f::t_e485a3ca071687 622
+  s_ef6fb0a85c0a0f::t_e4ce6b0a2d0095 752
+  s_ef6fb0a85c0a0f::t_3518fd556689f3 1351-1352
+  s_ef6fb0a85c0a0f::t_2e3ca66a0b53e7 807-808
+  s_ef6fb0a85c0a0f::t_05dc410c191437 778-779
+  s_ef6fb0a85c0a0f::t_3f094a0561b3b9 849-850,856,862
+  s_ef6fb0a85c0a0f::t_2962de0a07253f 706-707
+  s_ef6fb0a85c0a0f::t_721c9ae596a1bc 635-636
+  s_ef6fb0a85c0a0f::t_9790c774fe341c 681-682
+  s_ef6fb0a85c0a0f::t_47eac227649bc3 736,759,785,814,833
+  s_ef6fb0a85c0a0f::t_5f919522291026 729-730
+  s_ef6fb0a85c0a0f::t_d294365a41a6a4 1546-1547,1555,1557,1561,1570-1571
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "9a172b14316dac66fedf99cd411d00cf004cc6c9",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ef6fb0a85c0a0f": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b703d2ae-8543-473b-a705-7400bdc57750",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
