@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useMemo, useEffect } from 'react'
@@ -117,7 +118,8 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
-        <Link href="/" prefetch={false} className="flex items-center gap-2">
+        <Link href="/" prefetch={false} className="flex items-center gap-1.5 shrink-0">
+          <Image src="/logo.svg" alt="" width={28} height={28} priority aria-hidden="true" />
           <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
         </Link>
 
