@@ -5,7 +5,7 @@ import { Modal } from '@/components/shared/modal'
 import { HERO_COPY, HERO_TRUST_BADGES } from '@/lib/home-content'
 
 const WELCOME_SEEN_KEY = 'home_welcome_seen'
-const AUTO_HIDE_MS = 3000
+const AUTO_HIDE_MS = 10000
 
 export function WelcomeModal() {
   const [open, setOpen] = useState(false)
