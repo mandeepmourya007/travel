@@ -1,0 +1,40 @@
+apps/api/tests/unit/providers/razorpay.gateway.test.ts
+  s_714dd50c44ad94::t_7233d9b08daf69 20-23,26-27,436,458,464,474
+  s_714dd50c44ad94::t_66e45e4425e1c0 19,24
+apps/api/tests/unit/services/payment-cutover.test.ts
+  s_714dd50c44ad94::t_83faa5421ffbb7 18,23
+apps/api/tests/unit/services/trip-request-create.test.ts
+  s_714dd50c44ad94::t_af71e5823b7512 8,13
+apps/api/tests/unit/providers/cashfree.gateway.test.ts
+  s_714dd50c44ad94::t_c2427144246aca 31,37
+apps/api/tests/setup.ts
+  s_714dd50c44ad94::t_da849367d68340 6
+apps/api/tests/unit/services/upload.service.test.ts
+  s_714dd50c44ad94::t_f62ab4e5280046 10,15,24,47
+  s_714dd50c44ad94::t_9e071268f666fb 46
+apps/api/tests/unit/services/commission-snapshot-chain.test.ts
+  s_714dd50c44ad94::t_98eb419363c298 36,40
+apps/api/tests/unit/services/booking.service.test.ts
+  s_714dd50c44ad94::t_52d2df87a2ae8d 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "6f561bba5cebc558a8cfb9ecdf72ba30a98d8448",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_714dd50c44ad94": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "d7a5413f-ef51-4b8a-b68e-7d6e27a207c5",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
