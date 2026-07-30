@@ -1,0 +1,25 @@
+apps/api/src/middleware/rate-limit.middleware.ts
+  s_ae1048ddf5d50a::t_0727690cc08d1b 122
+  s_ae1048ddf5d50a::t_a4c05c895004e9 120-121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "3200b972f965b7b16d94cd09b7bee67d8d6d4c55",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ae1048ddf5d50a": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "b8d06daa-5537-4d6e-888b-083cea099aba",
+        "model": "Claude Opus 4.6 Thinking"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
