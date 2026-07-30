@@ -389,7 +389,7 @@ export class TripRepository {
       destinationId,
       isDeleted: false,
       isHidden: false,
-      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED] },
       ...(filters?.tripType ? { tripType: filters.tripType } : {}),
       ...(filters?.minPrice || filters?.maxPrice
         ? {
@@ -431,7 +431,7 @@ export class TripRepository {
       destinationId,
       isDeleted: false,
       isHidden: false,
-      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED] },
     }
 
     const [priceAgg, organizerIds, upcomingCount] = await Promise.all([
@@ -489,7 +489,7 @@ export class TripRepository {
 
   async findSlugsForSitemap(): Promise<{ slug: string; updatedAt: Date }[]> {
     return this.prisma.trip.findMany({
-      where: { isDeleted: false, isHidden: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] } },
+      where: { isDeleted: false, isHidden: false, status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED] } },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: 'desc' },
       take: SITEMAP_MAX_TRIPS,
@@ -519,7 +519,7 @@ export class TripRepository {
     return {
       isDeleted: false,
       isHidden: false,
-      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL] },
+      status: { in: [TRIP_STATUS.ACTIVE, TRIP_STATUS.FULL, TRIP_STATUS.COMPLETED] },
       ...textFilter,
       ...(filters.destinationId && { destinationId: filters.destinationId }),
       ...(filters.destination && {
