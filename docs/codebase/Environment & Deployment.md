@@ -71,7 +71,7 @@ Standalone file, run with `docker compose --env-file .env.prod -f docker-compose
 | certbot | profile `certbot` — manual TLS |
 | migrate / seed | profiles for one-off `prisma migrate deploy` / prod seed |
 
-`scripts/deploy-prod.sh` (~24KB) orchestrates: seed prompt → DB choice (Docker vs Neon, persisted `DB_MODE`) → swap check → generate `.env.prod` on first run → validation → ==git-SHA image versioning for rollback== → build API while old containers stay up → **DB backup** → migrations → optional seed → start API → build web (API live for ISR) → Nginx → health checks → certbot HTTPS if `DOMAIN` set.
+`scripts/deploy-prod.sh` (~24KB) orchestrates: seed prompt → DB choice (Docker vs Neon, persisted `DB_MODE`) → swap check → generate `.env.prod` on first run → validation → ==git-SHA image versioning for rollback== → **pre-build capacity check** (available RAM via `free -m` + available disk via `df -h`, warns if RAM < 500MB before the API build / < 2000MB before the Web build, or disk < 2GB — non-blocking, re-run immediately before each build since DB backup/migrations can shrink headroom) → build API while old containers stay up → **DB backup** → migrations → optional seed → start API → build web (API live for ISR) → Nginx → health checks → certbot HTTPS if `DOMAIN` set.
 
 ## Render (`render.yaml`)
 

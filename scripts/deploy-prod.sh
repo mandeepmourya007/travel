@@ -75,6 +75,36 @@ if command -v free &> /dev/null; then
   fi
 fi
 
+# ── Pre-build capacity check (RAM + disk) ─────────────
+# Warns only — never blocks. Available memory/disk can shrink during a long
+# deploy (backups, migrations), so this is re-checked right before each
+# build rather than relying on the swap check above, which only runs once.
+_check_build_capacity() {
+  local label="$1" min_ram_mb="$2"
+
+  if command -v free &> /dev/null; then
+    local avail_ram_mb
+    avail_ram_mb=$(free -m | awk '/Mem:/ {print $7}')
+    if [ -z "$avail_ram_mb" ]; then
+      avail_ram_mb=$(free -m | awk '/Mem:/ {print $4}') # fallback: free column on old `free`
+    fi
+    echo "  ℹ️  Available RAM before ${label} build: ${avail_ram_mb:-unknown}MB"
+    if [ -n "${avail_ram_mb:-}" ] && [ "$avail_ram_mb" -lt "$min_ram_mb" ]; then
+      echo "  ⚠️  Available RAM (${avail_ram_mb}MB) is below the recommended ${min_ram_mb}MB for the ${label} build."
+      echo "      The build may OOM or fall back to slow swapping. Consider increasing swap or resizing the box."
+    fi
+  fi
+
+  local avail_disk_kb avail_disk_h
+  avail_disk_kb=$(df -Pk . 2>/dev/null | awk 'NR==2 {print $4}' || true)
+  avail_disk_h=$(df -h . 2>/dev/null | awk 'NR==2 {print $4}' || echo "unknown")
+  echo "  ℹ️  Available disk before ${label} build: ${avail_disk_h}"
+  if [ -n "${avail_disk_kb:-}" ] && [ "$avail_disk_kb" -lt 2097152 ]; then # 2GB in KB
+    echo "  ⚠️  Available disk (${avail_disk_h}) is below the recommended 2GB for the ${label} build."
+    echo "      Docker layer cache + node_modules + build output can consume several GB — free up space to avoid a mid-build failure."
+  fi
+}
+
 # ── Detect host IP ────────────────────────────────────
 if [[ -z "${HOST_IP:-}" ]]; then
   SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || curl -s --max-time 5 ifconfig.me 2>/dev/null || echo "localhost")
@@ -461,6 +491,7 @@ fi
 # ── Build API image (old containers stay up — zero build-time downtime) ──
 echo ""
 echo "📦 Building API image (old API stays live)..."
+_check_build_capacity "API" 500
 $DC build api
 
 # Tag with git SHA for rollback capability
@@ -478,6 +509,7 @@ _wait_healthy api travel-api-prod
 # ── Build Web image (API is live — ISR prerenders get real data) ──
 echo ""
 echo "📦 Building Web image (old Web stays live)..."
+_check_build_capacity "Web" 2000
 $DC build web
 
 # Tag with git SHA for rollback capability
