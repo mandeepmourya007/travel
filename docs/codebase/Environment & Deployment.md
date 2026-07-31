@@ -66,7 +66,7 @@ Standalone file, run with `docker compose --env-file .env.prod -f docker-compose
 | postgres | profile ==`db`== — optional, skip when using Neon/external |
 | redis | appendonly, 128MB, requires `REDIS_PASSWORD` |
 | api | `docker/api.prod.Dockerfile` (3-stage, non-root); CMD: `prisma migrate deploy` → start; reads `/etc/secrets/.env.prod` if present (Render pattern) |
-| web | `docker/web.prod.Dockerfile` — ==`NEXT_PUBLIC_*` baked at build== via args; standalone `server.js`, non-root; runner stage copies `apps/web/public` (favicon, manifest icons, screenshots) alongside `.next/standalone`/`.next/static` — omitting it 404s all static assets referenced by `manifest.ts` |
+| web | `docker/web.prod.Dockerfile` — ==`NEXT_PUBLIC_*` baked at build== via args; standalone `server.js`, non-root; runner stage copies `apps/web/public` (favicon, manifest icons, screenshots) alongside `.next/standalone`/`.next/static` — omitting it 404s all static assets referenced by `manifest.ts`. Every `NEXT_PUBLIC_*` var the app reads must have a matching `ARG`/`ENV` pair in this Dockerfile's builder stage **and** a corresponding entry in `docker-compose.prod.yml`'s `web.build.args` block — missing either one means the value silently never reaches `next build`, even if it's correctly set in `.env.prod`. `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` (GSC HTML-tag verification, rendered by `apps/web/src/app/layout.tsx`) follows this pattern; changing it on a self-hosted box requires a full image rebuild (`docker compose --env-file .env.prod -f docker-compose.prod.yml build web && ... up -d web` — same as any other `NEXT_PUBLIC_*` var), not just a container restart. |
 | nginx | 80/443 reverse proxy, template config |
 | certbot | profile `certbot` — manual TLS |
 | migrate / seed | profiles for one-off `prisma migrate deploy` / prod seed |
@@ -78,7 +78,7 @@ Standalone file, run with `docker compose --env-file .env.prod -f docker-compose
 Blueprint "Safarnama", region oregon, free plan:
 
 - **safarnama-api** — Docker web service (`api.prod.Dockerfile`), healthcheck `/health`, buildFilter on `apps/api/**` + `packages/shared/**`. Secrets `sync:false`; `DATABASE_URL`/`DIRECT_URL` from **safarnama-db**, `REDIS_URL` from **safarnama-redis** (keyvalue, allkeys-lru).
-- **safarnama-web** — Docker web service (`web.prod.Dockerfile`). ==`NEXT_PUBLIC_API_URL` must be the frontend domain== (proxied via Next rewrites for same-site cookies), `BACKEND_API_URL` is the server-side proxy target. `NEXT_PUBLIC_*` changes require a manual redeploy (build-time baking).
+- **safarnama-web** — Docker web service (`web.prod.Dockerfile`). ==`NEXT_PUBLIC_API_URL` must be the frontend domain== (proxied via Next rewrites for same-site cookies), `BACKEND_API_URL` is the server-side proxy target. `NEXT_PUBLIC_*` changes require a manual redeploy (build-time baking). `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` is declared in the web service's `envVars` block as `sync: false` (Google Search Console HTML-tag verification code) — set it in the Render dashboard, then trigger a manual redeploy; the meta tag in `apps/web/src/app/layout.tsx` only renders when this var is set.
 - **safarnama-db** — free Postgres, ==expires after 90 days== → plan migration to Neon.
 - Migrations run automatically on every deploy (prod Dockerfile CMD).
 - Cron `keepAlive` pings `/health` every 14m to dodge free-tier idling → [[Background Jobs & Realtime#Cron Jobs]].

@@ -180,6 +180,7 @@ NEXT_PUBLIC_SOCKET_URL=$BASE_URL
 APP_NAME=${APP_NAME:-Safarnama}
 # APP_NAME is already set above — no separate NEXT_PUBLIC_APP_NAME needed
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=
 
 # ─── Logging ────────────────────────────────────────
 LOG_LEVEL=info
