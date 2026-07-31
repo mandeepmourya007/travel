@@ -1,0 +1,32 @@
+docker-compose.prod.yml
+  s_e54568c9f23f42::t_592ca51e2f8bd7 139
+scripts/deploy-prod.sh
+  s_e54568c9f23f42::t_0142405fa7d1ad 183
+docker/web.prod.Dockerfile
+  s_e54568c9f23f42::t_c73aabbffa6b2f 44
+  s_e54568c9f23f42::t_4707f43f24e686 65
+"docs/codebase/Environment & Deployment.md"
+  s_e54568c9f23f42::t_f4f5a098489362 81
+  s_e54568c9f23f42::t_f438a29f4aba57 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "2a2b95986b8e07a41d4430e1fbedfd1e5a252b3f",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e54568c9f23f42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d89fb808-8d21-4e73-be93-f3912a26c75d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
