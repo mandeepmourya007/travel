@@ -1,0 +1,47 @@
+name: Deploy to EC2
+
+# Self-hosted production deploy: on every push to master, SSH into the EC2
+# box, fast-forward the checkout, and re-run scripts/deploy-prod.sh in --ci
+# mode (skips the interactive seed + DB-mode prompts; every safety check,
+# backup, migration, and health-check step runs exactly as it does when the
+# script is run manually).
+#
+# This does NOT replace Render — Render still auto-deploys on push to its
+# tracked branch independently. This workflow only drives the self-hosted
+# EC2 stack described in docker-compose.prod.yml.
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".claude/**"
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # No checkout step here — the code is pulled on the EC2 box itself via
+      # git fetch/reset over SSH, not on the Actions runner.
+      - name: SSH into EC2 and run deploy-prod.sh --ci
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          script: |
+            set -e
+            # NOTE: this path must match wherever the repo is actually
+            # checked out on the EC2 box — update the secret/path below if
+            # your deployment lives somewhere other than /home/ubuntu/travel.
+            cd /home/ubuntu/travel
+            git fetch origin master
+            git reset --hard origin/master
+            ./scripts/deploy-prod.sh --ci

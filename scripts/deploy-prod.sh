@@ -4,6 +4,8 @@ set -euo pipefail
 # Travel App — Production Deployment
 # Mirror of docker-up.sh but for prod (pre-built images, Nginx, migrations)
 # Usage: ./scripts/deploy-prod.sh
+#        ./scripts/deploy-prod.sh --ci   (or CI=true ./scripts/deploy-prod.sh)
+#        Non-interactive mode for CI/CD — skips seed + DB-mode prompts, see below.
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -12,6 +14,25 @@ COMPOSE_FILE="docker-compose.prod.yml"
 ENV_FILE=".env.prod"
 API_PORT=4001
 WEB_PORT_HOST=3001
+
+# ── CI mode ────────────────────────────────────────────
+# --ci (or CI=true env var) skips the two interactive prompts below:
+#   - "Run database seed?" (always "no" in CI — seeding a live DB automatically
+#     on every push is dangerous and must stay a manual/opt-in action)
+#   - DB mode choice (Docker Postgres vs external) — CI reads DB_MODE from an
+#     existing .env.prod and fails loudly if it isn't already configured;
+#     first-time setup must remain manual/interactive.
+# Every other step (safety checks, versioning, backup, migrations, health
+# checks) runs identically in both modes.
+CI_MODE=false
+for arg in "$@"; do
+  if [ "$arg" = "--ci" ]; then
+    CI_MODE=true
+  fi
+done
+if [ "${CI:-}" = "true" ]; then
+  CI_MODE=true
+fi
 
 # ── Ensure Docker daemon is reachable ─────────────────
 if ! docker info >/dev/null 2>&1; then
@@ -25,36 +46,56 @@ if ! docker compose version >/dev/null 2>&1; then
 fi
 
 # ── Seed prompt (ask early so user isn't blocked later) ──
-read -rp "🌱 Run database seed? (y/n) [n]: " RUN_SEED
+if [ "$CI_MODE" = true ]; then
+  RUN_SEED="n"
+  echo "🌱 CI mode — skipping seed prompt (default: no seed)"
+else
+  read -rp "🌱 Run database seed? (y/n) [n]: " RUN_SEED
+fi
 
 # ── Database choice (auto-detect or ask) ──────────────
 echo ""
 EXISTING_DB_MODE=$(grep '^DB_MODE=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 || true)
-if [ -n "$EXISTING_DB_MODE" ]; then
+if [ "$CI_MODE" = true ]; then
+  if [ ! -f "$ENV_FILE" ]; then
+    echo "❌ CI mode requires an existing ${ENV_FILE} with DB_MODE set."
+    echo "   Run ./scripts/deploy-prod.sh interactively once on this box first to generate it."
+    exit 1
+  fi
+  if [ -z "$EXISTING_DB_MODE" ]; then
+    echo "❌ CI mode: ${ENV_FILE} exists but has no DB_MODE set."
+    echo "   Set DB_MODE=docker or DB_MODE=external in ${ENV_FILE}, or run interactively once to configure it."
+    exit 1
+  fi
   DB_MODE="$EXISTING_DB_MODE"
-  echo "🗄️  Database: ${DB_MODE} (from ${ENV_FILE})"
-  read -rp "   Keep this? (y/n) [y]: " KEEP_DB
-  if [[ "$KEEP_DB" == "n" || "$KEEP_DB" == "N" ]]; then
-    EXISTING_DB_MODE=""
+  echo "🗄️  Database: ${DB_MODE} (from ${ENV_FILE}) — CI mode, prompt skipped"
+else
+  if [ -n "$EXISTING_DB_MODE" ]; then
+    DB_MODE="$EXISTING_DB_MODE"
+    echo "🗄️  Database: ${DB_MODE} (from ${ENV_FILE})"
+    read -rp "   Keep this? (y/n) [y]: " KEEP_DB
+    if [[ "$KEEP_DB" == "n" || "$KEEP_DB" == "N" ]]; then
+      EXISTING_DB_MODE=""
+    fi
   fi
-fi
-if [ -z "$EXISTING_DB_MODE" ]; then
-  echo "🗄️  Database options:"
-  echo "   1) Docker Postgres (local, fast, recommended)"
-  echo "   2) External URL (Neon, Supabase, etc.)"
-  read -rp "   Choose [1]: " DB_CHOICE
-  DB_CHOICE="${DB_CHOICE:-1}"
-  if [ "$DB_CHOICE" = "2" ]; then
-    DB_MODE="external"
-  else
-    DB_MODE="docker"
-  fi
-  # Persist choice in .env.prod if it already exists
-  if [ -f "$ENV_FILE" ]; then
-    if grep -q '^DB_MODE=' "$ENV_FILE" 2>/dev/null; then
-      sed -i "s|^DB_MODE=.*|DB_MODE=${DB_MODE}|" "$ENV_FILE"
+  if [ -z "$EXISTING_DB_MODE" ]; then
+    echo "🗄️  Database options:"
+    echo "   1) Docker Postgres (local, fast, recommended)"
+    echo "   2) External URL (Neon, Supabase, etc.)"
+    read -rp "   Choose [1]: " DB_CHOICE
+    DB_CHOICE="${DB_CHOICE:-1}"
+    if [ "$DB_CHOICE" = "2" ]; then
+      DB_MODE="external"
     else
-      echo "DB_MODE=${DB_MODE}" >> "$ENV_FILE"
+      DB_MODE="docker"
+    fi
+    # Persist choice in .env.prod if it already exists
+    if [ -f "$ENV_FILE" ]; then
+      if grep -q '^DB_MODE=' "$ENV_FILE" 2>/dev/null; then
+        sed -i "s|^DB_MODE=.*|DB_MODE=${DB_MODE}|" "$ENV_FILE"
+      else
+        echo "DB_MODE=${DB_MODE}" >> "$ENV_FILE"
+      fi
     fi
   fi
 fi
@@ -109,13 +150,21 @@ _check_build_capacity() {
 if [[ -z "${HOST_IP:-}" ]]; then
   SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || curl -s --max-time 5 ifconfig.me 2>/dev/null || echo "localhost")
   echo "🌐 Detected IP: $SERVER_IP"
-  read -rp "   Use this IP? (y/n or enter custom): " INPUT_IP
-  if [[ "$INPUT_IP" == "y" || "$INPUT_IP" == "Y" ]]; then
-    HOST_IP="$SERVER_IP"
-  elif [[ -n "$INPUT_IP" && "$INPUT_IP" != "n" && "$INPUT_IP" != "N" ]]; then
-    HOST_IP="$INPUT_IP"
+  if [ "$CI_MODE" = true ]; then
+    # No stdin in CI — reuse the existing SERVER_IP from .env.prod if present,
+    # otherwise fall back to the auto-detected IP without prompting.
+    EXISTING_SERVER_IP=$(grep '^SERVER_IP=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 || true)
+    HOST_IP="${EXISTING_SERVER_IP:-$SERVER_IP}"
+    echo "   CI mode — using: $HOST_IP (skipping prompt)"
   else
-    read -rp "   Enter server IP: " HOST_IP
+    read -rp "   Use this IP? (y/n or enter custom): " INPUT_IP
+    if [[ "$INPUT_IP" == "y" || "$INPUT_IP" == "Y" ]]; then
+      HOST_IP="$SERVER_IP"
+    elif [[ -n "$INPUT_IP" && "$INPUT_IP" != "n" && "$INPUT_IP" != "N" ]]; then
+      HOST_IP="$INPUT_IP"
+    else
+      read -rp "   Enter server IP: " HOST_IP
+    fi
   fi
 fi
 
@@ -229,7 +278,16 @@ echo ""
 echo "🌐 Domain configuration..."
 EXISTING_DOMAIN=$(grep '^DOMAIN=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
 
-if [ -n "$EXISTING_DOMAIN" ]; then
+if [ "$CI_MODE" = true ]; then
+  # No stdin in CI — keep whatever domain (or lack of one) is already
+  # configured in .env.prod rather than prompting.
+  DOMAIN="$EXISTING_DOMAIN"
+  if [ -n "$DOMAIN" ]; then
+    echo "   CI mode — using existing domain: $DOMAIN (skipping prompt)"
+  else
+    echo "   CI mode — no domain configured, skipping HTTPS setup (skipping prompt)"
+  fi
+elif [ -n "$EXISTING_DOMAIN" ]; then
   # Strip protocol and trailing slashes in case it was stored incorrectly
   DOMAIN=$(echo "$EXISTING_DOMAIN" | sed 's|^https\?://||' | sed 's|/.*||')
   read -rp "   Found domain: $DOMAIN — use this? (y/n) [y]: " USE_DOMAIN
@@ -278,11 +336,13 @@ if [ -n "$DOMAIN" ]; then
 
   # Prompt for ACME_EMAIL if not set (needed for HTTPS)
   EXISTING_ACME=$(grep '^ACME_EMAIL=' "$ENV_FILE" 2>/dev/null | head -1 | cut -d'=' -f2 | tr -d ' ' || true)
-  if [ -z "$EXISTING_ACME" ]; then
+  if [ -z "$EXISTING_ACME" ] && [ "$CI_MODE" != true ]; then
     read -rp "   Enter email for Let's Encrypt (ACME_EMAIL): " ACME_INPUT
     if [ -n "$ACME_INPUT" ]; then
       _env_set "ACME_EMAIL" "$ACME_INPUT"
     fi
+  elif [ -z "$EXISTING_ACME" ]; then
+    echo "   CI mode — no ACME_EMAIL configured yet; HTTPS cert renewal may need it set manually in ${ENV_FILE}."
   fi
 
   echo "   ✅ Domain set to $DOMAIN — URLs updated in ${ENV_FILE}"

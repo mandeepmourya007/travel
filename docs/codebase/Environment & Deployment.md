@@ -73,6 +73,9 @@ Standalone file, run with `docker compose --env-file .env.prod -f docker-compose
 
 `scripts/deploy-prod.sh` (~24KB) orchestrates: seed prompt → DB choice (Docker vs Neon, persisted `DB_MODE`) → swap check → generate `.env.prod` on first run → validation → ==git-SHA image versioning for rollback== → **pre-build capacity check** (available RAM via `free -m` + available disk via `df -h`, warns if RAM < 500MB before the API build / < 2000MB before the Web build, or disk < 2GB — non-blocking, re-run immediately before each build since DB backup/migrations can shrink headroom) → build API while old containers stay up → **DB backup** → migrations → optional seed → start API → build web (API live for ISR) → Nginx → health checks → certbot HTTPS if `DOMAIN` set.
 
+> [!note] `--ci` mode (non-interactive)
+> `./scripts/deploy-prod.sh --ci` (or `CI=true ./scripts/deploy-prod.sh`) skips **every** interactive `read -rp` prompt in the script — not just seed/DB-mode — since a non-interactive SSH session (no TTY/stdin, as used by the EC2 GitHub Actions workflow) makes `read` fail immediately under `set -e`, killing the whole script. In CI mode: no seed (seeding a live DB automatically on every push is dangerous and stays opt-in/manual); `DB_MODE` is read from an existing `.env.prod`, **failing loudly** if missing; `SERVER_IP`/host-IP detection reuses the existing `.env.prod` value (or the auto-detected IP) without asking; domain/HTTPS config keeps whatever `DOMAIN`/`ACME_EMAIL` is already in `.env.prod` (or stays unset) rather than prompting. First-time setup — generating `.env.prod`, choosing DB mode, setting a domain — must still be done interactively once on the box before `--ci` is usable. Every other step (safety/capacity checks, git-SHA versioning, DB backup, migrations, health checks) runs identically to the manual path. This is what [[#GitHub Actions → EC2 (self-hosted)|the EC2 GitHub Actions workflow]] invokes on every push to `master`.
+
 ## Render (`render.yaml`)
 
 Blueprint "Safarnama", region oregon, free plan:
@@ -83,15 +86,37 @@ Blueprint "Safarnama", region oregon, free plan:
 - Migrations run automatically on every deploy (prod Dockerfile CMD).
 - Cron `keepAlive` pings `/health` every 14m to dodge free-tier idling → [[Background Jobs & Realtime#Cron Jobs]].
 
-> [!info] No CI
-> There is **no `.github/` directory** — no GitHub Actions. CI/CD = Render auto-deploy on push + manual `deploy-prod.sh` for self-hosted.
+## GitHub Actions → EC2 (self-hosted)
+
+`.github/workflows/deploy-ec2.yml` triggers on push to `master` (with a `paths-ignore` filter skipping pure `docs/**`/`**/*.md`/`.claude/**` commits so doc-only changes don't trigger a full prod rebuild). The job has `concurrency: { group: deploy-ec2, cancel-in-progress: false }` so two pushes in quick succession queue sequentially instead of racing two overlapping `docker compose build`/`up -d` runs against the same box, plus a `timeout-minutes: 20` cap. It does **not** check out the repo on the Actions runner — instead it uses `appleboy/ssh-action@v1.2.0` (pinned tag) to SSH into the EC2 box and run:
+
+```
+cd <repo-path-on-box>   # placeholder /home/ubuntu/travel — must match the box's actual checkout path
+git fetch origin master
+git reset --hard origin/master
+./scripts/deploy-prod.sh --ci
+```
+
+Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Purpose |
+| :--- | :--- |
+| `EC2_HOST` | box hostname/IP |
+| `EC2_USERNAME` | SSH user (e.g. `ubuntu`) |
+| `EC2_SSH_KEY` | private key matching a public key in the box's `~/.ssh/authorized_keys` |
+| `EC2_PORT` | optional, defaults to `22` |
+
+This is separate from Render, which keeps auto-deploying independently on push. `--ci` mode requires `.env.prod` to already exist on the box with `DB_MODE` set (see above) — the workflow will fail loudly rather than guess.
+
+> [!info] Render still has no CI file
+> Render's own auto-deploy-on-push requires no GitHub Actions workflow — only the self-hosted EC2 path needs `.github/workflows/deploy-ec2.yml`. Prior to this, there was no `.github/` directory at all; that is no longer the case.
 
 ## Scripts (`scripts/`)
 
 | Script | Purpose |
 | :--- | :--- |
 | `docker-up.sh` / `docker-down.sh` | Dev compose lifecycle with Colima/daemon detection and health checks |
-| `deploy-prod.sh` | Full self-hosted production deploy (above) |
+| `deploy-prod.sh` | Full self-hosted production deploy (above); supports `--ci` / `CI=true` non-interactive mode for the GitHub Actions EC2 workflow |
 
 ## Seeding the local Docker DB
 
