@@ -1,0 +1,24 @@
+render.yaml
+  s_e54568c9f23f42::t_4df3f1728f281f 219-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "74d520a7efa52d10c212af4a108832b67a5c9f36",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_e54568c9f23f42": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d89fb808-8d21-4e73-be93-f3912a26c75d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
