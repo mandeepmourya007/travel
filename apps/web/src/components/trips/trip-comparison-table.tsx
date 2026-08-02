@@ -63,12 +63,12 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
               </button>
             )}
             {/* Image */}
-            <div className="relative w-full aspect-square max-w-36 sm:max-w-44 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
+            <div className="relative w-full aspect-square max-w-20 sm:max-w-36 md:max-w-44 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
               <Image
                 src={trip.photos[0] || '/placeholder-trip.jpg'}
                 alt={trip.title}
                 fill
-                sizes="176px"
+                sizes="(max-width: 640px) 80px, (max-width: 768px) 144px, 176px"
                 quality={60}
                 className="object-cover"
               />
@@ -77,13 +77,13 @@ export function TripComparisonTable({ trips, onRemove }: TripComparisonTableProp
             <Link
               href={`/trips/${trip.slug}`}
               prefetch={false}
-              className="mt-2 font-display text-xs sm:text-sm font-bold text-neutral-800 line-clamp-2 hover:text-primary-600 transition-colors leading-tight"
+              className="mt-1.5 sm:mt-2 font-display text-xs sm:text-sm font-bold text-neutral-800 line-clamp-2 hover:text-primary-600 transition-colors leading-tight"
             >
               {trip.title}
             </Link>
             <span
               className={cn(
-                'mt-1 text-sm sm:text-base font-bold',
+                'mt-0.5 sm:mt-1 text-xs sm:text-base font-bold',
                 trip.pricePerPerson === bestPrice ? 'text-success-500' : 'text-neutral-800',
               )}
             >
