@@ -4,6 +4,10 @@ import type { UserRole } from '@shared/constants'
 export const APP_NAME = process.env.APP_NAME || 'Safarnama'
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
+// ─── Branding ─────────────────────────────────────
+/** Prod build uses the full logo-prod.svg wordmark + prod favicons; dev/other environments use the placeholder logo + app name text. */
+export const isProduction = process.env.NODE_ENV === 'production'
+
 // ─── Legal / Company ─────────────────────────────
 // Centralised here so any contact change updates all policy pages, FAQ, and
 // consent text in one place. DPDPA 2023 and IT Rules 2021 require the

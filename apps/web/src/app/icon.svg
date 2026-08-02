@@ -1,7 +1,0 @@
-<!-- Favicon — Map pin for Tripeeeh -->
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#0A9E99"/>
-  <path d="M16 5C12.13 5 9 8.05 9 11.82C9 17 16 26 16 26C16 26 23 17 23 11.82C23 8.05 19.87 5 16 5Z" fill="white"/>
-  <circle cx="16" cy="11.5" r="3.5" fill="#0A9E99"/>
-  <circle cx="16" cy="11.5" r="1.5" fill="white"/>
-</svg>

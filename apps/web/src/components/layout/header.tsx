@@ -25,7 +25,7 @@ import {
 import { useAuthStore } from '@/store/auth.store'
 import { useProfile } from '@/hooks/use-profile'
 import { useLogout } from '@/hooks/use-logout'
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, isProduction } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/notifications/notification-bell'
 import type { UserRole } from '@shared/types/user.types'
@@ -119,8 +119,18 @@ export function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo */}
         <Link href="/" prefetch={false} className="flex items-center gap-1.5 shrink-0">
-          <Image src="/logo.svg" alt="" width={28} height={28} priority aria-hidden="true" />
-          <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
+          <Image
+            src={isProduction ? '/logo-prod.svg' : '/logo.svg'}
+            alt=""
+            width={isProduction ? 195 : 28}
+            height={isProduction ? 70 : 28}
+            priority
+            aria-hidden="true"
+            className={isProduction ? 'h-9 w-auto sm:h-10 md:h-12 lg:h-14' : undefined}
+          />
+          {!isProduction && (
+            <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
+          )}
         </Link>
 
         {/* Search bar — hidden on mobile, visible md+ */}
