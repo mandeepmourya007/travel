@@ -1,0 +1,81 @@
+apps/web/public/logo-prod.svg
+  s_2dd2114a816179::t_d1e3d2f3b5159e 67
+  s_2dd2114a816179::t_607eff7426a2b6 1
+  s_2dd2114a816179::t_690ec5bab11eb7 2-64,66,68-71
+  s_2dd2114a816179::t_a332983150568c 65
+apps/web/src/lib/constants.ts
+  s_2dd2114a816179::t_fdaf39c29618ae 7-8,10
+  s_2dd2114a816179::t_aebb8d73199a87 9
+apps/web/src/components/layout/header.tsx
+  s_2dd2114a816179::t_aebb8d73199a87 28,123,125-126,129,131
+  s_2dd2114a816179::t_66a25438698083 122,124,127-128,130
+  s_2dd2114a816179::t_32d1689e5799a4 132-133
+apps/web/src/app/icon.tsx
+  s_771482e31bd21c::t_8d3b84b9e2892e 21
+  s_771482e31bd21c::t_521ea4f492b9c2 2
+  s_2dd2114a816179::t_aebb8d73199a87 1
+  s_2dd2114a816179::t_2e1bfc22ec6c12 3-20,22-26
+apps/web/src/components/layout/__tests__/header.test.tsx
+  s_2dd2114a816179::t_75f3695ac47383 1-27,29-31,33-35,38-46,48-50,52-53,59-63,65-66,68,70-73
+  s_2dd2114a816179::t_4d8f477603c47e 54-58,67,69
+  s_2dd2114a816179::t_aebb8d73199a87 28,32,36-37,47,51,64
+apps/web/src/lib/prod-favicon.ts
+  s_771482e31bd21c::t_335bcff733f9dc 1-6
+apps/web/src/app/apple-icon.tsx
+  s_771482e31bd21c::t_f8606dae19e2f9 10
+  s_2dd2114a816179::t_aebb8d73199a87 2,9
+  s_2dd2114a816179::t_e54b279269afbc 11-28
+  s_771482e31bd21c::t_b96abd317b20e2 3
+apps/web/public/favicon-prod.svg
+  s_2dd2114a816179::t_690ec5bab11eb7 1-37
+"docs/codebase/Web Frontend.md"
+  s_6d1d9a6e50f84b::t_3eca40b850f9e1 48
+  h_b3232c20134322 64
+  s_2dd2114a816179::t_358888fd4817a1 86
+  s_4164ed9dfd91ec::t_68462ccf7a7583 63,65-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "312a847e1ae9019b7e64e34fa7675ced78f8cfcd",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_2dd2114a816179": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6c8499db-eebd-4b38-b2fe-e2a6ca781534",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_4164ed9dfd91ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a71d8b8df0ff2861d",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_6d1d9a6e50f84b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10f6b1f2-cf17-48d0-8bca-5ee7c19c022f",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_771482e31bd21c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6fd1f024-2e82-40cb-ac4c-e7ad6aed9d52",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
