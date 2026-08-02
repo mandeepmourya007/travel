@@ -95,16 +95,16 @@ Three tiers — set by the organizer per trip and displayed before booking:
 
 ## Key Pages
 
-- Homepage: ${SITE_URL}/
-- Browse trips: ${SITE_URL}/trips
-- Destinations: ${SITE_URL}/destinations
-- How it works: ${SITE_URL}/how-it-works
-- FAQ: ${SITE_URL}/faq
-- About: ${SITE_URL}/about
-- Safety standards: ${SITE_URL}/safety
-- Terms of Service: ${SITE_URL}/terms
-- Privacy Policy: ${SITE_URL}/privacy
-- Cancellation Policy: ${SITE_URL}/cancellation-policy
+- [Homepage](${SITE_URL}/)
+- [Browse trips](${SITE_URL}/trips)
+- [Destinations](${SITE_URL}/destinations)
+- [How it works](${SITE_URL}/how-it-works)
+- [FAQ](${SITE_URL}/faq)
+- [About](${SITE_URL}/about)
+- [Safety standards](${SITE_URL}/safety)
+- [Terms of Service](${SITE_URL}/terms)
+- [Privacy Policy](${SITE_URL}/privacy)
+- [Cancellation Policy](${SITE_URL}/cancellation-policy)
 
 ## Frequently Asked Questions (for AI answer extraction)
 
