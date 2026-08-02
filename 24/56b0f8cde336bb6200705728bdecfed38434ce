@@ -1,0 +1,54 @@
+apps/web/src/app/(public)/terms/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/safety/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 14
+apps/web/src/app/(public)/cancellation-policy/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 21
+apps/web/src/app/(public)/organizer-agreement/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/privacy/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/cookies/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 15
+apps/web/src/app/(public)/legal/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/contact/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/lost-item/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 15
+apps/web/src/app/(public)/rules/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/destinations/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 11
+apps/web/src/app/(public)/disclaimer/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/(public)/faq/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/not-found.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 7
+apps/web/src/app/(public)/how-it-works/page.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 9
+apps/web/src/app/trips/layout.tsx
+  s_ca69ac8dd8b388::t_6f15f0f4ebefd3 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "2456b0f8cde336bb6200705728bdecfed38434ce",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ca69ac8dd8b388": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "87987c12-5fb6-4f77-8f7d-bfc37055c4db",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
