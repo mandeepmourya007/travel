@@ -16,10 +16,10 @@ import {
   MapPin,
   Compass,
   BookOpen,
+  ChevronDown,
   CreditCard,
   UserCircle,
   MessageSquare,
-  Star,
   Gift,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
@@ -28,36 +28,67 @@ import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME, isProduction } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { NotificationBell } from '@/components/notifications/notification-bell'
+import { NavDropdownMenu, type NavDropdownLink } from '@/components/shared/nav-dropdown-menu'
 import type { UserRole } from '@shared/types/user.types'
 import { USER_ROLE } from '@shared/constants'
 
-interface NavLink {
-  href: string
+interface NavLinkBase {
   label: string
   icon?: typeof MapPin
   roles?: UserRole[]
   hideForRoles?: UserRole[]
   requiresAuth?: boolean
+}
+
+interface NavLink extends NavLinkBase {
+  href: string
   variant?: 'primary'
   /** Shown only when the logged-in traveler's profile has isReseller=true */
   resellerOnly?: boolean
 }
 
-const NAV_LINKS: NavLink[] = [
+/**
+ * A grouped nav entry rendered as a single dropdown trigger with sub-links.
+ * Discriminated from `NavLink` structurally by the presence of `items` — kept
+ * consistent with the same `items`-presence check used in `mobile-bottom-nav.tsx`.
+ */
+interface NavDropdown extends NavLinkBase {
+  id: string
+  items: NavDropdownLink[]
+}
+
+type NavEntry = NavLink | NavDropdown
+
+function isDropdown(entry: NavEntry): entry is NavDropdown {
+  return 'items' in entry
+}
+
+const NAV_LINKS: NavEntry[] = [
   { href: '/trips', label: 'Explore Trips', icon: MapPin, requiresAuth: false, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/destinations', label: 'Destinations', icon: Compass, requiresAuth: false, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
-  { href: '/my-bookings', label: 'Bookings', icon: BookOpen, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
+  {
+    id: 'my-account',
+    label: 'My Account',
+    icon: BookOpen,
+    hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN],
+    items: [
+      { href: '/my-bookings', label: 'My Bookings' },
+      { href: '/my-reviews', label: 'My Reviews' },
+      { href: '/messages', label: 'My Messages' },
+    ],
+  },
   { href: '/my-payments', label: 'Payments', icon: CreditCard, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
-  { href: '/my-reviews', label: 'My Reviews', icon: Star, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN] },
   { href: '/reseller', label: 'Reseller', icon: Gift, hideForRoles: [USER_ROLE.ORGANIZER, USER_ROLE.ADMIN], resellerOnly: true },
-  { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true },
+  // Travelers reach Messages via the "My Account" dropdown above; organizers/admin
+  // (who have no bookings/reviews) keep this direct link.
+  { href: '/messages', label: 'Messages', icon: MessageSquare, requiresAuth: true, hideForRoles: [USER_ROLE.TRAVELER] },
   { href: '/wallet', label: 'Wallet', icon: Coins },
   { href: '/profile', label: 'Profile', icon: UserCircle },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [USER_ROLE.ORGANIZER], variant: 'primary' },
   { href: '/admin', label: 'Admin', icon: Shield, roles: [USER_ROLE.ADMIN], variant: 'primary' },
 ]
 
-function isLinkVisible(link: NavLink, role: string | undefined, isAuthenticated: boolean): boolean {
+function isLinkVisible(link: NavEntry, role: string | undefined, isAuthenticated: boolean): boolean {
   if (link.roles && (!role || !link.roles.includes(role as UserRole))) {
     return false
   }
@@ -109,8 +140,8 @@ export function Header() {
 
   const visibleLinks = useMemo(
     () => _hasHydrated
-      ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated) && (!link.resellerOnly || isReseller))
-      : NAV_LINKS.filter((link) => link.href === '/trips'),
+      ? NAV_LINKS.filter((link) => isLinkVisible(link, user?.role, isAuthenticated) && (isDropdown(link) || !link.resellerOnly || isReseller))
+      : NAV_LINKS.filter((link) => !isDropdown(link) && link.href === '/trips'),
     [_hasHydrated, user?.role, isAuthenticated, isReseller],
   )
 
@@ -153,6 +184,38 @@ export function Header() {
         {/* Desktop nav — hidden on mobile, visible md+ */}
         <nav className="hidden items-center gap-0.5 md:flex">
           {visibleLinks.map((link) => {
+            if (isDropdown(link)) {
+              // No aria-current here — the trigger itself doesn't navigate anywhere
+              // (unlike a real nav link), only its menu items do; those carry
+              // aria-current in the mobile panel rendering below. The active
+              // color state still reflects whether a child route is open.
+              const active = link.items.some((item) => isActive(item.href))
+              const Icon = link.icon
+
+              return (
+                <NavDropdownMenu
+                  key={link.id}
+                  items={link.items}
+                  align="start"
+                  trigger={
+                    <button
+                      type="button"
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors whitespace-nowrap',
+                        active
+                          ? 'bg-primary-50 text-primary-700'
+                          : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900',
+                      )}
+                    >
+                      {Icon && <Icon className="hidden xl:block h-4 w-4" />}
+                      {link.label}
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  }
+                />
+              )
+            }
+
             const active = isActive(link.href)
             const Icon = link.icon
 
@@ -260,6 +323,38 @@ export function Header() {
 
           {/* Mobile nav links */}
           {visibleLinks.map((link) => {
+            if (isDropdown(link)) {
+              const Icon = link.icon
+              return (
+                <div key={link.id} className="space-y-1">
+                  <div className="flex items-center gap-3 px-4 pt-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                    {Icon && <Icon className="h-3.5 w-3.5" />}
+                    {link.label}
+                  </div>
+                  {link.items.map((item) => {
+                    const itemActive = isActive(item.href)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={false}
+                        onClick={closeMobileMenu}
+                        aria-current={itemActive ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg py-2.5 pl-9 pr-4 text-sm font-medium transition-colors',
+                          itemActive
+                            ? 'bg-primary-50 text-primary-700'
+                            : 'text-neutral-700 hover:bg-neutral-100',
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )
+            }
+
             const active = isActive(link.href)
             const Icon = link.icon
 
