@@ -1,0 +1,43 @@
+docs/audit/synthesis.md
+  s_748c226c3e4122::t_48dd2b532779a9 59-60
+  s_748c226c3e4122::t_4b72baafab740c 10-12
+  s_748c226c3e4122::t_bb4ca45dfd5140 20,22
+  s_748c226c3e4122::t_b31ea605f17b98 37,40
+  s_748c226c3e4122::t_fb6da027cbc205 18
+docs/mvp/mvp-plan.md
+  s_748c226c3e4122::t_6c6895d1378ec1 1367-1373
+  s_748c226c3e4122::t_a1aa0c3b53d11b 1347-1348
+  s_748c226c3e4122::t_0f894011bbd9a6 1048-1049
+  s_748c226c3e4122::t_efb2d6756e1d50 1340-1341
+  s_748c226c3e4122::t_6b8bcf0f519d48 1364-1366
+  s_748c226c3e4122::t_24703a99c25834 1403
+docs/rnd/2026-08-02-seo-geo-action-plan.md
+  s_748c226c3e4122::t_19f15dce794755 27-28
+  s_748c226c3e4122::t_1a9d2abeca8ca2 35-36
+docs/audit/2026-07-10-agent-tooling-session-findings.md
+  s_748c226c3e4122::t_8b1141b887f9ff 7-8
+  s_748c226c3e4122::t_be08216d878c9d 12
+"docs/codebase/Shared Package.md"
+  s_748c226c3e4122::t_2f9bfa516df695 80-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "067769d49e6972adca13498ea935f7f2263957ca",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_748c226c3e4122": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e68fa39d-0ba4-4b5c-92af-941e34f0acae",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
