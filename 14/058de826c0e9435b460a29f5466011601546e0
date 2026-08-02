@@ -1,0 +1,38 @@
+scripts/deploy-prod.sh
+  s_771482e31bd21c::t_60a6a5669d86e5 153-158,160-167
+  s_771482e31bd21c::t_cf8104b790bfa3 281-290
+  s_771482e31bd21c::t_8bf3bd697e1f24 49-54,59-63,65-68,70-88,90-98
+  s_771482e31bd21c::t_330dd267c6284d 7-8
+  s_771482e31bd21c::t_71b78c0981b28e 339,344-345
+  s_771482e31bd21c::t_a2fb5c3efd0454 18-36
+"docs/codebase/Environment & Deployment.md"
+  s_771482e31bd21c::t_19168e7a2e91ef 76,78
+  s_771482e31bd21c::t_3f0d523a806f10 89,92-112,119
+  s_771482e31bd21c::t_53d25d39fabd2c 91
+  s_771482e31bd21c::t_7f99cfbf86425f 77
+  s_771482e31bd21c::t_c04130439a4cf3 90
+.github/workflows/deploy-ec2.yml
+  s_771482e31bd21c::t_3384c143761fb3 1-20,25-27,29-47
+  s_771482e31bd21c::t_f840667cf853f0 21-24,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "14058de826c0e9435b460a29f5466011601546e0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_771482e31bd21c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6fd1f024-2e82-40cb-ac4c-e7ad6aed9d52",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
