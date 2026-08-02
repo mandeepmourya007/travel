@@ -1,0 +1,26 @@
+apps/web/src/app/destinations/layout.tsx
+  s_c1dd4dd9bcd74d::t_a321c2c479092f 1-5
+"docs/codebase/Frontend Routes Reference.md"
+  s_c1dd4dd9bcd74d::t_b04cf51c956da9 59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "a0de9f4f35dc6d7e1b705b153a6373789fb7b0f5",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_c1dd4dd9bcd74d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "694830f4-ffb6-4433-b243-a8a007661730",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
