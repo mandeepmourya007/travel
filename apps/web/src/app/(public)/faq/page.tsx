@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd, buildFaqJsonLd } from '@/lib/structured-data'
 import { faqs } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `FAQ — Group Travel Questions Answered | ${APP_NAME}`,
+  title: `FAQ — Group Travel Questions Answered`,
   // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
   // Original: `Frequently asked questions about ${APP_NAME}. Learn about SafePay payment protection, booking process, cancellation policies, organizer verification, and more.`
   description: `Frequently asked questions about ${APP_NAME}. Learn about secure payments, booking process, cancellation policies, organizer verification, and more.`,

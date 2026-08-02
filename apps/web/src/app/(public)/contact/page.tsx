@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { contactChannels, responseTimeRows, responseTimeNote, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Contact Us | ${APP_NAME}`,
+  title: `Contact Us`,
   description: `Get in touch with ${APP_NAME} — for booking support, refund queries, organizer inquiries, or grievance redressal. We're based in Pune and respond within 24–48 hours.`,
   alternates: { canonical: '/contact' },
   openGraph: {

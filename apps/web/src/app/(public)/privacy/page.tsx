@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { privacySections, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Privacy Policy | ${APP_NAME}`,
+  title: `Privacy Policy`,
   description: `Learn how ${APP_NAME} collects, uses, and protects your personal data. Our Privacy Policy is compliant with India's Digital Personal Data Protection Act, 2023.`,
   alternates: { canonical: '/privacy' },
   openGraph: {

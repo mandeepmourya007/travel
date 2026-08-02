@@ -8,7 +8,7 @@ import { DestinationsListClient } from '@/components/destinations/destinations-l
 import type { Destination } from '@shared/types/destination.types'
 
 export const metadata: Metadata = {
-  title: `Group Trip Destinations India — Goa, Manali, Ladakh, Spiti & More | ${APP_NAME}`,
+  title: `Group Trip Destinations India — Goa, Manali, Ladakh, Spiti & More`,
   description: `Explore 14+ group trip destinations across India. Weekend getaways from Pune & Mumbai to Lonavala, Mahabaleshwar & Goa. Adventure treks to Ladakh, Spiti Valley & Manali. Cultural tours to Rajasthan, Varanasi & Meghalaya. Book safely with ${APP_NAME}.`,
   alternates: {
     canonical: '/destinations',

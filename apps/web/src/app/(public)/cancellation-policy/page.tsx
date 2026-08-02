@@ -18,7 +18,7 @@ import {
 } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Cancellation & Refund Policy | ${APP_NAME}`,
+  title: `Cancellation & Refund Policy`,
   // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
   // Original: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how SafePay refunds work.`
   description: `Understand ${APP_NAME}'s cancellation and refund rules — Flexible, Moderate, and Strict policies for group trips, organizer cancellations, and how refunds work.`,

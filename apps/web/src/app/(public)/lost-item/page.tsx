@@ -12,7 +12,7 @@ import {
 } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Lost Item Policy | ${APP_NAME}`,
+  title: `Lost Item Policy`,
   description: `Lost something on a ${APP_NAME} trip? Learn how to report lost items, contact your organizer, and what support ${APP_NAME} can provide.`,
   alternates: { canonical: '/lost-item' },
   openGraph: {

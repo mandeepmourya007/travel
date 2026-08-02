@@ -21,6 +21,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Artifact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Artifacts are disabled for this project - keep all research/audit deliverables local under docs/rnd/ instead of publishing to claude.ai.\"}}'",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [

@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { travelerRuleGroups, organizerRuleGroups, rulesReportingText, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Community Rules & Guidelines | ${APP_NAME}`,
+  title: `Community Rules & Guidelines`,
   description: `Rules and guidelines for travelers and trip organizers on ${APP_NAME}. Understand expectations for safe, respectful, and responsible group travel in India.`,
   alternates: { canonical: '/rules' },
   openGraph: {

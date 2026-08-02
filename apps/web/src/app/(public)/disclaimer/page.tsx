@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { disclaimerSections, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Disclaimer | ${APP_NAME}`,
+  title: `Disclaimer`,
   description: `Important disclaimer for users of ${APP_NAME}. Understand the platform's role as an intermediary marketplace and the limits of our liability for group trips in India.`,
   alternates: { canonical: '/disclaimer' },
   openGraph: {

@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { organizerAgreementSections, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Organizer Agreement | ${APP_NAME}`,
+  title: `Organizer Agreement`,
   description: `The Organizer Agreement for trip organizers listing on ${APP_NAME}. Understand your obligations, rights, payout terms, KYC requirements, and platform rules.`,
   alternates: { canonical: '/organizer-agreement' },
   openGraph: {

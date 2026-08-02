@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { termsSections, LAST_UPDATED as POLICY_DATES } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Terms of Service | ${APP_NAME}`,
+  title: `Terms of Service`,
   description: `Read the Terms of Service for ${APP_NAME} — India's group travel aggregator. Understand your rights and responsibilities when booking group trips on our platform.`,
   alternates: { canonical: '/terms' },
   openGraph: {
