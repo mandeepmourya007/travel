@@ -1,0 +1,24 @@
+apps/web/src/app/llms.txt/route.ts
+  s_ca69ac8dd8b388::t_f5ad0234bd9d45 98-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "9f7839b8e1cb202a3cbab2fcecfd4e306c7b3373",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_ca69ac8dd8b388": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "87987c12-5fb6-4f77-8f7d-bfc37055c4db",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
