@@ -4,7 +4,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { APP_NAME } from '@/lib/constants'
 
 export const metadata: Metadata = {
-  title: `Page Not Found | ${APP_NAME}`,
+  title: `Page Not Found`,
   description: 'The page you are looking for does not exist or has been moved.',
 }
 

@@ -12,7 +12,7 @@ import {
 } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Cookie Policy | ${APP_NAME}`,
+  title: `Cookie Policy`,
   description: `Learn how ${APP_NAME} uses cookies and similar technologies. We only use essential and analytics cookies — no advertising trackers, no data sold to ad networks.`,
   alternates: { canonical: '/cookies' },
   openGraph: {

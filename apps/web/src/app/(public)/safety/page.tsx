@@ -11,7 +11,7 @@ import {
 } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Safety Standards | ${APP_NAME}`,
+  title: `Safety Standards`,
   description: `How ${APP_NAME} ensures your safety on group trips — vehicle standards, certified guides, first aid requirements, emergency protocols, and what to do in a safety emergency.`,
   alternates: { canonical: '/safety' },
   openGraph: {

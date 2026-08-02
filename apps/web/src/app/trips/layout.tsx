@@ -3,7 +3,7 @@ import { AppShell } from '@/components/layout/app-shell'
 import { APP_NAME } from '@/lib/constants'
 
 export const metadata: Metadata = {
-  title: `Group Travel Packages India — Trips from Pune, Mumbai & Delhi | ${APP_NAME}`,
+  title: `Group Travel Packages India — Trips from Pune, Mumbai & Delhi`,
   // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
   // Original: `Browse 75+ group travel packages across India. Weekend trips from Pune (Lonavala, Mahabaleshwar, Goa), Mumbai, Delhi & Bangalore. Treks to Ladakh, Spiti Valley, Manali & Rishikesh. SafePay-protected payments, verified organizers, real reviews.`
   description:

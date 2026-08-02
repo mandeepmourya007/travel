@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { legalDocuments } from '@/lib/legal-content'
 
 export const metadata: Metadata = {
-  title: `Legal | ${APP_NAME}`,
+  title: `Legal`,
   description: `All legal documents for ${APP_NAME} — Terms of Service, Privacy Policy, Cookie Policy, Cancellation Policy, Community Rules, Disclaimer, and the Organizer Agreement in one place.`,
   alternates: { canonical: '/legal' },
   openGraph: {

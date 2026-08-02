@@ -6,7 +6,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/structured-data'
 import { Search, CreditCard, MapPin, Star, MessageCircle } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: `How It Works — Book Group Trips Safely | ${APP_NAME}`,
+  title: `How It Works — Book Group Trips Safely`,
   // Commented out — restore if SafePay escrow-hold-until-trip-done is accurately implemented for all payment providers.
   // Original: `Learn how ${APP_NAME} works: compare group trips, book with SafePay-protected payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`
   description: `Learn how ${APP_NAME} works: compare group trips, book with secure payments, and travel safely with verified organizers. Step-by-step guide for travelers and organizers.`,
