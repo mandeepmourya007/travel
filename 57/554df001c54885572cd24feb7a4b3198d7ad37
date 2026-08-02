@@ -1,0 +1,28 @@
+apps/web/src/components/layout/__tests__/header.test.tsx
+  s_f2e0b109538b4b::t_95fb618814e329 85-137
+  s_f2e0b109538b4b::t_393008571746ba 2,12-22,24
+  s_f2e0b109538b4b::t_344c86f4f83125 138
+apps/web/src/components/layout/__tests__/mobile-bottom-nav.test.tsx
+  s_f2e0b109538b4b::t_6e1118cd6f3dfd 1-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "57554df001c54885572cd24feb7a4b3198d7ad37",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_f2e0b109538b4b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfdaa4c2-8034-4854-b653-9a153ae4cca8",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
