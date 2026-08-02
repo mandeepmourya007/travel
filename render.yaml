@@ -216,6 +216,8 @@ services:
         value: backend
       - key: NEXT_PUBLIC_LOG_LEVEL
         value: warn
+      - key: NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+        sync: false   # verification code from Google Search Console (HTML tag method); set in dashboard, then trigger a manual redeploy — baked at build time
 
       # ── Sentry (optional — omit DSN to disable) ───────
       # ⚠️  NEXT_PUBLIC_* vars are baked at Docker build time (not runtime).
