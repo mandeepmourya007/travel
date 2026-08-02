@@ -1,0 +1,33 @@
+apps/web/src/components/trips/compare-bar.tsx
+  s_c1dd4dd9bcd74d::t_575c666fb998f0 65,67,72,75,85,87-88
+apps/web/src/app/trips/compare/page.tsx
+  s_c1dd4dd9bcd74d::t_f1ddbb5728e256 181-185
+apps/web/src/components/trips/trip-comparison-table.tsx
+  s_c1dd4dd9bcd74d::t_02129c3025edc3 66,80,86
+  s_c1dd4dd9bcd74d::t_dae5eba1bd7482 71
+docs/engineering/fe/design-system.md
+  h_b3232c20134322 59
+  s_c1dd4dd9bcd74d::t_691db9ab88f955 560-562,565
+  h_b3232c20134322 58,60-61,63-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "dad128960dbb5a2feefff41a220eb7a8287dc982",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_c1dd4dd9bcd74d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "694830f4-ffb6-4433-b243-a8a007661730",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
