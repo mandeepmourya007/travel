@@ -24,11 +24,15 @@ Confirmed via curl against **prod** (`tripeeeh.com`): `/trips`, `/destinations`,
 
 **Fixed in this session** — stripped the redundant `| ${APP_NAME}` suffix from 16 files' top-level `metadata.title` (left `openGraph.title`/`twitter.title` untouched since those aren't templated). `npm run type-check --workspace=apps/web` passes clean. **Not yet deployed** — this needs a commit + your EC2 deploy path (`deploy-prod.sh`) to reach production, not a Render redeploy.
 
+**Verified 2026-08-02: code fix confirmed in the repo** — landed as commit `2456b0f` ("fix(web): remove duplicate site name from page title tags"), touching the 16 files described above. **Deployment status cannot be verified from the repo** — whether this commit has actually been deployed to `https://tripeeeh.com` via `deploy-prod.sh` requires checking the live EC2 instance, not something git history can confirm.
+
 ### 3. `llms.txt` failed Lighthouse's "agentic browsing" check — fixed in code
 
 Confirmed via Lighthouse against **prod**: `llms-txt` audit scored 0 with the reason *"File does not appear to contain any links"* — the "Key Pages" section used plain-text bullets (`- Homepage: https://tripeeeh.com/`) instead of Markdown link syntax. Not related to the staging localhost bug — prod's URLs were already correct, just not formatted as links.
 
 **Fixed in this session** — converted all 10 "Key Pages" entries in `apps/web/src/app/llms.txt/route.ts` to `[Label](url)` Markdown link syntax. `type-check` passes. Not yet deployed.
+
+**Verified 2026-08-02: code fix confirmed in the repo** — landed as commit `9f7839b` ("fix(web): use markdown link syntax for llms.txt key pages"), a 20-line diff to `apps/web/src/app/llms.txt/route.ts`. **Deployment status cannot be verified from the repo** — confirming this is live on `https://tripeeeh.com` requires re-running Lighthouse against prod post-deploy, not something git history can confirm.
 
 ---
 

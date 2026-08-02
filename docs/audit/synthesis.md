@@ -7,17 +7,19 @@
 
 ## (a) Remaining reliability risk
 
-**Cron distributed lock is missing.** `index.ts:30` boots cron jobs on every process with no Redis lock; the escrow-release idempotency check is check-then-create with no unique constraint — first scaling event creates duplicate payouts. Fix: Redis `SET NX` lock per job + a partial unique index on `PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'`. Fine on today's single container, but cheap insurance before any horizontal scale.
+~~**Cron distributed lock is missing.** `index.ts:30` boots cron jobs on every process with no Redis lock; the escrow-release idempotency check is check-then-create with no unique constraint — first scaling event creates duplicate payouts. Fix: Redis `SET NX` lock per job + a partial unique index on `PaymentTransaction(bookingId) WHERE type='ESCROW_RELEASE'`. Fine on today's single container, but cheap insurance before any horizontal scale.~~
+
+**Verified 2026-08-02: both fixed.** Every cron job in `apps/api/src/utils/cron-jobs.ts` is wrapped in `withLock(...)` from `apps/api/src/utils/redis-lock.ts` (Redis `SET NX` lock per job). The escrow/deposit/balance/payout-release idempotency check is now a DB-level partial unique index, not check-then-create — see `apps/api/prisma/schema.prisma:643-655` comment block referencing migrations `20260614000001_escrow_release_unique_index` and `20260728010001_add_payout_release_unique_index` (both migrations exist on disk).
 
 ---
 
 ## (b) Performance — remaining items
 
-1. **Stop double-fetching on /trips filters.** Every filter change does a full server navigation *and* a duplicate client-side TanStack fetch of the same query (`components/trips/trip-filters.tsx:38-71` + `trip-grid.tsx:20`). `nuqs` is a declared dependency, imported nowhere — use it for shallow URL state after first paint.
+1. **Stop double-fetching on /trips filters.** Every filter change does a full server navigation *and* a duplicate client-side TanStack fetch of the same query (`components/trips/trip-filters.tsx:38-71` + `trip-grid.tsx:20`). ~~`nuqs` is a declared dependency, imported nowhere~~ — **verified 2026-08-02: `nuqs` is no longer even in `apps/web/package.json`** (removed since this was written, not just unused) — the double-fetch itself is still real and needs a different fix (shallow URL state via `next/navigation` or re-adding `nuqs`).
 2. **Trip list over-fetching:** list queries pull full rows including `itinerary`/`photos`/`description` JSON for every card (`trip.repository.ts:62-169`). Switch to an explicit summary `select`.
-3. **Add the Socket.IO Redis adapter** (`socket/index.ts:16-24` — docs claim it exists; it doesn't) and replace per-disconnect `io.fetchSockets()` scans with Redis counters. Prerequisite for ever running 2+ API replicas.
+3. ~~**Add the Socket.IO Redis adapter** (`socket/index.ts:16-24` — docs claim it exists; it doesn't)~~ — **verified 2026-08-02: it now exists.** `apps/api/src/socket/index.ts:3` imports `createAdapter` from `@socket.io/redis-adapter` (also in `apps/api/package.json:23`). Per-disconnect `io.fetchSockets()` scans (`presence.handler.ts`) may still be worth replacing with Redis counters, but the adapter prerequisite is done.
 4. **Unbounded queries:** unpaginated `findByOrganizerId`, `findAllPendingForOrganizer`, `findExpiredPendingBookings` (the last makes the cron poll Razorpay serially per booking).
-5. **Frontend polish:** replace the 11 raw `<img>` usages (avatars, seat-map thumbs) with `next/image`; stop the 30s seat-map polling on the public trip-detail preview.
+5. **Frontend polish:** replace raw `<img>` usages (avatars, seat-map thumbs) with `next/image`; stop the 30s seat-map polling on the public trip-detail preview. **Verified 2026-08-02: count is 9, not 11** — `apple-icon.tsx`, `admin/organizers/[id]/page.tsx`, `components/vehicle/seat-map-viewer.tsx`, `components/vehicle/vehicle-image-gallery.tsx`, `components/vehicle/vehicle-image-lightbox.tsx`, `components/chat/message-bubble.tsx` (×2), `components/admin/organizer-approval-card.tsx`, `components/trips/trip-form/review-tab.tsx`. (Two other `<img>` matches are in `__tests__` mock files, not production code, so not counted.) Still not migrated to `next/image`.
 
 ---
 
@@ -32,10 +34,10 @@
 
 Quick-wins (S effort, ride existing infra):
 
-1. **Post-trip review prompts + verified-booking badge** — `REVIEW_REQUEST` notification type exists but is never fired; the trip-completion cron is the exact hook point. Reviews are the trust moat and nobody is ever asked to write one. Highest ROI-per-line in the codebase.
+1. ~~**Post-trip review prompts + verified-booking badge** — `REVIEW_REQUEST` notification type exists but is never fired~~ — **verified 2026-08-02: it is now fired.** `apps/api/src/services/trip-lifecycle.service.ts:416` sends `NOTIFICATION_TYPE.REVIEW_REQUEST` on trip completion (comment at line 393: "fires once per trip completion").
 2. **Auto-cashback on trip completion** — wallet credit + idempotency constraint + completion cron all exist; today cashback is manual admin work. Pair with **wallet expiry** (the `EXPIRY` enum value is dead code) so credit creates urgency.
 3. **Trip duplication ("repeat this trip")** — `TripEditHistory.snapshot` proves full-trip serialization exists; Pune organizers rerun the same Goa trip every 2–4 weeks and currently refill a 9-section form each time.
-4. **Trip reminder notifications (48h/24h)** — `TRIP_REMINDER` is enum'd and channel-mapped, never sent.
+4. ~~**Trip reminder notifications (48h/24h)** — `TRIP_REMINDER` is enum'd and channel-mapped, never sent.~~ — **verified 2026-08-02: it is now sent.** `apps/api/src/utils/cron-jobs.ts:397` sends `NOTIFICATION_TYPE.TRIP_REMINDER` from a cron job (`cron-jobs.ts:352` doc comment describes the 48h/24h trigger window).
 5. **Branded OG share cards for trips** — WhatsApp is the discovery channel; Next's `ImageResponse` can compose photo + price + seats-left + verified badge.
 
 Medium:
@@ -53,6 +55,8 @@ Also: `docs/mvp/mvp-plan.md` is stale — Destination Pages are listed "Not Star
 ---
 
 ## (e) Suggested order of attack
+
+> **Verified 2026-08-02:** the "Cron distributed lock + SafePay unique index" item and the "Socket.IO Redis adapter" item referenced below are both now done (see (a) and (b)#3 above) — this roadmap section is left as historical planning context, not re-ordered.
 
 **Now (Week 3) — reliability insurance + remaining perf:**
 - Cron distributed lock + SafePay unique index
