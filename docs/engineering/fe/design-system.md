@@ -55,19 +55,19 @@ A platform-agnostic design system for web (Tailwind CSS) and mobile (React Nativ
 
 ### Neutrals
 
-| Token | Hex | Usage |
-|-------|-----|-------|
-| `neutral-0` | `#FFFFFF` | White backgrounds |
-| `neutral-50` | `#F8FAFB` | Page background |
+| Token         | Hex       | Usage                    |
+| ---------------| -----------| --------------------------|
+| `neutral-0`   | `#FFFFFF` | White backgrounds        |
+| `neutral-50`  | `#F8FAFB` | Page background          |
 | `neutral-100` | `#F1F4F6` | Card backgrounds, inputs |
-| `neutral-200` | `#E2E7EB` | Borders, dividers |
-| `neutral-300` | `#CBD2D9` | Disabled states |
-| `neutral-400` | `#9AA5B1` | Placeholder text |
-| `neutral-500` | `#6B7785` | Secondary text |
-| `neutral-600` | `#4E5A65` | Body text |
-| `neutral-700` | `#374151` | Strong text |
-| `neutral-800` | `#1F2937` | Headings |
-| `neutral-900` | `#111827` | Primary text |
+| `neutral-200` | `#E2E7EB` | Borders, dividers        |
+| `neutral-300` | `#CBD2D9` | Disabled states          |
+| `neutral-400` | `#9AA5B1` | Placeholder text         |
+| `neutral-500` | `#6B7785` | Secondary text           |
+| `neutral-600` | `#4E5A65` | Body text                |
+| `neutral-700` | `#374151` | Strong text              |
+| `neutral-800` | `#1F2937` | Headings                 |
+| `neutral-900` | `#111827` | Primary text             |
 
 ### Semantic Colors
 
@@ -557,12 +557,12 @@ Header row:
 
 Thumbnail grid:
   grid gap-2 sm:gap-4 (columns = maxItems + 1)
-  Image: aspect-square max-w-20 sm:max-w-24 rounded-lg
-  Title: text-xs font-medium text-neutral-700 line-clamp-2
-  Price: text-xs sm:text-sm font-bold text-accent-500
+  Image: aspect-square max-w-14 sm:max-w-24 rounded-lg
+  Title: text-[11px] sm:text-xs font-medium text-neutral-700 line-clamp-2
+  Price: text-[11px] sm:text-sm font-bold text-accent-500
 
 Empty slot:
-  aspect-square max-w-20 sm:max-w-24
+  aspect-square max-w-14 sm:max-w-24
   border-2 border-dashed border-neutral-200 rounded-lg
 
 CTA:

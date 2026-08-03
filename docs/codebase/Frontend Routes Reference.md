@@ -56,7 +56,7 @@ App Router tree under `apps/web/src/app/`. Protection is component-level (`<Auth
 | `/trips/compare`           | Side-by-side comparison (max 3)                                 |
 | `/trips/organizers/[slug]` | Public organizer profile, Organization JSON-LD                  |
 
-## `/destinations` — indexable
+## `/destinations` — indexable, layout wraps `AppShell` (Header/Footer/`MobileBottomNav`)
 
 | Route | Purpose |
 | :--- | :--- |

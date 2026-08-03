@@ -178,11 +178,11 @@ function ComparisonSkeleton({ count }: { count: number }) {
         style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="flex flex-col items-center space-y-2">
-            <div className="skeleton aspect-square w-full max-w-36 sm:max-w-44 rounded-lg" />
-            <div className="skeleton h-3 sm:h-4 w-3/4" />
-            <div className="skeleton h-4 sm:h-5 w-1/2" />
-            <div className="skeleton h-2.5 w-2/3" />
+          <div key={i} className="flex flex-col items-center space-y-1.5 sm:space-y-2">
+            <div className="skeleton aspect-square w-full max-w-20 sm:max-w-36 md:max-w-44 rounded-lg" />
+            <div className="skeleton h-2.5 sm:h-4 w-3/4" />
+            <div className="skeleton h-3 sm:h-5 w-1/2" />
+            <div className="skeleton h-2 sm:h-2.5 w-2/3" />
           </div>
         ))}
       </div>

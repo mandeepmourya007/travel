@@ -62,17 +62,17 @@ export function CompareBar({ items, onRemove, onClose, isOpen, maxItems = 3 }: C
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-              <div className="relative w-full aspect-square max-w-20 sm:max-w-24 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
+              <div className="relative w-full aspect-square max-w-14 sm:max-w-24 rounded-lg overflow-hidden bg-neutral-100 mx-auto">
                 {item.photo ? (
-                  <Image src={item.photo} alt={item.title} fill sizes="96px" quality={60} className="object-cover" />
+                  <Image src={item.photo} alt={item.title} fill sizes="(max-width: 640px) 56px, 96px" quality={60} className="object-cover" />
                 ) : (
                   <div className="h-full w-full bg-neutral-200" />
                 )}
               </div>
-              <span className="mt-1.5 text-xs font-medium text-neutral-700 line-clamp-2 leading-tight">
+              <span className="mt-1 sm:mt-1.5 text-[11px] sm:text-xs font-medium text-neutral-700 line-clamp-2 leading-tight">
                 {item.title}
               </span>
-              <span className="mt-0.5 text-xs sm:text-sm font-bold text-accent-500">
+              <span className="mt-0.5 text-[11px] sm:text-sm font-bold text-accent-500">
                 {formatCurrency(item.price)}
               </span>
             </div>
@@ -82,10 +82,10 @@ export function CompareBar({ items, onRemove, onClose, isOpen, maxItems = 3 }: C
           {Array.from({ length: emptySlots }).map((_, i) => (
             <div
               key={`empty-${i}`}
-              className="flex flex-col items-center justify-center text-center aspect-square max-w-20 sm:max-w-24 mx-auto rounded-lg border-2 border-dashed border-neutral-200 w-full"
+              className="flex flex-col items-center justify-center text-center aspect-square max-w-14 sm:max-w-24 mx-auto rounded-lg border-2 border-dashed border-neutral-200 w-full"
             >
-              <Plus className="h-6 w-6 sm:h-8 sm:w-8 text-primary-400" />
-              <span className="text-xs text-neutral-400 mt-1">Add Trip</span>
+              <Plus className="h-4 w-4 sm:h-8 sm:w-8 text-primary-400" />
+              <span className="text-[10px] sm:text-xs text-neutral-400 mt-0.5 sm:mt-1">Add Trip</span>
             </div>
           ))}
         </div>

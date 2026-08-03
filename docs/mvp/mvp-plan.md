@@ -1045,8 +1045,8 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] Booking lifecycle tests (`booking-lifecycle.test.ts` — 35 tests)
 - [x] Trip lifecycle service tests (`trip-lifecycle.service.test.ts` — 16 tests)
 - [x] Admin service tests (`admin.service.test.ts` — 24 tests: approval queue, organizer detail, approve/reject, platform stats, admin bookings)
-- [ ] Repository unit tests (remaining repos)
-- [ ] Route integration tests (remaining routes)
+- [ ] Repository unit tests (remaining repos) — verified 2026-08-02: only 7/23 repos have unit tests (`booking`, `conversation`, `payment-transaction`, `reseller`, `trip-request`, `trip`, `webhook-event`); still missing for `destination`, `document-review` (has an integration test only), `message`, `notification`, `organizer-invite`, `organizer-lead`, `organizer-payout-attempt`, `organizer-profile`, `refresh-token`, `trip-category`, `trip-edit-history`, `user`, `vehicle`, `verification-code`, `wallet`, `whatsapp-broadcast`
+- [ ] Route integration tests (remaining routes) — verified 2026-08-02: only `auth`, `booking`, `reseller` have route-level tests; still missing for `admin`, `chat`, `destination`, `firebase-auth`, `health`, `notification`, `organizer-lead`, `payment`, `review`, `trip-category`, `trip`, `upload`, `vehicle`, `wallet`, `webhook`
 
 #### ✅ Backend — Booking & Payment Module
 - [x] `BookingRepository` — create, findActiveByUserAndTrip, findWithPaymentDetails, updateStatus, generateBookingRef (retry + collision check)
@@ -1337,10 +1337,14 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 > These 8 features transform TripCompare from "a well-built aggregator" into **"the only safe, transparent, and community-driven way to book group trips in India."** No competitor — MakeMyTrip, Tripoto, GoGaffl, Zostel — offers ANY of these. Each feature solves a real pain point AND has a built-in sharing/growth mechanic.
 > 
 > **Note:** Feature #2 (Organizer Public Profile) is already implemented — see below.
+>
+> **Verified 2026-08-02:** grepped `apps/api/prisma/schema.prisma` and `apps/api/src`/`apps/web/src`/`packages/shared/src` for all remaining 7 features (Wishlist, Transparent Price Breakdown, Local Intel, Solo → Squad, Trip Replay, Organizer Trust Score) — no `Wishlist`, `PriceBreakdown`, `DestinationTip`/`TipVote`/`TipComment`/`TipReport`, `VibeProfile`, `TripReplay`, or `TrustScore` models/services/components exist anywhere in the codebase. All 8 checklists below remain accurate as fully `[ ]` not-started (Destination Pages checkboxes corrected above — that feature is actually shipped).
 
 ---
 
 ##### ✅ 1. Destination Pages (`/destinations/[slug]`) — **SHIPPED**
+
+> **Verified 2026-08-02:** checklist below updated to match reality — the prose above was correct but the checkboxes were stale. Confirmed backend (`apps/api/src/services/destination.service.ts`, `apps/api/src/controllers/destination.controller.ts`, `apps/api/src/routes/destination.routes.ts`, `apps/api/src/repositories/destination.repository.ts`) and frontend (`apps/web/src/app/destinations/[slug]/page.tsx` — SSR with `generateMetadata()`, `generateStaticParams()`, canonical/OG tags, and `TouristDestination`/breadcrumb/`ItemList` JSON-LD via `buildDestinationJsonLd`/`buildBreadcrumbJsonLd`/`buildItemListJsonLd`) all exist and are wired end-to-end.
 
 **What:** Rich, SEO-optimized landing pages for each destination — showing all trips to that destination, aggregated reviews, average pricing, best time to visit, and (future) Local Intel tips.
 
@@ -1357,15 +1361,16 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - **Structured data (Schema.org)** → rich snippets in Google search results
 
 **Scope:**
-- [ ] BE: `DestinationService.getBySlug()` with trip count, avg price, avg rating aggregation
-- [ ] BE: `GET /api/v1/destinations/:slug` endpoint with trip listing + stats
-- [ ] FE: `/destinations/[slug]/page.tsx` — SSR with `generateMetadata()` for SEO
-- [ ] FE: Hero section (destination image, name, state, stats)
-- [ ] FE: Trips tab (reuse existing TripGrid with destination filter pre-applied)
-- [ ] FE: Reviews tab (aggregated reviews from all trips to this destination)
-- [ ] FE: "Best Time to Visit" + "Average Price" info cards
-- [ ] FE: "Trips to Goa" CTA section at bottom → conversion funnel
-- [ ] SEO: Canonical URLs, OG images, breadcrumbs, JSON-LD (TouristDestination schema)
+- [x] BE: `DestinationService.getBySlug()` with trip count, avg price, avg rating aggregation
+- [x] BE: `GET /api/v1/destinations/:slug` endpoint with trip listing + stats
+- [x] FE: `/destinations/[slug]/page.tsx` — SSR with `generateMetadata()` for SEO
+- [x] FE: Hero section (destination image, name, state, stats) — `destination-detail-client.tsx:157-186`
+- [x] FE: Trips tab (reuse existing TripGrid with destination filter pre-applied) — `destination-detail-client.tsx:229-296` (filter pills + sort + price range, not a literal `TripGrid` reuse but equivalent inline listing)
+- [ ] FE: Reviews tab (aggregated reviews from all trips to this destination) — verified 2026-08-02: not present in `destination-detail-client.tsx` or `destination.types.ts`
+- [x] FE: "Average Price" info card — `StatCard` "Avg Price" (`destination-detail-client.tsx:209`)
+- [ ] FE: "Best Time to Visit" info card — verified 2026-08-02: not present
+- [ ] FE: "Trips to Goa" CTA section at bottom → conversion funnel — verified 2026-08-02: bottom section is "Related Destinations" (`destination-detail-client.tsx:490` area), not a dedicated CTA
+- [x] SEO: Canonical URLs, OG images, breadcrumbs, JSON-LD (TouristDestination schema) — `apps/web/src/app/destinations/[slug]/page.tsx:38-99`
 
 ---
 
@@ -1395,7 +1400,7 @@ WEBHOOK_EVENTS (audit log — no soft-delete)
 - [x] FE: `OrganizerProfileHeader` component (avatar, business name, verified badge, rating, trips completed, member since)
 - [x] FE: `OrganizerReviewsSection` component (all reviews across their trips, paginated)
 - [x] FE: `useOrganizerPublicProfile` hook + `organizerKeys.publicProfile()` query key
-- [ ] SEO: JSON-LD (Organization/LocalBusiness schema), OG image, `generateMetadata()` — not yet SSR
+- [x] SEO: JSON-LD (Organization/LocalBusiness schema), OG image, `generateMetadata()` — verified 2026-08-02: `apps/web/src/app/trips/organizers/[slug]/page.tsx` has `generateMetadata()` (canonical + OG) and `buildOrganizerProfileJsonLd`/`buildBreadcrumbJsonLd`. Note: route is `[slug]` not `[organizerId]` as titled above (legacy ID lookup redirects to the slug route).
 
 ---
 
