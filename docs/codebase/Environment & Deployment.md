@@ -28,6 +28,7 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 | Organizer payouts | `PAYOUT_STRATEGY` (route\|razorpayx_payouts, ==default `razorpayx_payouts`==), `RAZORPAYX_KEY_ID` / `KEY_SECRET` / `ACCOUNT_NUMBER` / `WEBHOOK_SECRET` (separate signup/key-pair from `RAZORPAY_KEY_ID`; sandbox/test-mode credentials configured, verified end-to-end with a real payout — see [[Payments & Webhooks]]) |
 | Media | `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` |
 | Monitoring | `SENTRY_DSN`, `SENTRY_TRACES_SAMPLE_RATE`, `NEXT_PUBLIC_SENTRY_*`, `SENTRY_AUTH_TOKEN` (source maps) |
+| Readiness probe | `HEALTH_CHECK_TOKEN` (optional — shared secret for `GET /api/v1/health/ready`, min 32 chars when set, see below) |
 | Legal (FE) | `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_GRIEVANCE_EMAIL`, `NEXT_PUBLIC_GRIEVANCE_OFFICER_NAME` |
 | SEO | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` |
 
@@ -108,8 +109,52 @@ Required GitHub repo secrets (Settings → Secrets and variables → Actions):
 
 This is separate from Render, which keeps auto-deploying independently on push. `--ci` mode requires `.env.prod` to already exist on the box with `DB_MODE` set (see above) — the workflow will fail loudly rather than guess.
 
-> [!info] Render still has no CI file
-> Render's own auto-deploy-on-push requires no GitHub Actions workflow — only the self-hosted EC2 path needs `.github/workflows/deploy-ec2.yml`. Prior to this, there was no `.github/` directory at all; that is no longer the case.
+> [!info] Render still has no CI file for the deploy itself
+> Render's own auto-deploy-on-push requires no GitHub Actions workflow — only the self-hosted EC2 path needs a workflow to actually *drive* a deploy. `.github/workflows/smoke-test-staging.yml` (below) does not deploy anything to Render; it only verifies the deploy Render already did on its own.
+
+## Deep readiness probe (`GET /api/v1/health/ready`)
+
+A guarded, side-effect-free probe distinct from `GET /health` (DB + Redis only, unauthenticated, hit by Render's keep-alive cron — see `apps/api/src/routes/health.routes.ts`). It verifies third-party **credentials** — not just presence of env vars — without sending any email/SMS/WhatsApp or creating a real payment order:
+
+All four checks live in one independent service, `services/connectivity-check.service.ts` — deliberately NOT methods on `IPaymentGateway`/`IEmailProvider`/`IOtpProvider` (those are business-logic interfaces for creating orders/sending mail/SMS and must not carry health-check concerns). `ConnectivityCheckService` is constructed in `config/dependencies.ts` directly from the raw, already-configured credentials/config — the Cloudinary env vars, the active gateway's raw Razorpay keyId/keySecret or `CashfreeConfig`, the Resend API key, the MSG91 auth key — mirroring the exact gating already used to build the real gateway/provider objects, so which check runs (or is skipped) is unchanged.
+
+| Check | How (read-only) |
+| :--- | :--- |
+| `cloudinary` | `ConnectivityCheckService.checkCloudinary()` → `cloudinary.api.ping()` |
+| `paymentGateway` | `ConnectivityCheckService.checkPaymentGateway()` on the **active** gateway only (`env.PAYMENT_GATEWAY`) — fetches a bogus order ID; 401 = bad creds, 400/404 = creds valid. Dev-only unconfigured gateway reports `up` with a fixed "MockPaymentGateway" detail rather than `down` |
+| `resend` | `ConnectivityCheckService.checkResend()` → `resend.domains.list()` — down if the API key is invalid or no domain has `status: verified`. SMTP/mock providers report `skipped` |
+| `msg91` | `ConnectivityCheckService.checkMsg91()` → MSG91 balance endpoint, shared by SMS and WhatsApp OTP since the balance API is account-wide, not per-channel — HTTP 200 with a numeric body = up. Mock (no MSG91 channel active) reports `skipped` |
+
+Response: `{ status: 'healthy'|'degraded'|'unhealthy', checks: {...}, detail: {...}, notes: [...], timestamp }` — HTTP 200 when `healthy`, else 503. `notes` explicitly flags that **MSG91 template/DLT approval and the WhatsApp Business webhook dashboard config are NOT verified** by this probe — those stay manual deploy-checklist items.
+
+Each of the four checks (`HealthService.safeCheck`) races against a 5s timeout (`HEALTH_CHECK_TIMEOUT_MS` in `utils/constants.ts`) and resolves to `down` rather than hanging — none of the underlying provider calls set their own fetch/SDK timeout, so this is the only backstop against a hung third party holding the request open.
+
+`detail` strings never echo raw provider data back to the caller: MSG91's `detail` never includes the account balance figure (only a fixed "balance is low" string when below a floor, otherwise omitted) and Resend/Cloudinary failures map to fixed strings ("Resend API key rejected", "Cloudinary credentials rejected or ping failed") — the raw SDK error is logged server-side only via the injected logger inside `ConnectivityCheckService`.
+
+**Guard:** shared-secret header `x-health-token`, compared with `crypto.timingSafeEqual` against `HEALTH_CHECK_TOKEN` (`requireHealthToken` in `health.routes.ts`) — not an admin JWT, so CI/monitoring can call it without logging in. `HEALTH_CHECK_TOKEN` must be at least 32 characters when set (same floor as `JWT_SECRET` — see `config/env.ts`), since a short value is brute-forceable.
+
+Also gated by a dedicated `healthReadyRateLimit` (5 requests/min per IP, `middleware/rate-limit.middleware.ts`) applied **before** the token check — each hit fans out to 4 real outbound calls to paid third parties, so it needs a tighter tier than `generalRateLimit` (100/min) regardless of token validity.
+
+> [!warning] Fails closed, not an oracle
+> `HEALTH_CHECK_TOKEN` unset (the default) → the route always 404s, regardless of headers sent. Set but header missing/mismatched → **also 404** (not 401) — a differentiated status code would let a scanner distinguish "route exists, bad token" from "route doesn't exist" and probe for the right token. Only an exact header match reaches the handler. This 404 is indistinguishable from other protected JSON-erroring routes only — there is no global catch-all 404 handler in `server.ts`, so a genuinely unmatched path still falls through to Express's default HTML 404.
+
+## Post-deploy smoke test (GitHub Actions)
+
+Two caller workflows both delegate to a shared reusable workflow, `.github/workflows/_smoke-test.yml` (`on: workflow_call`, leading underscore so it doesn't show up as a directly-triggerable workflow in the Actions UI). It runs `apps/web/e2e/google-auth.spec.ts` (the Google-auth origin smoke test — see [[Testing & Quality#E2E (apps/web)]]) against a real deployed URL after each deploy, so an `origin_mismatch` from a domain change the Google Cloud Console OAuth client wasn't updated for fails a CI check instead of silently breaking "Continue with Google" in prod.
+
+`_smoke-test.yml` takes three inputs: `domain` (required, bare hostname), `report-name` (required, artifact-name suffix), and `poll-attempts` (optional, default `30` = up to 5 min at 10s/attempt). It: `npm ci` at repo root → `npx playwright install --with-deps chromium` in `apps/web` → polls `https://<domain>` for HTTP 200 → `npm run test:e2e` with `PLAYWRIGHT_BASE_URL` set to that URL → on failure, uploads `apps/web/playwright-report/` as `playwright-report-<report-name>` (14-day retention). `playwright.config.ts`'s `reporter` includes `html` (in addition to `github`/`list`) whenever `CI` is set, specifically so this artifact exists to upload.
+
+| Caller workflow | Trigger | Passes to `_smoke-test.yml` |
+| :--- | :--- | :--- |
+| `.github/workflows/smoke-test-staging.yml` | push to `staging` (+ `workflow_dispatch`) | `domain: ${{ vars.STAGING_DOMAIN \|\| 'safarnama.store' }}`, `report-name: staging` |
+| `.github/workflows/deploy-ec2.yml` → `smoke-test` job | `needs: deploy` — runs after the `deploy` job succeeds (push to `master`, + `workflow_dispatch`) | `domain: ${{ vars.DOMAIN \|\| 'tripeeeh.com' }}`, `report-name: prod` |
+
+Each caller keeps its own `on:` trigger, `concurrency` group, and `paths-ignore` filter (`docs/**`, `**/*.md`, `.claude/**`) — only the duplicated poll/checkout/Playwright/upload steps moved into the reusable workflow. Because `_smoke-test.yml` is called via `uses: ./.github/workflows/_smoke-test.yml`, it must live in the same repo as its callers (a hard `workflow_call` constraint) and needs no `secrets:`/`inputs:` propagation beyond the two required string inputs above.
+
+Set the `STAGING_DOMAIN` / `DOMAIN` **repository variables** (Settings → Secrets and variables → Actions → Variables) to override the fallback domains baked into both caller workflow files — bare hostnames (no scheme), same shape as the `DOMAIN` var in `.env.prod.example`/`scripts/deploy-prod.sh` — no code change needed to point either smoke test at a different domain.
+
+> [!note] Prod smoke test runs on the Actions runner, not the EC2 box
+> Unlike `deploy-prod.sh`'s own health checks (which run locally on the EC2 box against `localhost`/internal service names), the `smoke-test` job in `deploy-ec2.yml` (via `_smoke-test.yml`) runs on GitHub's runner against the public prod URL — closer to what an end user's browser actually sees (including DNS, TLS, and the real Google Cloud Console origin check).
 
 ## Scripts (`scripts/`)
 
