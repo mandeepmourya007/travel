@@ -4,11 +4,12 @@
  * Formula:
  * Traveler pays = Organizer trip fee + (10% commission on organizer fee) + Reseller amount
  * 
- * Example (₹6,666 traveler payment):
- * - Organizer trip fee: ₹5,999
- * - Platform commission (10% of fee): ₹600
+ * Example (₹6,666 traveler payment, ₹67 reseller amount):
+ * - Organizer trip fee: ₹6,599 (6,666 - 67)
+ * - Platform commission (10% of fee): ₹660
+ * - Organizer earnings (90% of fee): ₹5,939
  * - Reseller amount: ₹67
- * - Total: 5,999 + 600 + 67 = ₹6,666
+ * - Total: 6,599 + 67 = ₹6,666
  */
 
 const PLATFORM_COMMISSION_PERCENT = 10
@@ -78,9 +79,9 @@ export function getResellerEarnings(resellerAmount: number): number {
  * // Returns:
  * // {
  * //   travelerPaid: 6666,
- * //   organizerTripFee: 5999,
- * //   organizerEarnings: 5399,
- * //   platformCommission: 600,
+ * //   organizerTripFee: 6599,
+ * //   organizerEarnings: 5939,
+ * //   platformCommission: 660,
  * //   resellerEarnings: 67
  * // }
  */

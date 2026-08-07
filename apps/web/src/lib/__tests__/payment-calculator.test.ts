@@ -19,7 +19,7 @@ describe('Payment Calculator', () => {
   describe('getOrganizerTripFee', () => {
     it('calculates trip fee as traveler paid minus reseller amount', () => {
       expect(getOrganizerTripFee(6666, 0)).toBe(6666)
-      expect(getOrganizerTripFee(6666, 67)).toBe(5999)
+      expect(getOrganizerTripFee(6666, 67)).toBe(6599)
       expect(getOrganizerTripFee(10000, 100)).toBe(9900)
     })
 
@@ -31,7 +31,7 @@ describe('Payment Calculator', () => {
   describe('getOrganizerEarnings', () => {
     it('calculates 90% of trip fee (10% commission on organizer fee)', () => {
       expect(getOrganizerEarnings(6666, 0)).toBe(5999)
-      expect(getOrganizerEarnings(6666, 67)).toBe(5399)
+      expect(getOrganizerEarnings(6666, 67)).toBe(5939)
       expect(getOrganizerEarnings(10000, 0)).toBe(9000)
     })
 
@@ -49,7 +49,7 @@ describe('Payment Calculator', () => {
   describe('getPlatformCommission', () => {
     it('calculates 10% of organizer trip fee', () => {
       expect(getPlatformCommission(6666, 0)).toBe(667)
-      expect(getPlatformCommission(6666, 67)).toBe(600)
+      expect(getPlatformCommission(6666, 67)).toBe(660)
       expect(getPlatformCommission(10000, 0)).toBe(1000)
     })
 
@@ -87,9 +87,9 @@ describe('Payment Calculator', () => {
       const breakdown = getPaymentBreakdown(6666, 67)
       expect(breakdown).toEqual({
         travelerPaid: 6666,
-        organizerTripFee: 5999,
-        organizerEarnings: 5399,
-        platformCommission: 600,
+        organizerTripFee: 6599,
+        organizerEarnings: 5939,
+        platformCommission: 660,
         resellerEarnings: 67,
       })
     })
