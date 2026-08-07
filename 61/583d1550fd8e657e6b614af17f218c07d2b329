@@ -1,0 +1,28 @@
+docker-compose.prod.yml
+  s_08f8d71d1e5519::t_e098b3f07923f6 242
+docker/api.prod.Dockerfile
+  s_08f8d71d1e5519::t_2757dba6a936dd 19
+docker/web.prod.Dockerfile
+  s_08f8d71d1e5519::t_4b4b344947230d 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "61583d1550fd8e657e6b614af17f218c07d2b329",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
