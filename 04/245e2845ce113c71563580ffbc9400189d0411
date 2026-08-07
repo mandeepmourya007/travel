@@ -1,0 +1,51 @@
+apps/api/tests/unit/services/health.service.test.ts
+  s_08f8d71d1e5519::t_bf99f9eb05a490 1-13,15-22,32-40,46,48-63,68,71-79,83,86-92,96-100
+  s_08f8d71d1e5519::t_c8f80af8415433 14,23-31,41-45,47,64-67,69-70,80-82,84-85,93-95
+apps/api/tests/unit/config/env.test.ts
+  s_08f8d71d1e5519::t_0168a23dd5bd19 1-60
+apps/api/tests/unit/services/upload.service.test.ts
+  s_08f8d71d1e5519::t_0057adead898bb 144
+  s_08f8d71d1e5519::t_9a94fd68932a9e 145-148
+apps/api/tests/unit/middleware/rate-limit.middleware.test.ts
+  s_08f8d71d1e5519::t_0057adead898bb 17-18,149-212,215
+  s_08f8d71d1e5519::t_1317a9d55b2306 213-214,216
+apps/api/tests/integration/health-ready.routes.test.ts
+  s_08f8d71d1e5519::t_92a4c3fb93ba50 42,46-47
+  s_08f8d71d1e5519::t_d82de990b33e9e 16-23,40-41,57,59-66,76,82-85,87,95-96,98-99
+  s_08f8d71d1e5519::t_8957a01769d5e7 67-75,77-81
+  s_08f8d71d1e5519::t_fdfefb2899b9ee 3,9-15,24,28-29,38,58,86,88-92
+  s_08f8d71d1e5519::t_1438766a864887 1,4-7,26,45,49-50,54,56
+  s_08f8d71d1e5519::t_95d1c083b90b87 2,25,27,30-37,39,43-44,48,51-53,55,93-94,97,100-101
+  s_08f8d71d1e5519::t_76dc44542bb26c 8
+apps/api/tests/unit/providers/resend-email.provider.test.ts
+  s_08f8d71d1e5519::t_0057adead898bb 67
+  s_08f8d71d1e5519::t_3021066a38f082 68-71
+apps/api/tests/unit/services/connectivity-check.service.test.ts
+  s_08f8d71d1e5519::t_cc9396475ebe43 238-289
+  s_08f8d71d1e5519::t_f9f0fde57fd50b 98-124
+  s_08f8d71d1e5519::t_2a2031c2cd1a45 1-97,125-237,290-291
+apps/api/tests/unit/providers/msg91-whatsapp-otp.provider.test.ts
+  s_08f8d71d1e5519::t_5e4e34bb2621bd 83-87
+  s_08f8d71d1e5519::t_0057adead898bb 82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "04245e2845ce113c71563580ffbc9400189d0411",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
