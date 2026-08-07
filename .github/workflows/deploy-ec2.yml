@@ -9,6 +9,12 @@ name: Deploy to EC2
 # This does NOT replace Render — Render still auto-deploys on push to its
 # tracked branch independently. This workflow only drives the self-hosted
 # EC2 stack described in docker-compose.prod.yml.
+#
+# A second job (smoke-test) runs after `deploy` succeeds: it runs the
+# Google-auth origin smoke test (apps/web/e2e/google-auth.spec.ts) against
+# the live prod URL, on the GitHub Actions runner (not on the EC2 box) —
+# catching the case where a prod domain change wasn't added to the Google
+# OAuth client's "Authorized JavaScript origins" in Google Cloud Console.
 
 on:
   push:
@@ -17,10 +23,17 @@ on:
       - "docs/**"
       - "**/*.md"
       - ".claude/**"
+  workflow_dispatch: {}
 
 concurrency:
   group: deploy-ec2
   cancel-in-progress: false
+
+# DOMAIN (repo variable, Settings → Secrets and variables → Actions →
+# Variables) is passed straight into the smoke-test job below as `domain:`.
+# Bare hostname, matching the DOMAIN convention used in .env.prod.example
+# and scripts/deploy-prod.sh — not a full URL. Falls back to the current
+# known prod domain if unset.
 
 jobs:
   deploy:
@@ -45,3 +58,10 @@ jobs:
             git fetch origin master
             git reset --hard origin/master
             ./scripts/deploy-prod.sh --ci
+
+  smoke-test:
+    needs: deploy
+    uses: ./.github/workflows/_smoke-test.yml
+    with:
+      domain: ${{ vars.DOMAIN || 'tripeeeh.com' }}
+      report-name: prod
