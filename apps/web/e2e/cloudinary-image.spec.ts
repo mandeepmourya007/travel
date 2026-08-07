@@ -107,13 +107,34 @@ test.describe('Cloudinary image delivery smoke test', () => {
         'Seed at least one trip with a real Cloudinary photo to enable this check.',
     )
 
-    const loaded = await cloudinaryImage!.evaluate(
-      (el: HTMLImageElement) => el.complete && el.naturalWidth > 0,
-    )
+    // Finding the <img> in the DOM only proves React rendered the tag — the
+    // browser may not have finished fetching/decoding the image yet (more so
+    // if it's using native lazy-loading and sits slightly below the fold).
+    // Scroll it into view to give lazy-loading a chance to trigger, then poll
+    // for actual completion instead of checking naturalWidth synchronously —
+    // a same-instant check here previously produced false failures on real,
+    // reachable Cloudinary images that just hadn't finished loading yet.
+    await cloudinaryImage!.scrollIntoViewIfNeeded()
+
+    const loaded = await cloudinaryImage!
+      .evaluate(
+        (el: HTMLImageElement) =>
+          new Promise<boolean>((resolve) => {
+            if (el.complete && el.naturalWidth > 0) {
+              resolve(true)
+              return
+            }
+            const done = () => resolve(el.complete && el.naturalWidth > 0)
+            el.addEventListener('load', done, { once: true })
+            el.addEventListener('error', done, { once: true })
+            setTimeout(done, 10_000)
+          }),
+      )
 
     expect(
       loaded,
-      'A Cloudinary-hosted <img> was found but never finished loading (naturalWidth is 0). ' +
+      'A Cloudinary-hosted <img> was found but never finished loading (naturalWidth is 0) even ' +
+        'after scrolling it into view and waiting up to 10s for its load/error event. ' +
         'Check next.config.js `images.remotePatterns` / src/config/image-hosts.js for a missing ' +
         '"res.cloudinary.com" entry, and verify CLOUDINARY_CLOUD_NAME matches this environment\'s Cloudinary account.',
     ).toBe(true)
