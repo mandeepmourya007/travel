@@ -1,0 +1,28 @@
+apps/web/e2e/cloudinary-image.spec.ts
+  s_08f8d71d1e5519::t_c111943210d2fd 110-132,136-137
+.github/workflows/_smoke-test.yml
+  s_08f8d71d1e5519::t_7b842ece508a97 78
+apps/web/src/components/shared/route-progress.tsx
+  s_08f8d71d1e5519::t_783eefd6463da6 123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "458f6b92d4b07d8e228716c421cf7b5bc521b7d5",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
