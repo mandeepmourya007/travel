@@ -1,0 +1,31 @@
+.github/workflows/smoke-test-staging.yml
+  s_08f8d71d1e5519::t_e17426d32381b4 1-29,36-38
+  s_08f8d71d1e5519::t_6dbdaba1bca1f9 30-35,39-42
+.github/workflows/deploy-ec2.yml
+  s_08f8d71d1e5519::t_249da5b38528ca 12-17,26,37,61-63
+  s_08f8d71d1e5519::t_8475a5141d7a00 32-36
+  s_08f8d71d1e5519::t_f3bf456d4cde50 64-67
+.github/workflows/_smoke-test.yml
+  s_08f8d71d1e5519::t_f445118cd3e3df 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e34e37ab2baa1439bf03b0b4d6a914084941dc7a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
