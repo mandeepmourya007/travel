@@ -265,4 +265,13 @@ Reseller is NOT a new role — a `TRAVELER` with `User.isReseller=true`. `requir
 > [!warning] Signature Verification
 > Verification happens inside each gateway's `verifyAndParseWebhook()` — not the standalone `webhook-verify.middleware.ts`. See [[Payments & Webhooks#Webhook Handling]].
 
-Related: [[API Backend]] · [[Payments & Webhooks]] · [[Auth & Security]]
+## Health — `GET /health` and `GET /api/v1/health/ready`
+
+| Method | Path | Purpose | Guard |
+| :--- | :--- | :--- | :--- |
+| GET | `/health` (unprefixed) | Cheap DB + Redis check — Render keep-alive cron target | none |
+| GET | `/api/v1/health/ready` | Deep readiness probe — verifies Cloudinary, the active payment gateway, Resend, and MSG91 credentials with **no side effects** (no email/SMS/WhatsApp sent, no real order created) | `healthReadyRateLimit` (5/min/IP) + `x-health-token` header, shared secret vs `HEALTH_CHECK_TOKEN` (min 32 chars when set) |
+
+`/api/v1/health/ready` returns 404 whenever `HEALTH_CHECK_TOKEN` is unset, or when the header is missing/wrong — it never differentiates "route doesn't exist" from "wrong token" so it can't be used as an unauthenticated oracle (that guarantee holds relative to other protected JSON-erroring routes; a genuinely unmatched path still falls through to Express's default 404 since there's no global catch-all handler). Response body: `{ status: 'healthy'|'degraded'|'unhealthy', checks: { cloudinary, paymentGateway, resend, msg91 }, detail, notes, timestamp }`, HTTP 200 when `healthy` else 503. Each check times out after 5s (`HEALTH_CHECK_TIMEOUT_MS`) and resolves `down` rather than hanging. `detail` never echoes raw provider data (e.g. MSG91 account balance, raw SDK error text) back to the caller — only fixed strings, with the raw detail logged server-side. `notes` calls out that MSG91 template/DLT approval and WhatsApp webhook dashboard config are deploy-checklist items this probe does not verify. See [[Environment & Deployment#Deep readiness probe (GET /api/v1/health/ready)]].
+
+Related: [[API Backend]] · [[Payments & Webhooks]] · [[Auth & Security]] · [[Environment & Deployment]]

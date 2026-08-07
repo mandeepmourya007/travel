@@ -94,6 +94,13 @@ const envSchema = z.object({
   // ── Sentry (optional — no-op when absent) ─────────
   SENTRY_DSN: z.string().optional(),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
+  // ── Deep readiness probe (GET /api/v1/health/ready) ──
+  // Shared-secret header gate (x-health-token) so CI/monitoring can call the probe
+  // without an admin JWT. Unset (the default) makes the route respond 404 — never
+  // reachable as an open oracle. See docs/codebase/Environment & Deployment.md.
+  // Unlike JWT_SECRET, this guards an endpoint reachable with only a header match (no
+  // JWT), so a short/guessable value is brute-forceable — require the same 32-char floor.
+  HEALTH_CHECK_TOKEN: z.string().min(32).optional(),
 }).superRefine((data, ctx) => {
   // SMTP vars must be all-or-nothing
   const smtpVars = [data.SMTP_HOST, data.SMTP_PORT, data.SMTP_USER, data.SMTP_PASS]

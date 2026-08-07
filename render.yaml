@@ -172,6 +172,10 @@ services:
       - key: LOG_LEVEL
         value: info
 
+      # ── Deep readiness probe (GET /api/v1/health/ready) ──
+      - key: HEALTH_CHECK_TOKEN
+        sync: false   # shared secret for the x-health-token header — unset keeps the route 404/inert
+
   # ── 2. Frontend Web ────────────────────────────────────
   - type: web
     name: safarnama-web

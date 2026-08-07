@@ -14,8 +14,8 @@ vi.mock('../../../src/utils/logger', () => ({
   logger: { warn: vi.fn(), error: vi.fn() },
 }))
 
-function createMockReqResNext() {
-  const req = { ip: '127.0.0.1', headers: {} } as unknown as Request
+function createMockReqResNext(headers: Record<string, string> = {}) {
+  const req = { ip: '127.0.0.1', headers } as unknown as Request
   const res = {
     setHeader: vi.fn(),
     status: vi.fn().mockReturnThis(),
@@ -142,6 +142,74 @@ describe('rate-limit.middleware', () => {
       await generalRateLimit(req, res, next)
 
       // Assert — fail-open: allows request
+      expect(next).toHaveBeenCalledOnce()
+      expect(res.status).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── healthReadyRateLimit (GET /api/v1/health/ready — 5 req/60s) ──────
+  //
+  // Deliberately tested here (direct middleware invocation against mock req/res, no
+  // real HTTP/Express app) rather than via a real Express route + Supertest: importing
+  // apps/api/src/routes/health.routes.ts in the same module graph as this middleware
+  // was found to add a large, unexplained fixed latency (~200ms) to the first awaited
+  // call in the file — reproducible but not root-caused (isolated to that one import;
+  // does not reproduce with any other module in the app, including a hand-built
+  // equivalent Router). Testing the exported `healthReadyRateLimit` middleware directly
+  // (identifier resolved from the mock req, no health.routes.ts import) avoids the
+  // artifact entirely and keeps this suite in the sub-millisecond range. The route-level
+  // wiring (guard order, status codes) is covered separately via a small, fixed number
+  // of real Supertest requests in tests/integration/health-ready.routes.test.ts.
+  describe('healthReadyRateLimit (5 req/60s)', () => {
+    it('allows the first 5 requests from the same identifier', async () => {
+      const { healthReadyRateLimit } = await import('../../../src/middleware/rate-limit.middleware')
+      const ip = '203.0.113.10'
+
+      for (let i = 0; i < 5; i++) {
+        const { req, res, next } = createMockReqResNext({ 'x-forwarded-for': ip })
+        ;(req as unknown as { ip?: string }).ip = undefined
+        await healthReadyRateLimit(req, res, next)
+        expect(next).toHaveBeenCalledOnce()
+        expect(res.status).not.toHaveBeenCalled()
+      }
+    })
+
+    it('blocks the 6th request from the same identifier within the window with 429', async () => {
+      const { healthReadyRateLimit } = await import('../../../src/middleware/rate-limit.middleware')
+      const ip = '203.0.113.11'
+
+      for (let i = 0; i < 5; i++) {
+        const { req, res, next } = createMockReqResNext({ 'x-forwarded-for': ip })
+        ;(req as unknown as { ip?: string }).ip = undefined
+        await healthReadyRateLimit(req, res, next)
+      }
+
+      const { req, res, next } = createMockReqResNext({ 'x-forwarded-for': ip })
+      ;(req as unknown as { ip?: string }).ip = undefined
+      await healthReadyRateLimit(req, res, next)
+
+      expect(next).not.toHaveBeenCalled()
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please try again later.' },
+      })
+    })
+
+    it('does not rate-limit a different identifier once the first is exhausted', async () => {
+      const { healthReadyRateLimit } = await import('../../../src/middleware/rate-limit.middleware')
+      const exhaustedIp = '203.0.113.12'
+
+      for (let i = 0; i < 6; i++) {
+        const { req, res, next } = createMockReqResNext({ 'x-forwarded-for': exhaustedIp })
+        ;(req as unknown as { ip?: string }).ip = undefined
+        await healthReadyRateLimit(req, res, next)
+      }
+
+      const { req, res, next } = createMockReqResNext({ 'x-forwarded-for': '203.0.113.13' })
+      ;(req as unknown as { ip?: string }).ip = undefined
+      await healthReadyRateLimit(req, res, next)
+
       expect(next).toHaveBeenCalledOnce()
       expect(res.status).not.toHaveBeenCalled()
     })

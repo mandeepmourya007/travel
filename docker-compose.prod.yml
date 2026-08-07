@@ -239,7 +239,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       DIRECT_URL: ${DIRECT_URL}
-    command: ['npx', '--yes', 'prisma@5', 'migrate', 'deploy']
+    command: ['npx', 'prisma', 'migrate', 'deploy']
     working_dir: /app/apps/api
     profiles: ['migrate']
     depends_on:

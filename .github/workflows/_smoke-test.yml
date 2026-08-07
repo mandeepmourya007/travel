@@ -1,0 +1,82 @@
+name: Reusable Smoke Test
+
+# Shared post-deploy Google-auth smoke test, called by deploy-ec2.yml (prod)
+# and smoke-test-staging.yml (staging). Polls the given domain until it
+# returns HTTP 200, then runs apps/web/e2e/google-auth.spec.ts against it.
+#
+# Leading underscore in the filename keeps this out of the "workflows you'd
+# trigger directly" list in the Actions UI — it only runs via `workflow_call`
+# from another workflow in this repo (`uses: ./.github/workflows/_smoke-test.yml`).
+#
+# Not a trigger of its own: callers keep their own `on:`/concurrency blocks
+# and paths-ignore filters; this file only owns the steps that were
+# duplicated between them.
+
+on:
+  workflow_call:
+    inputs:
+      domain:
+        description: "Bare hostname to smoke-test against (no scheme), e.g. tripeeeh.com"
+        required: true
+        type: string
+      report-name:
+        description: "Suffix for the uploaded Playwright report artifact, e.g. prod/staging"
+        required: true
+        type: string
+      poll-attempts:
+        description: "Number of 10s polling attempts before giving up (default 30 = 5 min)"
+        required: false
+        type: number
+        default: 30
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Wait for deploy to be reachable
+        run: |
+          TARGET_URL="https://${{ inputs.domain }}"
+          echo "TARGET_URL=$TARGET_URL" >> "$GITHUB_ENV"
+          echo "Polling $TARGET_URL for HTTP 200..."
+          for i in $(seq 1 ${{ inputs.poll-attempts }}); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "$TARGET_URL" || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Deploy is up (attempt $i, HTTP $status)."
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $status - retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Deploy never returned HTTP 200 at $TARGET_URL after ${{ inputs.poll-attempts }} attempts."
+          exit 1
+
+      - name: Run Google OAuth origin smoke test
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.TARGET_URL }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright HTML report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.report-name }}
+          path: apps/web/playwright-report/
+          retention-days: 14

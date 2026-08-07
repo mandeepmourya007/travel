@@ -129,3 +129,8 @@ export const bookingRateLimit = createRateLimiter('booking', 20, 60)
 export const adminRateLimit = createRateLimiter('admin', 30, 60)
 // Public lead/waitlist form — 5 submissions per minute per IP.
 export const leadRateLimit = createRateLimiter('lead', 5, 60)
+// GET /api/v1/health/ready — each hit fans out to 4 real outbound calls to paid
+// third parties (Razorpay/Cashfree, MSG91, Resend, Cloudinary). Tighter than
+// generalRateLimit (100/min) to cap real provider spend/abuse from one IP;
+// 5/min is generous for CI/monitoring polling while blocking a scan loop.
+export const healthReadyRateLimit = createRateLimiter('health-ready', 5, 60)

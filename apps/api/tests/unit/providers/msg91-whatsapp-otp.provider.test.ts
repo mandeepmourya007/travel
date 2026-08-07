@@ -79,4 +79,10 @@ describe('Msg91WhatsappOtpProvider', () => {
       expect(logCall.phone).not.toContain('9123')
     })
   })
+
+  // NOTE: Msg91WhatsappOtpProvider.verifyConnection() was removed by a concurrent
+  // refactor — the readiness-probe MSG91 connectivity check (shared across SMS/WhatsApp,
+  // since MSG91's balance API is account-wide, keyed off MSG91_AUTH_KEY) now lives on
+  // ConnectivityCheckService.checkMsg91() (see
+  // tests/unit/services/connectivity-check.service.test.ts), independent of this provider.
 })

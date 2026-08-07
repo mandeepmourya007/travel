@@ -164,11 +164,11 @@ describe('TripRepository', () => {
       mockPrisma.trip.count.mockResolvedValue(0)
     })
 
-    it('includes both ACTIVE and FULL in the status filter (C1 fix)', async () => {
+    it('includes ACTIVE, FULL, and COMPLETED in the status filter (C1 fix)', async () => {
       await repo.search({}, { offset: 0, limit: 20 })
 
       const where = mockPrisma.trip.findMany.mock.calls[0][0].where
-      expect(where.status).toEqual({ in: ['ACTIVE', 'FULL'] })
+      expect(where.status).toEqual({ in: ['ACTIVE', 'FULL', 'COMPLETED'] })
     })
 
     it('always filters isDeleted=false', async () => {

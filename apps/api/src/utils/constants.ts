@@ -296,6 +296,13 @@ export const OTP_TYPE = {
 export const CLOUDINARY_TRANSFORM = 'c_limit,w_1920,h_1080,q_auto,f_auto'
 export const MESSAGE_PREVIEW_LENGTH = 100
 
+// ─── Deep Readiness Probe (GET /api/v1/health/ready) ─────
+// Per-provider timeout: a hung third party (no fetch AbortSignal set on any of the
+// four underlying calls) must not hold the request open indefinitely — Node's undici
+// default fetch timeout is ~300s. Each safeCheck races against this and resolves to
+// `down` rather than hanging or throwing uncaught. See health.service.ts.
+export const HEALTH_CHECK_TIMEOUT_MS = 5000
+
 // ─── Redis Cache TTLs (seconds) ────────────────────
 // All public-read caches are safe to hold long because every mutation
 // (create/update/delete/publish trip, update destination) calls

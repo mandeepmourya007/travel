@@ -19,6 +19,7 @@ import { startTimer } from '../../utils/perf-timer'
 import { PAYMENT_PROVIDER } from '@shared/constants'
 import { env, isProduction } from '../../config/env'
 import { RAZORPAY_PAYMENT_STATUS, RZP_MOCK_ACCOUNT_PREFIX } from './payment.constants'
+import { buildRazorpayAuthHeader } from './payment-auth.util'
 
 /**
  * Adapter: wraps the Razorpay SDK into the provider-neutral IPaymentGateway contract.
@@ -444,10 +445,9 @@ export class RazorpayGateway implements IPaymentGateway {
       },
     }
 
-    const auth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64')
     const response = await fetch('https://api.razorpay.com/v2/accounts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+      headers: { 'Content-Type': 'application/json', Authorization: buildRazorpayAuthHeader(this.keyId, this.keySecret) },
       body: JSON.stringify(body),
     })
 
@@ -507,10 +507,9 @@ export class RazorpayGateway implements IPaymentGateway {
   }
 
   private async releaseTransferHoldRaw(transferId: string): Promise<void> {
-    const auth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64')
     const response = await fetch(`https://api.razorpay.com/v1/transfers/${transferId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+      headers: { 'Content-Type': 'application/json', Authorization: buildRazorpayAuthHeader(this.keyId, this.keySecret) },
       body: JSON.stringify({ on_hold: false }),
     })
     if (!response.ok) {

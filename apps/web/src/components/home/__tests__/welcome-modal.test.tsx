@@ -30,12 +30,12 @@ describe('WelcomeModal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('auto-hides after 3 seconds', () => {
+  it('auto-hides after 10 seconds', () => {
     render(<WelcomeModal />)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
 
     act(() => {
-      vi.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(10000)
     })
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -51,7 +51,7 @@ describe('WelcomeModal', () => {
     // The auto-hide timer must be cleared on early close — advancing time
     // must not throw or attempt to re-close an unmounted/closed modal.
     act(() => {
-      vi.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(10000)
     })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -65,7 +65,7 @@ describe('WelcomeModal', () => {
     // Should not throw when the timer would have fired post-unmount.
     expect(() => {
       act(() => {
-        vi.advanceTimersByTime(3000)
+        vi.advanceTimersByTime(10000)
       })
     }).not.toThrow()
   })

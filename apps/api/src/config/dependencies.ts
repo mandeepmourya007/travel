@@ -16,6 +16,11 @@ import { OtpService } from '../services/otp.service'
 import { DestinationService } from '../services/destination.service'
 import { TripService } from '../services/trip.service'
 import { UploadService } from '../services/upload.service'
+import { HealthService } from '../services/health.service'
+import { ConnectivityCheckService } from '../services/connectivity-check.service'
+import type { ConnectivityCheckServiceConfig } from '../services/connectivity-check.service'
+import { HealthController } from '../controllers/health.controller'
+import { createHealthReadyRoutes } from '../routes/health.routes'
 import { AuthController } from '../controllers/auth.controller'
 import { OtpController } from '../controllers/otp.controller'
 import { MockOtpProvider } from '../providers/mock-otp.provider'
@@ -216,7 +221,7 @@ export const razorpayxClient: RazorpayXClient | null = (env.RAZORPAYX_KEY_ID && 
 export const walletService = new WalletService(walletRepo, logger)
 
 const activeProvider: PaymentProvider = env.PAYMENT_GATEWAY
-const activeGateway = gatewayRegistry.get(activeProvider)
+export const activeGateway = gatewayRegistry.get(activeProvider)
   ?? (!isProduction
     ? (() => {
         logger.warn(`No gateway configured for provider="${activeProvider}" — using MockPaymentGateway. Payments will be simulated.`)
@@ -260,7 +265,7 @@ if (waOtpConfigured && !preferWhatsappOtp) {
   )
 }
 
-const otpProvider = waOtpConfigured && preferWhatsappOtp
+export const otpProvider = waOtpConfigured && preferWhatsappOtp
   ? new Msg91WhatsappOtpProvider(
       env.MSG91_AUTH_KEY!,
       env.MSG91_WA_BUSINESS_NUMBER!,
@@ -455,6 +460,37 @@ export const organizerTripTypeRequestRoutes = createOrganizerTripTypeRequestRout
 export const resellerRoutes = createResellerRoutes(resellerController, authMiddleware, requireRole)
 export const publicOrganizerLeadRoutes = createPublicOrganizerLeadRoutes(organizerLeadController)
 export const adminOrganizerLeadRoutes = createAdminOrganizerLeadRoutes(organizerLeadController, authMiddleware, requireRole)
+
+// ── Deep readiness probe (GET /api/v1/health/ready) — guarded, side-effect-free ──
+// ConnectivityCheckService is built directly from the raw, already-configured
+// credentials/config above (NOT via IPaymentGateway/IEmailProvider/IOtpProvider —
+// those are business-logic interfaces and must stay free of health-check concerns).
+// Each branch below mirrors the exact gating already used to construct the real
+// gateway/provider objects, so the readiness probe's behavior is unchanged.
+const connectivityCheckConfig: ConnectivityCheckServiceConfig = {
+  cloudinary: (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET)
+    ? { cloudName: env.CLOUDINARY_CLOUD_NAME, apiKey: env.CLOUDINARY_API_KEY, apiSecret: env.CLOUDINARY_API_SECRET }
+    : null,
+  paymentGateway: {
+    provider: activeProvider,
+    razorpay: razorpayClient
+      ? { keyId: env.RAZORPAY_KEY_ID || '', keySecret: env.RAZORPAY_KEY_SECRET || '' }
+      : null,
+    cashfree: (isCashfreeConfigured() && cashfreeConfig) ? cashfreeConfig : null,
+  },
+  email: env.RESEND_API_KEY
+    ? { kind: 'resend', apiKey: env.RESEND_API_KEY }
+    : (env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS)
+      ? { kind: 'smtp' }
+      : { kind: 'mock' },
+  otp: ((waOtpConfigured && preferWhatsappOtp) || smsOtpConfigured)
+    ? { kind: 'msg91', authKey: env.MSG91_AUTH_KEY! }
+    : { kind: 'mock' },
+}
+const connectivityCheckService = new ConnectivityCheckService(connectivityCheckConfig, logger)
+const healthService = new HealthService(connectivityCheckService, logger)
+const healthController = new HealthController(healthService)
+export const healthReadyRoutes = createHealthReadyRoutes(healthController)
 export const webhookRoutes = (() => {
   if (!webhookController) return null
   const razorpaySecret = env.RAZORPAY_WEBHOOK_SECRET || ''

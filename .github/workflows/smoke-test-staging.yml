@@ -1,0 +1,42 @@
+name: Staging Smoke Test (Render)
+
+# Runs the Google-auth origin smoke test (apps/web/e2e/google-auth.spec.ts)
+# against the Render-hosted staging deployment after every push to `staging`.
+#
+# Render auto-deploys safarnama-api / safarnama-web on push to the branch
+# it's configured to track (staging, per render.yaml's blueprint + the
+# Render dashboard) but emits no GitHub-native "deploy complete" event we
+# can trigger on. So this workflow polls the staging URL until it returns
+# HTTP 200 (Render free-tier services cold-start after ~15min idle, which
+# can take ~60s) before running the Playwright smoke test against it.
+#
+# See docs/codebase/Testing & Quality.md ("E2E (apps/web)") for what the
+# test itself checks, and docs/codebase/Environment & Deployment.md for how
+# this workflow fits into the overall deploy topology.
+
+on:
+  push:
+    branches: [staging]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".claude/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: staging-smoke-test
+  cancel-in-progress: true
+
+# STAGING_DOMAIN (repo variable, Settings → Secrets and variables → Actions →
+# Variables) is passed straight into the smoke-test job below as `domain:`.
+# Bare hostname, matching the DOMAIN convention used in .env.prod.example
+# and scripts/deploy-prod.sh — not a full URL. Falls back to the current
+# known staging domain if unset. Render free-tier cold start can take ~60s,
+# which is why the reusable workflow polls for up to 5 minutes.
+
+jobs:
+  smoke-test:
+    uses: ./.github/workflows/_smoke-test.yml
+    with:
+      domain: ${{ vars.STAGING_DOMAIN || 'safarnama.store' }}
+      report-name: staging
