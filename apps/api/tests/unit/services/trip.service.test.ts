@@ -1077,7 +1077,7 @@ describe('TripService', () => {
       expect(mockOrganizerProfileRepo.findBySlugPublic).toHaveBeenCalledWith('desi-explorers')
       expect(mockOrganizerProfileRepo.findByIdPublic).not.toHaveBeenCalled()
       expect(mockTripRepo.findByOrganizerIdPaginated).toHaveBeenCalledWith(
-        'org-1', 'ACTIVE', { offset: 6, limit: 6 },
+        'org-1', ['ACTIVE', 'FULL', 'COMPLETED'], { offset: 6, limit: 6 },
       )
     })
   })
