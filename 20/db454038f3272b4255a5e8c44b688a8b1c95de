@@ -1,0 +1,51 @@
+apps/web/e2e/api-connectivity.spec.ts
+  s_08f8d71d1e5519::t_b8dbaeaf9b2264 26-35
+  s_08f8d71d1e5519::t_017cf4db40d83d 121-125
+  s_08f8d71d1e5519::t_530cd4484d868c 172-178,180-183
+  s_08f8d71d1e5519::t_64528eb72efd23 73-79
+  s_08f8d71d1e5519::t_8e66fb5e1e1a4c 143-152,154-157,159-163,165-168,170
+  s_08f8d71d1e5519::t_80353fb5fe824a 2
+  s_08f8d71d1e5519::t_ccb7bb35fa843a 1,3-25,46-72,80-120,126-142,153,158,164,169,171,179,184-186
+  s_08f8d71d1e5519::t_5aadabfb2c824c 36-45
+.gitignore
+  s_08f8d71d1e5519::t_0ea0782bbce7e3 58-62
+apps/web/playwright.config.ts
+  s_08f8d71d1e5519::t_622716041a9715 1-31,39-63
+  s_08f8d71d1e5519::t_a1cda272e717da 32-38
+apps/web/tsconfig.json
+  s_08f8d71d1e5519::t_1c6d5fdc2dfd9a 37-41
+apps/web/e2e/cloudinary-image.spec.ts
+  s_08f8d71d1e5519::t_17ac2375515f41 53-56
+  s_08f8d71d1e5519::t_bd108da1cc04d0 69,88
+  s_08f8d71d1e5519::t_f89caf9491d9fa 1-52,57-68,87,89-91,100-130
+  s_08f8d71d1e5519::t_026d33c0901f27 70-86,92-99
+apps/web/package.json
+  s_08f8d71d1e5519::t_c67a31bf7139c4 13-14
+apps/web/e2e/google-auth.spec.ts
+  s_08f8d71d1e5519::t_f470e6746baf88 71-76,78-79
+  s_08f8d71d1e5519::t_78e3e2f81bab2e 77,80-81
+  s_08f8d71d1e5519::t_b70add521ddb10 1-70,82-93
+apps/web/e2e/payment-checkout-scripts.spec.ts
+  s_08f8d71d1e5519::t_252e7e65064be6 1-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "20db454038f3272b4255a5e8c44b688a8b1c95de",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
