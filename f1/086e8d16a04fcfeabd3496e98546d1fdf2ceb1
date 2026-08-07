@@ -1,0 +1,44 @@
+"docs/codebase/Environment & Deployment.md"
+  s_08f8d71d1e5519::t_b6c1335336b325 130,133-137,139
+  s_08f8d71d1e5519::t_6f31e1961c6326 112-114,141-142,144,146,151,153,156
+  s_08f8d71d1e5519::t_e97b75148279e0 143,145,147-150,152,154-155,157
+  s_08f8d71d1e5519::t_ecffa84ae81f08 119-120,123-126,132
+  s_08f8d71d1e5519::t_8d0e8aebcf50ef 31
+  s_08f8d71d1e5519::t_46f8d2b367d5ff 115-118,121-122,127-129,131,138,140
+"docs/codebase/API Routes Reference.md"
+  s_08f8d71d1e5519::t_e548cbc1009b3a 268-272,274,276-277
+  s_08f8d71d1e5519::t_6686d7b580a492 273,275
+"docs/codebase/API Backend.md"
+  s_08f8d71d1e5519::t_ebeffeb7a1381d 93-94
+"docs/codebase/Testing & Quality.md"
+  s_08f8d71d1e5519::t_e79c0763c7ebe1 38-46
+  s_08f8d71d1e5519::t_19fd24b1242077 36
+  s_08f8d71d1e5519::t_4bdf137219e74f 29
+  s_08f8d71d1e5519::t_9de8e71070ab3a 16
+  s_08f8d71d1e5519::t_77e6bc2071bbb5 50
+  s_08f8d71d1e5519::t_68f4261fd8b704 47-49
+  s_08f8d71d1e5519::t_51dd36d08f01a2 18,20,26-28
+  s_08f8d71d1e5519::t_fd421f393e1855 21-22
+  s_08f8d71d1e5519::t_5ed196d247c29a 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f1086e8d16a04fcfeabd3496e98546d1fdf2ceb1",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
