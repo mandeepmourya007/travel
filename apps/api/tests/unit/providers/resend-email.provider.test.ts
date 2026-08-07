@@ -64,4 +64,9 @@ describe('ResendEmailProvider', () => {
     expect(result.success).toBe(false)
     expect(result.error).toEqual({ message: 'bad domain' })
   })
+
+  // NOTE: ResendEmailProvider.verifyConnection() was removed by a concurrent refactor —
+  // the readiness-probe connectivity check for Resend now lives on
+  // ConnectivityCheckService.checkResend() (see tests/unit/services/connectivity-check.service.test.ts),
+  // which owns its own Resend client rather than delegating to this provider.
 })

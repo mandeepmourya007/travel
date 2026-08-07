@@ -141,4 +141,9 @@ describe('UploadService', () => {
       )).toBe(false)
     })
   })
+
+  // NOTE: UploadService.verifyConnection() was removed by a concurrent refactor — the
+  // readiness-probe Cloudinary connectivity check now lives on
+  // ConnectivityCheckService.checkCloudinary() (see
+  // tests/unit/services/connectivity-check.service.test.ts), independent of this service.
 })
