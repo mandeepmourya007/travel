@@ -1,0 +1,24 @@
+.github/workflows/deploy-ec2.yml
+  s_08f8d71d1e5519::t_4b4ebf0e2b2f91 41,52-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b7ec27e8cd34f64d335c6d5f9ae2bbaccef263e5",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
