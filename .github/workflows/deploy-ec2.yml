@@ -38,7 +38,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       # No checkout step here — the code is pulled on the EC2 box itself via
       # git fetch/reset over SSH, not on the Actions runner.
@@ -49,6 +49,13 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT || 22 }}
+          # appleboy/ssh-action defaults its own command_timeout to 10m, separate
+          # from the job's timeout-minutes above — a slow-but-succeeding web build
+          # (small EC2 box, RAM-constrained even with swap) got killed by this
+          # default before, not by the job timeout. Raised to comfortably clear a
+          # slow build; kept under timeout-minutes so the job's own limit still
+          # applies as the outer bound.
+          command_timeout: 25m
           script: |
             set -e
             # NOTE: this path must match wherever the repo is actually
