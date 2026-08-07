@@ -27,6 +27,7 @@ import {
   CF_SCHEDULE_OPTION_T1,
   CF_BUSINESS_TYPE,
 } from './payment.constants'
+import { buildCashfreeHeaders } from './payment-auth.util'
 
 /** Cashfree order-status string → normalized vocabulary */
 const CF_ORDER_STATUS_MAP: Record<string, string> = {
@@ -462,9 +463,7 @@ export class CashfreeGateway implements IPaymentGateway {
     const url = `${this.config.baseUrl}${path}`
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'x-client-id': this.config.appId,
-      'x-client-secret': this.config.secretKey,
-      'x-api-version': this.config.apiVersion,
+      ...buildCashfreeHeaders(this.config),
     }
 
     // Retry logic for transient network errors (DNS, timeout, etc.)

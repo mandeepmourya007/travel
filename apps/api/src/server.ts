@@ -10,7 +10,7 @@ import { generalRateLimit } from './middleware/rate-limit.middleware'
 import { errorHandler } from './middleware/error-handler.middleware'
 import { asyncHandler } from './utils/async-handler'
 import { healthRoutes } from './routes/health.routes'
-import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, resellerRoutes, publicOrganizerLeadRoutes, adminOrganizerLeadRoutes, sitemapService } from './config/dependencies'
+import { authRoutes, firebaseAuthRoutes, destinationRoutes, tripRoutes, uploadRoutes, bookingRoutes, paymentRoutes, reviewRoutes, walletRoutes, chatRoutes, notificationRoutes, adminRoutes, vehicleRoutes, webhookRoutes, publicTripCategoryRoutes, adminTripCategoryRoutes, organizerTripTypeRequestRoutes, resellerRoutes, publicOrganizerLeadRoutes, adminOrganizerLeadRoutes, healthReadyRoutes, sitemapService } from './config/dependencies'
 import { authRateLimit } from './middleware/rate-limit.middleware'
 
 export function createServer() {
@@ -53,6 +53,9 @@ export function createServer() {
 
   // ── Health Check (no auth) ────────────────────────
   app.use(healthRoutes)
+
+  // ── Deep Readiness Probe (guarded — x-health-token, see health.routes.ts) ──
+  app.use('/api/v1/health', healthReadyRoutes)
 
   // ── API Routes ────────────────────────────────────
   app.use('/api/v1/auth', authRateLimit, authRoutes)
