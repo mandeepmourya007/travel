@@ -16,7 +16,7 @@ COPY packages/shared/package.json packages/shared/
 RUN mkdir -p apps/web && echo '{"name":"@travel/web","private":true}' > apps/web/package.json
 
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --workspace=@travel/api --workspace=@travel/shared --include-workspace-root \
+    npm ci --workspace=@travel/api --workspace=@travel/shared --include-workspace-root \
  && rm -rf /tmp/*
 
 # ── Stage 2: Build ───────────────────────────────────
