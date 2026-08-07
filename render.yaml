@@ -93,6 +93,25 @@ services:
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
 
+      # ── Organizer Payouts (RazorpayX — LIVE) ────────────
+      # PAYOUT_STRATEGY defaults to razorpayx_payouts in code (see env.ts) — the app
+      # THROWS AT BOOT in every environment if that's active and the four RAZORPAYX_*
+      # vars below aren't all set (see docs/codebase/Environment & Deployment.md —
+      # this caused a prod boot crash, Sentry API-EXPRESS-17, before these were set
+      # in the dashboard). sync: false here (not a fixed `value:`) since the real
+      # value now lives in the Render dashboard as razorpayx_payouts — do not pin
+      # a value here that could silently override the operator's dashboard setting.
+      - key: PAYOUT_STRATEGY
+        sync: false   # razorpayx_payouts (live) — set the 4 RAZORPAYX_* vars below too
+      - key: RAZORPAYX_KEY_ID
+        sync: false
+      - key: RAZORPAYX_KEY_SECRET
+        sync: false
+      - key: RAZORPAYX_ACCOUNT_NUMBER
+        sync: false
+      - key: RAZORPAYX_WEBHOOK_SECRET
+        sync: false
+
       # ── Cloudinary ────────────────────────────────────
       - key: CLOUDINARY_CLOUD_NAME
         sync: false

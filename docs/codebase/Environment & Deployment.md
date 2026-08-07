@@ -34,6 +34,8 @@ Canonical example: root ==`.env.example`== (also `.env.docker.example`, `.env.pr
 
 > [!warning] Production superRefine Rules
 > In prod: Razorpay webhook secret required when key set; Cashfree creds + webhook secret required when it's the active gateway; `REDIS_URL` required; SMTP and Firebase are each all-or-nothing. The four `RAZORPAYX_*` vars, however, are required whenever `PAYOUT_STRATEGY=razorpayx_payouts` (the default) **in every environment, not just production** — dev/CI/staging fail to boot too unless either all four are set or `PAYOUT_STRATEGY=route` is set explicitly.
+>
+> `render.yaml`'s `safarnama-api` envVars previously didn't declare `PAYOUT_STRATEGY`/`RAZORPAYX_*` at all, so the app silently fell back to the `razorpayx_payouts` default with none of the 4 vars set — crashing at boot on the first redeploy after this check was added (Sentry `API-EXPRESS-17`). `render.yaml` now declares `PAYOUT_STRATEGY` and all 4 `RAZORPAYX_*` keys as `sync: false` (operator-set in the Render dashboard, not a fixed blueprint `value:`), matching that RazorpayX payouts is now live in production with `PAYOUT_STRATEGY=razorpayx_payouts` set in the dashboard.
 
 > [!warning] OTP provider fails loudly in production
 > `dependencies.ts` picks `Msg91WhatsappOtpProvider` → `Msg91OtpProvider` → `MockOtpProvider`, in that order, based on which MSG91 vars are set. In `NODE_ENV=production`, if neither is configured the app now **throws at boot** instead of silently falling back to `MockOtpProvider` (which used to log `[MOCK] OTP sent (dev mode)` + a generic `OTP sent` success line while sending no real SMS). Set `MSG91_AUTH_KEY` + `MSG91_TEMPLATE_ID` (SMS) or the WhatsApp trio to fix.
