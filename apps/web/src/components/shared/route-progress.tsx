@@ -120,7 +120,7 @@ export function RouteProgress() {
       style={{ opacity: visible ? 1 : 0 }}
     >
       <div
-        className="h-full rounded-r-full bg-gradient-to-r from-primary-500 to-highlight-500 transition-[width] duration-[400ms] ease-out"
+        className="h-full rounded-r-full bg-gradient-to-r from-primary-500 to-highlight-500 transition-[width] [transition-duration:400ms] ease-out"
         style={{
           width: `${progress}%`,
           boxShadow: '0 0 8px rgba(15, 186, 181, 0.4)',
