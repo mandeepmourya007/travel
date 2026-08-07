@@ -55,5 +55,10 @@ logs/
 
 # DB backups (written by deploy-prod.sh — kept in /var/backups/travel/ on server)
 backup_*.sql.gz
+
+# Playwright (apps/web e2e)
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/blob-report/
 .claude/skills/cashfree-skills/
 .claude/skills/seo
