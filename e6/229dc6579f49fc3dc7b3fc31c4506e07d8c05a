@@ -1,0 +1,73 @@
+apps/api/src/middleware/rate-limit.middleware.ts
+  s_08f8d71d1e5519::t_a78679beb9efc6 132-136
+apps/api/src/services/connectivity-check.service.ts
+  s_08f8d71d1e5519::t_b5fa21bef671c2 214-216
+  s_08f8d71d1e5519::t_5149fa49d9cabb 49-57
+  s_08f8d71d1e5519::t_2f762709086dca 7-8
+  s_08f8d71d1e5519::t_ee5104f476d704 1-6,9-48,58-119,122-144,147-213,217-244
+  s_08f8d71d1e5519::t_82a93ce95859f5 120-121
+  s_08f8d71d1e5519::t_0dddb0346fb8a2 145-146
+apps/api/src/routes/health.routes.ts
+  s_08f8d71d1e5519::t_4d0622a7818828 7
+  s_08f8d71d1e5519::t_a0d1c9ff5e7219 1-2,5-6,8
+  s_08f8d71d1e5519::t_cc83e111619882 102-104
+  s_08f8d71d1e5519::t_d73b3acc6786ad 53-61,70-101,105-106
+  s_08f8d71d1e5519::t_a14e73d5f92cd1 62-69
+apps/api/src/controllers/health.controller.ts
+  s_08f8d71d1e5519::t_fcf0e6a7445cbd 1-13
+.env.example
+  s_08f8d71d1e5519::t_3eb2c0f0930805 177-182,184-185
+  s_08f8d71d1e5519::t_6a9ec69aac7db9 183
+apps/api/src/utils/constants.ts
+  s_08f8d71d1e5519::t_e40912c5342ff1 299-305
+apps/api/src/providers/payment/cashfree.gateway.ts
+  s_08f8d71d1e5519::t_ef79acdb253387 466
+  s_08f8d71d1e5519::t_814a5321c53fa7 30
+apps/api/src/services/health.service.ts
+  s_08f8d71d1e5519::t_1ab544253563a4 1,4-35,39-41,43-47,52-89,95-96,99,110-115
+  s_08f8d71d1e5519::t_c61d78f7b3f7aa 2,36-38,42,48-51,97-98,102
+  s_08f8d71d1e5519::t_f00654ebd0c5ba 3
+  s_08f8d71d1e5519::t_fa42ff682b00dd 90-94,100-101,103-109
+apps/api/src/config/env.ts
+  s_08f8d71d1e5519::t_b5a597ae7f814a 97-100
+  s_08f8d71d1e5519::t_2a7ef37195c607 101-103
+apps/api/src/providers/payment/razorpay.gateway.ts
+  s_08f8d71d1e5519::t_7e98da312e31e6 450
+  s_08f8d71d1e5519::t_26630ba996b164 512
+  s_08f8d71d1e5519::t_f966ae02c1d7ff 22
+apps/api/src/server.ts
+  s_08f8d71d1e5519::t_044488aad72b00 13
+  s_08f8d71d1e5519::t_d07f3e1382684f 57-59
+render.yaml
+  s_08f8d71d1e5519::t_c7cc694dbf488b 175-178
+apps/api/src/config/dependencies.ts
+  s_08f8d71d1e5519::t_ff2a4113d93cd2 19,22-23
+  s_08f8d71d1e5519::t_23a7732359f50a 268
+  s_08f8d71d1e5519::t_bc5b69b452b5ee 463-464,492-493
+  s_08f8d71d1e5519::t_6cdabdae0aba44 20-21
+  s_08f8d71d1e5519::t_caf35a6f5e87ea 224
+  s_08f8d71d1e5519::t_f6ae9812dee9ea 465-491
+apps/api/src/providers/payment/payment-auth.util.ts
+  s_08f8d71d1e5519::t_be6480f647cbea 1-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e6229dc6579f49fc3dc7b3fc31c4506e07d8c05a",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
