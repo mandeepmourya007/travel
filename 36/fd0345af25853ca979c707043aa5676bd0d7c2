@@ -1,0 +1,28 @@
+"docs/codebase/Environment & Deployment.md"
+  s_08f8d71d1e5519::t_bff3cf7305b749 37
+  s_08f8d71d1e5519::t_fe570864f2938f 38
+render.yaml
+  s_08f8d71d1e5519::t_40a7aa348ac816 96,98-103,105
+  s_08f8d71d1e5519::t_86802dfc2d199d 97,104,106-114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "36fd0345af25853ca979c707043aa5676bd0d7c2",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_08f8d71d1e5519": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "80db505b-0736-46e4-acc9-0fd373771b85",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
