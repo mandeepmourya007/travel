@@ -1,0 +1,46 @@
+apps/web/src/app/dashboard/trips/[id]/edit/page.tsx
+  s_62efc664be3a7f::t_7b241a683e2223 118
+apps/web/src/hooks/use-sync-vehicles.ts
+  s_62efc664be3a7f::t_5d7be66614193c 40
+apps/web/src/components/trips/trip-form/__tests__/vehicle-tab.test.tsx
+  s_62efc664be3a7f::t_9240592a6a2400 1-6,8,10-59
+  s_62efc664be3a7f::t_c13d6a48aa19aa 7,9
+apps/web/src/components/trips/trip-form/vehicle-tab.tsx
+  s_62efc664be3a7f::t_1ebc1b6a93cb66 196
+apps/web/src/hooks/__tests__/use-sync-vehicles.test.tsx
+  s_62efc664be3a7f::t_75127ad53c36fc 24
+  s_62efc664be3a7f::t_a933122b59f655 8
+  s_62efc664be3a7f::t_0e711b83442cf0 5-7
+  s_62efc664be3a7f::t_6a361420af1e0f 9-11,21-23
+  s_62efc664be3a7f::t_c296797e2c055c 25-27
+  s_a2b0b1e14e3e19::t_cbd96e4d20655a 1-4,12-20,28-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "aa47ab61de777127eda7399b68400f56ce5975f4",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_62efc664be3a7f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1d6a08e9-8f5e-4ccb-9344-8949dfc80561",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_a2b0b1e14e3e19": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "agent-a11bd5a0977cf31b0",
+        "model": "unknown"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
