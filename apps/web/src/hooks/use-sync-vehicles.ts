@@ -37,6 +37,7 @@ function hasVehicleDataChanged(
     if (old.vehicleType !== nw.vehicleType) return true
     if (JSON.stringify(old.layout) !== JSON.stringify(nw.layout)) return true
     if (JSON.stringify(old.layoutConfig) !== JSON.stringify(nw.layoutConfig)) return true
+    if (JSON.stringify(old.photos ?? []) !== JSON.stringify(nw.photos ?? [])) return true
   }
 
   return false
