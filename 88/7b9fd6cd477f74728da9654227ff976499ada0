@@ -1,0 +1,47 @@
+.env.prod.example
+  s_cf3973ba02ee17::t_e43aecacf73486 162-174
+apps/api/src/utils/cron-jobs.ts
+  s_cf3973ba02ee17::t_7d60b653d9789e 20
+  s_cf3973ba02ee17::t_5586146a481509 657-664
+.env.example
+  s_cf3973ba02ee17::t_452756f486d7d2 160-170
+"docs/codebase/Environment & Deployment.md"
+  h_b3232c20134322 17,19-20,22-23,25-26,30-31,33-34
+  s_cf3973ba02ee17::t_ac8ff951113890 32
+  s_cf3973ba02ee17::t_0cb2ae4f526ad0 91
+  s_c179a1723d31c2::t_911bd8af55bcb6 16,18,21,24,27-29
+apps/api/src/config/env.ts
+  s_cf3973ba02ee17::t_fae1db7924012a 104-111
+"docs/codebase/Background Jobs & Realtime.md"
+  s_cf3973ba02ee17::t_22f614847cf60a 36
+  s_cf3973ba02ee17::t_098c9f83c97bd6 41-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "887b9fd6cd477f74728da9654227ff976499ada0",
+  "prompts": {},
+  "humans": {
+    "h_b3232c20134322": {
+      "author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_c179a1723d31c2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8ec8a59d-7fbb-4f32-b9f7-272746befff6",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    },
+    "s_cf3973ba02ee17": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d3a090f3-393b-454d-8c5b-e1bfc212a269",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "mandeepmourya007 <mandeepmourya007@gmail.com>"
+    }
+  }
+}
