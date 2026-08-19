@@ -115,6 +115,7 @@ export default function EditTripPage() {
                 vehicleType: v.vehicleType as CreateVehicleDto['vehicleType'],
                 layoutConfig: v.layoutConfig,
                 layout: v.layout,
+                photos: v.photos,
               }))
             : null
           }

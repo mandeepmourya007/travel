@@ -101,6 +101,14 @@ const envSchema = z.object({
   // Unlike JWT_SECRET, this guards an endpoint reachable with only a header match (no
   // JWT), so a short/guessable value is brute-forceable — require the same 32-char floor.
   HEALTH_CHECK_TOKEN: z.string().min(32).optional(),
+  // ── Render free-tier keepalive cron ────────────────
+  // keepAlive() (utils/cron-jobs.ts) pings RENDER_EXTERNAL_URL/health every 14 minutes
+  // to stop Render's free tier spinning down the API on idle. That /health hit queries
+  // Postgres, which on a Neon free-tier database defeats Neon's own compute autosuspend
+  // and burns through the monthly compute-hour budget even with near-zero real traffic.
+  // Opt-in only — leave unset/false unless Render cold-starts are worse than the Neon
+  // compute-hour cost for your traffic pattern.
+  ENABLE_KEEP_ALIVE_PING: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
 }).superRefine((data, ctx) => {
   // SMTP vars must be all-or-nothing
   const smtpVars = [data.SMTP_HOST, data.SMTP_PORT, data.SMTP_USER, data.SMTP_PASS]

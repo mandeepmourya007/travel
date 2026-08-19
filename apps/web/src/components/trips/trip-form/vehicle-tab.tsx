@@ -193,6 +193,7 @@ export function VehicleTab({ initialEnabled = false, initialVehicleData, onVehic
                     initialConfig={entry.data?.layoutConfig}
                     initialVehicleType={entry.data?.vehicleType}
                     initialLabel={entry.data?.label}
+                    initialPhotos={entry.data?.photos}
                     onSave={(dto) => handleSave(idx, dto)}
                     isSaving={false}
                   />
