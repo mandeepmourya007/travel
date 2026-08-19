@@ -33,10 +33,13 @@ Defined in `apps/api/src/utils/cron-jobs.ts`, started from `src/index.ts` via `s
 | trip-reminders | 1h | Reminders in the 24–48h pre-trip window (durable dedup via `tripReminderSentAt`) |
 | expire-wallet-credits | 6h | Void expired credits + warn ones approaching expiry (7-day warning) |
 | update-trending-scores | 2h (+ once at startup) | Recompute `Trip.trendingScore` via booking-velocity strategy |
-| keepAlive | 14m | Ping `RENDER_EXTERNAL_URL/health` (prod only, Render free-tier keepalive) |
+| keepAlive | 14m | ==Opt-in== (`ENABLE_KEEP_ALIVE_PING`, default `false`) — ping `RENDER_EXTERNAL_URL/health` (prod/staging only, Render free-tier keepalive) |
 
 > [!info] release-cashfree-balances (mirrors complete-trips-safepay)
 > Same `withLock` distributed-lock + `Sentry.withMonitor` wrapper as the other jobs. Queries `PaymentTransactionRepository.findBalanceReleaseEligibleBookings(cutoffDate)` where `cutoffDate = now + REFUND_CLIFF_DAYS (7 days)`, matching `trip.startDate <= cutoffDate` — i.e. the trip's refund cliff has already passed. Eligible bookings are Cashfree, `CONFIRMED`/`COMPLETED`/`CANCELLED`, have a `DEPOSIT_RELEASE` tx, and either haven't already had a `BALANCE_RELEASE` written, or (for `CANCELLED`) haven't had a `REFUND` issued (a refunded cancellation's balance was never earned and stays held permanently). For each eligible booking calls `PayoutService.releaseBalance(bookingId)`, which never throws — per-booking try/catch in the cron is a last-resort guard only, mirroring `TripLifecycleService.releaseSafePayForTrip`'s per-item error isolation so one booking's gateway failure can't stop the batch. See [[Payments & Webhooks]] for the deposit/balance money-flow rationale.
+
+> [!warning] keepAlive is opt-in — Neon compute-hour cost
+> `keepAlive` used to be registered unconditionally in `startCronJobs`. Its `/health` ping queries Postgres, and on a Neon free-tier database that constant traffic defeats Neon's own compute autosuspend, burning through the monthly compute-hour budget even with near-zero real user traffic. The `setInterval` registration is now gated behind `env.ENABLE_KEEP_ALIVE_PING` (Zod boolean env var, `apps/api/src/config/env.ts`, default `false`) — the job is registered at all only when it's explicitly set `true`. `keepAlive()`'s own internal `RENDER_EXTERNAL_URL` + `NODE_ENV` guard is unchanged (belt-and-suspenders). `render.yaml` does not declare this var, so Render deployments stay disabled unless an operator adds it in the dashboard. See [[Environment & Deployment]].
 
 ## Socket.IO
 

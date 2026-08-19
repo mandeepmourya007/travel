@@ -17,6 +17,7 @@ import { NotificationService } from '../services/notification.service'
 import { NOTIFICATION_TYPE, REFUND_CLIFF_DAYS } from '@shared/constants'
 import { BOOKING_STATUS } from '@shared/constants/booking-status'
 import { NORMALIZED_ORDER_STATUS, WALLET_EXPIRY_WARN_DAYS, NODE_ENV } from './constants'
+import { env } from '../config/env'
 import { TrendingScoreService } from '../services/trending/trending-score.service'
 
 // ── Intervals (ms) ───────────────────────────────────
@@ -653,8 +654,14 @@ export function startCronJobs(deps: {
         () => updateTrendingScores(deps.trendingScoreService))),
       TWO_HOURS,
     ),
-    // Render free tier spins down after 15 min — ping ourselves every 14 min to stay awake
-    setInterval(keepAlive, FOURTEEN_MINUTES),
+    // Render free tier spins down after 15 min — ping ourselves every 14 min to stay awake.
+    // Opt-in via ENABLE_KEEP_ALIVE_PING (default false): this ping hits /health, which
+    // queries Postgres, and on a Neon free-tier database that constant traffic defeats
+    // Neon's own compute autosuspend — burning through the monthly compute-hour budget
+    // even when real user traffic is near zero. Leave disabled unless Render cold-starts
+    // are worse for your traffic pattern than the Neon compute-hour cost. keepAlive()
+    // itself still re-checks RENDER_EXTERNAL_URL + NODE_ENV as a second guard below.
+    ...(env.ENABLE_KEEP_ALIVE_PING ? [setInterval(keepAlive, FOURTEEN_MINUTES)] : []),
   ]
 
   return () => {
