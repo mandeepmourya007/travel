@@ -157,7 +157,7 @@ export function Header() {
             height={isProduction ? 70 : 28}
             priority
             aria-hidden="true"
-            className={isProduction ? 'h-9 w-auto sm:h-10 md:h-12 lg:h-14' : undefined}
+            className={isProduction ? 'h-12 w-auto sm:h-14 md:h-16 lg:h-[4.5rem]' : undefined}
           />
           {!isProduction && (
             <span className="font-display text-xl font-bold text-primary-600">{APP_NAME}</span>
