@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Search,
   Menu,
@@ -23,6 +23,7 @@ import {
   Gift,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
+import { useSearchStore } from '@/store/search.store'
 import { useProfile } from '@/hooks/use-profile'
 import { useLogout } from '@/hooks/use-logout'
 import { APP_NAME, isProduction } from '@/lib/constants'
@@ -111,15 +112,11 @@ export function Header() {
   const { data: profile } = useProfile()
   const isReseller = !!profile?.isReseller
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-
-  // Populate search input on mount — Header remounts on cross-layout navigation
-  // (AppShell is per-layout, not in root layout), so useState('') would otherwise
-  // lose the query when navigating e.g. home → /trips?q=goa.
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('q')
-    if (q) setSearchQuery(q)
-  }, [])
+  // Shared with the /trips filter panel via the search store (not local state):
+  // Header remounts on cross-layout navigation, and the filter panel keeps the
+  // store in sync with the URL `q`.
+  const searchQuery = useSearchStore((s) => s.query)
+  const setSearchQuery = useSearchStore((s) => s.setQuery)
 
   function closeMobileMenu() {
     setMobileMenuOpen(false)

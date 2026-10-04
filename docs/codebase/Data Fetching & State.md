@@ -70,6 +70,7 @@ Server-side uses `API_URL_INTERNAL || NEXT_PUBLIC_API_URL` (Docker-internal URL)
 | `connection.store.ts` | `isServerDown`, `lastFailedAt`, `markDown/markUp` |
 | `loading.store.ts` | Global blocking loader (`isLoading`, `message`, `_pinned`, `epoch`) |
 | `notification.store.ts` | Unread count + recent notifications |
+| `search.store.ts` | Shared free-text search `query` (+ `setQuery`, `reset`) shown in both the header search bar and the `/trips` filter panel — not persisted; survives Header remounts; it is the staged `q` of the `/trips` filter panel, which is **apply-only** — `TripFilters` stages search/destination/trip type/price/sort locally and pushes to the URL only on "Apply Filters" (or Enter); it re-seeds staged values + this store from the URL on mount and external URL changes (skipping the echo of its own push) |
 
 **React Context**: `CompareQueueProvider` (`use-compare-queue.tsx`) for trip comparison, plus `ToastProvider` and `GoogleOAuthProvider` in `providers.tsx`.
 

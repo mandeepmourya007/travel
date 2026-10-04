@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, usePathname, useRouter } from 'next/navigation'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useIsFetching } from '@tanstack/react-query'
 import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react'
 import { tripKeys } from '@/lib/query-keys'
@@ -9,7 +9,7 @@ import { NumberInput } from '@/components/shared/number-input'
 import { PriceRangeSlider } from '@/components/shared/price-range-slider'
 import { useDestinations } from '@/hooks/use-destinations'
 import { useTripCategories } from '@/hooks/use-trip-categories'
-import { useDebounce } from '@/hooks/use-debounce'
+import { useSearchStore } from '@/store/search.store'
 import type { TripFilters as TripFiltersType } from '@shared/types/trip.types'
 const PRICE_MIN = 0
 const PRICE_MAX = 90000
@@ -27,6 +27,58 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Top Rated' },
   { value: 'popularity', label: 'Most Popular' },
 ] as const
+
+const DEFAULT_SORT: SortValue = 'newest'
+
+/** URL search-param keys owned by the filter panel. */
+const FILTER_PARAM = {
+  Q: 'q',
+  DESTINATION_ID: 'destinationId',
+  TRIP_TYPE: 'tripType',
+  MIN_PRICE: 'minPrice',
+  MAX_PRICE: 'maxPrice',
+  SORT: 'sort',
+  PAGE: 'page',
+} as const
+
+const LABEL_APPLY = 'Apply Filters'
+const LABEL_CLEAR = 'Clear Filters'
+const LABEL_CLEAR_SHORT = 'Clear'
+const LABEL_UNAPPLIED = 'You have unapplied changes'
+
+type SortValue = (typeof SORT_OPTIONS)[number]['value']
+
+/** Filter-panel values that are staged locally until "Apply Filters". `q` lives in the shared search store. */
+interface StagedFilters {
+  destinationId: string
+  tripType: string
+  minPrice: string
+  maxPrice: string
+  sort: string
+}
+
+const EMPTY_STAGED: StagedFilters = {
+  destinationId: '',
+  tripType: '',
+  minPrice: '',
+  maxPrice: '',
+  sort: DEFAULT_SORT,
+}
+
+function stagedFromFilters(f: TripFiltersType): StagedFilters {
+  return {
+    destinationId: f.destinationId || '',
+    tripType: f.tripType || '',
+    minPrice: f.minPrice?.toString() || '',
+    maxPrice: f.maxPrice?.toString() || '',
+    sort: f.sort || DEFAULT_SORT,
+  }
+}
+
+/** Normalised identity of a full filter set — used for dirty checks and echo detection. */
+function filtersKey(q: string, s: StagedFilters): string {
+  return JSON.stringify([q.trim(), s.destinationId, s.tripType, s.minPrice, s.maxPrice, s.sort || DEFAULT_SORT])
+}
 
 interface TripFiltersProps {
   currentFilters: TripFiltersType
@@ -48,50 +100,59 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
   const { data: destinations } = useDestinations()
   const { data: tripCategories } = useTripCategories()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [localSearch, setLocalSearch] = useState(currentFilters.q || '')
-  const [localMinPrice, setLocalMinPrice] = useState(currentFilters.minPrice?.toString() || '')
-  const [localMaxPrice, setLocalMaxPrice] = useState(currentFilters.maxPrice?.toString() || '')
-  const debouncedSearch = useDebounce(localSearch, 400)
-  const debouncedMin = useDebounce(localMinPrice, 500)
-  const debouncedMax = useDebounce(localMaxPrice, 500)
+  // Search text is shared with the header search bar (both show the same value)
+  // and is the staged `q` — it only reaches the URL on Apply.
+  const localSearch = useSearchStore((s) => s.query)
+  const setLocalSearch = useSearchStore((s) => s.setQuery)
+  const resetSearch = useSearchStore((s) => s.reset)
+  const [staged, setStaged] = useState<StagedFilters>(() => stagedFromFilters(currentFilters))
+
+  const setStagedField = useCallback(<K extends keyof StagedFilters>(key: K, value: StagedFilters[K]) => {
+    setStaged((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const appliedStaged = useMemo(
+    () => stagedFromFilters(currentFilters),
+    [
+      currentFilters.destinationId,
+      currentFilters.tripType,
+      currentFilters.minPrice,
+      currentFilters.maxPrice,
+      currentFilters.sort,
+    ],
+  )
+  const appliedQ = currentFilters.q || ''
+  const appliedKey = filtersKey(appliedQ, appliedStaged)
+  const isDirty = filtersKey(localSearch, staged) !== appliedKey
 
   // Derive the slider [low, high] from the string inputs; clamp to [PRICE_MIN, PRICE_MAX].
   const sliderValue: [number, number] = [
-    clampPrice(localMinPrice ? Number(localMinPrice) : PRICE_MIN),
-    clampPrice(localMaxPrice ? Number(localMaxPrice) : PRICE_MAX),
+    clampPrice(staged.minPrice ? Number(staged.minPrice) : PRICE_MIN),
+    clampPrice(staged.maxPrice ? Number(staged.maxPrice) : PRICE_MAX),
   ]
 
   // Slider → inputs: treat the bounds as "no filter" (empty string) so the URL stays clean.
   const handleSliderChange = useCallback(([lo, hi]: [number, number]) => {
-    setLocalMinPrice(lo <= PRICE_MIN ? '' : String(lo))
-    setLocalMaxPrice(hi >= PRICE_MAX ? '' : String(hi))
+    setStaged((prev) => ({
+      ...prev,
+      minPrice: lo <= PRICE_MIN ? '' : String(lo),
+      maxPrice: hi >= PRICE_MAX ? '' : String(hi),
+    }))
   }, [])
 
-  const isInitialMount = useRef(true)
-  const isSearchInitialMount = useRef(true)
+  // Key of the filter set we last pushed, until its URL echo arrives. The echo must
+  // not re-seed staged values (the user may already be editing again, and the pushed
+  // `q` is trimmed). Any other URL change is external and re-seeds everything.
+  const pendingPushKeyRef = useRef<string | null>(null)
   const searchParamsRef = useRef(searchParams)
   searchParamsRef.current = searchParams
+  const currentFiltersRef = useRef(currentFilters)
+  currentFiltersRef.current = currentFilters
 
   // Clear localPending once the fetch completes
   useEffect(() => {
     if (!isFetchingTrips) setLocalPending(false)
   }, [isFetchingTrips])
-
-  const updateFilters = useCallback(
-    (key: string, value: string | undefined) => {
-      markPending()
-      const params = new URLSearchParams(searchParams.toString())
-      if (value) {
-        params.set(key, value)
-      } else {
-        params.delete(key)
-      }
-      params.delete('page')
-      const query = params.toString()
-      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
-    },
-    [pathname, router, searchParams],
-  )
 
   useEffect(() => {
     if (mobileOpen) {
@@ -102,59 +163,77 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
     }
   }, [mobileOpen])
 
-  // Sync the filter input when q is changed externally (e.g. header search navigation).
-  // Loop prevention is handled by the debounce skip check below.
+  // URL → staged values: on mount (fresh load) and on external URL changes
+  // (header Enter, hero search, back/forward). Skips the echo of our own push.
   useEffect(() => {
-    setLocalSearch(currentFilters.q || '')
-  }, [currentFilters.q])
-
-  useEffect(() => {
-    if (isSearchInitialMount.current) {
-      isSearchInitialMount.current = false
+    if (pendingPushKeyRef.current === appliedKey) {
+      pendingPushKeyRef.current = null
       return
     }
-    // Skip if the URL already has this value (avoids redundant push after external sync)
-    if (debouncedSearch.trim() === (searchParamsRef.current.get('q') ?? '')) return
-    markPending()
-    const params = new URLSearchParams(searchParamsRef.current.toString())
-    debouncedSearch.trim() ? params.set('q', debouncedSearch.trim()) : params.delete('q')
-    params.delete('page')
-    const query = params.toString()
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
-  }, [debouncedSearch, pathname, router])
+    pendingPushKeyRef.current = null
+    setStaged(stagedFromFilters(currentFiltersRef.current))
+    setLocalSearch(currentFiltersRef.current.q || '')
+  }, [appliedKey, setLocalSearch])
 
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-    markPending()
-    const params = new URLSearchParams(searchParamsRef.current.toString())
-    debouncedMin ? params.set('minPrice', debouncedMin) : params.delete('minPrice')
-    debouncedMax ? params.set('maxPrice', debouncedMax) : params.delete('maxPrice')
-    params.delete('page')
-    const query = params.toString()
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
-  }, [debouncedMin, debouncedMax, pathname, router])
+  const pushFilters = useCallback(
+    (q: string, values: StagedFilters) => {
+      const params = new URLSearchParams(searchParamsRef.current.toString())
+      const entries: [string, string][] = [
+        [FILTER_PARAM.Q, q.trim()],
+        [FILTER_PARAM.DESTINATION_ID, values.destinationId],
+        [FILTER_PARAM.TRIP_TYPE, values.tripType],
+        [FILTER_PARAM.MIN_PRICE, values.minPrice],
+        [FILTER_PARAM.MAX_PRICE, values.maxPrice],
+        [FILTER_PARAM.SORT, values.sort === DEFAULT_SORT ? '' : values.sort],
+      ]
+      for (const [key, value] of entries) {
+        if (value) params.set(key, value)
+        else params.delete(key)
+      }
+      params.delete(FILTER_PARAM.PAGE)
+      pendingPushKeyRef.current = filtersKey(q, values)
+      markPending()
+      const query = params.toString()
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    },
+    [markPending, pathname, router],
+  )
 
-  const clearFilters = useCallback(() => {
-    markPending()
-    setLocalSearch('')
-    setLocalMinPrice('')
-    setLocalMaxPrice('')
-    router.push(pathname, { scroll: false })
-  }, [pathname, router])
+  const applyFilters = useCallback(
+    (e?: React.FormEvent) => {
+      e?.preventDefault()
+      setMobileOpen(false)
+      if (!isDirty) return
+      pushFilters(localSearch, staged)
+    },
+    [isDirty, localSearch, pushFilters, staged],
+  )
 
-  const hasActiveFilters =
+  const hasActiveFilters = Boolean(
     currentFilters.q ||
-    currentFilters.destinationId ||
-    currentFilters.tripType ||
-    currentFilters.minPrice ||
-    currentFilters.maxPrice
+      currentFilters.destinationId ||
+      currentFilters.tripType ||
+      currentFilters.minPrice ||
+      currentFilters.maxPrice ||
+      (currentFilters.sort && currentFilters.sort !== DEFAULT_SORT),
+  )
+  const showClear = hasActiveFilters || isDirty
 
-  const filterContent = (
+  // Resets staged values, the shared search text (header too) and — if anything
+  // is applied — the URL, immediately.
+  const clearFilters = useCallback(() => {
+    setStaged(EMPTY_STAGED)
+    resetSearch()
+    setMobileOpen(false)
+    if (!hasActiveFilters) return
+    pendingPushKeyRef.current = filtersKey('', EMPTY_STAGED)
+    markPending()
+    router.push(pathname, { scroll: false })
+  }, [hasActiveFilters, markPending, pathname, resetSearch, router])
+
+  const filterFields = (
     <div className="space-y-5">
-      {/* Free-text search */}
+      {/* Free-text search — Enter submits the surrounding form (= Apply) */}
       <div>
         <label htmlFor="filter-search" className="block text-sm font-semibold text-neutral-700 mb-2">
           Search
@@ -188,8 +267,9 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           Destination
         </label>
         <select
-          value={currentFilters.destinationId || ''}
-          onChange={(e) => updateFilters('destinationId', e.target.value || undefined)}
+          aria-label="Destination"
+          value={staged.destinationId}
+          onChange={(e) => setStagedField('destinationId', e.target.value)}
           className="input text-sm"
         >
           <option value="">All Destinations</option>
@@ -210,11 +290,13 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           {tripCategories?.map((cat) => (
             <button
               key={cat.value}
+              type="button"
+              aria-pressed={staged.tripType === cat.value}
               onClick={() =>
-                updateFilters('tripType', currentFilters.tripType === cat.value ? undefined : cat.value)
+                setStagedField('tripType', staged.tripType === cat.value ? '' : cat.value)
               }
               className={
-                currentFilters.tripType === cat.value
+                staged.tripType === cat.value
                   ? 'badge bg-primary-500 text-white'
                   : 'badge bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
               }
@@ -242,8 +324,8 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           <NumberInput
             id="filter-min-price"
             placeholder="Min"
-            value={localMinPrice}
-            onChange={setLocalMinPrice}
+            value={staged.minPrice}
+            onChange={(v) => setStagedField('minPrice', v)}
             min={0}
             className="w-24"
             inputClassName="text-sm"
@@ -252,8 +334,8 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           <NumberInput
             id="filter-max-price"
             placeholder="Max"
-            value={localMaxPrice}
-            onChange={setLocalMaxPrice}
+            value={staged.maxPrice}
+            onChange={(v) => setStagedField('maxPrice', v)}
             min={0}
             className="w-24"
             inputClassName="text-sm"
@@ -267,8 +349,9 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           Sort By
         </label>
         <select
-          value={currentFilters.sort || 'newest'}
-          onChange={(e) => updateFilters('sort', e.target.value)}
+          aria-label="Sort By"
+          value={staged.sort}
+          onChange={(e) => setStagedField('sort', e.target.value)}
           className="input text-sm"
         >
           {SORT_OPTIONS.map((opt) => (
@@ -278,13 +361,34 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
           ))}
         </select>
       </div>
+    </div>
+  )
 
-      {/* Clear */}
-      {hasActiveFilters && (
-        <button onClick={clearFilters} className="btn-ghost text-sm text-accent-600 w-full">
-          Clear All Filters
-        </button>
+  const filterActions = (
+    <div className="space-y-2">
+      {isDirty && (
+        <p className="text-xs text-neutral-500" role="status">
+          {LABEL_UNAPPLIED}
+        </p>
       )}
+      <div className="flex gap-2">
+        {showClear && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="btn-secondary flex-1 px-3 py-2.5 text-sm"
+          >
+            {LABEL_CLEAR}
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={!isDirty}
+          className="btn-primary flex-1 px-3 py-2.5 text-sm disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+        >
+          {LABEL_APPLY}
+        </button>
+      </div>
     </div>
   )
 
@@ -305,33 +409,47 @@ export function TripFilters({ currentFilters, onFilterChange }: TripFiltersProps
         ) : null}
       </button>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — fields scroll, actions stay pinned in the footer */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/30" onClick={() => setMobileOpen(false)} />
-          <div className="relative ml-auto w-4/5 max-w-80 bg-white p-6 shadow-lg overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+          <form
+            onSubmit={applyFilters}
+            className="relative ml-auto flex w-4/5 max-w-80 flex-col bg-white shadow-lg"
+          >
+            <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <h3 className="font-display text-lg font-bold text-neutral-800 flex items-center gap-2">
                 Filters
                 {showLoader && <Loader2 className="h-4 w-4 animate-spin text-primary-500" />}
               </h3>
-              <button onClick={() => setMobileOpen(false)} aria-label="Close filters">
+              <button type="button" onClick={() => setMobileOpen(false)} aria-label="Close filters">
                 <X className="h-5 w-5 text-neutral-500" />
               </button>
             </div>
-            {filterContent}
-          </div>
+            <div className="flex-1 overflow-y-auto px-6 pb-4">{filterFields}</div>
+            <div className="border-t border-neutral-100 bg-white px-6 py-4">{filterActions}</div>
+          </form>
         </div>
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <form onSubmit={applyFilters} className="hidden lg:block">
         <div className="flex items-center gap-2 mb-4">
           <h3 className="font-display text-base font-bold text-neutral-800">Filters</h3>
           {showLoader && <Loader2 className="h-4 w-4 animate-spin text-primary-500" />}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="ml-auto text-xs font-medium text-accent-600 hover:text-accent-700"
+            >
+              {LABEL_CLEAR_SHORT}
+            </button>
+          )}
         </div>
-        {filterContent}
-      </div>
+        {filterFields}
+        <div className="mt-5">{filterActions}</div>
+      </form>
     </>
   )
 }
